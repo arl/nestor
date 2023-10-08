@@ -8,10 +8,7 @@ import (
 )
 
 func TestRomOpen(t *testing.T) {
-	// Test roms come from:
-	// https://github.com/christopherpow/nes-test-roms/tree/master/instr_test-v5/rom_singles
-
-	dir := filepath.Join("..", "testdata", "test-roms", "instr_test-v5", "rom_singles")
+	dir := filepath.Join("..", "testdata", "nes-test-roms", "instr_test-v5", "rom_singles")
 	paths := []string{
 		"01-basics.nes",
 		"02-implied.nes",
