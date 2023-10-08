@@ -4,7 +4,6 @@ package ines
 
 import (
 	"fmt"
-	"io"
 	"os"
 )
 
@@ -15,39 +14,35 @@ type Rom struct {
 	CHR     []byte // CHR is PRG ROM data (length is multiples of 8k)
 }
 
-// Open loads a rom from file.
-func Open(path string) (*Rom, error) {
-	f, err := os.Open(path)
+// LoadCartridge loads a rom from an iNES file.
+func LoadCartridge(path string) (*Rom, error) {
+	buf, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
 
-	rom := new(Rom)
-	if _, err := rom.ReadFrom(f); err != nil {
+	rom, err := Decode(buf)
+	if err != nil {
 		return nil, err
 	}
 	return rom, nil
 }
 
-// ReadFrom implements io.ReaderFrom interface
-func (rom *Rom) ReadFrom(r io.Reader) (int64, error) {
-	buf, err := io.ReadAll(r)
-	if err != nil {
-		return 0, err
-	}
+// Decode the give buffer into a rom file.
+func Decode(buf []byte) (*Rom, error) {
+	rom := new(Rom)
 
 	// header
 	var off int
-	if err := rom.decode(buf); err != nil {
-		return 0, fmt.Errorf("failed to decode header: %w", err)
+	if err := rom.header.decode(buf); err != nil {
+		return nil, fmt.Errorf("failed to decode header: %w", err)
 	}
 	off += 16
 
 	// trainer
 	if rom.HasTrainer() {
 		if len(buf) < off+512 {
-			return 0, fmt.Errorf("incomplete TRAINER section")
+			return nil, fmt.Errorf("incomplete TRAINER section")
 		}
 		rom.Trainer = buf[off : off+512]
 		off += 512
@@ -55,19 +50,19 @@ func (rom *Rom) ReadFrom(r io.Reader) (int64, error) {
 
 	// PRG rom data
 	if len(buf) < off+rom.prgsz {
-		return 0, fmt.Errorf("incomplete PRG section")
+		return nil, fmt.Errorf("incomplete PRG section")
 	}
 	rom.PRG = buf[off : off+rom.prgsz]
 	off += rom.prgsz
 
 	// CHR rom data
 	if len(buf) < off+rom.chrsz {
-		return 0, fmt.Errorf("incomplete CHR section")
+		return nil, fmt.Errorf("incomplete CHR section")
 	}
 	rom.CHR = buf[off : off+rom.chrsz]
 	off += rom.chrsz
 
-	return int64(len(buf)), nil
+	return rom, nil
 }
 
 const Magic = "NES\x1a"

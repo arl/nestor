@@ -30,11 +30,11 @@ func TestRomOpen(t *testing.T) {
 
 	for _, path := range paths {
 		t.Run(path, func(t *testing.T) {
-			rom, err := Open(filepath.Join(dir, path))
+			rom, err := LoadCartridge(filepath.Join(dir, path))
 			if err != nil {
 				t.Fatal(err)
 			}
-			t.Logf("%+v", rom)
+			_ = rom
 		})
 	}
 }
