@@ -15,10 +15,10 @@ func main() {
 	}
 
 	path := flag.Arg(0)
-	cart, err := ines.LoadCartridge(path)
+	cartridge, err := ines.ReadRom(path)
 	checkf(err, "failed to open rom %s", path)
 
-	nes, err := startNES(cart)
+	nes, err := startNES(cartridge)
 	checkf(err, "failed to start nes")
 
 	_ = nes

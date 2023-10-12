@@ -14,8 +14,8 @@ type Rom struct {
 	CHR     []byte // CHR is PRG ROM data (length is multiples of 8k)
 }
 
-// LoadCartridge loads a rom from an iNES file.
-func LoadCartridge(path string) (*Rom, error) {
+// ReadRom loads a rom from an iNES file.
+func ReadRom(path string) (*Rom, error) {
 	buf, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
