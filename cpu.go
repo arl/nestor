@@ -1,44 +1,62 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"nestor/ines"
 )
 
+// https://www.nesdev.org/wiki/CPU_memory_map
 type CPU struct {
-	bus Bus
-
-	A  uint8
-	X  uint8
-	Y  uint8
-	SP uint8
-	PC uint16
-	P  P
+	bus *Bus
+	A   uint8
+	X   uint8
+	Y   uint8
+	SP  uint8
+	PC  uint16
+	P   P
 }
 
 func NewCPU() *CPU {
 	return &CPU{
-		A:  0x00,
-		X:  0x00,
-		Y:  0x00,
-		SP: 0xFD,
-		P:  0x34,
-		PC: 0x0000,
+		bus: NewBus("cpu"),
+		A:   0x00,
+		X:   0x00,
+		Y:   0x00,
+		SP:  0xFD,
+		P:   0x34,
+		PC:  0x0000,
 	}
 }
 
-func (c *CPU) LoadCartridge(cart *ines.Rom) {
-	c.reset()
+func (c *CPU) MapMemory(cart *ines.Rom) {
+	// RAM is 0x800 bytes, mirrored.
+	ram := make([]byte, 0x0800)
+	c.bus.MapSlice(0x0000, 0x07FF, ram)
+	c.bus.MapSlice(0x0800, 0x0FFF, ram)
+	c.bus.MapSlice(0x1000, 0x17FF, ram)
+	c.bus.MapSlice(0x1800, 0x1FFF, ram)
 }
 
 func (c *CPU) reset() {
-	// Load the reset vector.
-	pclo := uint16(c.bus.Read8(0xFFFC))
-	pchi := uint16(c.bus.Read8(0xFFFD))
-	c.PC = pchi<<8 | pclo
+	// Load reset vector.
+	c.PC = uint16(c.bus.Read8(0xFFFD))<<8 | uint16(c.bus.Read8(0xFFFC))
+	c.SP = 0xFD
 }
 
+func (c *CPU) Run() {
+	buf := make([]byte, 32)
+	for i := range buf {
+		buf[i] = c.bus.Read8(uint32(c.PC))
+		c.PC++
+	}
+
+	fmt.Println(hex.Dump(buf[:]))
+}
+
+// P is the 6502  Processor Status Register
+// doc https://codebase64.org/doku.php?id=base:6502_registers
 type P uint8
 
 func (p *P) clear() {

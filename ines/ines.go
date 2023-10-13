@@ -9,9 +9,9 @@ import (
 
 type Rom struct {
 	header
-	Trainer []byte // Trainer, 512 bytes if present, or empty.
-	PRG     []byte // PRG is PRG ROM data (length is multiples of 16k)
-	CHR     []byte // CHR is PRG ROM data (length is multiples of 8k)
+	Trainer []uint8 // Trainer, 512 bytes if present, or empty.
+	PRGROM  []uint8 // PRG is PRG ROM data (size is a multiple of 16k)
+	CHRROM  []uint8 // CHR is PRG ROM data (size is a multiple of 8k)
 }
 
 // ReadRom loads a rom from an iNES file.
@@ -52,14 +52,14 @@ func Decode(buf []byte) (*Rom, error) {
 	if len(buf) < off+rom.prgsz {
 		return nil, fmt.Errorf("incomplete PRG section")
 	}
-	rom.PRG = buf[off : off+rom.prgsz]
+	rom.PRGROM = buf[off : off+rom.prgsz]
 	off += rom.prgsz
 
 	// CHR rom data
 	if len(buf) < off+rom.chrsz {
 		return nil, fmt.Errorf("incomplete CHR section")
 	}
-	rom.CHR = buf[off : off+rom.chrsz]
+	rom.CHRROM = buf[off : off+rom.chrsz]
 	off += rom.chrsz
 
 	return rom, nil

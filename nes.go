@@ -1,14 +1,29 @@
 package main
 
-import "nestor/ines"
+import (
+	"log"
+	"nestor/ines"
+)
 
 type NES struct {
-	cart *ines.Rom
+	CPU *CPU
 }
 
 func startNES(rom *ines.Rom) (*NES, error) {
 	nes := &NES{
-		cart: rom,
+		CPU: NewCPU(),
 	}
+
+	nes.CPU.MapMemory(rom)
+
+	// Only handle mapper 000 (NROM) for now.
+	if rom.Mapper() != 0 {
+		log.Fatalf("only mapper 000 supported")
+	}
+	loadMapper000(rom, nes)
+
+	nes.CPU.reset()
+	nes.CPU.Run()
+
 	return nes, nil
 }
