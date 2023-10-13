@@ -36,24 +36,29 @@ func (mmap *MemMap) Reset() {
 }
 
 // MapSlice maps a slice at a given range.
-func (mmap *MemMap) MapSlice(addr, end uint32, buf []byte) error {
-	return mmap.addrs.InsertRange(addr, end, &memRegion{
-		buf:   buf,
-		start: addr,
-		vsize: end - addr + 1,
-	})
+func (mmap *MemMap) MapSlice(addr, end uint32, buf []byte) {
+	if len(buf)&(len(buf)-1) != 0 {
+		panic("mapped buffer size must be a power of 2")
+	}
+	if err := mmap.addrs.InsertRange(addr, end, &MemRegion{
+		Buf:   buf,
+		mask:  uint32(len(buf) - 1),
+		VSize: int(end - addr + 1),
+	}); err != nil {
+		panic(err)
+	}
 }
 
-type memRegion struct {
-	buf   []byte // mapped buffer
-	start uint32 // start address
-	vsize uint32 // virtual size (size of the mapped range)
+type MemRegion struct {
+	Buf   []byte // mapped buffer
+	VSize int    // virtual size (size of the mapped range)
+	mask  uint32
 }
 
-func (mr *memRegion) Read8(addr uint32) uint8 {
-	return mr.buf[addr-mr.start]
+func (mr *MemRegion) Read8(addr uint32) uint8 {
+	return mr.Buf[addr&mr.mask]
 }
 
-func (mr *memRegion) Write8(addr uint32, val uint8) {
-	mr.buf[addr-mr.start] = val
+func (mr *MemRegion) Write8(addr uint32, val uint8) {
+	mr.Buf[addr&mr.mask] = val
 }
