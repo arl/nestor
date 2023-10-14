@@ -7,6 +7,7 @@ var opCodes = [255]func(cpu *CPU){
 	0x6C: JMPind,
 	0x78: SEI,
 	0x8D: STAabs,
+	0xA9: LDAimm,
 }
 
 var disasmCodes = [255]func(cpu *CPU) string{
@@ -14,11 +15,12 @@ var disasmCodes = [255]func(cpu *CPU) string{
 	0x6C: JMPindDisasm,
 	0x78: SEIDisasm,
 	0x8D: STAabsDisasm,
+	0xA9: LDAimmDisasm,
 }
 
 // 78
 func SEI(cpu *CPU) {
-	cpu.P |= pI
+	cpu.P |= 1 << pbitI
 	cpu.Clock += 2
 	cpu.PC += 1
 }
@@ -29,20 +31,20 @@ func SEIDisasm(cpu *CPU) string {
 
 // 4C
 func JMPabs(cpu *CPU) {
-	dst := cpu.Read16(uint32(cpu.PC + 1))
-	cpu.PC = dst
+	oper := cpu.Read16(uint32(cpu.PC + 1))
+	cpu.PC = oper
 	cpu.Clock += 3
 }
 
 func JMPabsDisasm(cpu *CPU) string {
-	dst := cpu.Read16(uint32(cpu.PC + 1))
-	return fmt.Sprintf("JMP $%04X", dst)
+	oper := cpu.Read16(uint32(cpu.PC + 1))
+	return fmt.Sprintf("JMP $%04X", oper)
 }
 
 // 6C
 func JMPind(cpu *CPU) {
-	ptr := cpu.Read16(uint32(cpu.PC + 1))
-	dst := cpu.Read16(uint32(ptr))
+	oper := cpu.Read16(uint32(cpu.PC + 1))
+	dst := cpu.Read16(uint32(oper))
 	cpu.PC = dst
 	cpu.Clock += 5
 }
@@ -63,4 +65,18 @@ func STAabs(cpu *CPU) {
 func STAabsDisasm(cpu *CPU) string {
 	oper := cpu.Read16(uint32(cpu.PC + 1))
 	return fmt.Sprintf("STA $%04X", oper)
+}
+
+// A9
+func LDAimm(cpu *CPU) {
+	cpu.A = cpu.Read8(uint32(cpu.PC + 1))
+	cpu.P.maybeSetN(cpu.A)
+	cpu.P.maybeSetZ(cpu.A)
+	cpu.PC += 2
+	cpu.Clock += 2
+}
+
+func LDAimmDisasm(cpu *CPU) string {
+	oper := cpu.Read8(uint32(cpu.PC + 1))
+	return fmt.Sprintf("LDA #$%02X", oper)
 }

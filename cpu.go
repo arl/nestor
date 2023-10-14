@@ -43,7 +43,6 @@ func (c *CPU) MapMemory(cart *ines.Rom) {
 
 func (c *CPU) reset() {
 	// Load reset vector.
-	// c.PC = uint16(c.bus.Read8(0xFFFD))<<8 | uint16(c.bus.Read8(0xFFFC))
 	c.PC = c.Read16(0xFFFC)
 	c.SP = 0xFD
 }
@@ -61,9 +60,19 @@ func (c *CPU) Run(until int64) {
 
 		if disasm {
 			fmt.Printf("%X    %s\n", c.PC, disasmCodes[op](c))
+			fmt.Printf("A:%02X X:%02X Y:%02X SP:%02X\n", c.A, c.X, c.Y, c.SP)
+			fmt.Printf("P:%s\n", c.P)
 		}
 		f(c)
 	}
+}
+
+func (c *CPU) Read8(addr uint32) uint8 {
+	return c.bus.Read8(addr)
+}
+
+func (c *CPU) Write8(addr uint32, val uint8) {
+	c.bus.Write8(addr, val)
 }
 
 func (c *CPU) Read16(addr uint32) uint16 {
@@ -82,24 +91,42 @@ func (p *P) clear() {
 }
 
 const (
-	pN P = 0x80 >> iota // Negative flag
-	pV                  // oVerflow flag
-	_                   // unused
-	pB                  // Break flag
-	pD                  // Decimal mode flag
-	pI                  // Interrupt disable flag
-	pZ                  // Zero flag
-	pC                  // Carry flag
+	pbitN = 7 - iota // Negative flag
+	pbitV            // oVerflow flag
+	_                // unused
+	pbitB            // Break flag
+	pbitD            // Decimal mode flag
+	pbitI            // Interrupt disable flag
+	pbitZ            // Zero flag
+	pbitC            // Carry flag
 
 )
 
-func (p P) N() bool { return p&pN != 0 }
-func (p P) V() bool { return p&pV != 0 }
-func (p P) B() bool { return p&pB != 0 }
-func (p P) D() bool { return p&pD != 0 }
-func (p P) I() bool { return p&pI != 0 }
-func (p P) Z() bool { return p&pZ != 0 }
-func (p P) C() bool { return p&pC != 0 }
+func (p P) N() bool { return p&(1<<pbitN) != 0 }
+func (p P) V() bool { return p&(1<<pbitV) != 0 }
+func (p P) B() bool { return p&(1<<pbitB) != 0 }
+func (p P) D() bool { return p&(1<<pbitD) != 0 }
+func (p P) I() bool { return p&(1<<pbitI) != 0 }
+func (p P) Z() bool { return p&(1<<pbitZ) != 0 }
+func (p P) C() bool { return p&(1<<pbitC) != 0 }
+
+// sets N flag if bit 7 of v is set
+func (p *P) maybeSetN(v uint8) {
+	if v&(1<<7) != 0 {
+		*p |= P(1 << pbitN)
+	} else {
+		*p &= ^(1 << pbitN) & 0xff
+	}
+}
+
+// sets Z flag if v is 0
+func (p *P) maybeSetZ(v uint8) {
+	if v == 0 {
+		*p |= P(1 << pbitZ)
+	} else {
+		*p &= ^(1 << pbitZ) & 0xff
+	}
+}
 
 func (p P) String() string {
 	return fmt.Sprintf("0x%x N%d V%d _ B%d D%d I%d Z%d C%d", uint8(p),
