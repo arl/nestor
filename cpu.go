@@ -64,17 +64,28 @@ func (p *P) clear() {
 	*p = 0x40
 }
 
-func (p P) N() bool      { return p&0x80 != 0 } // Negative flag
-func (p P) V() bool      { return p&0x40 != 0 } // oVerflow flag
-func (p P) unused() bool { return true }        // always 1
-func (p P) B() bool      { return p&0x10 != 0 } // Break flag
-func (p P) D() bool      { return p&0x08 != 0 } // Decimal mode flag
-func (p P) I() bool      { return p&0x04 != 0 } // Interrupt disable flag
-func (p P) Z() bool      { return p&0x02 != 0 } // Zero flag
-func (p P) C() bool      { return p&0x01 != 0 } // Carry flag
+const (
+	pN P = 0x80 >> iota // Negative flag
+	pV                  // oVerflow flag
+	_                   // unused
+	pB                  // Break flag
+	pD                  // Decimal mode flag
+	pI                  // Interrupt disable flag
+	pZ                  // Zero flag
+	pC                  // Carry flag
+
+)
+
+func (p P) N() bool { return p&pN != 0 }
+func (p P) V() bool { return p&pV != 0 }
+func (p P) B() bool { return p&pB != 0 }
+func (p P) D() bool { return p&pD != 0 }
+func (p P) I() bool { return p&pI != 0 }
+func (p P) Z() bool { return p&pZ != 0 }
+func (p P) C() bool { return p&pC != 0 }
 
 func (p P) String() string {
-	return fmt.Sprintf("0x%x N:%d V:%d B:%d D:%d I:%d Z:%d C:%d\n", uint8(p),
+	return fmt.Sprintf("0x%x N%d V%d _ B%d D%d I%d Z%d C%d", uint8(p),
 		b2i(p.N()), b2i(p.V()), b2i(p.B()), b2i(p.D()), b2i(p.I()), b2i(p.Z()), b2i(p.C()))
 }
 
