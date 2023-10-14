@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"nestor/ines"
@@ -16,6 +15,9 @@ type CPU struct {
 	SP  uint8
 	PC  uint16
 	P   P
+
+	Clock        int64 // cycles
+	targetCycles int64
 }
 
 func NewCPU() *CPU {
@@ -41,18 +43,33 @@ func (c *CPU) MapMemory(cart *ines.Rom) {
 
 func (c *CPU) reset() {
 	// Load reset vector.
-	c.PC = uint16(c.bus.Read8(0xFFFD))<<8 | uint16(c.bus.Read8(0xFFFC))
+	// c.PC = uint16(c.bus.Read8(0xFFFD))<<8 | uint16(c.bus.Read8(0xFFFC))
+	c.PC = c.Read16(0xFFFC)
 	c.SP = 0xFD
 }
 
-func (c *CPU) Run() {
-	buf := make([]byte, 32)
-	for i := range buf {
-		buf[i] = c.bus.Read8(uint32(c.PC))
-		c.PC++
-	}
+const disasm = true
 
-	fmt.Println(hex.Dump(buf[:]))
+func (c *CPU) Run(until int64) {
+	c.targetCycles = until
+	for c.Clock < c.targetCycles {
+		op := c.bus.Read8(uint32(c.PC))
+		f := opCodes[op]
+		if f == nil {
+			panic(fmt.Sprintf("unsupported op code %02X (PC:$%04X)", op, c.PC))
+		}
+
+		if disasm {
+			fmt.Printf("%X    %s\n", c.PC, disasmCodes[op](c))
+		}
+		f(c)
+	}
+}
+
+func (c *CPU) Read16(addr uint32) uint16 {
+	lo := c.bus.Read8(addr)
+	hi := c.bus.Read8(addr + 1)
+	return uint16(hi)<<8 | uint16(lo)
 }
 
 // P is the 6502  Processor Status Register

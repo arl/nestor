@@ -22,8 +22,12 @@ func startNES(rom *ines.Rom) (*NES, error) {
 	}
 	loadMapper000(rom, nes)
 
+	if disasm {
+
+	}
+
 	nes.CPU.reset()
-	nes.CPU.Run()
+	nes.CPU.Run(32) // debug: run 32 cycles
 
 	return nes, nil
 }
