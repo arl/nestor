@@ -11,6 +11,7 @@ var opCodes = [255]func(cpu *CPU){
 	0x8E: STXabs,
 	0x84: STYzer,
 	0x86: STXzer,
+	0x91: STAindy,
 	0x9A: TXS,
 	0xA0: LDYimm,
 	0xA2: LDXimm,
@@ -28,6 +29,7 @@ var disasmCodes = [255]func(cpu *CPU) string{
 	0x8E: STXabsDisasm,
 	0x84: STYzerDisasm,
 	0x86: STXzerDisasm,
+	0x91: STAindyDisasm,
 	0x9A: TXSDisasm,
 	0xA0: LDYimmDisasm,
 	0xA2: LDXimmDisasm,
@@ -41,7 +43,7 @@ func JSR(cpu *CPU) {
 	// Get jump address
 	oper := cpu.Read16(uint32(cpu.PC + 1))
 
-	// Push return address the stack
+	// Push return address on the stack
 	ret := cpu.PC + 3
 	actualSP := uint32(cpu.SP) + 0x0100
 	cpu.Write16(actualSP, ret)
@@ -141,6 +143,22 @@ func STXzer(cpu *CPU) {
 func STXzerDisasm(cpu *CPU) string {
 	oper := cpu.Read8(uint32(cpu.PC + 1))
 	return fmt.Sprintf("STX %02X", oper)
+}
+
+// 91
+func STAindy(cpu *CPU) {
+	// Read from the zero page
+	oper := cpu.Read8(uint32(cpu.PC + 1))
+	addr := uint16(oper)
+	addr += uint16(cpu.Y)
+	cpu.bus.Write8(uint32(addr), cpu.A)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
+func STAindyDisasm(cpu *CPU) string {
+	oper := cpu.Read8(uint32(cpu.PC + 1))
+	return fmt.Sprintf("STA ($%02X),Y", oper)
 }
 
 // 9A
