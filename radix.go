@@ -3,10 +3,11 @@ package main
 import "errors"
 
 const (
-	cRadixWidth = 8
+	cRadixWidth = 4
 
+	cRadixNumBits    = 16 // max address
 	cRadixNumNodes   = 1 << cRadixWidth
-	cRadixStartShift = 32 - cRadixWidth
+	cRadixStartShift = cRadixNumBits - cRadixWidth
 	cRadixMask       = (1 << cRadixWidth) - 1
 )
 
@@ -22,13 +23,13 @@ type radixTree struct {
 	root radixNode
 }
 
-func (t *radixTree) Search(key uint32) any {
+func (t *radixTree) Search(key uint16) any {
 	// CAUTION: this code is really hot, and has been hand-optimized to be as
 	// fast as possible. Evaluate any changes against the generated assembly.
 	var ok bool
 	node := &t.root
 	for {
-		key = (key >> (32 - cRadixWidth)) | (key << cRadixWidth)
+		key = (key >> (cRadixNumBits - cRadixWidth)) | (key << cRadixWidth)
 		c := node.children[key&cRadixMask]
 		if c == nil {
 			return nil
@@ -39,10 +40,10 @@ func (t *radixTree) Search(key uint32) any {
 	}
 }
 
-func (node *radixNode) insert(shift uint, begin, end uint32, v any) error {
+func (node *radixNode) insert(shift uint, begin, end uint16, v any) error {
 	b, e := (begin >> shift), (end >> shift)
 
-	lowmask := ((uint32(1) << shift) - 1)
+	lowmask := ((uint16(1) << shift) - 1)
 	putleaf := false
 	if shift == 0 || (begin&lowmask == 0 && (end+1)&lowmask == 0) {
 		putleaf = true
@@ -82,10 +83,10 @@ func (node *radixNode) insert(shift uint, begin, end uint32, v any) error {
 	return nil
 }
 
-func (node *radixNode) remove(shift uint, begin, end uint32) {
+func (node *radixNode) remove(shift uint, begin, end uint16) {
 	b, e := (begin >> shift), (end >> shift)
 
-	lowmask := ((uint32(1) << shift) - 1)
+	lowmask := ((uint16(1) << shift) - 1)
 	leaf := false
 	if shift == 0 || (begin&lowmask == 0 && (end+1)&lowmask == 0) {
 		leaf = true
@@ -113,10 +114,10 @@ func (node *radixNode) remove(shift uint, begin, end uint32) {
 	}
 }
 
-func (t *radixTree) InsertRange(begin, end uint32, v any) error {
+func (t *radixTree) InsertRange(begin, end uint16, v any) error {
 	return t.root.insert(cRadixStartShift, begin, end, v)
 }
 
-func (t *radixTree) RemoveRange(begin, end uint32) {
+func (t *radixTree) RemoveRange(begin, end uint16) {
 	t.root.remove(cRadixStartShift, begin, end)
 }
