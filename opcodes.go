@@ -41,11 +41,11 @@ var disasmCodes = [255]func(cpu *CPU) string{
 // 20
 func JSR(cpu *CPU) {
 	// Get jump address
-	oper := cpu.Read16(uint32(cpu.PC + 1))
+	oper := cpu.Read16(uint16(cpu.PC + 1))
 
 	// Push return address on the stack
 	ret := cpu.PC + 3
-	actualSP := uint32(cpu.SP) + 0x0100
+	actualSP := uint16(cpu.SP) + 0x0100
 	cpu.Write16(actualSP, ret)
 
 	cpu.PC = oper
@@ -53,7 +53,7 @@ func JSR(cpu *CPU) {
 }
 
 func JSRDisasm(cpu *CPU) string {
-	oper := cpu.Read16(uint32(cpu.PC + 1))
+	oper := cpu.Read16(uint16(cpu.PC + 1))
 	return fmt.Sprintf("JSR $%04X", oper)
 }
 
@@ -70,94 +70,94 @@ func SEIDisasm(cpu *CPU) string {
 
 // 4C
 func JMPabs(cpu *CPU) {
-	oper := cpu.Read16(uint32(cpu.PC + 1))
+	oper := cpu.Read16(uint16(cpu.PC + 1))
 	cpu.PC = oper
 	cpu.Clock += 3
 }
 
 func JMPabsDisasm(cpu *CPU) string {
-	oper := cpu.Read16(uint32(cpu.PC + 1))
+	oper := cpu.Read16(uint16(cpu.PC + 1))
 	return fmt.Sprintf("JMP $%04X", oper)
 }
 
 // 6C
 func JMPind(cpu *CPU) {
-	oper := cpu.Read16(uint32(cpu.PC + 1))
-	dst := cpu.Read16(uint32(oper))
+	oper := cpu.Read16(uint16(cpu.PC + 1))
+	dst := cpu.Read16(uint16(oper))
 	cpu.PC = dst
 	cpu.Clock += 5
 }
 
 func JMPindDisasm(cpu *CPU) string {
-	oper := cpu.Read16(uint32(cpu.PC + 1))
+	oper := cpu.Read16(uint16(cpu.PC + 1))
 	return fmt.Sprintf("JMP ($%04X)", oper)
 }
 
 // 8D
 func STAabs(cpu *CPU) {
-	oper := cpu.Read16(uint32(cpu.PC + 1))
-	cpu.bus.Write8(uint32(oper), cpu.A)
+	oper := cpu.Read16(uint16(cpu.PC + 1))
+	cpu.bus.Write8(uint16(oper), cpu.A)
 	cpu.PC += 3
 	cpu.Clock += 5
 }
 
 func STAabsDisasm(cpu *CPU) string {
-	oper := cpu.Read16(uint32(cpu.PC + 1))
+	oper := cpu.Read16(uint16(cpu.PC + 1))
 	return fmt.Sprintf("STA $%04X", oper)
 }
 
 // 8E
 func STXabs(cpu *CPU) {
-	oper := cpu.Read16(uint32(cpu.PC + 1))
-	cpu.bus.Write8(uint32(oper), cpu.X)
+	oper := cpu.Read16(uint16(cpu.PC + 1))
+	cpu.bus.Write8(uint16(oper), cpu.X)
 	cpu.PC += 3
 	cpu.Clock += 4
 }
 
 func STXabsDisasm(cpu *CPU) string {
-	oper := cpu.Read16(uint32(cpu.PC + 1))
+	oper := cpu.Read16(uint16(cpu.PC + 1))
 	return fmt.Sprintf("STX $%04X", oper)
 }
 
 // 84
 func STYzer(cpu *CPU) {
-	oper := cpu.Read8(uint32(cpu.PC + 1))
-	cpu.bus.Write8(uint32(oper), cpu.Y)
+	oper := cpu.Read8(uint16(cpu.PC + 1))
+	cpu.bus.Write8(uint16(oper), cpu.Y)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
 
 func STYzerDisasm(cpu *CPU) string {
-	oper := cpu.Read8(uint32(cpu.PC + 1))
+	oper := cpu.Read8(uint16(cpu.PC + 1))
 	return fmt.Sprintf("STY %02X", oper)
 }
 
 // 86
 func STXzer(cpu *CPU) {
-	oper := cpu.Read8(uint32(cpu.PC + 1))
-	cpu.bus.Write8(uint32(oper), cpu.X)
+	oper := cpu.Read8(uint16(cpu.PC + 1))
+	cpu.bus.Write8(uint16(oper), cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
 
 func STXzerDisasm(cpu *CPU) string {
-	oper := cpu.Read8(uint32(cpu.PC + 1))
+	oper := cpu.Read8(uint16(cpu.PC + 1))
 	return fmt.Sprintf("STX %02X", oper)
 }
 
 // 91
 func STAindy(cpu *CPU) {
 	// Read from the zero page
-	oper := cpu.Read8(uint32(cpu.PC + 1))
+	oper := cpu.Read8(uint16(cpu.PC + 1))
 	addr := uint16(oper)
 	addr += uint16(cpu.Y)
-	cpu.bus.Write8(uint32(addr), cpu.A)
+	cpu.bus.Write8(uint16(addr), cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 6
 }
 
 func STAindyDisasm(cpu *CPU) string {
-	oper := cpu.Read8(uint32(cpu.PC + 1))
+	oper := cpu.Read8(uint16(cpu.PC + 1))
 	return fmt.Sprintf("STA ($%02X),Y", oper)
 }
 
@@ -174,7 +174,7 @@ func TXSDisasm(cpu *CPU) string {
 
 // A0
 func LDYimm(cpu *CPU) {
-	cpu.Y = cpu.Read8(uint32(cpu.PC + 1))
+	cpu.Y = cpu.Read8(uint16(cpu.PC + 1))
 	cpu.P.maybeSetN(cpu.Y)
 	cpu.P.maybeSetZ(cpu.Y)
 	cpu.PC += 2
@@ -182,13 +182,13 @@ func LDYimm(cpu *CPU) {
 }
 
 func LDYimmDisasm(cpu *CPU) string {
-	oper := cpu.Read8(uint32(cpu.PC + 1))
+	oper := cpu.Read8(uint16(cpu.PC + 1))
 	return fmt.Sprintf("LDY #$%02X", oper)
 }
 
 // A2
 func LDXimm(cpu *CPU) {
-	cpu.X = cpu.Read8(uint32(cpu.PC + 1))
+	cpu.X = cpu.Read8(uint16(cpu.PC + 1))
 	cpu.P.maybeSetN(cpu.X)
 	cpu.P.maybeSetZ(cpu.X)
 	cpu.PC += 2
@@ -196,13 +196,13 @@ func LDXimm(cpu *CPU) {
 }
 
 func LDXimmDisasm(cpu *CPU) string {
-	oper := cpu.Read8(uint32(cpu.PC + 1))
+	oper := cpu.Read8(uint16(cpu.PC + 1))
 	return fmt.Sprintf("LDX #$%02X", oper)
 }
 
 // A9
 func LDAimm(cpu *CPU) {
-	cpu.A = cpu.Read8(uint32(cpu.PC + 1))
+	cpu.A = cpu.Read8(uint16(cpu.PC + 1))
 	cpu.P.maybeSetN(cpu.A)
 	cpu.P.maybeSetZ(cpu.A)
 	cpu.PC += 2
@@ -210,7 +210,7 @@ func LDAimm(cpu *CPU) {
 }
 
 func LDAimmDisasm(cpu *CPU) string {
-	oper := cpu.Read8(uint32(cpu.PC + 1))
+	oper := cpu.Read8(uint16(cpu.PC + 1))
 	return fmt.Sprintf("LDA #$%02X", oper)
 }
 

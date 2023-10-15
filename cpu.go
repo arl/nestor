@@ -54,7 +54,7 @@ func (c *CPU) Run(until int64) {
 	prevClock := c.Clock
 	c.targetCycles = until
 	for c.Clock < c.targetCycles {
-		op := c.bus.Read8(uint32(c.PC))
+		op := c.bus.Read8(uint16(c.PC))
 		f := opCodes[op]
 		if f == nil {
 			panic(fmt.Sprintf("unsupported op code %02X (PC:$%04X)", op, c.PC))
@@ -73,21 +73,21 @@ func (c *CPU) Run(until int64) {
 	}
 }
 
-func (c *CPU) Read8(addr uint32) uint8 {
+func (c *CPU) Read8(addr uint16) uint8 {
 	return c.bus.Read8(addr)
 }
 
-func (c *CPU) Write8(addr uint32, val uint8) {
+func (c *CPU) Write8(addr uint16, val uint8) {
 	c.bus.Write8(addr, val)
 }
 
-func (c *CPU) Read16(addr uint32) uint16 {
+func (c *CPU) Read16(addr uint16) uint16 {
 	lo := c.bus.Read8(addr)
 	hi := c.bus.Read8(addr + 1)
 	return uint16(hi)<<8 | uint16(lo)
 }
 
-func (c *CPU) Write16(addr uint32, val uint16) {
+func (c *CPU) Write16(addr uint16, val uint16) {
 	lo := uint8(val & 0xff)
 	hi := uint8(val >> 8)
 	c.bus.Write8(addr, lo)
