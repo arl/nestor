@@ -50,6 +50,7 @@ func (c *CPU) reset() {
 const disasm = true
 
 func (c *CPU) Run(until int64) {
+	prevP := c.P
 	c.targetCycles = until
 	for c.Clock < c.targetCycles {
 		op := c.bus.Read8(uint32(c.PC))
@@ -61,7 +62,10 @@ func (c *CPU) Run(until int64) {
 		if disasm {
 			fmt.Printf("%X    %s\n", c.PC, disasmCodes[op](c))
 			fmt.Printf("A:%02X X:%02X Y:%02X SP:%02X\n", c.A, c.X, c.Y, c.SP)
-			fmt.Printf("P:%s\n", c.P)
+			if prevP != c.P {
+				fmt.Printf("P:%s\n", c.P)
+			}
+			prevP = c.P
 		}
 		f(c)
 	}
@@ -79,6 +83,13 @@ func (c *CPU) Read16(addr uint32) uint16 {
 	lo := c.bus.Read8(addr)
 	hi := c.bus.Read8(addr + 1)
 	return uint16(hi)<<8 | uint16(lo)
+}
+
+func (c *CPU) Write16(addr uint32, val uint16) {
+	lo := uint8(val & 0xff)
+	hi := uint8(val >> 8)
+	c.bus.Write8(addr, lo)
+	c.bus.Write8(addr+1, hi)
 }
 
 // P is the 6502  Processor Status Register
@@ -99,7 +110,6 @@ const (
 	pbitI            // Interrupt disable flag
 	pbitZ            // Zero flag
 	pbitC            // Carry flag
-
 )
 
 func (p P) N() bool { return p&(1<<pbitN) != 0 }
