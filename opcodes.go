@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-var opCodes = [255]func(cpu *CPU){
+var opCodes = [256]func(cpu *CPU){
 	0x20: JSR,
 	0x4C: JMPabs,
 	0x6C: JMPind,
@@ -16,11 +16,15 @@ var opCodes = [255]func(cpu *CPU){
 	0xA0: LDYimm,
 	0xA2: LDXimm,
 	0xA9: LDAimm,
+	0xC8: INY,
+	0xD0: BNE,
 	0xD8: CLD,
 	0xE8: INX,
 }
 
-var disasmCodes = [255]func(cpu *CPU) string{
+// TODO for disasm there has to be another way since we just need
+// the opccode and the operand.
+var disasmCodes = [256]func(cpu *CPU) string{
 	0x20: JSRDisasm,
 	0x4C: JMPabsDisasm,
 	0x6C: JMPindDisasm,
@@ -34,6 +38,8 @@ var disasmCodes = [255]func(cpu *CPU) string{
 	0xA0: LDYimmDisasm,
 	0xA2: LDXimmDisasm,
 	0xA9: LDAimmDisasm,
+	0xC8: INYDisasm,
+	0xD0: BNEDisasm,
 	0xD8: CLDDisasm,
 	0xE8: INXDisasm,
 }
@@ -212,6 +218,44 @@ func LDAimm(cpu *CPU) {
 func LDAimmDisasm(cpu *CPU) string {
 	oper := cpu.Read8(cpu.PC + 1)
 	return fmt.Sprintf("LDA #$%02X", oper)
+}
+
+// C8
+func INY(cpu *CPU) {
+	cpu.Y++
+	cpu.P.maybeSetN(cpu.Y)
+	cpu.P.maybeSetZ(cpu.Y)
+	cpu.Clock += 2
+	cpu.PC += 1
+}
+
+func INYDisasm(cpu *CPU) string {
+	return "INY"
+}
+
+// D0
+func BNE(cpu *CPU) {
+	if !cpu.P.Z() {
+		cpu.Clock += 2
+		cpu.PC += 2
+		return
+	}
+
+	off := int32(cpu.Read8(cpu.PC + 1))
+	addr := uint16(int32(cpu.PC+2) + off)
+	if 0xFF00&cpu.PC == 0xFF00&addr {
+		cpu.Clock += 3
+	} else {
+		// Crossed page boundary
+		cpu.Clock += 4
+	}
+	cpu.PC = addr
+}
+
+func BNEDisasm(cpu *CPU) string {
+	off := int32(cpu.Read8(cpu.PC + 1))
+	addr := uint16(int32(cpu.PC+2) + off)
+	return fmt.Sprintf("BNE $%04X", addr)
 }
 
 // D8
