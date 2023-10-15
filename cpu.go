@@ -61,11 +61,12 @@ func (c *CPU) Run(until int64) {
 		}
 
 		if disasm {
-			fmt.Printf("%X    %s  (%d)\n", c.PC, disasmCodes[op](c), c.Clock-prevClock)
-			fmt.Printf("A:%02X X:%02X Y:%02X SP:%02X\n", c.A, c.X, c.Y, c.SP)
+			dump := fmt.Sprintf("%X: %s", c.PC, disasmCodes[op](c))
+			pflags := ""
 			if prevP != c.P {
-				fmt.Printf("P:%s\n", c.P)
+				pflags = fmt.Sprintf(" P=%s", c.P)
 			}
+			fmt.Printf("%-24s (%d) A=%02X X=%02X Y=%02X SP=%02X%s\n", dump, c.Clock-prevClock, c.A, c.X, c.Y, c.SP, pflags)
 			prevP = c.P
 			prevClock = c.Clock
 		}
@@ -141,7 +142,7 @@ func (p *P) maybeSetZ(v uint8) {
 }
 
 func (p P) String() string {
-	return fmt.Sprintf("0x%x N%d V%d _ B%d D%d I%d Z%d C%d", uint8(p),
+	return fmt.Sprintf("%02X[N%d V%d _ B%d D%d I%d Z%d C%d]", uint8(p),
 		b2i(p.N()), b2i(p.V()), b2i(p.B()), b2i(p.D()), b2i(p.I()), b2i(p.Z()), b2i(p.C()))
 }
 
