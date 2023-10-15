@@ -9,7 +9,10 @@ var opCodes = [255]func(cpu *CPU){
 	0x78: SEI,
 	0x8D: STAabs,
 	0x8E: STXabs,
+	0x84: STYzer,
+	0x86: STXzer,
 	0x9A: TXS,
+	0xA0: LDYimm,
 	0xA2: LDXimm,
 	0xA9: LDAimm,
 	0xD8: CLD,
@@ -23,7 +26,10 @@ var disasmCodes = [255]func(cpu *CPU) string{
 	0x78: SEIDisasm,
 	0x8D: STAabsDisasm,
 	0x8E: STXabsDisasm,
+	0x84: STYzerDisasm,
+	0x86: STXzerDisasm,
 	0x9A: TXSDisasm,
+	0xA0: LDYimmDisasm,
 	0xA2: LDXimmDisasm,
 	0xA9: LDAimmDisasm,
 	0xD8: CLDDisasm,
@@ -111,6 +117,32 @@ func STXabsDisasm(cpu *CPU) string {
 	return fmt.Sprintf("STX $%04X", oper)
 }
 
+// 84
+func STYzer(cpu *CPU) {
+	oper := cpu.Read8(uint32(cpu.PC + 1))
+	cpu.bus.Write8(uint32(oper), cpu.Y)
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
+func STYzerDisasm(cpu *CPU) string {
+	oper := cpu.Read8(uint32(cpu.PC + 1))
+	return fmt.Sprintf("STY %02X", oper)
+}
+
+// 86
+func STXzer(cpu *CPU) {
+	oper := cpu.Read8(uint32(cpu.PC + 1))
+	cpu.bus.Write8(uint32(oper), cpu.X)
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
+func STXzerDisasm(cpu *CPU) string {
+	oper := cpu.Read8(uint32(cpu.PC + 1))
+	return fmt.Sprintf("STX %02X", oper)
+}
+
 // 9A
 func TXS(cpu *CPU) {
 	cpu.SP = cpu.X
@@ -120,6 +152,20 @@ func TXS(cpu *CPU) {
 
 func TXSDisasm(cpu *CPU) string {
 	return "TXS"
+}
+
+// A0
+func LDYimm(cpu *CPU) {
+	cpu.Y = cpu.Read8(uint32(cpu.PC + 1))
+	cpu.P.maybeSetN(cpu.Y)
+	cpu.P.maybeSetZ(cpu.Y)
+	cpu.PC += 2
+	cpu.Clock += 2
+}
+
+func LDYimmDisasm(cpu *CPU) string {
+	oper := cpu.Read8(uint32(cpu.PC + 1))
+	return fmt.Sprintf("LDY #$%02X", oper)
 }
 
 // A2

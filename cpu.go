@@ -51,6 +51,7 @@ const disasm = true
 
 func (c *CPU) Run(until int64) {
 	prevP := c.P
+	prevClock := c.Clock
 	c.targetCycles = until
 	for c.Clock < c.targetCycles {
 		op := c.bus.Read8(uint32(c.PC))
@@ -60,12 +61,13 @@ func (c *CPU) Run(until int64) {
 		}
 
 		if disasm {
-			fmt.Printf("%X    %s\n", c.PC, disasmCodes[op](c))
+			fmt.Printf("%X    %s  (%d)\n", c.PC, disasmCodes[op](c), c.Clock-prevClock)
 			fmt.Printf("A:%02X X:%02X Y:%02X SP:%02X\n", c.A, c.X, c.Y, c.SP)
 			if prevP != c.P {
 				fmt.Printf("P:%s\n", c.P)
 			}
 			prevP = c.P
+			prevClock = c.Clock
 		}
 		f(c)
 	}
