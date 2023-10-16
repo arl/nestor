@@ -14,7 +14,7 @@ func startNES(rom *ines.Rom) (*NES, error) {
 		CPU: NewCPU(),
 	}
 
-	nes.CPU.MapMemory(rom)
+	nes.CPU.MapMemory()
 
 	// Only handle mapper 000 (NROM) for now.
 	if rom.Mapper() != 0 {

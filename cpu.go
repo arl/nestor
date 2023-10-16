@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-
-	"nestor/ines"
 )
 
 // https://www.nesdev.org/wiki/CPU_memory_map
@@ -32,7 +30,7 @@ func NewCPU() *CPU {
 	}
 }
 
-func (c *CPU) MapMemory(cart *ines.Rom) {
+func (c *CPU) MapMemory() {
 	// RAM is 0x800 bytes, mirrored.
 	ram := make([]byte, 0x0800)
 	c.bus.MapSlice(0x0000, 0x07FF, ram)
@@ -53,24 +51,27 @@ func (c *CPU) Run(until int64) {
 	prevP := c.P
 	prevClock := c.Clock
 	c.targetCycles = until
+	opcodestr := ""
 	for c.Clock < c.targetCycles {
-		op := c.bus.Read8(uint16(c.PC))
-		f := opCodes[op]
-		if f == nil {
-			panic(fmt.Sprintf("unsupported op code %02X (PC:$%04X)", op, c.PC))
+		opcode := c.bus.Read8(uint16(c.PC))
+		op := opCodes[opcode]
+		if op == nil {
+			panic(fmt.Sprintf("unsupported op code %02X (PC:$%04X)", opcode, c.PC))
 		}
 
 		if disasm {
-			dump := fmt.Sprintf("%X: %s", c.PC, disasmCodes[op](c))
+			opcodestr = fmt.Sprintf("%X: %s", c.PC, disasmCodes[opcode](c))
+		}
+		op(c)
+		if disasm {
 			pflags := ""
 			if prevP != c.P {
 				pflags = fmt.Sprintf(" P=%s", c.P)
 			}
-			fmt.Printf("%-24s (%d) A=%02X X=%02X Y=%02X SP=%02X%s\n", dump, c.Clock-prevClock, c.A, c.X, c.Y, c.SP, pflags)
+			fmt.Printf("%-24s (%d) A=%02X X=%02X Y=%02X SP=%02X%s\n", opcodestr, c.Clock-prevClock, c.A, c.X, c.Y, c.SP, pflags)
 			prevP = c.P
 			prevClock = c.Clock
 		}
-		f(c)
 	}
 }
 
