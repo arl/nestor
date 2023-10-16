@@ -107,7 +107,7 @@ func (p *P) clear() {
 const (
 	pbitN = 7 - iota // Negative flag
 	pbitV            // oVerflow flag
-	_                // unused
+	pbitU            // Unused
 	pbitB            // Break flag
 	pbitD            // Decimal mode flag
 	pbitI            // Interrupt disable flag
@@ -123,8 +123,8 @@ func (p P) I() bool { return p&(1<<pbitI) != 0 }
 func (p P) Z() bool { return p&(1<<pbitZ) != 0 }
 func (p P) C() bool { return p&(1<<pbitC) != 0 }
 
-// sets N flag if bit 7 of v is set
-func (p *P) maybeSetN(v uint8) {
+// sets N flag if bit 7 of v is set, clears it otherwise.
+func (p *P) checkN(v uint8) {
 	if v&(1<<7) != 0 {
 		*p |= P(1 << pbitN)
 	} else {
@@ -132,12 +132,21 @@ func (p *P) maybeSetN(v uint8) {
 	}
 }
 
-// sets Z flag if v is 0
-func (p *P) maybeSetZ(v uint8) {
+// sets Z flag if v == 0, clears it otherwise.
+func (p *P) checkZ(v uint8) {
 	if v == 0 {
 		*p |= P(1 << pbitZ)
 	} else {
 		*p &= ^(1 << pbitZ) & 0xff
+	}
+}
+
+// sets C flag  to 1 or 0
+func (p *P) setC(v bool) {
+	if v {
+		*p |= P(1 << pbitC)
+	} else {
+		*p &= ^(1 << pbitC) & 0xff
 	}
 }
 

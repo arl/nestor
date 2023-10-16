@@ -22,31 +22,31 @@ func TestPflag(t *testing.T) {
 	}
 
 	// Negative flag
-	p.maybeSetN(0xff)
+	p.checkN(0xff)
 	if !p.N() {
 		t.Error("N bit should be set")
 	}
-	p.maybeSetN(0x7f)
+	p.checkN(0x7f)
 	if p.N() {
 		t.Error("N bit should not be set")
 	}
-	p.maybeSetN(0x80)
+	p.checkN(0x80)
 	if !p.N() {
 		t.Error("N bit should be set")
 	}
 
 	// Zero flag
-	p.maybeSetZ(0)
+	p.checkZ(0)
 	if !p.Z() {
 		t.Error("Z bit should be set")
 	}
 
-	p.maybeSetZ(1)
+	p.checkZ(1)
 	if p.Z() {
 		t.Error("Z bit should not be set")
 	}
 
-	p.maybeSetZ(0xff)
+	p.checkZ(0xff)
 	if p.Z() {
 		t.Error("Z bit should not be set")
 	}

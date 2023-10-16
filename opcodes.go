@@ -3,9 +3,11 @@ package main
 import "fmt"
 
 var opCodes = [256]func(cpu *CPU){
+	0x08: PHP,
 	0x20: JSR,
 	0x30: BMI,
 	0x4C: JMPabs,
+	0x48: PHA,
 	0x6C: JMPind,
 	0x78: SEI,
 	0x8D: STAabs,
@@ -18,7 +20,9 @@ var opCodes = [256]func(cpu *CPU){
 	0xA2: LDXimm,
 	0xA9: LDAimm,
 	0xAD: LDAabs,
+	0xB0: BCS,
 	0xC8: INY,
+	0xC9: CMPimm,
 	0xD0: BNE,
 	0xD8: CLD,
 	0xE6: INCzer,
@@ -26,9 +30,11 @@ var opCodes = [256]func(cpu *CPU){
 }
 
 var disasmCodes = [256]func(cpu *CPU) string{
+	0x08: opcodestr("PHP"),
 	0x20: JSRDisasm,
 	0x30: BMIDisasm,
 	0x4C: JMPabsDisasm,
+	0x48: opcodestr("PHA"),
 	0x6C: JMPindDisasm,
 	0x78: opcodestr("SEI"),
 	0x8D: STAabsDisasm,
@@ -41,23 +47,31 @@ var disasmCodes = [256]func(cpu *CPU) string{
 	0xA2: LDXimmDisasm,
 	0xA9: LDAimmDisasm,
 	0xAD: LDAabsDisasm,
+	0xB0: BCSDisasm,
 	0xC8: opcodestr("INY"),
+	0xC9: CMPimmDisasm,
 	0xD0: BNEDisasm,
 	0xD8: opcodestr("CLD"),
 	0xE6: INCzerDisasm,
 	0xE8: opcodestr("INX"),
 }
 
+// 08
+func PHP(cpu *CPU) {
+	p := cpu.P
+	p |= (1 << pbitB) | (1 << pbitU)
+	push8(cpu, uint8(p))
+	cpu.Clock += 3
+	cpu.PC += 1
+}
+
 // 20
 func JSR(cpu *CPU) {
 	// Get jump address
 	oper := cpu.Read16(cpu.PC + 1)
-
 	// Push return address on the stack
 	ret := cpu.PC + 3
-	actualSP := uint16(cpu.SP) + 0x0100
-	cpu.Write16(actualSP, ret)
-
+	push16(cpu, ret)
 	cpu.PC = oper
 	cpu.Clock += 6
 }
@@ -75,7 +89,7 @@ func BMI(cpu *CPU) {
 		return
 	}
 
-	// branch
+	// Branch
 	off := int32(cpu.Read8(cpu.PC + 1))
 	addr := uint16(int32(cpu.PC+2) + off)
 	if pagecrossed(cpu.PC, addr) {
@@ -109,6 +123,14 @@ func JMPabs(cpu *CPU) {
 func JMPabsDisasm(cpu *CPU) string {
 	oper := cpu.Read16(cpu.PC + 1)
 	return fmt.Sprintf("JMP $%04X", oper)
+}
+
+// 48
+func PHA(cpu *CPU) {
+	push8(cpu, cpu.A)
+
+	cpu.Clock += 3
+	cpu.PC += 1
 }
 
 // 6C
@@ -202,8 +224,8 @@ func TXS(cpu *CPU) {
 // A0
 func LDYimm(cpu *CPU) {
 	cpu.Y = cpu.Read8(cpu.PC + 1)
-	cpu.P.maybeSetN(cpu.Y)
-	cpu.P.maybeSetZ(cpu.Y)
+	cpu.P.checkN(cpu.Y)
+	cpu.P.checkZ(cpu.Y)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -216,8 +238,8 @@ func LDYimmDisasm(cpu *CPU) string {
 // A2
 func LDXimm(cpu *CPU) {
 	cpu.X = cpu.Read8(cpu.PC + 1)
-	cpu.P.maybeSetN(cpu.X)
-	cpu.P.maybeSetZ(cpu.X)
+	cpu.P.checkN(cpu.X)
+	cpu.P.checkZ(cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -230,8 +252,8 @@ func LDXimmDisasm(cpu *CPU) string {
 // A9
 func LDAimm(cpu *CPU) {
 	cpu.A = cpu.Read8(cpu.PC + 1)
-	cpu.P.maybeSetN(cpu.A)
-	cpu.P.maybeSetZ(cpu.A)
+	cpu.P.checkN(cpu.A)
+	cpu.P.checkZ(cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -245,8 +267,8 @@ func LDAimmDisasm(cpu *CPU) string {
 func LDAabs(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC + 1)
 	cpu.A = cpu.Read8(oper)
-	cpu.P.maybeSetN(cpu.A)
-	cpu.P.maybeSetZ(cpu.A)
+	cpu.P.checkN(cpu.A)
+	cpu.P.checkZ(cpu.A)
 	cpu.PC += 3
 	cpu.Clock += 4
 }
@@ -256,13 +278,54 @@ func LDAabsDisasm(cpu *CPU) string {
 	return fmt.Sprintf("LDA $%04X", oper)
 }
 
+// B0
+func BCS(cpu *CPU) {
+	if !cpu.P.C() {
+		cpu.Clock += 2
+		cpu.PC += 2
+		return
+	}
+
+	// Branch
+	off := int32(cpu.Read8(cpu.PC + 1))
+	addr := uint16(int32(cpu.PC+2) + off)
+	if pagecrossed(cpu.PC, addr) {
+		cpu.Clock += 4
+	} else {
+		cpu.Clock += 3
+	}
+	cpu.PC = addr
+}
+
+func BCSDisasm(cpu *CPU) string {
+	off := int32(cpu.Read8(cpu.PC + 1))
+	addr := uint16(int32(cpu.PC+2) + off)
+	return fmt.Sprintf("BCS $%04X", addr)
+}
+
 // C8
 func INY(cpu *CPU) {
 	cpu.Y++
-	cpu.P.maybeSetN(cpu.Y)
-	cpu.P.maybeSetZ(cpu.Y)
+	cpu.P.checkN(cpu.Y)
+	cpu.P.checkZ(cpu.Y)
 	cpu.Clock += 2
 	cpu.PC += 1
+}
+
+// C9
+func CMPimm(cpu *CPU) {
+	oper := cpu.Read8(cpu.PC + 1)
+	res := cpu.A - oper
+	cpu.P.checkN(res)
+	cpu.P.checkZ(res)
+	cpu.P.setC(oper <= cpu.A)
+	cpu.PC += 2
+	cpu.Clock += 2
+}
+
+func CMPimmDisasm(cpu *CPU) string {
+	oper := cpu.Read8(cpu.PC + 1)
+	return fmt.Sprintf("CMP #$%02X", oper)
 }
 
 // D0
@@ -273,7 +336,7 @@ func BNE(cpu *CPU) {
 		return
 	}
 
-	// branch
+	// Branch
 	off := int32(cpu.Read8(cpu.PC + 1))
 	addr := uint16(int32(cpu.PC+2) + off)
 	if pagecrossed(cpu.PC, addr) {
@@ -302,8 +365,8 @@ func INCzer(cpu *CPU) {
 	oper := cpu.Read8(cpu.PC + 1)
 	val := cpu.Read8(uint16(oper))
 	val++
-	cpu.P.maybeSetN(val)
-	cpu.P.maybeSetZ(val)
+	cpu.P.checkN(val)
+	cpu.P.checkZ(val)
 	cpu.Clock += 5
 	cpu.PC += 2
 }
@@ -316,17 +379,32 @@ func INCzerDisasm(cpu *CPU) string {
 // E8
 func INX(cpu *CPU) {
 	cpu.X++
-	cpu.P.maybeSetN(cpu.X)
-	cpu.P.maybeSetZ(cpu.X)
+	cpu.P.checkN(cpu.X)
+	cpu.P.checkZ(cpu.X)
 	cpu.Clock += 2
 	cpu.PC += 1
 }
 
 /* helpers */
+
 func pagecrossed(a, b uint16) bool {
 	return 0xFF00&a != 0xFF00&b
 }
 
 func opcodestr(opname string) func(*CPU) string {
 	return func(_ *CPU) string { return opname }
+}
+
+// push 8-bit onto the stack
+func push8(cpu *CPU, val uint8) {
+	top := uint16(cpu.SP) + 0x0100
+	cpu.Write8(top, val)
+	cpu.SP -= 1
+}
+
+// push a 16-bit value onto the stack
+func push16(cpu *CPU, val uint16) {
+	top := uint16(cpu.SP) + 0x0100
+	cpu.Write16(top, val)
+	cpu.SP -= 2
 }
