@@ -5,6 +5,7 @@ import "fmt"
 var opCodes = [256]func(cpu *CPU){
 	0x08: PHP,
 	0x20: JSR,
+	0x24: BITzer,
 	0x30: BMI,
 	0x4C: JMPabs,
 	0x48: PHA,
@@ -32,6 +33,7 @@ var opCodes = [256]func(cpu *CPU){
 var disasmCodes = [256]func(cpu *CPU) string{
 	0x08: opcodestr("PHP"),
 	0x20: JSRDisasm,
+	0x24: BITzerDisasm,
 	0x30: BMIDisasm,
 	0x4C: JMPabsDisasm,
 	0x48: opcodestr("PHA"),
@@ -79,6 +81,26 @@ func JSR(cpu *CPU) {
 func JSRDisasm(cpu *CPU) string {
 	oper := cpu.Read16(cpu.PC + 1)
 	return fmt.Sprintf("JSR $%04X", oper)
+}
+
+// 24
+func BITzer(cpu *CPU) {
+	oper := cpu.Read8(cpu.PC + 1)
+	val := cpu.Read8(uint16(oper))
+
+	// Copy bits 7 and 6 (N and V)
+	cpu.P &= 0b00111111
+	cpu.P |= P(val & 0b11000000)
+
+	cpu.P.checkZ(cpu.A & val)
+
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
+func BITzerDisasm(cpu *CPU) string {
+	oper := cpu.Read8(cpu.PC + 1)
+	return fmt.Sprintf("BIT %02X", oper)
 }
 
 // 30
