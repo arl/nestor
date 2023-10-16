@@ -19,6 +19,7 @@ var opCodes = [256]func(cpu *CPU){
 	0xC8: INY,
 	0xD0: BNE,
 	0xD8: CLD,
+	0xE6: INCzer,
 	0xE8: INX,
 }
 
@@ -42,6 +43,7 @@ var disasmCodes = [256]func(cpu *CPU) string{
 	0xD0: BNEDisasm,
 	0xD8: CLDDisasm,
 	0xE8: INXDisasm,
+	0xE6: INCzerDisasm,
 }
 
 // 20
@@ -267,6 +269,20 @@ func CLD(cpu *CPU) {
 
 func CLDDisasm(cpu *CPU) string {
 	return "CLD"
+// E6
+func INCzer(cpu *CPU) {
+	oper := cpu.Read8(cpu.PC + 1)
+	val := cpu.Read8(uint16(oper))
+	val++
+	cpu.P.maybeSetN(val)
+	cpu.P.maybeSetZ(val)
+	cpu.Clock += 5
+	cpu.PC += 2
+}
+
+func INCzerDisasm(cpu *CPU) string {
+	oper := cpu.Read8(cpu.PC + 1)
+	return fmt.Sprintf("INC $%02X", oper)
 }
 
 // E8
