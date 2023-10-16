@@ -23,27 +23,25 @@ var opCodes = [256]func(cpu *CPU){
 	0xE8: INX,
 }
 
-// TODO for disasm there has to be another way since we just need
-// the opccode and the operand.
 var disasmCodes = [256]func(cpu *CPU) string{
 	0x20: JSRDisasm,
 	0x4C: JMPabsDisasm,
 	0x6C: JMPindDisasm,
-	0x78: SEIDisasm,
+	0x78: opcodestr("SEI"),
 	0x8D: STAabsDisasm,
 	0x8E: STXabsDisasm,
 	0x84: STYzerDisasm,
 	0x86: STXzerDisasm,
 	0x91: STAindyDisasm,
-	0x9A: TXSDisasm,
+	0x9A: opcodestr("TXS"),
 	0xA0: LDYimmDisasm,
 	0xA2: LDXimmDisasm,
 	0xA9: LDAimmDisasm,
-	0xC8: INYDisasm,
+	0xC8: opcodestr("INY"),
 	0xD0: BNEDisasm,
-	0xD8: CLDDisasm,
-	0xE8: INXDisasm,
+	0xD8: opcodestr("CLD"),
 	0xE6: INCzerDisasm,
+	0xE8: opcodestr("INX"),
 }
 
 // 20
@@ -70,10 +68,6 @@ func SEI(cpu *CPU) {
 	cpu.P |= 1 << pbitI
 	cpu.Clock += 2
 	cpu.PC += 1
-}
-
-func SEIDisasm(cpu *CPU) string {
-	return "SEI"
 }
 
 // 4C
@@ -176,10 +170,6 @@ func TXS(cpu *CPU) {
 	cpu.Clock += 2
 }
 
-func TXSDisasm(cpu *CPU) string {
-	return "TXS"
-}
-
 // A0
 func LDYimm(cpu *CPU) {
 	cpu.Y = cpu.Read8(cpu.PC + 1)
@@ -231,25 +221,21 @@ func INY(cpu *CPU) {
 	cpu.PC += 1
 }
 
-func INYDisasm(cpu *CPU) string {
-	return "INY"
-}
-
 // D0
 func BNE(cpu *CPU) {
-	if !cpu.P.Z() {
+	if cpu.P.Z() {
 		cpu.Clock += 2
 		cpu.PC += 2
 		return
 	}
 
+	// branch
 	off := int32(cpu.Read8(cpu.PC + 1))
 	addr := uint16(int32(cpu.PC+2) + off)
-	if 0xFF00&cpu.PC == 0xFF00&addr {
-		cpu.Clock += 3
-	} else {
-		// Crossed page boundary
+	if pagecrossed(cpu.PC, addr) {
 		cpu.Clock += 4
+	} else {
+		cpu.Clock += 3
 	}
 	cpu.PC = addr
 }
@@ -267,8 +253,6 @@ func CLD(cpu *CPU) {
 	cpu.PC += 1
 }
 
-func CLDDisasm(cpu *CPU) string {
-	return "CLD"
 // E6
 func INCzer(cpu *CPU) {
 	oper := cpu.Read8(cpu.PC + 1)
@@ -294,6 +278,11 @@ func INX(cpu *CPU) {
 	cpu.PC += 1
 }
 
-func INXDisasm(cpu *CPU) string {
-	return "INX"
+/* helpers */
+func pagecrossed(a, b uint16) bool {
+	return 0xFF00&a != 0xFF00&b
+}
+
+func opcodestr(opname string) func(*CPU) string {
+	return func(_ *CPU) string { return opname }
 }
