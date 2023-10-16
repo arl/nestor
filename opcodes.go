@@ -4,6 +4,7 @@ import "fmt"
 
 var opCodes = [256]func(cpu *CPU){
 	0x20: JSR,
+	0x30: BMI,
 	0x4C: JMPabs,
 	0x6C: JMPind,
 	0x78: SEI,
@@ -16,6 +17,7 @@ var opCodes = [256]func(cpu *CPU){
 	0xA0: LDYimm,
 	0xA2: LDXimm,
 	0xA9: LDAimm,
+	0xAD: LDAabs,
 	0xC8: INY,
 	0xD0: BNE,
 	0xD8: CLD,
@@ -25,6 +27,7 @@ var opCodes = [256]func(cpu *CPU){
 
 var disasmCodes = [256]func(cpu *CPU) string{
 	0x20: JSRDisasm,
+	0x30: BMIDisasm,
 	0x4C: JMPabsDisasm,
 	0x6C: JMPindDisasm,
 	0x78: opcodestr("SEI"),
@@ -37,6 +40,7 @@ var disasmCodes = [256]func(cpu *CPU) string{
 	0xA0: LDYimmDisasm,
 	0xA2: LDXimmDisasm,
 	0xA9: LDAimmDisasm,
+	0xAD: LDAabsDisasm,
 	0xC8: opcodestr("INY"),
 	0xD0: BNEDisasm,
 	0xD8: opcodestr("CLD"),
@@ -61,6 +65,31 @@ func JSR(cpu *CPU) {
 func JSRDisasm(cpu *CPU) string {
 	oper := cpu.Read16(cpu.PC + 1)
 	return fmt.Sprintf("JSR $%04X", oper)
+}
+
+// 30
+func BMI(cpu *CPU) {
+	if !cpu.P.N() {
+		cpu.Clock += 2
+		cpu.PC += 2
+		return
+	}
+
+	// branch
+	off := int32(cpu.Read8(cpu.PC + 1))
+	addr := uint16(int32(cpu.PC+2) + off)
+	if pagecrossed(cpu.PC, addr) {
+		cpu.Clock += 4
+	} else {
+		cpu.Clock += 3
+	}
+	cpu.PC = addr
+}
+
+func BMIDisasm(cpu *CPU) string {
+	off := int32(cpu.Read8(cpu.PC + 1))
+	addr := uint16(int32(cpu.PC+2) + off)
+	return fmt.Sprintf("BMI $%04X", addr)
 }
 
 // 78
@@ -210,6 +239,21 @@ func LDAimm(cpu *CPU) {
 func LDAimmDisasm(cpu *CPU) string {
 	oper := cpu.Read8(cpu.PC + 1)
 	return fmt.Sprintf("LDA #$%02X", oper)
+}
+
+// AD
+func LDAabs(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC + 1)
+	cpu.A = cpu.Read8(oper)
+	cpu.P.maybeSetN(cpu.A)
+	cpu.P.maybeSetZ(cpu.A)
+	cpu.PC += 3
+	cpu.Clock += 4
+}
+
+func LDAabsDisasm(cpu *CPU) string {
+	oper := cpu.Read16(cpu.PC + 1)
+	return fmt.Sprintf("LDA $%04X", oper)
 }
 
 // C8
