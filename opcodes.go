@@ -30,6 +30,7 @@ var ops = [256]func(cpu *CPU){
 	0xD8: CLD,
 	0xE6: INCzer,
 	0xE8: INX,
+	0xEA: NOP,
 	0xF8: SED,
 }
 
@@ -61,6 +62,7 @@ var opsDisasm = [256]func(cpu *CPU) string{
 	0xD8: disasm("CLD", implied),
 	0xE6: disasm("INC", zeropage),
 	0xE8: disasm("INX", implied),
+	0xEA: disasm("NOP", implied),
 	0xF8: disasm("SED", implied),
 }
 
@@ -121,7 +123,7 @@ func BMI(cpu *CPU) {
 
 // 38
 func SEC(cpu *CPU) {
-	cpu.P |= 1 << pbitC
+	cpu.P.setBit(pbitC)
 	cpu.Clock += 2
 	cpu.PC += 1
 }
@@ -141,7 +143,7 @@ func EORzer(cpu *CPU) {
 
 // 78
 func SEI(cpu *CPU) {
-	cpu.P |= 1 << pbitI
+	cpu.P.setBit(pbitI)
 	cpu.Clock += 2
 	cpu.PC += 1
 }
@@ -318,7 +320,7 @@ func BNE(cpu *CPU) {
 
 // D8
 func CLD(cpu *CPU) {
-	cpu.P &= ^P(1 << pbitD)
+	cpu.P.clearBit(pbitD)
 	cpu.Clock += 2
 	cpu.PC += 1
 }
@@ -343,9 +345,15 @@ func INX(cpu *CPU) {
 	cpu.PC += 1
 }
 
+// EA
+func NOP(cpu *CPU) {
+	cpu.Clock += 2
+	cpu.PC += 1
+}
+
 // F8
 func SED(cpu *CPU) {
-	cpu.P |= 1 << pbitD
+	cpu.P.setBit(pbitD)
 	cpu.Clock += 2
 	cpu.PC += 1
 }

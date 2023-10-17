@@ -136,10 +136,18 @@ func (p *P) checkZ(v uint8) {
 
 func (p *P) writeBit(i int, v bool) {
 	if v {
-		*p |= P(1 << i)
+		p.setBit(i)
 	} else {
-		*p &= ^(1 << i) & 0xff
+		p.clearBit(i)
 	}
+}
+
+func (p *P) setBit(i int) {
+	*p |= P(1 << i)
+}
+
+func (p *P) clearBit(i int) {
+	*p &= ^(1 << i) & 0xff
 }
 
 func (p P) String() string {
