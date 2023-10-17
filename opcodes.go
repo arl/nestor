@@ -108,8 +108,9 @@ func BMI(cpu *CPU) {
 	}
 
 	// Branch
-	off := int32(cpu.Read8(cpu.PC + 1))
-	addr := uint16(int32(cpu.PC+2) + off)
+	off := cpu.Read8(cpu.PC + 1)
+	reladdr := int32(cpu.PC+2) + int32(off)
+	addr := uint16(reladdr)
 	if pagecrossed(cpu.PC, addr) {
 		cpu.Clock += 4
 	} else {
@@ -264,8 +265,9 @@ func BCS(cpu *CPU) {
 	}
 
 	// Branch
-	off := int32(cpu.Read8(cpu.PC + 1))
-	addr := uint16(int32(cpu.PC+2) + off)
+	off := cpu.Read8(cpu.PC + 1)
+	reladdr := int32(cpu.PC+2) + int32(off)
+	addr := uint16(reladdr)
 	if pagecrossed(cpu.PC, addr) {
 		cpu.Clock += 4
 	} else {
@@ -303,8 +305,9 @@ func BNE(cpu *CPU) {
 	}
 
 	// Branch
-	off := int32(cpu.Read8(cpu.PC + 1))
-	addr := uint16(int32(cpu.PC+2) + off)
+	off := cpu.Read8(cpu.PC + 1)
+	reladdr := int32(cpu.PC+2) + int32(off)
+	addr := uint16(reladdr)
 	if pagecrossed(cpu.PC, addr) {
 		cpu.Clock += 4
 	} else {
