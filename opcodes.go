@@ -7,6 +7,8 @@ var opCodes = [256]func(cpu *CPU){
 	0x20: JSR,
 	0x24: BITzer,
 	0x30: BMI,
+	0x38: SEC,
+	0x45: EORzer,
 	0x4C: JMPabs,
 	0x48: PHA,
 	0x6C: JMPind,
@@ -28,6 +30,7 @@ var opCodes = [256]func(cpu *CPU){
 	0xD8: CLD,
 	0xE6: INCzer,
 	0xE8: INX,
+	0xF8: SED,
 }
 
 var disasmCodes = [256]func(cpu *CPU) string{
@@ -35,6 +38,8 @@ var disasmCodes = [256]func(cpu *CPU) string{
 	0x20: JSRDisasm,
 	0x24: BITzerDisasm,
 	0x30: BMIDisasm,
+	0x38: opcodestr("SEC"),
+	0x45: EORzerDisasm,
 	0x4C: JMPabsDisasm,
 	0x48: opcodestr("PHA"),
 	0x6C: JMPindDisasm,
@@ -56,6 +61,7 @@ var disasmCodes = [256]func(cpu *CPU) string{
 	0xD8: opcodestr("CLD"),
 	0xE6: INCzerDisasm,
 	0xE8: opcodestr("INX"),
+	0xF8: opcodestr("SED"),
 }
 
 // 08
@@ -126,6 +132,31 @@ func BMIDisasm(cpu *CPU) string {
 	off := int32(cpu.Read8(cpu.PC + 1))
 	addr := uint16(int32(cpu.PC+2) + off)
 	return fmt.Sprintf("BMI $%04X", addr)
+}
+
+// 38
+func SEC(cpu *CPU) {
+	cpu.P |= 1 << pbitC
+	cpu.Clock += 2
+	cpu.PC += 1
+}
+
+// 45
+func EORzer(cpu *CPU) {
+	oper := cpu.Read8(cpu.PC + 1)
+	val := cpu.Read8(uint16(oper))
+	cpu.A ^= val
+
+	cpu.P.checkN(cpu.A)
+	cpu.P.checkZ(cpu.A)
+
+	cpu.Clock += 3
+	cpu.PC += 2
+}
+
+func EORzerDisasm(cpu *CPU) string {
+	oper := cpu.Read8(cpu.PC + 1)
+	return fmt.Sprintf("EOR $%02X", oper)
 }
 
 // 78
@@ -340,7 +371,7 @@ func CMPimm(cpu *CPU) {
 	res := cpu.A - oper
 	cpu.P.checkN(res)
 	cpu.P.checkZ(res)
-	cpu.P.setC(oper <= cpu.A)
+	cpu.P.writeBit(pbitC, oper <= cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -403,6 +434,13 @@ func INX(cpu *CPU) {
 	cpu.X++
 	cpu.P.checkN(cpu.X)
 	cpu.P.checkZ(cpu.X)
+	cpu.Clock += 2
+	cpu.PC += 1
+}
+
+// F8
+func SED(cpu *CPU) {
+	cpu.P |= 1 << pbitD
 	cpu.Clock += 2
 	cpu.PC += 1
 }

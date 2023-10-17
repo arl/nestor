@@ -126,28 +126,19 @@ func (p P) C() bool { return p&(1<<pbitC) != 0 }
 
 // sets N flag if bit 7 of v is set, clears it otherwise.
 func (p *P) checkN(v uint8) {
-	if v&(1<<7) != 0 {
-		*p |= P(1 << pbitN)
-	} else {
-		*p &= ^(1 << pbitN) & 0xff
-	}
+	p.writeBit(pbitN, v&(1<<7) != 0)
 }
 
 // sets Z flag if v == 0, clears it otherwise.
 func (p *P) checkZ(v uint8) {
-	if v == 0 {
-		*p |= P(1 << pbitZ)
-	} else {
-		*p &= ^(1 << pbitZ) & 0xff
-	}
+	p.writeBit(pbitZ, v == 0)
 }
 
-// sets C flag  to 1 or 0
-func (p *P) setC(v bool) {
+func (p *P) writeBit(i int, v bool) {
 	if v {
-		*p |= P(1 << pbitC)
+		*p |= P(1 << i)
 	} else {
-		*p &= ^(1 << pbitC) & 0xff
+		*p &= ^(1 << i) & 0xff
 	}
 }
 

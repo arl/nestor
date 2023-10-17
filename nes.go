@@ -27,7 +27,7 @@ func startNES(rom *ines.Rom) (*NES, error) {
 	}
 
 	nes.CPU.reset()
-	nes.CPU.Run(128) // debug: run 128 cycles
+	nes.CPU.Run(256) // debug: run 128 cycles
 
 	return nes, nil
 }
