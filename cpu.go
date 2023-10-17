@@ -45,7 +45,7 @@ func (c *CPU) reset() {
 	c.SP = 0xFD
 }
 
-const disasm = true
+const disasmOn = true
 
 func (c *CPU) Run(until int64) {
 	prevP := c.P
@@ -54,16 +54,16 @@ func (c *CPU) Run(until int64) {
 	opcodestr := ""
 	for c.Clock < c.targetCycles {
 		opcode := c.bus.Read8(uint16(c.PC))
-		op := opCodes[opcode]
+		op := ops[opcode]
 		if op == nil {
 			panic(fmt.Sprintf("unsupported op code %02X (PC:$%04X)", opcode, c.PC))
 		}
 
-		if disasm {
-			opcodestr = fmt.Sprintf("%X: %s", c.PC, disasmCodes[opcode](c))
+		if disasmOn {
+			opcodestr = fmt.Sprintf("%X: %s", c.PC, opsDisasm[opcode](c))
 		}
 		op(c)
-		if disasm {
+		if disasmOn {
 			pflags := ""
 			if prevP != c.P {
 				pflags = fmt.Sprintf(" P=%s", c.P)

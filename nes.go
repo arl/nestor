@@ -22,7 +22,7 @@ func startNES(rom *ines.Rom) (*NES, error) {
 	}
 	loadMapper000(rom, nes)
 
-	if disasm {
+	if disasmOn {
 
 	}
 

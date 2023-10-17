@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-var opCodes = [256]func(cpu *CPU){
+var ops = [256]func(cpu *CPU){
 	0x08: PHP,
 	0x20: JSR,
 	0x24: BITzer,
@@ -33,35 +33,35 @@ var opCodes = [256]func(cpu *CPU){
 	0xF8: SED,
 }
 
-var disasmCodes = [256]func(cpu *CPU) string{
-	0x08: opcodestr("PHP"),
-	0x20: JSRDisasm,
-	0x24: BITzerDisasm,
-	0x30: BMIDisasm,
-	0x38: opcodestr("SEC"),
-	0x45: EORzerDisasm,
-	0x4C: JMPabsDisasm,
-	0x48: opcodestr("PHA"),
-	0x6C: JMPindDisasm,
-	0x78: opcodestr("SEI"),
-	0x8D: STAabsDisasm,
-	0x8E: STXabsDisasm,
-	0x84: STYzerDisasm,
-	0x86: STXzerDisasm,
-	0x91: STAindyDisasm,
-	0x9A: opcodestr("TXS"),
-	0xA0: LDYimmDisasm,
-	0xA2: LDXimmDisasm,
-	0xA9: LDAimmDisasm,
-	0xAD: LDAabsDisasm,
-	0xB0: BCSDisasm,
-	0xC8: opcodestr("INY"),
-	0xC9: CMPimmDisasm,
-	0xD0: BNEDisasm,
-	0xD8: opcodestr("CLD"),
-	0xE6: INCzerDisasm,
-	0xE8: opcodestr("INX"),
-	0xF8: opcodestr("SED"),
+var opsDisasm = [256]func(cpu *CPU) string{
+	0x08: disasm("PHP", implied),
+	0x20: disasm("JSR", absolute),
+	0x24: disasm("BIT", zeropage),
+	0x30: disasm("BMI", relative),
+	0x38: disasm("SEC", implied),
+	0x45: disasm("EOR", zeropage),
+	0x4C: disasm("JMP", absolute),
+	0x48: disasm("PHA", implied),
+	0x6C: disasm("JMP", absindirect),
+	0x78: disasm("SEI", implied),
+	0x8D: disasm("STA", absolute),
+	0x8E: disasm("STX", absolute),
+	0x84: disasm("STY", zeropage),
+	0x86: disasm("STX", zeropage),
+	0x91: disasm("STA", zeroindirectY),
+	0x9A: disasm("TXS", implied),
+	0xA0: disasm("LDY", immediate),
+	0xA2: disasm("LDX", immediate),
+	0xA9: disasm("LDA", immediate),
+	0xAD: disasm("LDA", absolute),
+	0xB0: disasm("BCS", relative),
+	0xC8: disasm("INY", implied),
+	0xC9: disasm("CMP", immediate),
+	0xD0: disasm("BNE", relative),
+	0xD8: disasm("CLD", implied),
+	0xE6: disasm("INC", zeropage),
+	0xE8: disasm("INX", implied),
+	0xF8: disasm("SED", implied),
 }
 
 // 08
@@ -84,11 +84,6 @@ func JSR(cpu *CPU) {
 	cpu.Clock += 6
 }
 
-func JSRDisasm(cpu *CPU) string {
-	oper := cpu.Read16(cpu.PC + 1)
-	return fmt.Sprintf("JSR $%04X", oper)
-}
-
 // 24
 func BITzer(cpu *CPU) {
 	oper := cpu.Read8(cpu.PC + 1)
@@ -102,11 +97,6 @@ func BITzer(cpu *CPU) {
 
 	cpu.PC += 2
 	cpu.Clock += 3
-}
-
-func BITzerDisasm(cpu *CPU) string {
-	oper := cpu.Read8(cpu.PC + 1)
-	return fmt.Sprintf("BIT %02X", oper)
 }
 
 // 30
@@ -126,12 +116,6 @@ func BMI(cpu *CPU) {
 		cpu.Clock += 3
 	}
 	cpu.PC = addr
-}
-
-func BMIDisasm(cpu *CPU) string {
-	off := int32(cpu.Read8(cpu.PC + 1))
-	addr := uint16(int32(cpu.PC+2) + off)
-	return fmt.Sprintf("BMI $%04X", addr)
 }
 
 // 38
@@ -154,11 +138,6 @@ func EORzer(cpu *CPU) {
 	cpu.PC += 2
 }
 
-func EORzerDisasm(cpu *CPU) string {
-	oper := cpu.Read8(cpu.PC + 1)
-	return fmt.Sprintf("EOR $%02X", oper)
-}
-
 // 78
 func SEI(cpu *CPU) {
 	cpu.P |= 1 << pbitI
@@ -171,11 +150,6 @@ func JMPabs(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC + 1)
 	cpu.PC = oper
 	cpu.Clock += 3
-}
-
-func JMPabsDisasm(cpu *CPU) string {
-	oper := cpu.Read16(cpu.PC + 1)
-	return fmt.Sprintf("JMP $%04X", oper)
 }
 
 // 48
@@ -194,22 +168,12 @@ func JMPind(cpu *CPU) {
 	cpu.Clock += 5
 }
 
-func JMPindDisasm(cpu *CPU) string {
-	oper := cpu.Read16(cpu.PC + 1)
-	return fmt.Sprintf("JMP ($%04X)", oper)
-}
-
 // 8D
 func STAabs(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC + 1)
 	cpu.bus.Write8(oper, cpu.A)
 	cpu.PC += 3
 	cpu.Clock += 5
-}
-
-func STAabsDisasm(cpu *CPU) string {
-	oper := cpu.Read16(cpu.PC + 1)
-	return fmt.Sprintf("STA $%04X", oper)
 }
 
 // 8E
@@ -220,11 +184,6 @@ func STXabs(cpu *CPU) {
 	cpu.Clock += 4
 }
 
-func STXabsDisasm(cpu *CPU) string {
-	oper := cpu.Read16(cpu.PC + 1)
-	return fmt.Sprintf("STX $%04X", oper)
-}
-
 // 84
 func STYzer(cpu *CPU) {
 	oper := cpu.Read8(cpu.PC + 1)
@@ -233,22 +192,12 @@ func STYzer(cpu *CPU) {
 	cpu.Clock += 3
 }
 
-func STYzerDisasm(cpu *CPU) string {
-	oper := cpu.Read8(cpu.PC + 1)
-	return fmt.Sprintf("STY %02X", oper)
-}
-
 // 86
 func STXzer(cpu *CPU) {
 	oper := cpu.Read8(cpu.PC + 1)
 	cpu.bus.Write8(uint16(oper), cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 3
-}
-
-func STXzerDisasm(cpu *CPU) string {
-	oper := cpu.Read8(cpu.PC + 1)
-	return fmt.Sprintf("STX %02X", oper)
 }
 
 // 91
@@ -260,11 +209,6 @@ func STAindy(cpu *CPU) {
 	cpu.bus.Write8(addr, cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 6
-}
-
-func STAindyDisasm(cpu *CPU) string {
-	oper := cpu.Read8(cpu.PC + 1)
-	return fmt.Sprintf("STA ($%02X),Y", oper)
 }
 
 // 9A
@@ -283,11 +227,6 @@ func LDYimm(cpu *CPU) {
 	cpu.Clock += 2
 }
 
-func LDYimmDisasm(cpu *CPU) string {
-	oper := cpu.Read8(cpu.PC + 1)
-	return fmt.Sprintf("LDY #$%02X", oper)
-}
-
 // A2
 func LDXimm(cpu *CPU) {
 	cpu.X = cpu.Read8(cpu.PC + 1)
@@ -295,11 +234,6 @@ func LDXimm(cpu *CPU) {
 	cpu.P.checkZ(cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 2
-}
-
-func LDXimmDisasm(cpu *CPU) string {
-	oper := cpu.Read8(cpu.PC + 1)
-	return fmt.Sprintf("LDX #$%02X", oper)
 }
 
 // A9
@@ -311,11 +245,6 @@ func LDAimm(cpu *CPU) {
 	cpu.Clock += 2
 }
 
-func LDAimmDisasm(cpu *CPU) string {
-	oper := cpu.Read8(cpu.PC + 1)
-	return fmt.Sprintf("LDA #$%02X", oper)
-}
-
 // AD
 func LDAabs(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC + 1)
@@ -324,11 +253,6 @@ func LDAabs(cpu *CPU) {
 	cpu.P.checkZ(cpu.A)
 	cpu.PC += 3
 	cpu.Clock += 4
-}
-
-func LDAabsDisasm(cpu *CPU) string {
-	oper := cpu.Read16(cpu.PC + 1)
-	return fmt.Sprintf("LDA $%04X", oper)
 }
 
 // B0
@@ -348,12 +272,6 @@ func BCS(cpu *CPU) {
 		cpu.Clock += 3
 	}
 	cpu.PC = addr
-}
-
-func BCSDisasm(cpu *CPU) string {
-	off := int32(cpu.Read8(cpu.PC + 1))
-	addr := uint16(int32(cpu.PC+2) + off)
-	return fmt.Sprintf("BCS $%04X", addr)
 }
 
 // C8
@@ -376,11 +294,6 @@ func CMPimm(cpu *CPU) {
 	cpu.Clock += 2
 }
 
-func CMPimmDisasm(cpu *CPU) string {
-	oper := cpu.Read8(cpu.PC + 1)
-	return fmt.Sprintf("CMP #$%02X", oper)
-}
-
 // D0
 func BNE(cpu *CPU) {
 	if cpu.P.Z() {
@@ -400,12 +313,6 @@ func BNE(cpu *CPU) {
 	cpu.PC = addr
 }
 
-func BNEDisasm(cpu *CPU) string {
-	off := int32(cpu.Read8(cpu.PC + 1))
-	addr := uint16(int32(cpu.PC+2) + off)
-	return fmt.Sprintf("BNE $%04X", addr)
-}
-
 // D8
 func CLD(cpu *CPU) {
 	cpu.P &= ^P(1 << pbitD)
@@ -422,11 +329,6 @@ func INCzer(cpu *CPU) {
 	cpu.P.checkZ(val)
 	cpu.Clock += 5
 	cpu.PC += 2
-}
-
-func INCzerDisasm(cpu *CPU) string {
-	oper := cpu.Read8(cpu.PC + 1)
-	return fmt.Sprintf("INC $%02X", oper)
 }
 
 // E8
@@ -451,10 +353,6 @@ func pagecrossed(a, b uint16) bool {
 	return 0xFF00&a != 0xFF00&b
 }
 
-func opcodestr(opname string) func(*CPU) string {
-	return func(_ *CPU) string { return opname }
-}
-
 // push 8-bit onto the stack
 func push8(cpu *CPU, val uint8) {
 	top := uint16(cpu.SP) + 0x0100
@@ -467,4 +365,51 @@ func push16(cpu *CPU, val uint16) {
 	top := uint16(cpu.SP) + 0x0100
 	cpu.Write16(top, val)
 	cpu.SP -= 2
+}
+
+type addressing func(string) func(*CPU) string
+
+func disasm(opname string, mode addressing) func(*CPU) string {
+	return mode(opname)
+}
+
+func implied(opname string) func(*CPU) string {
+	return func(_ *CPU) string { return opname }
+}
+
+func immediate(op string) func(*CPU) string {
+	return func(cpu *CPU) string {
+		return fmt.Sprintf("%s #$%02X", op, cpu.Read8(cpu.PC+1))
+	}
+}
+
+func absolute(op string) func(*CPU) string {
+	return func(cpu *CPU) string {
+		return fmt.Sprintf("%s $%04X", op, cpu.Read16(cpu.PC+1))
+	}
+}
+
+func zeropage(op string) func(*CPU) string {
+	return func(cpu *CPU) string {
+		return fmt.Sprintf("%s $%02X", op, cpu.Read8(cpu.PC+1))
+	}
+}
+
+func relative(op string) func(*CPU) string {
+	return func(cpu *CPU) string {
+		off := int32(cpu.Read8(cpu.PC + 1))
+		return fmt.Sprintf("%s $%04X", op, uint16(int32(cpu.PC+2)+off))
+	}
+}
+
+func absindirect(op string) func(*CPU) string {
+	return func(cpu *CPU) string {
+		return fmt.Sprintf("%s ($%04X)", op, cpu.Read16(cpu.PC+1))
+	}
+}
+
+func zeroindirectY(op string) func(*CPU) string {
+	return func(cpu *CPU) string {
+		return fmt.Sprintf("%s ($%02X),Y", op, cpu.Read8(cpu.PC+1))
+	}
 }
