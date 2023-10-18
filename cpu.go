@@ -96,8 +96,7 @@ func (c *CPU) Write16(addr uint16, val uint16) {
 	c.bus.Write8(addr+1, hi)
 }
 
-// P is the 6502  Processor Status Register
-// doc https://codebase64.org/doku.php?id=base:6502_registers
+// P is the 6502 Processor Status Register.
 type P uint8
 
 func (p *P) clear() {
