@@ -9,12 +9,13 @@ type NES struct {
 	CPU *CPU
 }
 
-func startNES(rom *ines.Rom) (*NES, error) {
-	nes := &NES{
-		CPU: NewCPU(),
-	}
+func bootNES(rom *ines.Rom) (*NES, error) {
+	cpuBus := newcpuBus("cpu")
+	cpuBus.MapMemory()
 
-	nes.CPU.MapMemory()
+	nes := &NES{
+		CPU: NewCPU(cpuBus),
+	}
 
 	// Only handle mapper 000 (NROM) for now.
 	if rom.Mapper() != 0 {

@@ -6,7 +6,7 @@ import (
 
 // https://www.nesdev.org/wiki/CPU_memory_map
 type CPU struct {
-	bus *Bus
+	bus Bus
 	A   uint8
 	X   uint8
 	Y   uint8
@@ -18,9 +18,10 @@ type CPU struct {
 	targetCycles int64
 }
 
-func NewCPU() *CPU {
+// NewCPU creates a new CPU in its expected initial state.
+func NewCPU(bus Bus) *CPU {
 	return &CPU{
-		bus: NewBus("cpu"),
+		bus: bus,
 		A:   0x00,
 		X:   0x00,
 		Y:   0x00,
@@ -28,15 +29,6 @@ func NewCPU() *CPU {
 		P:   0x34,
 		PC:  0x0000,
 	}
-}
-
-func (c *CPU) MapMemory() {
-	// RAM is 0x800 bytes, mirrored.
-	ram := make([]byte, 0x0800)
-	c.bus.MapSlice(0x0000, 0x07FF, ram)
-	c.bus.MapSlice(0x0800, 0x0FFF, ram)
-	c.bus.MapSlice(0x1000, 0x17FF, ram)
-	c.bus.MapSlice(0x1800, 0x1FFF, ram)
 }
 
 func (c *CPU) reset() {

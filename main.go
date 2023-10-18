@@ -18,8 +18,8 @@ func main() {
 	cartridge, err := ines.ReadRom(path)
 	checkf(err, "failed to open rom %s", path)
 
-	nes, err := startNES(cartridge)
-	checkf(err, "failed to start nes")
+	nes, err := bootNES(cartridge)
+	checkf(err, "failed to boot nes")
 
 	_ = nes
 	println("yay!")
