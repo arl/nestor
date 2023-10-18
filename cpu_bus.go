@@ -5,7 +5,7 @@ type cpuBus struct {
 	name string
 }
 
-func newcpuBus(name string) *cpuBus {
+func newCpuBus(name string) *cpuBus {
 	bus := &cpuBus{name: name}
 	bus.Reset()
 	return bus

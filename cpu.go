@@ -18,7 +18,7 @@ type CPU struct {
 	targetCycles int64
 }
 
-// NewCPU creates a new CPU in its expected initial state.
+// NewCPU creates a new CPU at power-up state.
 func NewCPU(bus Bus) *CPU {
 	return &CPU{
 		bus: bus,
@@ -52,7 +52,7 @@ func (c *CPU) Run(until int64) {
 		}
 
 		if disasmOn {
-			opcodestr = fmt.Sprintf("%X: %s", c.PC, opsDisasm[opcode](c))
+			opcodestr = fmt.Sprintf("%04X %s", c.PC, opsDisasm[opcode](c))
 		}
 		op(c)
 		if disasmOn {
