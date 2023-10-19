@@ -18,14 +18,22 @@ func main() {
 	cartridge, err := ines.ReadRom(path)
 	checkf(err, "failed to open rom %s", path)
 
-	nes, err := powerUp(cartridge)
+	nes, err := bootNES(cartridge)
 	checkf(err, "failed to boot nes")
 
-	_ = nes
-	println("yay!")
+	nes.Run()
 }
 
-func checkf(err error, format string, args ...interface{}) {
+func check(err error) {
+	if err == nil {
+		return
+	}
+	fmt.Fprintf(os.Stderr, "fatal error:\n")
+	fmt.Fprintf(os.Stderr, "\n%s\n", err)
+	os.Exit(1)
+}
+
+func checkf(err error, format string, args ...any) {
 	if err == nil {
 		return
 	}

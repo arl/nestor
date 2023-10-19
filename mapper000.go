@@ -5,8 +5,8 @@ import (
 	"nestor/ines"
 )
 
-func loadMapper000(cart *ines.Rom, cpubus *cpuBus) {
-	// TODO: load PRGRAM if present in cartribge.
+func loadMapper000(cart *ines.Rom, cpubus *cpuBus) error {
+	// TODO: load PRGRAM if present in cartridge.
 
 	switch len(cart.PRGROM) {
 	case 0x4000:
@@ -15,6 +15,7 @@ func loadMapper000(cart *ines.Rom, cpubus *cpuBus) {
 	case 0x8000:
 		cpubus.MapSlice(0x8000, 0xFFFF, cart.PRGROM)
 	default:
-		panic(fmt.Sprintf("unexpected CHRROM size: 0x%x", len(cart.CHRROM)))
+		return fmt.Errorf("unexpected CHRROM size: 0x%x", len(cart.CHRROM))
 	}
+	return nil
 }
