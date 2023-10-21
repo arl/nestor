@@ -26,7 +26,7 @@ func NewCPU(bus Bus) *CPU {
 		X:   0x00,
 		Y:   0x00,
 		SP:  0xFD,
-		P:   0x34,
+		P:   0x30, // bits 4 and 5 are set at startup.
 		PC:  0x0000,
 	}
 }

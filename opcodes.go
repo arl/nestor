@@ -11,6 +11,7 @@ var ops = [256]func(cpu *CPU){
 	0x45: EORzer,
 	0x4C: JMPabs,
 	0x48: PHA,
+	0x66: RORzer,
 	0x6C: JMPind,
 	0x78: SEI,
 	0x8D: STAabs,
@@ -43,6 +44,7 @@ var opsDisasm = [256]func(cpu *CPU) string{
 	0x45: disasm("EOR", zeropage),
 	0x4C: disasm("JMP", absolute),
 	0x48: disasm("PHA", implied),
+	0x66: disasm("ROR", zeropage),
 	0x6C: disasm("JMP", absindirect),
 	0x78: disasm("SEI", implied),
 	0x8D: disasm("STA", absolute),
@@ -141,13 +143,6 @@ func EORzer(cpu *CPU) {
 	cpu.PC += 2
 }
 
-// 78
-func SEI(cpu *CPU) {
-	cpu.P.setBit(pbitI)
-	cpu.Clock += 2
-	cpu.PC += 1
-}
-
 // 4C
 func JMPabs(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC + 1)
@@ -163,12 +158,40 @@ func PHA(cpu *CPU) {
 	cpu.PC += 1
 }
 
+// 66
+func RORzer(cpu *CPU) {
+	oper := cpu.Read8(cpu.PC + 1)
+	val := cpu.Read8(uint16(oper))
+	carry := val & 1 // carry will be set to bit 0
+	val >>= 1
+	// bit 7 is set to the carry
+	if cpu.P.C() {
+		val |= 1 << 7
+	}
+
+	cpu.Write8(uint16(oper), val)
+
+	cpu.P.checkN(val)
+	cpu.P.checkZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+
+	cpu.PC += 2
+	cpu.Clock += 5
+}
+
 // 6C
 func JMPind(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC + 1)
 	dst := cpu.Read16(oper)
 	cpu.PC = dst
 	cpu.Clock += 5
+}
+
+// 78
+func SEI(cpu *CPU) {
+	cpu.P.setBit(pbitI)
+	cpu.Clock += 2
+	cpu.PC += 1
 }
 
 // 8D
