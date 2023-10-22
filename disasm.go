@@ -9,6 +9,8 @@ import (
 
 var opsDisasm = [256]func(cpu *CPU) (string, int){
 	0x08: disasmOp("PHP", implied),
+	0x10: disasmOp("BPL", relative),
+	0x18: disasmOp("CLC", implied),
 	0x20: disasmOp("JSR", absolute),
 	0x24: disasmOp("BIT", zeropage),
 	0x30: disasmOp("BMI", relative),
@@ -16,14 +18,19 @@ var opsDisasm = [256]func(cpu *CPU) (string, int){
 	0x45: disasmOp("EOR", zeropage),
 	0x4C: disasmOp("JMP", absolute),
 	0x48: disasmOp("PHA", implied),
+	0x50: disasmOp("BVC", relative),
+	0x58: disasmOp("CLI", implied),
 	0x66: disasmOp("ROR", zeropage),
 	0x6A: disasmOp("ROR", accumulator),
 	0x6C: disasmOp("JMP", absindirect),
+	0x70: disasmOp("BVS", relative),
 	0x78: disasmOp("SEI", implied),
 	0x8D: disasmOp("STA", absolute),
 	0x8E: disasmOp("STX", absolute),
 	0x84: disasmOp("STY", zeropage),
+	0x85: disasmOp("STA", zeropage),
 	0x86: disasmOp("STX", zeropage),
+	0x90: disasmOp("BCC", relative),
 	0x91: disasmOp("STA", zeroindirectY),
 	0x9A: disasmOp("TXS", implied),
 	0xA0: disasmOp("LDY", immediate),
@@ -31,6 +38,7 @@ var opsDisasm = [256]func(cpu *CPU) (string, int){
 	0xA9: disasmOp("LDA", immediate),
 	0xAD: disasmOp("LDA", absolute),
 	0xB0: disasmOp("BCS", relative),
+	0xB8: disasmOp("CLV", implied),
 	0xC8: disasmOp("INY", implied),
 	0xCA: disasmOp("DEX", implied),
 	0xC9: disasmOp("CMP", immediate),
@@ -39,6 +47,7 @@ var opsDisasm = [256]func(cpu *CPU) (string, int){
 	0xE6: disasmOp("INC", zeropage),
 	0xE8: disasmOp("INX", implied),
 	0xEA: disasmOp("NOP", implied),
+	0xF0: disasmOp("BEQ", relative),
 	0xF8: disasmOp("SED", implied),
 }
 
@@ -127,7 +136,7 @@ func zeropage(op string) func(*CPU) (string, int) {
 		addr := cpu.Read8(cpu.PC + 1)
 		value := "" // for certain opcodes, we also print the value
 		switch opcode {
-		case 0x86: // STX
+		case 0x24, 0x85, 0x86: // STA, STX
 			value = fmt.Sprintf(" = %02X", cpu.Read8(uint16(addr)))
 		}
 		return fmt.Sprintf("%s $%02X%s", op, addr, value), 2

@@ -1,7 +1,11 @@
 package main
 
+// TODO(arl): we can factor branch subfunctions
+
 var ops = [256]func(cpu *CPU){
 	0x08: PHP,
+	0x10: BPL,
+	0x18: CLC,
 	0x20: JSR,
 	0x24: BITzer,
 	0x30: BMI,
@@ -9,14 +13,19 @@ var ops = [256]func(cpu *CPU){
 	0x45: EORzer,
 	0x4C: JMPabs,
 	0x48: PHA,
+	0x50: BVC,
+	0x58: CLI,
 	0x66: RORzer,
 	0x6A: RORacc,
 	0x6C: JMPind,
+	0x70: BVS,
 	0x78: SEI,
 	0x8D: STAabs,
 	0x8E: STXabs,
 	0x84: STYzer,
+	0x85: STAzer,
 	0x86: STXzer,
+	0x90: BCC,
 	0x91: STAindy,
 	0x9A: TXS,
 	0xA0: LDYimm,
@@ -24,6 +33,7 @@ var ops = [256]func(cpu *CPU){
 	0xA9: LDAimm,
 	0xAD: LDAabs,
 	0xB0: BCS,
+	0xB8: CLV,
 	0xC8: INY,
 	0xCA: DEX,
 	0xC9: CMPimm,
@@ -32,6 +42,7 @@ var ops = [256]func(cpu *CPU){
 	0xE6: INCzer,
 	0xE8: INX,
 	0xEA: NOP,
+	0xF0: BEQ,
 	0xF8: SED,
 }
 
@@ -41,6 +52,33 @@ func PHP(cpu *CPU) {
 	p |= (1 << pbitB) | (1 << pbitU)
 	push8(cpu, uint8(p))
 	cpu.Clock += 3
+	cpu.PC += 1
+}
+
+// 10
+func BPL(cpu *CPU) {
+	if cpu.P.N() {
+		cpu.Clock += 2
+		cpu.PC += 2
+		return
+	}
+
+	// Branch
+	off := cpu.Read8(cpu.PC + 1)
+	reladdr := int32(cpu.PC+2) + int32(off)
+	addr := uint16(reladdr)
+	if pagecrossed(cpu.PC, addr) {
+		cpu.Clock += 4
+	} else {
+		cpu.Clock += 3
+	}
+	cpu.PC = addr
+}
+
+// 18
+func CLC(cpu *CPU) {
+	cpu.P.clearBit(pbitC)
+	cpu.Clock += 2
 	cpu.PC += 1
 }
 
@@ -125,6 +163,33 @@ func PHA(cpu *CPU) {
 	cpu.PC += 1
 }
 
+// 50
+func BVC(cpu *CPU) {
+	if cpu.P.V() {
+		cpu.Clock += 2
+		cpu.PC += 2
+		return
+	}
+
+	// Branch
+	off := cpu.Read8(cpu.PC + 1)
+	reladdr := int32(cpu.PC+2) + int32(off)
+	addr := uint16(reladdr)
+	if pagecrossed(cpu.PC, addr) {
+		cpu.Clock += 4
+	} else {
+		cpu.Clock += 3
+	}
+	cpu.PC = addr
+}
+
+// 58
+func CLI(cpu *CPU) {
+	cpu.P.clearBit(pbitI)
+	cpu.Clock += 2
+	cpu.PC += 1
+}
+
 // 66
 func RORzer(cpu *CPU) {
 	oper := cpu.Read8(cpu.PC + 1)
@@ -173,6 +238,26 @@ func JMPind(cpu *CPU) {
 	cpu.Clock += 5
 }
 
+// 70
+func BVS(cpu *CPU) {
+	if !cpu.P.V() {
+		cpu.Clock += 2
+		cpu.PC += 2
+		return
+	}
+
+	// Branch
+	off := cpu.Read8(cpu.PC + 1)
+	reladdr := int32(cpu.PC+2) + int32(off)
+	addr := uint16(reladdr)
+	if pagecrossed(cpu.PC, addr) {
+		cpu.Clock += 4
+	} else {
+		cpu.Clock += 3
+	}
+	cpu.PC = addr
+}
+
 // 78
 func SEI(cpu *CPU) {
 	cpu.P.setBit(pbitI)
@@ -204,12 +289,40 @@ func STYzer(cpu *CPU) {
 	cpu.Clock += 3
 }
 
+// 85
+func STAzer(cpu *CPU) {
+	oper := cpu.Read8(cpu.PC + 1)
+	cpu.bus.Write8(uint16(oper), cpu.A)
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
 // 86
 func STXzer(cpu *CPU) {
 	oper := cpu.Read8(cpu.PC + 1)
 	cpu.bus.Write8(uint16(oper), cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 3
+}
+
+// 90
+func BCC(cpu *CPU) {
+	if cpu.P.C() {
+		cpu.Clock += 2
+		cpu.PC += 2
+		return
+	}
+
+	// Branch
+	off := cpu.Read8(cpu.PC + 1)
+	reladdr := int32(cpu.PC+2) + int32(off)
+	addr := uint16(reladdr)
+	if pagecrossed(cpu.PC, addr) {
+		cpu.Clock += 4
+	} else {
+		cpu.Clock += 3
+	}
+	cpu.PC = addr
 }
 
 // 91
@@ -285,6 +398,13 @@ func BCS(cpu *CPU) {
 		cpu.Clock += 3
 	}
 	cpu.PC = addr
+}
+
+// B8
+func CLV(cpu *CPU) {
+	cpu.P.clearBit(pbitV)
+	cpu.Clock += 2
+	cpu.PC += 1
 }
 
 // C8
@@ -367,6 +487,26 @@ func INX(cpu *CPU) {
 func NOP(cpu *CPU) {
 	cpu.Clock += 2
 	cpu.PC += 1
+}
+
+// F0
+func BEQ(cpu *CPU) {
+	if !cpu.P.Z() {
+		cpu.Clock += 2
+		cpu.PC += 2
+		return
+	}
+
+	// Branch
+	off := cpu.Read8(cpu.PC + 1)
+	reladdr := int32(cpu.PC+2) + int32(off)
+	addr := uint16(reladdr)
+	if pagecrossed(cpu.PC, addr) {
+		cpu.Clock += 4
+	} else {
+		cpu.Clock += 3
+	}
+	cpu.PC = addr
 }
 
 // F8
