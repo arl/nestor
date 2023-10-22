@@ -9,21 +9,20 @@ type NES struct {
 	CPU *CPU
 }
 
-func bootNES(rom *ines.Rom) (*NES, error) {
+func (nes *NES) Boot(rom *ines.Rom) error {
 	cpubus := newCpuBus("cpu")
 	cpubus.MapMemory()
 
-	nes := &NES{
-		CPU: NewCPU(cpubus),
-	}
-
+	nes.CPU = NewCPU(cpubus)
 	if rom.Mapper() != 0 {
 		// Only handle mapper 000 (NROM) for now.
-		return nil, fmt.Errorf("unsupported mapper: %d", rom.Mapper())
+		return fmt.Errorf("unsupported mapper: %d", rom.Mapper())
 	}
 
-	err := loadMapper000(rom, cpubus)
-	return nes, err
+	if err := loadMapper000(rom, cpubus); err != nil {
+		return fmt.Errorf("failed to load mapper %03d: %s", rom.Mapper(), err)
+	}
+	return nil
 }
 
 func (nes *NES) Run() {
