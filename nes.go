@@ -13,7 +13,7 @@ func (nes *NES) Boot(rom *ines.Rom) error {
 	cpubus := newCpuBus("cpu")
 	cpubus.MapMemory()
 
-	nes.CPU = NewCPU(cpubus)
+	nes.CPU = NewCPU(cpubus, defDisasm)
 	if rom.Mapper() != 0 {
 		// Only handle mapper 000 (NROM) for now.
 		return fmt.Errorf("unsupported mapper: %d", rom.Mapper())

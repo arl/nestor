@@ -16,11 +16,13 @@ type CPU struct {
 
 	Clock        int64 // cycles
 	targetCycles int64
+
+	disasm *disasm
 }
 
 // NewCPU creates a new CPU at power-up state.
-func NewCPU(bus Bus) *CPU {
-	return &CPU{
+func NewCPU(bus Bus, disassembly bool) *CPU {
+	cpu := &CPU{
 		bus: bus,
 		A:   0x00,
 		X:   0x00,
@@ -29,6 +31,12 @@ func NewCPU(bus Bus) *CPU {
 		P:   0x30, // bits 4 and 5 are set at startup.
 		PC:  0x0000,
 	}
+
+	if disassembly {
+		cpu.disasm = newDisasm(cpu)
+	}
+
+	return cpu
 }
 
 func (c *CPU) reset() {
@@ -37,13 +45,10 @@ func (c *CPU) reset() {
 	c.SP = 0xFD
 }
 
-const disasmOn = true
-
 func (c *CPU) Run(until int64) {
-	prevP := c.P
-	prevClock := c.Clock
+	c.disasm.loopinit()
+
 	c.targetCycles = until
-	opcodestr := ""
 	for c.Clock < c.targetCycles {
 		opcode := c.bus.Read8(uint16(c.PC))
 		op := ops[opcode]
@@ -51,19 +56,8 @@ func (c *CPU) Run(until int64) {
 			panic(fmt.Sprintf("unsupported op code %02X (PC:$%04X)", opcode, c.PC))
 		}
 
-		if disasmOn {
-			opcodestr = fmt.Sprintf("%04X %s", c.PC, opsDisasm[opcode](c))
-		}
+		c.disasm.op()
 		op(c)
-		if disasmOn {
-			pflags := ""
-			if prevP != c.P {
-				pflags = fmt.Sprintf(" P=%s", c.P)
-			}
-			fmt.Printf("%-24s (%d) A=%02X X=%02X Y=%02X SP=%02X%s\n", opcodestr, c.Clock-prevClock, c.A, c.X, c.Y, c.SP, pflags)
-			prevP = c.P
-			prevClock = c.Clock
-		}
 	}
 }
 

@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 var ops = [256]func(cpu *CPU){
 	0x08: PHP,
 	0x20: JSR,
@@ -34,40 +32,6 @@ var ops = [256]func(cpu *CPU){
 	0xE8: INX,
 	0xEA: NOP,
 	0xF8: SED,
-}
-
-var opsDisasm = [256]func(cpu *CPU) string{
-	0x08: disasm("PHP", implied),
-	0x20: disasm("JSR", absolute),
-	0x24: disasm("BIT", zeropage),
-	0x30: disasm("BMI", relative),
-	0x38: disasm("SEC", implied),
-	0x45: disasm("EOR", zeropage),
-	0x4C: disasm("JMP", absolute),
-	0x48: disasm("PHA", implied),
-	0x66: disasm("ROR", zeropage),
-	0x6A: disasm("ROR", accumulator),
-	0x6C: disasm("JMP", absindirect),
-	0x78: disasm("SEI", implied),
-	0x8D: disasm("STA", absolute),
-	0x8E: disasm("STX", absolute),
-	0x84: disasm("STY", zeropage),
-	0x86: disasm("STX", zeropage),
-	0x91: disasm("STA", zeroindirectY),
-	0x9A: disasm("TXS", implied),
-	0xA0: disasm("LDY", immediate),
-	0xA2: disasm("LDX", immediate),
-	0xA9: disasm("LDA", immediate),
-	0xAD: disasm("LDA", absolute),
-	0xB0: disasm("BCS", relative),
-	0xC8: disasm("INY", implied),
-	0xC9: disasm("CMP", immediate),
-	0xD0: disasm("BNE", relative),
-	0xD8: disasm("CLD", implied),
-	0xE6: disasm("INC", zeropage),
-	0xE8: disasm("INX", implied),
-	0xEA: disasm("NOP", implied),
-	0xF8: disasm("SED", implied),
 }
 
 // 08
@@ -420,55 +384,4 @@ func push16(cpu *CPU, val uint16) {
 	top := uint16(cpu.SP) + 0x0100
 	cpu.Write16(top, val)
 	cpu.SP -= 2
-}
-
-type addressing func(string) func(*CPU) string
-
-func disasm(opname string, mode addressing) func(*CPU) string {
-	return mode(opname)
-}
-
-func implied(opname string) func(*CPU) string {
-	return func(_ *CPU) string { return opname }
-}
-
-func accumulator(opname string) func(*CPU) string {
-	return func(_ *CPU) string { return fmt.Sprintf("%s A", opname) }
-}
-
-func immediate(op string) func(*CPU) string {
-	return func(cpu *CPU) string {
-		return fmt.Sprintf("%s #$%02X", op, cpu.Read8(cpu.PC+1))
-	}
-}
-
-func absolute(op string) func(*CPU) string {
-	return func(cpu *CPU) string {
-		return fmt.Sprintf("%s $%04X", op, cpu.Read16(cpu.PC+1))
-	}
-}
-
-func zeropage(op string) func(*CPU) string {
-	return func(cpu *CPU) string {
-		return fmt.Sprintf("%s $%02X", op, cpu.Read8(cpu.PC+1))
-	}
-}
-
-func relative(op string) func(*CPU) string {
-	return func(cpu *CPU) string {
-		off := int32(cpu.Read8(cpu.PC + 1))
-		return fmt.Sprintf("%s $%04X", op, uint16(int32(cpu.PC+2)+off))
-	}
-}
-
-func absindirect(op string) func(*CPU) string {
-	return func(cpu *CPU) string {
-		return fmt.Sprintf("%s ($%04X)", op, cpu.Read16(cpu.PC+1))
-	}
-}
-
-func zeroindirectY(op string) func(*CPU) string {
-	return func(cpu *CPU) string {
-		return fmt.Sprintf("%s ($%02X),Y", op, cpu.Read8(cpu.PC+1))
-	}
 }

@@ -29,6 +29,17 @@ func tcheckf(tb testing.TB, err error, format string, args ...any) {
 	tb.Fatalf("fatal error:\n\n%s: %s\n", fmt.Sprintf(format, args...), err)
 }
 
+func hasPanicked(f func()) (yes bool, msg any) {
+	defer func() {
+		msg = recover()
+		if msg != nil {
+			yes = true
+		}
+	}()
+	f()
+	return yes, msg
+}
+
 /* cpu specific testing helpers */
 
 func wantMem8(t *testing.T, cpu *CPU, addr uint16, want uint8) {
@@ -143,7 +154,7 @@ func loadCPUWith(t *testing.T, dump string) *CPU {
 		t.Logf("mapping $%04X-$%04X with %s", ioff, ioff+15, hex.Dump(buf[:16]))
 	}
 
-	cpu := NewCPU(bus)
+	cpu := NewCPU(bus, defDisasm)
 	cpu.reset()
 	if scan.Err() != nil {
 		t.Fatalf("scan error: %s", scan.Err())
