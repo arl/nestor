@@ -15,6 +15,7 @@ var ops = [256]func(cpu *CPU){
 	0x48: PHA,
 	0x50: BVC,
 	0x58: CLI,
+	0x60: RTS,
 	0x66: RORzer,
 	0x6A: RORacc,
 	0x6C: JMPind,
@@ -188,6 +189,13 @@ func CLI(cpu *CPU) {
 	cpu.P.clearBit(pbitI)
 	cpu.Clock += 2
 	cpu.PC += 1
+}
+
+// 60
+func RTS(cpu *CPU) {
+	cpu.PC = pull16(cpu)
+	cpu.PC++
+	cpu.Clock += 6
 }
 
 // 66
@@ -534,4 +542,20 @@ func push16(cpu *CPU, val uint16) {
 	top := uint16(cpu.SP) + 0x0100
 	cpu.Write16(top, val)
 	cpu.SP -= 2
+}
+
+// pull a 8-bit value from the stack
+func pull8(cpu *CPU) uint8 {
+	top := uint16(cpu.SP) + 0x0100
+	val := cpu.Read8(top)
+	cpu.SP += 1
+	return val
+}
+
+// pull a 16-bit value from the stack
+func pull16(cpu *CPU) uint16 {
+	top := uint16(cpu.SP) + 0x0100
+	val := cpu.Read16(top)
+	cpu.SP += 2
+	return val
 }

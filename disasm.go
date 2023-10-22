@@ -20,6 +20,7 @@ var opsDisasm = [256]func(cpu *CPU) (string, int){
 	0x48: disasmOp("PHA", implied),
 	0x50: disasmOp("BVC", relative),
 	0x58: disasmOp("CLI", implied),
+	0x60: disasmOp("RTS", implied),
 	0x66: disasmOp("ROR", zeropage),
 	0x6A: disasmOp("ROR", accumulator),
 	0x6C: disasmOp("JMP", absindirect),
