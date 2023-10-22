@@ -25,6 +25,7 @@ var ops = [256]func(cpu *CPU){
 	0xAD: LDAabs,
 	0xB0: BCS,
 	0xC8: INY,
+	0xCA: DEX,
 	0xC9: CMPimm,
 	0xD0: BNE,
 	0xD8: CLD,
@@ -291,6 +292,15 @@ func INY(cpu *CPU) {
 	cpu.Y++
 	cpu.P.checkN(cpu.Y)
 	cpu.P.checkZ(cpu.Y)
+	cpu.Clock += 2
+	cpu.PC += 1
+}
+
+// CA
+func DEX(cpu *CPU) {
+	cpu.X--
+	cpu.P.checkN(cpu.X)
+	cpu.P.checkZ(cpu.X)
 	cpu.Clock += 2
 	cpu.PC += 1
 }

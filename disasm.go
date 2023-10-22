@@ -32,6 +32,7 @@ var opsDisasm = [256]func(cpu *CPU) (string, int){
 	0xAD: disasmOp("LDA", absolute),
 	0xB0: disasmOp("BCS", relative),
 	0xC8: disasmOp("INY", implied),
+	0xCA: disasmOp("DEX", implied),
 	0xC9: disasmOp("CMP", immediate),
 	0xD0: disasmOp("BNE", relative),
 	0xD8: disasmOp("CLD", implied),
