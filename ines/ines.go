@@ -69,7 +69,7 @@ const Magic = "NES\x1a"
 
 func (hdr *header) decode(p []byte) error {
 	if len(p) < 16 {
-		return fmt.Errorf("too smaller, needs 16 bytes")
+		return fmt.Errorf("too small, needs 16 bytes")
 	}
 	if string(p[:4]) != Magic {
 		return fmt.Errorf("invalid magic number")
@@ -97,7 +97,12 @@ func (hdr *header) HasPersistent() bool {
 	return hdr.raw[6]&0x02 != 0
 }
 
-// Mapper returns the mapper number (for now only the lower nibble is used)
-func (hdr *header) Mapper() uint8 {
-	return hdr.raw[6] >> 4
+// Mapper returns the mapper number.
+func (hdr *header) Mapper() uint16 {
+	return uint16(hdr.raw[7]&0xF0) | uint16(hdr.raw[6]>>4)
+}
+
+// IsNES20 reports whether the rom is in the NES2.0 format.
+func (hdr *header) IsNES20() bool {
+	return hdr.raw[7]&0x0c == 0x08
 }
