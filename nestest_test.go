@@ -13,7 +13,7 @@ func TestNestest(t *testing.T) {
 	nes := new(NES)
 	cartridge, err := ines.ReadRom("testdata/nes-test-roms/other/nestest.nes")
 	tcheck(t, err)
-	tcheck(t, nes.Boot(cartridge))
+	tcheck(t, nes.PowerUp(cartridge))
 
 	flog, err := os.CreateTemp("", "nestor.nestet.*.log")
 	tcheck(t, err)

@@ -19,7 +19,8 @@ func main() {
 	checkf(err, "failed to open rom %s", path)
 
 	nes := new(NES)
-	checkf(nes.Boot(cartridge), "failed to boot nes")
+	checkf(nes.PowerUp(cartridge), "failed to power up")
+	nes.Reset()
 	nes.Run()
 }
 

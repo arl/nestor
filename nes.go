@@ -3,17 +3,19 @@ package main
 import (
 	"fmt"
 	"nestor/ines"
+	"os"
 )
 
 type NES struct {
 	CPU *CPU
 }
 
-func (nes *NES) Boot(rom *ines.Rom) error {
+func (nes *NES) PowerUp(rom *ines.Rom) error {
 	cpubus := newCpuBus("cpu")
 	cpubus.MapMemory()
 
-	nes.CPU = NewCPU(cpubus, defDisasm)
+	nes.CPU = NewCPU(cpubus)
+	nes.CPU.setDisasm(os.Stderr)
 	if rom.Mapper() != 0 {
 		// Only handle mapper 000 (NROM) for now.
 		return fmt.Errorf("unsupported mapper: %d", rom.Mapper())
@@ -25,7 +27,11 @@ func (nes *NES) Boot(rom *ines.Rom) error {
 	return nil
 }
 
-func (nes *NES) Run() {
+// Reset forwards the reset signal to all hardware.
+func (nes *NES) Reset() {
 	nes.CPU.reset()
+}
+
+func (nes *NES) Run() {
 	nes.CPU.Run(512) // debug: run 512 cycles
 }
