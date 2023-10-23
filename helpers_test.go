@@ -154,7 +154,7 @@ func loadCPUWith(t *testing.T, dump string) *CPU {
 		t.Logf("mapping $%04X-$%04X with %s", ioff, ioff+15, hex.Dump(buf[:16]))
 	}
 
-	cpu := NewCPU(bus, defDisasm)
+	cpu := NewCPU(bus)
 	cpu.reset()
 	if scan.Err() != nil {
 		t.Fatalf("scan error: %s", scan.Err())

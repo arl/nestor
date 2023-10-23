@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 )
 
 // https://www.nesdev.org/wiki/CPU_memory_map
@@ -21,7 +22,7 @@ type CPU struct {
 }
 
 // NewCPU creates a new CPU at power-up state.
-func NewCPU(bus Bus, disassembly bool) *CPU {
+func NewCPU(bus Bus) *CPU {
 	cpu := &CPU{
 		bus: bus,
 		A:   0x00,
@@ -32,11 +33,11 @@ func NewCPU(bus Bus, disassembly bool) *CPU {
 		PC:  0x0000,
 	}
 
-	if disassembly {
-		cpu.disasm = newDisasm(cpu)
-	}
-
 	return cpu
+}
+
+func (c *CPU) setDisasm(w io.Writer) {
+	c.disasm = &disasm{cpu: c, w: w}
 }
 
 func (c *CPU) reset() {

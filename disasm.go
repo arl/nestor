@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
 )
 
 var opsDisasm = [256]func(cpu *CPU) (string, int){
@@ -52,9 +51,6 @@ var opsDisasm = [256]func(cpu *CPU) (string, int){
 	0xF8: disasmOp("SED", implied),
 }
 
-// when true, disasm is enabled everywhere (tests, emulator, etc.)
-const defDisasm = true
-
 type disasm struct {
 	cpu       *CPU
 	prevP     P
@@ -63,10 +59,6 @@ type disasm struct {
 	bb        bytes.Buffer
 
 	w io.Writer
-}
-
-func newDisasm(cpu *CPU) *disasm {
-	return &disasm{cpu: cpu, w: os.Stderr}
 }
 
 func (d *disasm) loopinit() {
@@ -79,6 +71,9 @@ func (d *disasm) loopinit() {
 }
 
 func (d *disasm) op() {
+	if d == nil {
+		return
+	}
 	d.bb.Reset()
 	fmt.Fprintf(&d.bb, "%04X", d.cpu.PC)
 

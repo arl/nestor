@@ -35,7 +35,7 @@ func TestNestest(t *testing.T) {
 		}
 	})
 
-	nes.CPU.disasm = &disasm{w: flog, cpu: nes.CPU}
+	nes.CPU.setDisasm(flog)
 
 	// For some reason the nestest.log shows an execution starting from 0xC000, at which
 	// the CPU has already executed 7 cycles.
