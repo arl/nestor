@@ -5,6 +5,13 @@ import (
 	"io"
 )
 
+// Reserved locations for vector pointers.
+const (
+	vecNMI = 0xFFFA // Non-Maskable Interrupt
+	vecIRQ = 0xFFFE // Interrupt Request
+	vecRES = 0xFFFC // Reset
+)
+
 // https://www.nesdev.org/wiki/CPU_memory_map
 type CPU struct {
 	bus Bus
@@ -32,7 +39,6 @@ func NewCPU(bus Bus) *CPU {
 		P:   0x30, // bits 4 and 5 are set at startup.
 		PC:  0x0000,
 	}
-
 	return cpu
 }
 
@@ -41,8 +47,7 @@ func (c *CPU) setDisasm(w io.Writer) {
 }
 
 func (c *CPU) reset() {
-	// Load reset vector.
-	c.PC = c.Read16(0xFFFC)
+	c.PC = c.Read16(vecRES)
 	c.SP = 0xFD
 }
 
