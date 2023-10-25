@@ -27,15 +27,18 @@ var opsDisasm = [256]func(cpu *CPU) (string, int){
 	0x78: disasmOp("SEI", implied),
 	0x8D: disasmOp("STA", absolute),
 	0x8E: disasmOp("STX", absolute),
+	0x81: disasmOp("STA", preidxindirect),
 	0x84: disasmOp("STY", zeropage),
 	0x85: disasmOp("STA", zeropage),
 	0x86: disasmOp("STX", zeropage),
 	0x90: disasmOp("BCC", relative),
-	0x91: disasmOp("STA", zeroindirectY),
+	0x91: disasmOp("STA", postidxindirect),
+	0x95: disasmOp("STA", zeropagex),
 	0x9A: disasmOp("TXS", implied),
 	0xA0: disasmOp("LDY", immediate),
 	0xA2: disasmOp("LDX", immediate),
 	0xA9: disasmOp("LDA", immediate),
+	0xAA: disasmOp("TAX", implied),
 	0xAD: disasmOp("LDA", absolute),
 	0xB0: disasmOp("BCS", relative),
 	0xB8: disasmOp("CLV", implied),
@@ -58,7 +61,8 @@ type disasm struct {
 	prevClock int64
 	bb        bytes.Buffer
 
-	isNestest bool // if true, print P in hexadecimal format (not individual bit-letters)
+	// use nestest 'golden log' format for automatic diff.
+	isNestest bool
 
 	w io.Writer
 }
@@ -80,10 +84,10 @@ func (d *disasm) op() {
 	fmt.Fprintf(&d.bb, "%04X", d.cpu.PC)
 
 	opcode := d.cpu.bus.Read8(uint16(d.cpu.PC))
-	opstr, nb := opsDisasm[opcode](d.cpu)
+	opstr, nbytes := opsDisasm[opcode](d.cpu)
 
 	var tmp []byte
-	for i := uint16(0); i < uint16(nb); i++ {
+	for i := uint16(0); i < uint16(nbytes); i++ {
 		b := d.cpu.bus.Read8(d.cpu.PC + i)
 		tmp = append(tmp, fmt.Sprintf("%02X ", b)...)
 	}
@@ -101,7 +105,7 @@ func (d *disasm) op() {
 	d.w.Write(d.bb.Bytes())
 }
 
-// dissasembly functions
+// dissasembly helpers
 
 func disasmOp(opname string, mode addressing) func(*CPU) (string, int) {
 	return mode(opname)
@@ -135,14 +139,17 @@ func absolute(op string) func(*CPU) (string, int) {
 
 func zeropage(op string) func(*CPU) (string, int) {
 	return func(cpu *CPU) (string, int) {
-		opcode := cpu.Read8(cpu.PC)
 		addr := cpu.Read8(cpu.PC + 1)
-		value := "" // for certain opcodes, we also print the value
-		switch opcode {
-		case 0x24, 0x85, 0x86: // STA, STX
-			value = fmt.Sprintf(" = %02X", cpu.Read8(uint16(addr)))
-		}
+		value := fmt.Sprintf(" = %02X", cpu.Read8(uint16(addr)))
 		return fmt.Sprintf("%s $%02X%s", op, addr, value), 2
+	}
+}
+
+func zeropagex(op string) func(*CPU) (string, int) {
+	return func(cpu *CPU) (string, int) {
+		addr := cpu.Read8(cpu.PC + 1)
+		value := fmt.Sprintf(" = %02X", cpu.Read8(uint16(addr)))
+		return fmt.Sprintf("%s $%02X,X%s", op, addr, value), 2
 	}
 }
 
@@ -159,7 +166,13 @@ func absindirect(op string) func(*CPU) (string, int) {
 	}
 }
 
-func zeroindirectY(op string) func(*CPU) (string, int) {
+func preidxindirect(op string) func(*CPU) (string, int) {
+	return func(cpu *CPU) (string, int) {
+		return fmt.Sprintf("%s ($%02X,X)", op, cpu.Read8(cpu.PC+1)), 2
+	}
+}
+
+func postidxindirect(op string) func(*CPU) (string, int) {
 	return func(cpu *CPU) (string, int) {
 		return fmt.Sprintf("%s ($%02X),Y", op, cpu.Read8(cpu.PC+1)), 2
 	}

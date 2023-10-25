@@ -33,5 +33,5 @@ func (nes *NES) Reset() {
 }
 
 func (nes *NES) Run() {
-	nes.CPU.Run(512) // debug: run 512 cycles
+	nes.CPU.Run(29692) // random
 }

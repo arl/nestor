@@ -49,6 +49,7 @@ func (c *CPU) setDisasm(w io.Writer, nestest bool) {
 func (c *CPU) reset() {
 	c.PC = c.Read16(vecRES)
 	c.SP = 0xFD
+	c.P = 0x04
 }
 
 func (c *CPU) Run(until int64) {

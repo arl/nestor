@@ -21,6 +21,7 @@ var ops = [256]func(cpu *CPU){
 	0x6C: JMPind,
 	0x70: BVS,
 	0x78: SEI,
+	0x81: STAindx,
 	0x8D: STAabs,
 	0x8E: STXabs,
 	0x84: STYzer,
@@ -28,10 +29,12 @@ var ops = [256]func(cpu *CPU){
 	0x86: STXzer,
 	0x90: BCC,
 	0x91: STAindy,
+	0x95: STAzerx,
 	0x9A: TXS,
 	0xA0: LDYimm,
 	0xA2: LDXimm,
 	0xA9: LDAimm,
+	0xAA: TAX,
 	0xAD: LDAabs,
 	0xB0: BCS,
 	0xB8: CLV,
@@ -237,6 +240,16 @@ func SEI(cpu *CPU) {
 	cpu.PC += 1
 }
 
+// 81
+func STAindx(cpu *CPU) {
+	// Read from the zero page
+	oper := cpu.Read8(cpu.PC + 1)
+	addr := uint16(oper) + uint16(cpu.Y)
+	cpu.bus.Write8(addr, cpu.A)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // 8D
 func STAabs(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC + 1)
@@ -299,6 +312,18 @@ func STAindy(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 95
+func STAzerx(cpu *CPU) {
+	// Read from the zero page
+	oper := cpu.Read8(cpu.PC + 1)
+	oper += cpu.X
+
+	addr := uint16(oper)
+	cpu.bus.Write8(addr, cpu.A)
+	cpu.PC += 2
+	cpu.Clock += 4
+}
+
 // 9A
 func TXS(cpu *CPU) {
 	cpu.SP = cpu.X
@@ -330,6 +355,15 @@ func LDAimm(cpu *CPU) {
 	cpu.P.checkN(cpu.A)
 	cpu.P.checkZ(cpu.A)
 	cpu.PC += 2
+	cpu.Clock += 2
+}
+
+// AA
+func TAX(cpu *CPU) {
+	cpu.X = cpu.A
+	cpu.P.checkN(cpu.A)
+	cpu.P.checkZ(cpu.A)
+	cpu.PC += 1
 	cpu.Clock += 2
 }
 
