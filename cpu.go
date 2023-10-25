@@ -42,8 +42,8 @@ func NewCPU(bus Bus) *CPU {
 	return cpu
 }
 
-func (c *CPU) setDisasm(w io.Writer) {
-	c.disasm = &disasm{cpu: c, w: w}
+func (c *CPU) setDisasm(w io.Writer, nestest bool) {
+	c.disasm = &disasm{cpu: c, w: w, isNestest: nestest}
 }
 
 func (c *CPU) reset() {
@@ -141,9 +141,18 @@ func (p *P) clearBit(i int) {
 	*p &= ^(1 << i) & 0xff
 }
 
+func (p *P) ibit(i int) uint8 {
+	return (uint8(*p) & (1 << i)) >> i
+}
+
 func (p P) String() string {
-	return fmt.Sprintf("%02X[N%d V%d _ B%d D%d I%d Z%d C%d]", uint8(p),
-		b2i(p.N()), b2i(p.V()), b2i(p.B()), b2i(p.D()), b2i(p.I()), b2i(p.Z()), b2i(p.C()))
+	const bits = "nvubdizcNVUBDIZC"
+
+	s := make([]byte, 8)
+	for i := 0; i < 8; i++ {
+		s[i] = bits[i+int(8*p.ibit(7-i))]
+	}
+	return string(s)
 }
 
 func b2i(b bool) byte {

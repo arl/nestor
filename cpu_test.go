@@ -51,3 +51,14 @@ func TestPflag(t *testing.T) {
 		t.Error("Z bit should not be set")
 	}
 }
+
+func TestPString(t *testing.T) {
+	p := P(0b00110100)
+	if got := p.String(); got != "nvUBdIzc" {
+		t.Errorf("got P = %s, want %s", got, "nvUBdIzc")
+	}
+	p = P(0b00000100)
+	if p.String() != "nvubdIzc" {
+		t.Errorf("got P = %s, want %s", p.String(), "nvubdIzc")
+	}
+}

@@ -58,6 +58,8 @@ type disasm struct {
 	prevClock int64
 	bb        bytes.Buffer
 
+	isNestest bool // if true, print P in hexadecimal format (not individual bit-letters)
+
 	w io.Writer
 }
 
@@ -87,8 +89,13 @@ func (d *disasm) op() {
 	}
 
 	fmt.Fprintf(&d.bb, "  %-9s %-32s", tmp, opstr)
-	fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3X,%3X CYC:%d",
-		d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, 0, 0, d.cpu.Clock)
+	if d.isNestest {
+		fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3X,%3X CYC:%d",
+			d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, 0, 0, d.cpu.Clock)
+	} else {
+		fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%s SP:%02X PPU:%3X,%3X CYC:%d",
+			d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, 0, 0, d.cpu.Clock)
+	}
 	d.bb.WriteByte('\n')
 
 	d.w.Write(d.bb.Bytes())

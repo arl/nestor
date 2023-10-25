@@ -15,7 +15,7 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 	cpubus.MapMemory()
 
 	nes.CPU = NewCPU(cpubus)
-	nes.CPU.setDisasm(os.Stderr)
+	nes.CPU.setDisasm(os.Stderr, false)
 	if rom.Mapper() != 0 {
 		// Only handle mapper 000 (NROM) for now.
 		return fmt.Errorf("unsupported mapper: %d", rom.Mapper())
