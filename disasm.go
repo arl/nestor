@@ -148,8 +148,8 @@ func zeropage(op string) func(*CPU) (string, int) {
 
 func relative(op string) func(*CPU) (string, int) {
 	return func(cpu *CPU) (string, int) {
-		off := int32(cpu.Read8(cpu.PC + 1))
-		return fmt.Sprintf("%s $%04X", op, uint16(int32(cpu.PC+2)+off)), 2
+		addr := reladdr(cpu)
+		return fmt.Sprintf("%s $%04X", op, addr), 2
 	}
 }
 

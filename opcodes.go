@@ -64,16 +64,7 @@ func BPL(cpu *CPU) {
 		return
 	}
 
-	// Branch
-	off := cpu.Read8(cpu.PC + 1)
-	reladdr := int32(cpu.PC+2) + int32(off)
-	addr := uint16(reladdr)
-	if pagecrossed(cpu.PC, addr) {
-		cpu.Clock += 4
-	} else {
-		cpu.Clock += 3
-	}
-	cpu.PC = addr
+	branch(cpu)
 }
 
 // 18
@@ -117,16 +108,7 @@ func BMI(cpu *CPU) {
 		return
 	}
 
-	// Branch
-	off := cpu.Read8(cpu.PC + 1)
-	reladdr := int32(cpu.PC+2) + int32(off)
-	addr := uint16(reladdr)
-	if pagecrossed(cpu.PC, addr) {
-		cpu.Clock += 4
-	} else {
-		cpu.Clock += 3
-	}
-	cpu.PC = addr
+	branch(cpu)
 }
 
 // 38
@@ -172,16 +154,7 @@ func BVC(cpu *CPU) {
 		return
 	}
 
-	// Branch
-	off := cpu.Read8(cpu.PC + 1)
-	reladdr := int32(cpu.PC+2) + int32(off)
-	addr := uint16(reladdr)
-	if pagecrossed(cpu.PC, addr) {
-		cpu.Clock += 4
-	} else {
-		cpu.Clock += 3
-	}
-	cpu.PC = addr
+	branch(cpu)
 }
 
 // 58
@@ -254,16 +227,7 @@ func BVS(cpu *CPU) {
 		return
 	}
 
-	// Branch
-	off := cpu.Read8(cpu.PC + 1)
-	reladdr := int32(cpu.PC+2) + int32(off)
-	addr := uint16(reladdr)
-	if pagecrossed(cpu.PC, addr) {
-		cpu.Clock += 4
-	} else {
-		cpu.Clock += 3
-	}
-	cpu.PC = addr
+	branch(cpu)
 }
 
 // 78
@@ -278,7 +242,7 @@ func STAabs(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC + 1)
 	cpu.bus.Write8(oper, cpu.A)
 	cpu.PC += 3
-	cpu.Clock += 5
+	cpu.Clock += 4
 }
 
 // 8E
@@ -321,16 +285,7 @@ func BCC(cpu *CPU) {
 		return
 	}
 
-	// Branch
-	off := cpu.Read8(cpu.PC + 1)
-	reladdr := int32(cpu.PC+2) + int32(off)
-	addr := uint16(reladdr)
-	if pagecrossed(cpu.PC, addr) {
-		cpu.Clock += 4
-	} else {
-		cpu.Clock += 3
-	}
-	cpu.PC = addr
+	branch(cpu)
 }
 
 // 91
@@ -396,16 +351,7 @@ func BCS(cpu *CPU) {
 		return
 	}
 
-	// Branch
-	off := cpu.Read8(cpu.PC + 1)
-	reladdr := int32(cpu.PC+2) + int32(off)
-	addr := uint16(reladdr)
-	if pagecrossed(cpu.PC, addr) {
-		cpu.Clock += 4
-	} else {
-		cpu.Clock += 3
-	}
-	cpu.PC = addr
+	branch(cpu)
 }
 
 // B8
@@ -452,16 +398,7 @@ func BNE(cpu *CPU) {
 		return
 	}
 
-	// Branch
-	off := cpu.Read8(cpu.PC + 1)
-	reladdr := int32(cpu.PC+2) + int32(off)
-	addr := uint16(reladdr)
-	if pagecrossed(cpu.PC, addr) {
-		cpu.Clock += 4
-	} else {
-		cpu.Clock += 3
-	}
-	cpu.PC = addr
+	branch(cpu)
 }
 
 // D8
@@ -505,16 +442,7 @@ func BEQ(cpu *CPU) {
 		return
 	}
 
-	// Branch
-	off := cpu.Read8(cpu.PC + 1)
-	reladdr := int32(cpu.PC+2) + int32(off)
-	addr := uint16(reladdr)
-	if pagecrossed(cpu.PC, addr) {
-		cpu.Clock += 4
-	} else {
-		cpu.Clock += 3
-	}
-	cpu.PC = addr
+	branch(cpu)
 }
 
 // F8
@@ -558,4 +486,22 @@ func pull16(cpu *CPU) uint16 {
 	val := cpu.Read16(top)
 	cpu.SP += 2
 	return val
+}
+
+// reladdr returns the destination address for a jump.
+// that is the address at PC+1 + an offset (PC+2)
+func reladdr(cpu *CPU) uint16 {
+	off := cpu.Read8(cpu.PC + 1)
+	reladdr := int32(cpu.PC+2) + int32(int8(off))
+	return uint16(reladdr)
+}
+
+func branch(cpu *CPU) {
+	addr := reladdr(cpu)
+	if pagecrossed(cpu.PC, addr) {
+		cpu.Clock += 4
+	} else {
+		cpu.Clock += 3
+	}
+	cpu.PC = addr
 }
