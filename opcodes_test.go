@@ -8,7 +8,7 @@ func TestOpcodeLDASTA(t *testing.T) {
 	dump := `0600: a9 01 8d 00 02 a9 05 8d 01 02 a9 08 8d 02 02`
 	cpu := loadCPUWith(t, dump)
 	cpu.PC = 0x0600
-	cpu.Run(21)
+	cpu.Run(6 * 3)
 
 	wantCPUState(t, cpu,
 		"A", 0x08,

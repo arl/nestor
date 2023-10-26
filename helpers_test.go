@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -159,6 +160,18 @@ func loadCPUWith(t *testing.T, dump string) *CPU {
 	if scan.Err() != nil {
 		t.Fatalf("scan error: %s", scan.Err())
 	}
-
+	if testing.Verbose() {
+		cpu.setDisasm(tbwriter{t}, false)
+	}
 	return cpu
+}
+
+type tbwriter struct {
+	testing.TB
+}
+
+func (t tbwriter) Write(p []byte) (int, error) {
+	t.TB.Helper()
+	t.TB.Log(string(bytes.TrimSpace((p))))
+	return len(p), nil
 }

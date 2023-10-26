@@ -36,7 +36,7 @@ func NewCPU(bus Bus) *CPU {
 		X:   0x00,
 		Y:   0x00,
 		SP:  0xFD,
-		P:   0x30, // bits 4 and 5 are set at startup.
+		P:   0x00,
 		PC:  0x0000,
 	}
 	return cpu
@@ -49,7 +49,7 @@ func (c *CPU) setDisasm(w io.Writer, nestest bool) {
 func (c *CPU) reset() {
 	c.PC = c.Read16(vecRES)
 	c.SP = 0xFD
-	c.P = 0x04
+	c.P = 0x34
 }
 
 func (c *CPU) Run(until int64) {
