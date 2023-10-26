@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-var opsDisasm = [256]func(cpu *CPU) (string, int){
+var opsDisasm = [256]func(*disasm) (string, int){
 	0x08: disasmOp("PHP", implied),
 	0x10: disasmOp("BPL", relative),
 	0x18: disasmOp("CLC", implied),
@@ -84,7 +84,7 @@ func (d *disasm) op() {
 	fmt.Fprintf(&d.bb, "%04X", d.cpu.PC)
 
 	opcode := d.cpu.bus.Read8(uint16(d.cpu.PC))
-	opstr, nbytes := opsDisasm[opcode](d.cpu)
+	opstr, nbytes := opsDisasm[opcode](d)
 
 	var tmp []byte
 	for i := uint16(0); i < uint16(nbytes); i++ {
@@ -107,73 +107,75 @@ func (d *disasm) op() {
 
 // dissasembly helpers
 
-func disasmOp(opname string, mode addressing) func(*CPU) (string, int) {
+func disasmOp(opname string, mode addressing) func(*disasm) (string, int) {
 	return mode(opname)
 }
 
-type addressing func(op string) func(*CPU) (string, int)
+type addressing func(op string) func(*disasm) (string, int)
 
-func implied(opname string) func(*CPU) (string, int) {
-	return func(cpu *CPU) (string, int) {
+func implied(opname string) func(*disasm) (string, int) {
+	return func(*disasm) (string, int) {
 		return opname, 1
 	}
 }
 
-func accumulator(opname string) func(*CPU) (string, int) {
-	return func(cpu *CPU) (string, int) {
-		return fmt.Sprintf("%s A", opname), 1
+func accumulator(op string) func(*disasm) (string, int) {
+	return func(*disasm) (string, int) {
+		return fmt.Sprintf("%s A", op), 1
 	}
 }
 
-func immediate(op string) func(*CPU) (string, int) {
-	return func(cpu *CPU) (string, int) {
-		return fmt.Sprintf("%s #$%02X", op, cpu.Read8(cpu.PC+1)), 2
+func immediate(op string) func(*disasm) (string, int) {
+	return func(d *disasm) (string, int) {
+		return fmt.Sprintf("%s #$%02X", op, d.cpu.immediate()), 2
 	}
 }
 
-func absolute(op string) func(*CPU) (string, int) {
-	return func(cpu *CPU) (string, int) {
-		return fmt.Sprintf("%s $%04X", op, cpu.Read16(cpu.PC+1)), 3
+func absolute(op string) func(*disasm) (string, int) {
+	return func(d *disasm) (string, int) {
+		return fmt.Sprintf("%s $%04X", op, d.cpu.absolute()), 3
 	}
 }
 
-func zeropage(op string) func(*CPU) (string, int) {
-	return func(cpu *CPU) (string, int) {
-		addr := cpu.Read8(cpu.PC + 1)
-		value := fmt.Sprintf(" = %02X", cpu.Read8(uint16(addr)))
-		return fmt.Sprintf("%s $%02X%s", op, addr, value), 2
+func zeropage(op string) func(*disasm) (string, int) {
+	return func(d *disasm) (string, int) {
+		addr := d.cpu.zeropage()
+		value := d.cpu.Read8(addr)
+		return fmt.Sprintf("%s $%02X = %02X", op, addr, value), 2
 	}
 }
 
-func zeropagex(op string) func(*CPU) (string, int) {
-	return func(cpu *CPU) (string, int) {
-		addr := cpu.Read8(cpu.PC + 1)
-		value := fmt.Sprintf(" = %02X", cpu.Read8(uint16(addr)))
-		return fmt.Sprintf("%s $%02X,X%s", op, addr, value), 2
+func zeropagex(op string) func(*disasm) (string, int) {
+	return func(d *disasm) (string, int) {
+		addr := d.cpu.zeropage()
+		value := d.cpu.Read8(addr)
+		return fmt.Sprintf("%s $%02X,X = %02X", op, addr, value), 2
 	}
 }
 
-func relative(op string) func(*CPU) (string, int) {
-	return func(cpu *CPU) (string, int) {
-		addr := reladdr(cpu)
+func relative(op string) func(*disasm) (string, int) {
+	return func(d *disasm) (string, int) {
+		addr := reladdr(d.cpu)
 		return fmt.Sprintf("%s $%04X", op, addr), 2
 	}
 }
 
-func absindirect(op string) func(*CPU) (string, int) {
-	return func(cpu *CPU) (string, int) {
-		return fmt.Sprintf("%s ($%04X)", op, cpu.Read16(cpu.PC+1)), 3
+func absindirect(op string) func(*disasm) (string, int) {
+	return func(d *disasm) (string, int) {
+		addr := d.cpu.absolute()
+		return fmt.Sprintf("%s ($%04X)", op, addr), 3
 	}
 }
 
-func preidxindirect(op string) func(*CPU) (string, int) {
-	return func(cpu *CPU) (string, int) {
-		return fmt.Sprintf("%s ($%02X,X)", op, cpu.Read8(cpu.PC+1)), 2
+func preidxindirect(op string) func(*disasm) (string, int) {
+	return func(d *disasm) (string, int) {
+		val := d.cpu.Read8(d.cpu.PC + 1)
+		return fmt.Sprintf("%s ($%02X,X)", op, val), 2
 	}
 }
 
-func postidxindirect(op string) func(*CPU) (string, int) {
-	return func(cpu *CPU) (string, int) {
-		return fmt.Sprintf("%s ($%02X),Y", op, cpu.Read8(cpu.PC+1)), 2
+func postidxindirect(op string) func(*disasm) (string, int) {
+	return func(d *disasm) (string, int) {
+		return fmt.Sprintf("%s ($%02X),Y", op, d.cpu.Read8(d.cpu.PC+1)), 2
 	}
 }

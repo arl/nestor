@@ -90,8 +90,8 @@ func JSR(cpu *CPU) {
 
 // 24
 func BITzer(cpu *CPU) {
-	oper := cpu.Read8(cpu.PC + 1)
-	val := cpu.Read8(uint16(oper))
+	oper := cpu.zeropage()
+	val := cpu.Read8(oper)
 
 	// Copy bits 7 and 6 (N and V)
 	cpu.P &= 0b00111111
@@ -123,8 +123,8 @@ func SEC(cpu *CPU) {
 
 // 45
 func EORzer(cpu *CPU) {
-	oper := cpu.Read8(cpu.PC + 1)
-	val := cpu.Read8(uint16(oper))
+	oper := cpu.zeropage()
+	val := cpu.Read8(oper)
 	cpu.A ^= val
 
 	cpu.P.checkN(cpu.A)
@@ -136,8 +136,7 @@ func EORzer(cpu *CPU) {
 
 // 4C
 func JMPabs(cpu *CPU) {
-	oper := cpu.Read16(cpu.PC + 1)
-	cpu.PC = oper
+	cpu.PC = cpu.absolute()
 	cpu.Clock += 3
 }
 
@@ -176,8 +175,8 @@ func RTS(cpu *CPU) {
 
 // 66
 func RORzer(cpu *CPU) {
-	oper := cpu.Read8(cpu.PC + 1)
-	val := cpu.Read8(uint16(oper))
+	oper := cpu.zeropage()
+	val := cpu.Read8(oper)
 	carry := val & 1 // carry will be set to bit 0
 	val >>= 1
 	// bit 7 is set to the carry
@@ -185,7 +184,7 @@ func RORzer(cpu *CPU) {
 		val |= 1 << 7
 	}
 
-	cpu.Write8(uint16(oper), val)
+	cpu.Write8(oper, val)
 
 	cpu.P.checkN(val)
 	cpu.P.checkZ(val)
@@ -252,7 +251,7 @@ func STAindx(cpu *CPU) {
 
 // 8D
 func STAabs(cpu *CPU) {
-	oper := cpu.Read16(cpu.PC + 1)
+	oper := cpu.absolute()
 	cpu.bus.Write8(oper, cpu.A)
 	cpu.PC += 3
 	cpu.Clock += 4
@@ -260,7 +259,7 @@ func STAabs(cpu *CPU) {
 
 // 8E
 func STXabs(cpu *CPU) {
-	oper := cpu.Read16(cpu.PC + 1)
+	oper := cpu.absolute()
 	cpu.bus.Write8(oper, cpu.X)
 	cpu.PC += 3
 	cpu.Clock += 4
@@ -268,24 +267,24 @@ func STXabs(cpu *CPU) {
 
 // 84
 func STYzer(cpu *CPU) {
-	oper := cpu.Read8(cpu.PC + 1)
-	cpu.bus.Write8(uint16(oper), cpu.Y)
+	oper := cpu.zeropage()
+	cpu.bus.Write8(oper, cpu.Y)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
 
 // 85
 func STAzer(cpu *CPU) {
-	oper := cpu.Read8(cpu.PC + 1)
-	cpu.bus.Write8(uint16(oper), cpu.A)
+	oper := cpu.zeropage()
+	cpu.bus.Write8(oper, cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
 
 // 86
 func STXzer(cpu *CPU) {
-	oper := cpu.Read8(cpu.PC + 1)
-	cpu.bus.Write8(uint16(oper), cpu.X)
+	oper := cpu.zeropage()
+	cpu.bus.Write8(oper, cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -333,7 +332,7 @@ func TXS(cpu *CPU) {
 
 // A0
 func LDYimm(cpu *CPU) {
-	cpu.Y = cpu.Read8(cpu.PC + 1)
+	cpu.Y = cpu.immediate()
 	cpu.P.checkN(cpu.Y)
 	cpu.P.checkZ(cpu.Y)
 	cpu.PC += 2
@@ -342,7 +341,7 @@ func LDYimm(cpu *CPU) {
 
 // A2
 func LDXimm(cpu *CPU) {
-	cpu.X = cpu.Read8(cpu.PC + 1)
+	cpu.X = cpu.immediate()
 	cpu.P.checkN(cpu.X)
 	cpu.P.checkZ(cpu.X)
 	cpu.PC += 2
@@ -351,7 +350,7 @@ func LDXimm(cpu *CPU) {
 
 // A9
 func LDAimm(cpu *CPU) {
-	cpu.A = cpu.Read8(cpu.PC + 1)
+	cpu.A = cpu.immediate()
 	cpu.P.checkN(cpu.A)
 	cpu.P.checkZ(cpu.A)
 	cpu.PC += 2
@@ -369,7 +368,7 @@ func TAX(cpu *CPU) {
 
 // AD
 func LDAabs(cpu *CPU) {
-	oper := cpu.Read16(cpu.PC + 1)
+	oper := cpu.absolute()
 	cpu.A = cpu.Read8(oper)
 	cpu.P.checkN(cpu.A)
 	cpu.P.checkZ(cpu.A)
@@ -415,7 +414,7 @@ func DEX(cpu *CPU) {
 
 // C9
 func CMPimm(cpu *CPU) {
-	oper := cpu.Read8(cpu.PC + 1)
+	oper := cpu.immediate()
 	res := cpu.A - oper
 	cpu.P.checkN(res)
 	cpu.P.checkZ(res)
@@ -444,8 +443,8 @@ func CLD(cpu *CPU) {
 
 // E6
 func INCzer(cpu *CPU) {
-	oper := cpu.Read8(cpu.PC + 1)
-	val := cpu.Read8(uint16(oper))
+	oper := cpu.zeropage()
+	val := cpu.Read8(oper)
 	val++
 	cpu.P.checkN(val)
 	cpu.P.checkZ(val)
@@ -538,4 +537,18 @@ func branch(cpu *CPU) {
 		cpu.Clock += 3
 	}
 	cpu.PC = addr
+}
+
+// addressing modes
+
+func (cpu *CPU) immediate() uint8 {
+	return cpu.Read8(cpu.PC + 1)
+}
+
+func (cpu *CPU) absolute() uint16 {
+	return cpu.Read16(cpu.PC + 1)
+}
+
+func (cpu *CPU) zeropage() uint16 {
+	return uint16(cpu.Read8(cpu.PC + 1))
 }
