@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"nestor/ines"
 	"os"
+	"strconv"
+	"strings"
 )
 
 func main() {
+	hexbyte := hexbyte(0x34)
+	flag.Var(&hexbyte, "P", "P register after first cpu reset (hex)")
 	flag.Parse()
 	if len(flag.Args()) < 1 {
 		flag.Usage()
@@ -24,6 +28,7 @@ func main() {
 	nes := new(NES)
 	checkf(nes.PowerUp(rom), "failed to power up")
 	nes.Reset()
+	nes.CPU.P = P(hexbyte)
 	nes.Run()
 }
 
@@ -51,3 +56,17 @@ func fatalf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "\n%s\n", fmt.Sprintf(format, args...))
 	os.Exit(1)
 }
+
+type hexbyte byte
+
+func (b *hexbyte) Set(s string) error {
+	str := strings.TrimPrefix(s, "0x")
+	v, err := strconv.ParseUint(str, 16, 8)
+	if err != nil {
+		return fmt.Errorf("hexbyte: can't parse %v: %s", v, err)
+	}
+	*b = hexbyte(v)
+	return nil
+}
+
+func (b *hexbyte) String() string { return fmt.Sprintf("0x%02X", *b) }
