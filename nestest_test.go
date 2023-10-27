@@ -15,7 +15,7 @@ func TestNestest(t *testing.T) {
 	tcheck(t, err)
 	tcheck(t, nes.PowerUp(cartridge))
 
-	flog, err := os.CreateTemp("", "nestor.nestet.*.log")
+	flog, err := os.CreateTemp("", "nestor.nestest.*.log")
 	tcheck(t, err)
 
 	t.Cleanup(func() {

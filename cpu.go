@@ -7,9 +7,9 @@ import (
 
 // Reserved locations for vector pointers.
 const (
-	vecNMI = 0xFFFA // Non-Maskable Interrupt
-	vecIRQ = 0xFFFE // Interrupt Request
-	vecRES = 0xFFFC // Reset
+	NMIvector   = 0xFFFA // Non-Maskable Interrupt
+	IRQvector   = 0xFFFE // Interrupt Request
+	ResetVector = 0xFFFC // Reset
 )
 
 // https://www.nesdev.org/wiki/CPU_memory_map
@@ -47,7 +47,7 @@ func (c *CPU) setDisasm(w io.Writer, nestest bool) {
 }
 
 func (c *CPU) reset() {
-	c.PC = c.Read16(vecRES)
+	c.PC = c.Read16(ResetVector)
 	c.SP = 0xFD
 	c.P = 0x34
 }
