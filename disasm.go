@@ -42,6 +42,7 @@ var opsDisasm = [256]func(*disasm) (string, int){
 	0xAD: disasmOp("LDA", absolute),
 	0xB0: disasmOp("BCS", relative),
 	0xB8: disasmOp("CLV", implied),
+	0xBA: disasmOp("TSX", implied),
 	0xC8: disasmOp("INY", implied),
 	0xCA: disasmOp("DEX", implied),
 	0xC9: disasmOp("CMP", immediate),

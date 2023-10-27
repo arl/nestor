@@ -38,6 +38,7 @@ var ops = [256]func(cpu *CPU){
 	0xAD: LDAabs,
 	0xB0: BCS,
 	0xB8: CLV,
+	0xBA: TSX,
 	0xC8: INY,
 	0xCA: DEX,
 	0xC9: CMPimm,
@@ -390,6 +391,15 @@ func BCS(cpu *CPU) {
 // B8
 func CLV(cpu *CPU) {
 	cpu.P.clearBit(pbitV)
+	cpu.Clock += 2
+	cpu.PC += 1
+}
+
+// BA
+func TSX(cpu *CPU) {
+	cpu.X = cpu.SP
+	cpu.P.checkN(cpu.X)
+	cpu.P.checkZ(cpu.X)
 	cpu.Clock += 2
 	cpu.PC += 1
 }
