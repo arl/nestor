@@ -35,6 +35,7 @@ var opsDisasm = [256]func(*disasm) (string, int){
 	0x91: disasmOp("STA", postidxindirect),
 	0x95: disasmOp("STA", zeropagex),
 	0x9A: disasmOp("TXS", implied),
+	0x9D: disasmOp("STA", absolutex),
 	0xA0: disasmOp("LDY", immediate),
 	0xA2: disasmOp("LDX", immediate),
 	0xA9: disasmOp("LDA", immediate),
@@ -135,6 +136,12 @@ func immediate(op string) func(*disasm) (string, int) {
 func absolute(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
 		return fmt.Sprintf("%s $%04X", op, d.cpu.absolute()), 3
+	}
+}
+
+func absolutex(op string) func(*disasm) (string, int) {
+	return func(d *disasm) (string, int) {
+		return fmt.Sprintf("%s $%04X,X", op, d.cpu.absolute()), 5
 	}
 }
 
