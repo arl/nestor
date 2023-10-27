@@ -1,6 +1,4 @@
-package main
-
-// TODO(arl): we can factor branch subfunctions
+package emu
 
 var ops = [256]func(cpu *CPU){
 	0x08: PHP,

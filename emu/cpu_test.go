@@ -1,8 +1,6 @@
-package main
+package emu
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestPflag(t *testing.T) {
 	p := P(0x34)

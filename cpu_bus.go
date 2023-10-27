@@ -1,7 +1,9 @@
 package main
 
+import "nestor/emu"
+
 type cpuBus struct {
-	mmap MemMap
+	mmap emu.MemMap
 	name string
 }
 

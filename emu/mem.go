@@ -1,9 +1,7 @@
-package main
+package emu
 
 import "log"
 
-// Range8 is an 8-bit adressable component, such as an hardware component, a
-// memory region, etc.
 type Region8 interface {
 	Read8(addr uint16) uint8
 	Write8(addr uint16, val uint8)

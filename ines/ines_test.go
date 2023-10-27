@@ -1,5 +1,3 @@
-// package ines implements a Reader for roms inz the iNES file format, used for
-// for the distribution of NES binary programs.
 package ines
 
 import (

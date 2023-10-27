@@ -1,11 +1,13 @@
 package main
 
 import (
-	"nestor/ines"
 	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
+	"nestor/emu"
+	"nestor/ines"
 )
 
 func TestNestest(t *testing.T) {
@@ -35,13 +37,13 @@ func TestNestest(t *testing.T) {
 		}
 	})
 
-	nes.CPU.setDisasm(flog, true)
+	nes.CPU.SetDisasm(flog, true)
 
 	// For some reason the nestest.log shows an execution starting from 0xC000, at which
 	// the CPU has already executed 7 cycles.
 	nes.CPU.PC = 0xC000
 	nes.CPU.Clock = 7
-	nes.CPU.P = P(0b00100100)
+	nes.CPU.P = emu.P(0b00100100)
 
 	nes.CPU.Run(26554)
 }

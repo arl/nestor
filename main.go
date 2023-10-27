@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"nestor/ines"
 	"os"
 	"strconv"
 	"strings"
+
+	"nestor/emu"
+	"nestor/ines"
 )
 
 func main() {
@@ -28,7 +30,7 @@ func main() {
 	nes := new(NES)
 	checkf(nes.PowerUp(rom), "failed to power up")
 	nes.Reset()
-	nes.CPU.P = P(hexbyte)
+	nes.CPU.P = emu.P(hexbyte)
 	nes.Run()
 }
 

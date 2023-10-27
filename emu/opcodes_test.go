@@ -1,8 +1,6 @@
-package main
+package emu
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestOpcodeLDASTA(t *testing.T) {
 	dump := `0600: a9 01 8d 00 02 a9 05 8d 01 02 a9 08 8d 02 02`

@@ -1,18 +1,17 @@
-package main
+package emu
 
 import (
 	"fmt"
 	"io"
 )
 
-// Reserved locations for vector pointers.
+// Locations reserved for vector pointers.
 const (
 	NMIvector   = 0xFFFA // Non-Maskable Interrupt
-	IRQvector   = 0xFFFE // Interrupt Request
 	ResetVector = 0xFFFC // Reset
+	IRQvector   = 0xFFFE // Interrupt Request
 )
 
-// https://www.nesdev.org/wiki/CPU_memory_map
 type CPU struct {
 	bus Bus
 	A   uint8
@@ -42,11 +41,11 @@ func NewCPU(bus Bus) *CPU {
 	return cpu
 }
 
-func (c *CPU) setDisasm(w io.Writer, nestest bool) {
+func (c *CPU) SetDisasm(w io.Writer, nestest bool) {
 	c.disasm = &disasm{cpu: c, w: w, isNestest: nestest}
 }
 
-func (c *CPU) reset() {
+func (c *CPU) Reset() {
 	c.PC = c.Read16(ResetVector)
 	c.SP = 0xFD
 	c.P = 0x34

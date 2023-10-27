@@ -2,20 +2,22 @@ package main
 
 import (
 	"fmt"
-	"nestor/ines"
 	"os"
+
+	"nestor/emu"
+	"nestor/ines"
 )
 
 type NES struct {
-	CPU *CPU
+	CPU *emu.CPU
 }
 
 func (nes *NES) PowerUp(rom *ines.Rom) error {
 	cpubus := newCpuBus("cpu")
 	cpubus.MapMemory()
 
-	nes.CPU = NewCPU(cpubus)
-	nes.CPU.setDisasm(os.Stderr, false)
+	nes.CPU = emu.NewCPU(cpubus)
+	nes.CPU.SetDisasm(os.Stderr, false)
 	if rom.Mapper() != 0 {
 		// Only handle mapper 000 (NROM) for now.
 		return fmt.Errorf("unsupported mapper: %d", rom.Mapper())
@@ -29,7 +31,7 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 
 // Reset forwards the reset signal to all hardware.
 func (nes *NES) Reset() {
-	nes.CPU.reset()
+	nes.CPU.Reset()
 }
 
 func (nes *NES) Run() {
