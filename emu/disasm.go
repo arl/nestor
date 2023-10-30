@@ -13,6 +13,8 @@ var opsDisasm = [256]func(*disasm) (string, int){
 	0x18: disasmOp("CLC", implied),
 	0x20: disasmOp("JSR", absolute),
 	0x24: disasmOp("BIT", zeropage),
+	0x29: disasmOp("AND", immediate),
+	0x2C: disasmOp("BIT", absolute),
 	0x30: disasmOp("BMI", relative),
 	0x38: disasmOp("SEC", implied),
 	0x45: disasmOp("EOR", zeropage),

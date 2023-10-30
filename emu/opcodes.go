@@ -7,6 +7,8 @@ var ops = [256]func(cpu *CPU){
 	0x18: CLC,
 	0x20: JSR,
 	0x24: BITzer,
+	0x2C: BITabs,
+	0x29: ANDimm,
 	0x30: BMI,
 	0x38: SEC,
 	0x45: EORzer,
@@ -70,15 +72,15 @@ func PHP(cpu *CPU) {
 	p := cpu.P
 	p |= (1 << pbitB) | (1 << pbitU)
 	push8(cpu, uint8(p))
-	cpu.Clock += 3
 	cpu.PC += 1
+	cpu.Clock += 3
 }
 
 // 10
 func BPL(cpu *CPU) {
 	if cpu.P.N() {
-		cpu.Clock += 2
 		cpu.PC += 2
+		cpu.Clock += 2
 		return
 	}
 
@@ -88,8 +90,8 @@ func BPL(cpu *CPU) {
 // 18
 func CLC(cpu *CPU) {
 	cpu.P.clearBit(pbitC)
-	cpu.Clock += 2
 	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // 20
@@ -112,16 +114,38 @@ func BITzer(cpu *CPU) {
 	cpu.P |= P(val & 0b11000000)
 
 	cpu.P.checkZ(cpu.A & val)
-
 	cpu.PC += 2
 	cpu.Clock += 3
+}
+
+// 2C
+func BITabs(cpu *CPU) {
+	oper := cpu.absolute()
+	val := cpu.Read8(oper)
+
+	// Copy bits 7 and 6 (N and V)
+	cpu.P &= 0b00111111
+	cpu.P |= P(val & 0b11000000)
+
+	cpu.P.checkZ(cpu.A & val)
+	cpu.PC += 3
+	cpu.Clock += 4
+}
+
+// 29
+func ANDimm(cpu *CPU) {
+	cpu.A &= cpu.immediate()
+	cpu.P.checkN(cpu.A)
+	cpu.P.checkZ(cpu.A)
+	cpu.PC += 2
+	cpu.Clock += 2
 }
 
 // 30
 func BMI(cpu *CPU) {
 	if !cpu.P.N() {
-		cpu.Clock += 2
 		cpu.PC += 2
+		cpu.Clock += 2
 		return
 	}
 
@@ -131,8 +155,8 @@ func BMI(cpu *CPU) {
 // 38
 func SEC(cpu *CPU) {
 	cpu.P.setBit(pbitC)
-	cpu.Clock += 2
 	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // 45
@@ -144,8 +168,8 @@ func EORzer(cpu *CPU) {
 	cpu.P.checkN(cpu.A)
 	cpu.P.checkZ(cpu.A)
 
-	cpu.Clock += 3
 	cpu.PC += 2
+	cpu.Clock += 3
 }
 
 // 4C
@@ -158,15 +182,15 @@ func JMPabs(cpu *CPU) {
 func PHA(cpu *CPU) {
 	push8(cpu, cpu.A)
 
-	cpu.Clock += 3
 	cpu.PC += 1
+	cpu.Clock += 3
 }
 
 // 50
 func BVC(cpu *CPU) {
 	if cpu.P.V() {
-		cpu.Clock += 2
 		cpu.PC += 2
+		cpu.Clock += 2
 		return
 	}
 
@@ -176,8 +200,8 @@ func BVC(cpu *CPU) {
 // 58
 func CLI(cpu *CPU) {
 	cpu.P.clearBit(pbitI)
-	cpu.Clock += 2
 	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // 60
@@ -246,8 +270,8 @@ func JMPind(cpu *CPU) {
 // 70
 func BVS(cpu *CPU) {
 	if !cpu.P.V() {
-		cpu.Clock += 2
 		cpu.PC += 2
+		cpu.Clock += 2
 		return
 	}
 
@@ -323,8 +347,8 @@ func TXA(cpu *CPU) {
 // 90
 func BCC(cpu *CPU) {
 	if cpu.P.C() {
-		cpu.Clock += 2
 		cpu.PC += 2
+		cpu.Clock += 2
 		return
 	}
 
@@ -426,8 +450,8 @@ func LDAabs(cpu *CPU) {
 // B0
 func BCS(cpu *CPU) {
 	if !cpu.P.C() {
-		cpu.Clock += 2
 		cpu.PC += 2
+		cpu.Clock += 2
 		return
 	}
 
@@ -437,8 +461,8 @@ func BCS(cpu *CPU) {
 // B8
 func CLV(cpu *CPU) {
 	cpu.P.clearBit(pbitV)
-	cpu.Clock += 2
 	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // BA
@@ -446,8 +470,8 @@ func TSX(cpu *CPU) {
 	cpu.X = cpu.SP
 	cpu.P.checkN(cpu.X)
 	cpu.P.checkZ(cpu.X)
-	cpu.Clock += 2
 	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // C0
@@ -466,8 +490,8 @@ func INY(cpu *CPU) {
 	cpu.Y++
 	cpu.P.checkN(cpu.Y)
 	cpu.P.checkZ(cpu.Y)
-	cpu.Clock += 2
 	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // CA
@@ -475,8 +499,8 @@ func DEX(cpu *CPU) {
 	cpu.X--
 	cpu.P.checkN(cpu.X)
 	cpu.P.checkZ(cpu.X)
-	cpu.Clock += 2
 	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // C9
@@ -493,8 +517,8 @@ func CMPimm(cpu *CPU) {
 // D0
 func BNE(cpu *CPU) {
 	if cpu.P.Z() {
-		cpu.Clock += 2
 		cpu.PC += 2
+		cpu.Clock += 2
 		return
 	}
 
@@ -504,8 +528,8 @@ func BNE(cpu *CPU) {
 // D8
 func CLD(cpu *CPU) {
 	cpu.P.clearBit(pbitD)
-	cpu.Clock += 2
 	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // E6
@@ -515,8 +539,8 @@ func INCzer(cpu *CPU) {
 	val++
 	cpu.P.checkN(val)
 	cpu.P.checkZ(val)
-	cpu.Clock += 5
 	cpu.PC += 2
+	cpu.Clock += 5
 }
 
 // E8
@@ -524,21 +548,21 @@ func INX(cpu *CPU) {
 	cpu.X++
 	cpu.P.checkN(cpu.X)
 	cpu.P.checkZ(cpu.X)
-	cpu.Clock += 2
 	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // EA
 func NOP(cpu *CPU) {
-	cpu.Clock += 2
 	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // F0
 func BEQ(cpu *CPU) {
 	if !cpu.P.Z() {
-		cpu.Clock += 2
 		cpu.PC += 2
+		cpu.Clock += 2
 		return
 	}
 
@@ -548,8 +572,8 @@ func BEQ(cpu *CPU) {
 // F8
 func SED(cpu *CPU) {
 	cpu.P.setBit(pbitD)
-	cpu.Clock += 2
 	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 /* helpers */
