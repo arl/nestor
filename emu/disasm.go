@@ -29,6 +29,7 @@ var opsDisasm = [256]func(*disasm) (string, int){
 	0x60: disasmOp("RTS", implied),
 	0x66: disasmOp("ROR", zeropage),
 	0x68: disasmOp("PLA", implied),
+	0x69: disasmOp("ADC", immediate),
 	0x6A: disasmOp("ROR", accumulator),
 	0x6C: disasmOp("JMP", absindirect),
 	0x70: disasmOp("BVS", relative),

@@ -23,6 +23,7 @@ var ops = [256]func(cpu *CPU){
 	0x60: RTS,
 	0x66: RORzer,
 	0x68: PLA,
+	0x69: ADCimm,
 	0x6A: RORacc,
 	0x6C: JMPind,
 	0x70: BVS,
@@ -280,20 +281,27 @@ func PLA(cpu *CPU) {
 	cpu.Clock += 4
 }
 
+// 69
+func ADCimm(cpu *CPU) {
+	oper := cpu.immediate()
+
+	adc(cpu, oper)
+
+	cpu.PC += 2
+	cpu.Clock += 2
+}
+
 // 6A
 func RORacc(cpu *CPU) {
 	val := cpu.A
-	carry := val & 1 // carry will be set to bit 0
-	val >>= 1
 	// bit 7 is set to the carry
 	if cpu.P.C() {
 		val |= 1 << 7
 	}
 
 	cpu.A = val
-	cpu.P.checkN(val)
-	cpu.P.checkZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P.checkNZ(cpu.A)
+	cpu.P.writeBit(pbitC, val&0x01 != 0)
 
 	cpu.PC += 1
 	cpu.Clock += 2
@@ -442,7 +450,7 @@ func STAabsx(cpu *CPU) {
 // A0
 func LDYimm(cpu *CPU) {
 	cpu.Y = cpu.immediate()
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.checkNZ(cpu.Y)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -598,6 +606,17 @@ func SED(cpu *CPU) {
 	cpu.P.setBit(pbitD)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+/* common instruction implementation */
+
+func adc(cpu *CPU, oper uint8) {
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(oper) + uint16(carry)
+
+	cpu.P.checkCV(cpu.A, oper, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
 }
 
 /* helpers */

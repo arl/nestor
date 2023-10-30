@@ -130,6 +130,15 @@ func (p *P) checkZ(v uint8) {
 	p.writeBit(pbitZ, v == 0)
 }
 
+func (p *P) checkCV(x, y uint8, sum uint16) {
+	// forward carry or unsigned overflow.
+	p.writeBit(pbitC, sum > 0xFF)
+
+	// signed overflow, can only happen if the sign of the sum differs
+	// from that of both operands.
+	v := (uint16(x) ^ sum) & (uint16(y) ^ sum) & 0x80
+	p.writeBit(pbitV, v != 0)
+}
 func (p *P) writeBit(i int, v bool) {
 	if v {
 		p.setBit(i)
