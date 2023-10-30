@@ -61,6 +61,7 @@ var opsDisasm = [256]func(*disasm) (string, int){
 	0xC9: disasmOp("CMP", immediate),
 	0xD0: disasmOp("BNE", relative),
 	0xD8: disasmOp("CLD", implied),
+	0xE0: disasmOp("CPX", immediate),
 	0xE6: disasmOp("INC", zeropage),
 	0xE8: disasmOp("INX", implied),
 	0xEA: disasmOp("NOP", implied),

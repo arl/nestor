@@ -55,6 +55,7 @@ var ops = [256]func(cpu *CPU){
 	0xC9: CMPimm,
 	0xD0: BNE,
 	0xD8: CLD,
+	0xE0: CPXimm,
 	0xE6: INCzer,
 	0xE8: INX,
 	0xEA: NOP,
@@ -197,9 +198,7 @@ func EORzer(cpu *CPU) {
 	oper := cpu.zeropage()
 	val := cpu.Read8(oper)
 	cpu.A ^= val
-
 	cpu.P.checkNZ(cpu.A)
-
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -207,9 +206,7 @@ func EORzer(cpu *CPU) {
 // 49
 func EORimm(cpu *CPU) {
 	cpu.A ^= cpu.immediate()
-
 	cpu.P.checkNZ(cpu.A)
-
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -266,7 +263,7 @@ func RORzer(cpu *CPU) {
 
 	cpu.Write8(oper, val)
 
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
 
 	cpu.PC += 2
@@ -458,7 +455,7 @@ func LDYimm(cpu *CPU) {
 // A2
 func LDXimm(cpu *CPU) {
 	cpu.X = cpu.immediate()
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.checkNZ(cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -474,7 +471,7 @@ func LDAimm(cpu *CPU) {
 // AA
 func TAX(cpu *CPU) {
 	cpu.X = cpu.A
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.checkNZ(cpu.X)
 	cpu.PC += 1
 	cpu.Clock += 2
 }
@@ -518,7 +515,7 @@ func TSX(cpu *CPU) {
 func CPYimm(cpu *CPU) {
 	oper := cpu.immediate()
 	cpu.P.checkNZ(cpu.Y - oper)
-	cpu.P.writeBit(pbitC, oper <= cpu.Y)
+	cpu.P.writeBit(pbitC, cpu.Y >= oper)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -563,6 +560,15 @@ func BNE(cpu *CPU) {
 func CLD(cpu *CPU) {
 	cpu.P.clearBit(pbitD)
 	cpu.PC += 1
+	cpu.Clock += 2
+}
+
+// E0
+func CPXimm(cpu *CPU) {
+	oper := cpu.immediate()
+	cpu.P.checkNZ(cpu.X - oper)
+	cpu.P.writeBit(pbitC, cpu.X >= oper)
+	cpu.PC += 2
 	cpu.Clock += 2
 }
 

@@ -116,7 +116,7 @@ func (p P) Z() bool { return p&(1<<pbitZ) != 0 }
 func (p P) C() bool { return p&(1<<pbitC) != 0 }
 
 func (p *P) checkNZ(v uint8) {
-	p.writeBit(pbitN, v&(1<<7) != 0)
+	p.writeBit(pbitN, v&0x80 != 0)
 	p.writeBit(pbitZ, v == 0)
 }
 
@@ -139,6 +139,7 @@ func (p *P) checkCV(x, y uint8, sum uint16) {
 	v := (uint16(x) ^ sum) & (uint16(y) ^ sum) & 0x80
 	p.writeBit(pbitV, v != 0)
 }
+
 func (p *P) writeBit(i int, v bool) {
 	if v {
 		p.setBit(i)
