@@ -85,6 +85,8 @@ func wantCPUState(t *testing.T, cpu *CPU, states ...any) {
 			checkuint16("PC", cpu.PC, uint16(states[i+1].(int)))
 		case s == "SP":
 			checkuint8("SP", uint8(cpu.SP), uint8(states[i+1].(int)))
+		case s == "P":
+			checkuint8("P", uint8(cpu.P), uint8(states[i+1].(int)))
 		case len(s) > 1 && s[0] == 'P':
 			for j := 1; j < len(s); j++ {
 				bit := uint8(states[i+1].(int))

@@ -1,22 +1,121 @@
 package emu
 
 import (
+	"encoding/json"
 	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 )
 
-func TestOpcodeLDASTA(t *testing.T) {
+type opcodeAutoTest struct {
+	Name    string `json:"name"`
+	Initial struct {
+		PC  int     `json:"pc"`
+		SP  int     `json:"s"`
+		A   int     `json:"a"`
+		X   int     `json:"x"`
+		Y   int     `json:"y"`
+		P   int     `json:"p"`
+		RAM [][]int `json:"ram"`
+	} `json:"initial"`
+	Final struct {
+		PC  int     `json:"pc"`
+		SP  int     `json:"s"`
+		A   int     `json:"a"`
+		X   int     `json:"x"`
+		Y   int     `json:"y"`
+		P   int     `json:"p"`
+		RAM [][]int `json:"ram"`
+	} `json:"final"`
+	Cycles [][]any `json:"cycles"`
+}
+
+func TestOpcodes(t *testing.T) {
+	testOpcodes(t, "C0")
+	testOpcodes(t, "E0")
+}
+
+func testOpcodes(t *testing.T, op string) {
+	path := filepath.Join("testdata", strings.ToLower(op)+".json")
+	buf, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tests []opcodeAutoTest
+	if err := json.Unmarshal(buf, &tests); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tt := range tests {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			mem := new(MemMap)
+			cpu := NewCPU(mem)
+			cpu.Reset()
+			cpu.A = uint8(tt.Initial.A)
+			cpu.X = uint8(tt.Initial.X)
+			cpu.Y = uint8(tt.Initial.Y)
+			cpu.P = P(tt.Initial.P)
+			cpu.SP = uint8(tt.Initial.SP)
+			cpu.PC = uint16(tt.Initial.PC)
+			for _, row := range tt.Initial.RAM {
+				mem.MapSlice(uint16(row[0]), uint16(row[0]), []byte{uint8(row[1])})
+			}
+			cpu.Run(int64(len(tt.Cycles)))
+
+			wantCPUState(t, cpu,
+				"PC", tt.Final.PC,
+				"SP", tt.Final.SP,
+				"A", tt.Final.A,
+				"X", tt.Final.X,
+				"Y", tt.Final.Y,
+				"P", tt.Final.P,
+			)
+		})
+	}
+}
+
+func TestCPx(t *testing.T) {
+	t.Run("40 - 41", func(t *testing.T) {
+		// LDX #$40
+		// CPX #$41
+		cpu := loadCPUWith(t, `0600: a2 40 e0 41`)
+		cpu.PC = 0x0600
+		cpu.P = 0b00110000
+		cpu.Run(4)
+
+		wantCPUState(t, cpu, "A", 0x00, "X", 0x40, "Y", 0x00, "P", 0b10110000)
+	})
+	t.Run("40 - 40", func(t *testing.T) {
+		// LDX #$40
+		// CPX #$40
+		cpu := loadCPUWith(t, `0600: a2 40 e0 40`)
+		cpu.PC = 0x0600
+		cpu.P = 0b00110000
+		cpu.Run(4)
+
+		wantCPUState(t, cpu, "A", 0x00, "X", 0x40, "Y", 0x00, "P", 0b00110011)
+	})
+	t.Run("40 - 39", func(t *testing.T) {
+		// LDX #$40
+		// CPX #$39
+		cpu := loadCPUWith(t, `0600: a2 40 e0 39`)
+		cpu.PC = 0x0600
+		cpu.P = 0b00110000
+		cpu.Run(4)
+
+		wantCPUState(t, cpu, "A", 0x00, "X", 0x40, "Y", 0x00, "P", 0b00110001)
+	})
+}
+
+func TestLDA_STA(t *testing.T) {
 	dump := `0600: a9 01 8d 00 02 a9 05 8d 01 02 a9 08 8d 02 02`
 	cpu := loadCPUWith(t, dump)
 	cpu.PC = 0x0600
 	cpu.Run(6 * 3)
 
-	wantCPUState(t, cpu,
-		"A", 0x08,
-		"Pb", 1,
-		"PC", 0x060F,
-		"SP", 0xfd,
-	)
+	wantCPUState(t, cpu, "A", 0x08, "Pb", 1, "PC", 0x060F, "SP", 0xfd)
 }
 
 func TestEOR(t *testing.T) {
@@ -29,11 +128,7 @@ func TestEOR(t *testing.T) {
 		cpu.A = 0x80
 		cpu.Run(3)
 
-		wantCPUState(t, cpu,
-			"A", 0x86,
-			"Pn", 1,
-			"Pz", 0,
-		)
+		wantCPUState(t, cpu, "A", 0x86, "Pn", 1, "Pz", 0)
 	})
 }
 
@@ -50,11 +145,7 @@ func TestROR(t *testing.T) {
 		cpu.Run(5)
 
 		wantMem8(t, cpu, 0x0000, 0xAA)
-		wantCPUState(t, cpu,
-			"Pn", 1,
-			"Pc", 1,
-			"Pz", 0,
-		)
+		wantCPUState(t, cpu, "Pn", 1, "Pc", 1, "Pz", 0)
 	})
 }
 
@@ -105,12 +196,7 @@ func TestStackSmall(t *testing.T) {
 
 	cpu.Run(8)
 
-	wantCPUState(t, cpu,
-		"PC", 0x0606,
-		"A", 0xAA,
-		"SP", 0xFF,
-		"Pn", 1,
-	)
+	wantCPUState(t, cpu, "PC", 0x0606, "A", 0xAA, "SP", 0xFF, "Pn", 1)
 }
 
 func TestJSR_RTS(t *testing.T) {
