@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"testing"
 
@@ -10,8 +11,12 @@ import (
 	"nestor/ines"
 )
 
+var doNestest = flag.Bool("nestest", false, "run TestNestest")
+
 func TestNestest(t *testing.T) {
-	t.Skip("skip for now that we don't implement all opcodes")
+	if !*doNestest {
+		t.Skip("skip for now that we don't implement all opcodes")
+	}
 	nes := new(NES)
 	cartridge, err := ines.ReadRom("testdata/nes-test-roms/other/nestest.nes")
 	tcheck(t, err)
@@ -19,6 +24,7 @@ func TestNestest(t *testing.T) {
 
 	flog, err := os.CreateTemp("", "nestor.nestest.*.log")
 	tcheck(t, err)
+	t.Log(flog.Name())
 
 	t.Cleanup(func() {
 		flog.Close()
