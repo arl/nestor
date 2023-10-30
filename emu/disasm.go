@@ -7,6 +7,7 @@ import (
 )
 
 var opsDisasm = [256]func(*disasm) (string, int){
+	0x00: disasmOp("BRK", implied),
 	0x08: disasmOp("PHP", implied),
 	0x10: disasmOp("BPL", relative),
 	0x18: disasmOp("CLC", implied),
@@ -21,19 +22,22 @@ var opsDisasm = [256]func(*disasm) (string, int){
 	0x58: disasmOp("CLI", implied),
 	0x60: disasmOp("RTS", implied),
 	0x66: disasmOp("ROR", zeropage),
+	0x68: disasmOp("PLA", implied),
 	0x6A: disasmOp("ROR", accumulator),
 	0x6C: disasmOp("JMP", absindirect),
 	0x70: disasmOp("BVS", relative),
 	0x78: disasmOp("SEI", implied),
-	0x8D: disasmOp("STA", absolute),
-	0x8E: disasmOp("STX", absolute),
 	0x81: disasmOp("STA", preidxindirect),
 	0x84: disasmOp("STY", zeropage),
 	0x85: disasmOp("STA", zeropage),
 	0x86: disasmOp("STX", zeropage),
+	0x8A: disasmOp("TXA", implied),
+	0x8D: disasmOp("STA", absolute),
+	0x8E: disasmOp("STX", absolute),
 	0x90: disasmOp("BCC", relative),
 	0x91: disasmOp("STA", postidxindirect),
 	0x95: disasmOp("STA", zeropagex),
+	0x99: disasmOp("STA", absolutey),
 	0x9A: disasmOp("TXS", implied),
 	0x9D: disasmOp("STA", absolutex),
 	0xA0: disasmOp("LDY", immediate),
@@ -44,6 +48,7 @@ var opsDisasm = [256]func(*disasm) (string, int){
 	0xB0: disasmOp("BCS", relative),
 	0xB8: disasmOp("CLV", implied),
 	0xBA: disasmOp("TSX", implied),
+	0xC0: disasmOp("CPY", immediate),
 	0xC8: disasmOp("INY", implied),
 	0xCA: disasmOp("DEX", implied),
 	0xC9: disasmOp("CMP", immediate),
@@ -96,11 +101,17 @@ func (d *disasm) op() {
 
 	fmt.Fprintf(&d.bb, "  %-9s %-32s", tmp, opstr)
 	if d.isNestest {
-		fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3X,%3X CYC:%d",
-			d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, 0, 0, d.cpu.Clock)
+		// TODO: re-add PPU when we'll have anything else than 0,0
+		// fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3X,%3X CYC:%d",
+		// 	d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, 0, 0, d.cpu.Clock)
+		fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d",
+			d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.cpu.Clock)
 	} else {
-		fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%s SP:%02X PPU:%3X,%3X CYC:%d",
-			d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, 0, 0, d.cpu.Clock)
+		// TODO: re-add PPU when we'll have anything else than 0,0
+		// fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%s SP:%02X PPU:%3X,%3X CYC:%d",
+		// 	d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, 0, 0, d.cpu.Clock)
+		fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%s SP:%02X CYC:%d",
+			d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, d.cpu.Clock)
 	}
 	d.bb.WriteByte('\n')
 
@@ -141,7 +152,13 @@ func absolute(op string) func(*disasm) (string, int) {
 
 func absolutex(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
-		return fmt.Sprintf("%s $%04X,X", op, d.cpu.absolute()), 5
+		return fmt.Sprintf("%s $%04X,X", op, d.cpu.absolute()), 3
+	}
+}
+
+func absolutey(op string) func(*disasm) (string, int) {
+	return func(d *disasm) (string, int) {
+		return fmt.Sprintf("%s $%04X,Y", op, d.cpu.absolute()), 3
 	}
 }
 

@@ -1,6 +1,7 @@
 package emu
 
 var ops = [256]func(cpu *CPU){
+	0x00: BRK,
 	0x08: PHP,
 	0x10: BPL,
 	0x18: CLC,
@@ -15,6 +16,7 @@ var ops = [256]func(cpu *CPU){
 	0x58: CLI,
 	0x60: RTS,
 	0x66: RORzer,
+	0x68: PLA,
 	0x6A: RORacc,
 	0x6C: JMPind,
 	0x70: BVS,
@@ -25,9 +27,11 @@ var ops = [256]func(cpu *CPU){
 	0x84: STYzer,
 	0x85: STAzer,
 	0x86: STXzer,
+	0x8A: TXA,
 	0x90: BCC,
 	0x91: STAindy,
 	0x95: STAzerx,
+	0x99: STAabsy,
 	0x9A: TXS,
 	0x9D: STAabsx,
 	0xA0: LDYimm,
@@ -38,6 +42,7 @@ var ops = [256]func(cpu *CPU){
 	0xB0: BCS,
 	0xB8: CLV,
 	0xBA: TSX,
+	0xC0: CPYimm,
 	0xC8: INY,
 	0xCA: DEX,
 	0xC9: CMPimm,
@@ -48,6 +53,16 @@ var ops = [256]func(cpu *CPU){
 	0xEA: NOP,
 	0xF0: BEQ,
 	0xF8: SED,
+}
+
+// 00
+func BRK(cpu *CPU) {
+	push16(cpu, cpu.PC+2)
+	p := cpu.P
+	p.setBit(pbitB)
+	push8(cpu, uint8(p))
+	cpu.PC = cpu.Read16(IRQvector)
+	cpu.Clock += 7
 }
 
 // 08
@@ -82,8 +97,7 @@ func JSR(cpu *CPU) {
 	// Get jump address
 	oper := cpu.Read16(cpu.PC + 1)
 	// Push return address on the stack
-	ret := cpu.PC + 3
-	push16(cpu, ret)
+	push16(cpu, cpu.PC+2)
 	cpu.PC = oper
 	cpu.Clock += 6
 }
@@ -194,6 +208,15 @@ func RORzer(cpu *CPU) {
 	cpu.Clock += 5
 }
 
+// 68
+func PLA(cpu *CPU) {
+	cpu.A = pull8(cpu)
+	cpu.P.checkN(cpu.A)
+	cpu.P.checkZ(cpu.A)
+	cpu.PC += 1
+	cpu.Clock += 4
+}
+
 // 6A
 func RORacc(cpu *CPU) {
 	val := cpu.A
@@ -216,8 +239,7 @@ func RORacc(cpu *CPU) {
 // 6C
 func JMPind(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC + 1)
-	dst := cpu.Read16(oper)
-	cpu.PC = dst
+	cpu.PC = cpu.Read16(oper)
 	cpu.Clock += 5
 }
 
@@ -235,8 +257,8 @@ func BVS(cpu *CPU) {
 // 78
 func SEI(cpu *CPU) {
 	cpu.P.setBit(pbitI)
-	cpu.Clock += 2
 	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // 81
@@ -289,6 +311,15 @@ func STXzer(cpu *CPU) {
 	cpu.Clock += 3
 }
 
+// 8A
+func TXA(cpu *CPU) {
+	cpu.A = cpu.X
+	cpu.P.checkN(cpu.A)
+	cpu.P.checkZ(cpu.A)
+	cpu.PC += 1
+	cpu.Clock += 2
+}
+
 // 90
 func BCC(cpu *CPU) {
 	if cpu.P.C() {
@@ -319,6 +350,15 @@ func STAzerx(cpu *CPU) {
 	cpu.bus.Write8(addr, cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 4
+}
+
+// 99
+func STAabsy(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC + 1)
+	addr := oper + uint16(cpu.Y)
+	cpu.bus.Write8(addr, cpu.A)
+	cpu.PC += 3
+	cpu.Clock += 5
 }
 
 // 9A
@@ -408,6 +448,17 @@ func TSX(cpu *CPU) {
 	cpu.P.checkZ(cpu.X)
 	cpu.Clock += 2
 	cpu.PC += 1
+}
+
+// C0
+func CPYimm(cpu *CPU) {
+	oper := cpu.immediate()
+	res := cpu.Y - oper
+	cpu.P.checkN(res)
+	cpu.P.checkZ(res)
+	cpu.P.writeBit(pbitC, oper <= cpu.Y)
+	cpu.PC += 2
+	cpu.Clock += 2
 }
 
 // C8
@@ -516,25 +567,23 @@ func push8(cpu *CPU, val uint8) {
 
 // push a 16-bit value onto the stack
 func push16(cpu *CPU, val uint16) {
-	top := uint16(cpu.SP) + 0x0100
-	cpu.Write16(top, val)
-	cpu.SP -= 2
+	push8(cpu, uint8(val>>8))
+	push8(cpu, uint8(val&0xFF))
 }
 
 // pull a 8-bit value from the stack
 func pull8(cpu *CPU) uint8 {
+	cpu.SP += 1
 	top := uint16(cpu.SP) + 0x0100
 	val := cpu.Read8(top)
-	cpu.SP += 1
 	return val
 }
 
 // pull a 16-bit value from the stack
 func pull16(cpu *CPU) uint16 {
-	top := uint16(cpu.SP) + 0x0100
-	val := cpu.Read16(top)
-	cpu.SP += 2
-	return val
+	lo := pull8(cpu)
+	hi := pull8(cpu)
+	return uint16(hi)<<8 | uint16(lo)
 }
 
 // reladdr returns the destination address for a jump.

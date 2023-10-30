@@ -1,6 +1,9 @@
 package emu
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestOpcodeLDASTA(t *testing.T) {
 	dump := `0600: a9 01 8d 00 02 a9 05 8d 01 02 a9 08 8d 02 02`
@@ -53,4 +56,84 @@ func TestROR(t *testing.T) {
 			"Pz", 0,
 		)
 	})
+}
+
+func TestStack(t *testing.T) {
+	dump := `
+# upper stack
+01E0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+01F0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+# ram
+0200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0210: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+# instructions
+0600: a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68
+0610: 99 00 02 c8 c0 20 d0 f7`
+	cpu := loadCPUWith(t, dump)
+	cpu.PC = 0x0600
+	cpu.P = 0x30
+	cpu.SP = 0xFF
+	cpu.SetDisasm(os.Stdout, false)
+
+	cpu.Run(562)
+
+	wantCPUState(t, cpu,
+		"PC", 0x0618,
+		"A", 0x00,
+		"X", 0x10,
+		"Y", 0x20,
+		"SP", 0xFF,
+		"mem", `
+01f0: 0f 0e 0d 0c 0b 0a 09 08 07 06 05 04 03 02 01 00
+0200: 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
+0210: 0f 0e 0d 0c 0b 0a 09 08 07 06 05 04 03 02 01 00`,
+	)
+}
+
+func TestStackSmall(t *testing.T) {
+	dump := `
+# upper stack
+01E0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+01F0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+# instructions
+0600: a9 aa 48 a9 11 68`
+	cpu := loadCPUWith(t, dump)
+	cpu.PC = 0x0600
+	cpu.P = 0x30
+	cpu.SP = 0xFF
+	cpu.SetDisasm(os.Stdout, false)
+
+	cpu.Run(8)
+
+	wantCPUState(t, cpu,
+		"PC", 0x0606,
+		"A", 0xAA,
+		"SP", 0xFF,
+		"Pn", 1,
+	)
+}
+
+func TestJSR_RTS(t *testing.T) {
+	dump := `
+# upper stack
+01F0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+# JSR $0620
+# LDA #$FF
+0600: 20 20 06 A9 FF
+# LDA #$88
+# RTS
+0620: A9 88 60`
+	cpu := loadCPUWith(t, dump)
+	cpu.PC = 0x0600
+	cpu.P = 0x30
+	cpu.SetDisasm(os.Stdout, false)
+
+	cpu.Run(6)
+	wantCPUState(t, cpu, "PC", 0x0620)
+	cpu.Run(6 + 2)
+	wantCPUState(t, cpu, "A", 0x88)
+	cpu.Run(6 + 2 + 6)
+	wantCPUState(t, cpu, "PC", 0x0603)
+	cpu.Run(6 + 2 + 6 + 2)
+	wantCPUState(t, cpu, "A", 0xFF)
 }
