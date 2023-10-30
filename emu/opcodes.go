@@ -76,8 +76,7 @@ func ORAzer(cpu *CPU) {
 	oper := cpu.zeropage()
 	val := cpu.Read8(oper)
 	cpu.A |= val
-	cpu.P.checkN(cpu.A)
-	cpu.P.checkZ(cpu.A)
+	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -94,8 +93,7 @@ func PHP(cpu *CPU) {
 // 09
 func ORAimm(cpu *CPU) {
 	cpu.A |= cpu.immediate()
-	cpu.P.checkN(cpu.A)
-	cpu.P.checkZ(cpu.A)
+	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -170,8 +168,7 @@ func PLP(cpu *CPU) {
 // 29
 func ANDimm(cpu *CPU) {
 	cpu.A &= cpu.immediate()
-	cpu.P.checkN(cpu.A)
-	cpu.P.checkZ(cpu.A)
+	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -200,8 +197,7 @@ func EORzer(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A ^= val
 
-	cpu.P.checkN(cpu.A)
-	cpu.P.checkZ(cpu.A)
+	cpu.P.checkNZ(cpu.A)
 
 	cpu.PC += 2
 	cpu.Clock += 3
@@ -211,8 +207,7 @@ func EORzer(cpu *CPU) {
 func EORimm(cpu *CPU) {
 	cpu.A ^= cpu.immediate()
 
-	cpu.P.checkN(cpu.A)
-	cpu.P.checkZ(cpu.A)
+	cpu.P.checkNZ(cpu.A)
 
 	cpu.PC += 2
 	cpu.Clock += 2
@@ -270,8 +265,7 @@ func RORzer(cpu *CPU) {
 
 	cpu.Write8(oper, val)
 
-	cpu.P.checkN(val)
-	cpu.P.checkZ(val)
+	cpu.P.checkNZ(cpu.A)
 	cpu.P.writeBit(pbitC, carry != 0)
 
 	cpu.PC += 2
@@ -281,8 +275,7 @@ func RORzer(cpu *CPU) {
 // 68
 func PLA(cpu *CPU) {
 	cpu.A = pull8(cpu)
-	cpu.P.checkN(cpu.A)
-	cpu.P.checkZ(cpu.A)
+	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 1
 	cpu.Clock += 4
 }
@@ -384,8 +377,7 @@ func STXzer(cpu *CPU) {
 // 8A
 func TXA(cpu *CPU) {
 	cpu.A = cpu.X
-	cpu.P.checkN(cpu.A)
-	cpu.P.checkZ(cpu.A)
+	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 1
 	cpu.Clock += 2
 }
@@ -450,8 +442,7 @@ func STAabsx(cpu *CPU) {
 // A0
 func LDYimm(cpu *CPU) {
 	cpu.Y = cpu.immediate()
-	cpu.P.checkN(cpu.Y)
-	cpu.P.checkZ(cpu.Y)
+	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -459,8 +450,7 @@ func LDYimm(cpu *CPU) {
 // A2
 func LDXimm(cpu *CPU) {
 	cpu.X = cpu.immediate()
-	cpu.P.checkN(cpu.X)
-	cpu.P.checkZ(cpu.X)
+	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -468,8 +458,7 @@ func LDXimm(cpu *CPU) {
 // A9
 func LDAimm(cpu *CPU) {
 	cpu.A = cpu.immediate()
-	cpu.P.checkN(cpu.A)
-	cpu.P.checkZ(cpu.A)
+	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -477,8 +466,7 @@ func LDAimm(cpu *CPU) {
 // AA
 func TAX(cpu *CPU) {
 	cpu.X = cpu.A
-	cpu.P.checkN(cpu.A)
-	cpu.P.checkZ(cpu.A)
+	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 1
 	cpu.Clock += 2
 }
@@ -487,8 +475,7 @@ func TAX(cpu *CPU) {
 func LDAabs(cpu *CPU) {
 	oper := cpu.absolute()
 	cpu.A = cpu.Read8(oper)
-	cpu.P.checkN(cpu.A)
-	cpu.P.checkZ(cpu.A)
+	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 3
 	cpu.Clock += 4
 }
@@ -514,8 +501,7 @@ func CLV(cpu *CPU) {
 // BA
 func TSX(cpu *CPU) {
 	cpu.X = cpu.SP
-	cpu.P.checkN(cpu.X)
-	cpu.P.checkZ(cpu.X)
+	cpu.P.checkNZ(cpu.X)
 	cpu.PC += 1
 	cpu.Clock += 2
 }
@@ -523,9 +509,7 @@ func TSX(cpu *CPU) {
 // C0
 func CPYimm(cpu *CPU) {
 	oper := cpu.immediate()
-	res := cpu.Y - oper
-	cpu.P.checkN(res)
-	cpu.P.checkZ(res)
+	cpu.P.checkNZ(cpu.Y - oper)
 	cpu.P.writeBit(pbitC, oper <= cpu.Y)
 	cpu.PC += 2
 	cpu.Clock += 2
@@ -534,8 +518,7 @@ func CPYimm(cpu *CPU) {
 // C8
 func INY(cpu *CPU) {
 	cpu.Y++
-	cpu.P.checkN(cpu.Y)
-	cpu.P.checkZ(cpu.Y)
+	cpu.P.checkNZ(cpu.Y)
 	cpu.PC += 1
 	cpu.Clock += 2
 }
@@ -543,8 +526,7 @@ func INY(cpu *CPU) {
 // CA
 func DEX(cpu *CPU) {
 	cpu.X--
-	cpu.P.checkN(cpu.X)
-	cpu.P.checkZ(cpu.X)
+	cpu.P.checkNZ(cpu.X)
 	cpu.PC += 1
 	cpu.Clock += 2
 }
@@ -552,9 +534,7 @@ func DEX(cpu *CPU) {
 // C9
 func CMPimm(cpu *CPU) {
 	oper := cpu.immediate()
-	res := cpu.A - oper
-	cpu.P.checkN(res)
-	cpu.P.checkZ(res)
+	cpu.P.checkNZ(cpu.A - oper)
 	cpu.P.writeBit(pbitC, oper <= cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 2
@@ -583,8 +563,7 @@ func INCzer(cpu *CPU) {
 	oper := cpu.zeropage()
 	val := cpu.Read8(oper)
 	val++
-	cpu.P.checkN(val)
-	cpu.P.checkZ(val)
+	cpu.P.checkNZ(val)
 	cpu.PC += 2
 	cpu.Clock += 5
 }
@@ -592,8 +571,7 @@ func INCzer(cpu *CPU) {
 // E8
 func INX(cpu *CPU) {
 	cpu.X++
-	cpu.P.checkN(cpu.X)
-	cpu.P.checkZ(cpu.X)
+	cpu.P.checkNZ(cpu.X)
 	cpu.PC += 1
 	cpu.Clock += 2
 }

@@ -115,6 +115,11 @@ func (p P) I() bool { return p&(1<<pbitI) != 0 }
 func (p P) Z() bool { return p&(1<<pbitZ) != 0 }
 func (p P) C() bool { return p&(1<<pbitC) != 0 }
 
+func (p *P) checkNZ(v uint8) {
+	p.writeBit(pbitN, v&(1<<7) != 0)
+	p.writeBit(pbitZ, v == 0)
+}
+
 // sets N flag if bit 7 of v is set, clears it otherwise.
 func (p *P) checkN(v uint8) {
 	p.writeBit(pbitN, v&(1<<7) != 0)
