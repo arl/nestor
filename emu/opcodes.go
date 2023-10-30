@@ -2,7 +2,9 @@ package emu
 
 var ops = [256]func(cpu *CPU){
 	0x00: BRK,
+	0x05: ORAzer,
 	0x08: PHP,
+	0x09: ORAimm,
 	0x10: BPL,
 	0x18: CLC,
 	0x20: JSR,
@@ -13,6 +15,7 @@ var ops = [256]func(cpu *CPU){
 	0x30: BMI,
 	0x38: SEC,
 	0x45: EORzer,
+	0x49: EORimm,
 	0x4C: JMPabs,
 	0x48: PHA,
 	0x50: BVC,
@@ -68,6 +71,17 @@ func BRK(cpu *CPU) {
 	cpu.Clock += 7
 }
 
+// 05
+func ORAzer(cpu *CPU) {
+	oper := cpu.zeropage()
+	val := cpu.Read8(oper)
+	cpu.A |= val
+	cpu.P.checkN(cpu.A)
+	cpu.P.checkZ(cpu.A)
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
 // 08
 func PHP(cpu *CPU) {
 	p := cpu.P
@@ -75,6 +89,15 @@ func PHP(cpu *CPU) {
 	push8(cpu, uint8(p))
 	cpu.PC += 1
 	cpu.Clock += 3
+}
+
+// 09
+func ORAimm(cpu *CPU) {
+	cpu.A |= cpu.immediate()
+	cpu.P.checkN(cpu.A)
+	cpu.P.checkZ(cpu.A)
+	cpu.PC += 2
+	cpu.Clock += 2
 }
 
 // 10
@@ -182,6 +205,17 @@ func EORzer(cpu *CPU) {
 
 	cpu.PC += 2
 	cpu.Clock += 3
+}
+
+// 49
+func EORimm(cpu *CPU) {
+	cpu.A ^= cpu.immediate()
+
+	cpu.P.checkN(cpu.A)
+	cpu.P.checkZ(cpu.A)
+
+	cpu.PC += 2
+	cpu.Clock += 2
 }
 
 // 4C

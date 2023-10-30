@@ -8,7 +8,9 @@ import (
 
 var opsDisasm = [256]func(*disasm) (string, int){
 	0x00: disasmOp("BRK", implied),
+	0x05: disasmOp("ORA", zeropage),
 	0x08: disasmOp("PHP", implied),
+	0x09: disasmOp("ORA", immediate),
 	0x10: disasmOp("BPL", relative),
 	0x18: disasmOp("CLC", implied),
 	0x20: disasmOp("JSR", absolute),
@@ -21,6 +23,7 @@ var opsDisasm = [256]func(*disasm) (string, int){
 	0x45: disasmOp("EOR", zeropage),
 	0x4C: disasmOp("JMP", absolute),
 	0x48: disasmOp("PHA", implied),
+	0x49: disasmOp("EOR", immediate),
 	0x50: disasmOp("BVC", relative),
 	0x58: disasmOp("CLI", implied),
 	0x60: disasmOp("RTS", implied),
