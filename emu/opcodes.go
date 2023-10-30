@@ -7,8 +7,9 @@ var ops = [256]func(cpu *CPU){
 	0x18: CLC,
 	0x20: JSR,
 	0x24: BITzer,
-	0x2C: BITabs,
+	0x28: PLP,
 	0x29: ANDimm,
+	0x2C: BITabs,
 	0x30: BMI,
 	0x38: SEC,
 	0x45: EORzer,
@@ -129,6 +130,17 @@ func BITabs(cpu *CPU) {
 
 	cpu.P.checkZ(cpu.A & val)
 	cpu.PC += 3
+	cpu.Clock += 4
+}
+
+// 28
+func PLP(cpu *CPU) {
+	p := pull8(cpu)
+
+	const mask = 0b11001111 // ignore B and U bits
+	cpu.P = P(copybits(uint8(cpu.P), p, mask))
+
+	cpu.PC += 1
 	cpu.Clock += 4
 }
 
@@ -626,6 +638,11 @@ func branch(cpu *CPU) {
 		cpu.Clock += 3
 	}
 	cpu.PC = addr
+}
+
+// Copy bits from src to dst, using mask to select which bits to copy.
+func copybits(dst uint8, src uint8, mask uint8) uint8 {
+	return (dst & ^mask) | (src & mask)
 }
 
 // addressing modes
