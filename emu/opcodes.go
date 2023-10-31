@@ -353,28 +353,10 @@ func SEI(cpu *CPU) {
 
 // 81
 func STAindx(cpu *CPU) {
-	// Read from the zero page
-	oper := cpu.Read8(cpu.PC + 1)
-	addr := uint16(oper) + uint16(cpu.Y)
+	addr := cpu.zpindindx()
 	cpu.Write8(addr, cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 6
-}
-
-// 8D
-func STAabs(cpu *CPU) {
-	oper := cpu.absolute()
-	cpu.Write8(oper, cpu.A)
-	cpu.PC += 3
-	cpu.Clock += 4
-}
-
-// 8E
-func STXabs(cpu *CPU) {
-	oper := cpu.absolute()
-	cpu.Write8(oper, cpu.X)
-	cpu.PC += 3
-	cpu.Clock += 4
 }
 
 // 84
@@ -407,6 +389,22 @@ func TXA(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+// 8D
+func STAabs(cpu *CPU) {
+	oper := cpu.absolute()
+	cpu.Write8(oper, cpu.A)
+	cpu.PC += 3
+	cpu.Clock += 4
+}
+
+// 8E
+func STXabs(cpu *CPU) {
+	oper := cpu.absolute()
+	cpu.Write8(oper, cpu.X)
+	cpu.PC += 3
+	cpu.Clock += 4
 }
 
 // 90
@@ -715,6 +713,12 @@ func (cpu *CPU) absolute() uint16 {
 
 func (cpu *CPU) zeropage() uint16 {
 	return uint16(cpu.Read8(cpu.PC + 1))
+}
+
+func (cpu *CPU) zpindindx() uint16 {
+	oper := uint8(cpu.zeropage())
+	oper += cpu.X
+	return cpu.zpr16(uint16(oper))
 }
 
 func (cpu *CPU) zpindindy() uint16 {
