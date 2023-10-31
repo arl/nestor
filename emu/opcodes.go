@@ -422,11 +422,8 @@ func BCC(cpu *CPU) {
 
 // 91
 func STAindy(cpu *CPU) {
-	// Read from the zero page
-	oper := cpu.Read8(cpu.PC + 1)
-	addr := uint16(oper)
-	addr += uint16(cpu.Y)
-	cpu.bus.Write8(addr, cpu.A)
+	addr := cpu.zpindindy()
+	cpu.Write8(addr, cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 6
 }
@@ -718,4 +715,18 @@ func (cpu *CPU) absolute() uint16 {
 
 func (cpu *CPU) zeropage() uint16 {
 	return uint16(cpu.Read8(cpu.PC + 1))
+}
+
+func (cpu *CPU) zpindindy() uint16 {
+	oper := cpu.zeropage()
+	addr := cpu.zpr16(oper)
+	addr += uint16(cpu.Y)
+	return addr
+}
+
+// read 16 bytes from the zero page, handling page wrap.
+func (cpu *CPU) zpr16(addr uint16) uint16 {
+	lo := cpu.bus.Read8(addr)
+	hi := cpu.bus.Read8(uint16(uint8(addr) + 1))
+	return uint16(hi)<<8 | uint16(lo)
 }
