@@ -53,6 +53,7 @@ var ops = [256]func(cpu *CPU){
 	0x90: BCC,
 	0x91: STAindy,
 	0x95: STAzerx,
+	0x96: STXzery,
 	0x99: STAabsy,
 	0x9A: TXS,
 	0x9D: STAabsx,
@@ -432,6 +433,16 @@ func STAzerx(cpu *CPU) {
 	oper := cpu.Read8(cpu.PC + 1)
 	addr := uint16(oper + cpu.X)
 	cpu.Write8(addr, cpu.A)
+	cpu.PC += 2
+	cpu.Clock += 4
+}
+
+// 96
+func STXzery(cpu *CPU) {
+	// Read from the zero page
+	oper := cpu.Read8(cpu.PC + 1)
+	addr := uint16(oper + cpu.Y)
+	cpu.Write8(addr, cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 4
 }

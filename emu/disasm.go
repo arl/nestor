@@ -59,6 +59,7 @@ var opsDisasm = [256]func(*disasm) (string, int){
 	0x90: disasmOp("BCC", relative),
 	0x91: disasmOp("STA", postidxindirect),
 	0x95: disasmOp("STA", zeropagex),
+	0x96: disasmOp("STX", zeropagey),
 	0x99: disasmOp("STA", absolutey),
 	0x9A: disasmOp("TXS", implied),
 	0x9D: disasmOp("STA", absolutex),
@@ -204,6 +205,14 @@ func zeropagex(op string) func(*disasm) (string, int) {
 		addr := d.cpu.zeropage()
 		value := d.cpu.Read8(addr)
 		return fmt.Sprintf("%s $%02X,X = %02X", op, addr, value), 2
+	}
+}
+
+func zeropagey(op string) func(*disasm) (string, int) {
+	return func(d *disasm) (string, int) {
+		addr := d.cpu.zeropage()
+		value := d.cpu.Read8(addr)
+		return fmt.Sprintf("%s $%02X,Y = %02X", op, addr, value), 2
 	}
 }
 
