@@ -356,7 +356,7 @@ func STAindx(cpu *CPU) {
 	// Read from the zero page
 	oper := cpu.Read8(cpu.PC + 1)
 	addr := uint16(oper) + uint16(cpu.Y)
-	cpu.bus.Write8(addr, cpu.A)
+	cpu.Write8(addr, cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 6
 }
@@ -364,7 +364,7 @@ func STAindx(cpu *CPU) {
 // 8D
 func STAabs(cpu *CPU) {
 	oper := cpu.absolute()
-	cpu.bus.Write8(oper, cpu.A)
+	cpu.Write8(oper, cpu.A)
 	cpu.PC += 3
 	cpu.Clock += 4
 }
@@ -372,7 +372,7 @@ func STAabs(cpu *CPU) {
 // 8E
 func STXabs(cpu *CPU) {
 	oper := cpu.absolute()
-	cpu.bus.Write8(oper, cpu.X)
+	cpu.Write8(oper, cpu.X)
 	cpu.PC += 3
 	cpu.Clock += 4
 }
@@ -380,7 +380,7 @@ func STXabs(cpu *CPU) {
 // 84
 func STYzer(cpu *CPU) {
 	oper := cpu.zeropage()
-	cpu.bus.Write8(oper, cpu.Y)
+	cpu.Write8(oper, cpu.Y)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -388,7 +388,7 @@ func STYzer(cpu *CPU) {
 // 85
 func STAzer(cpu *CPU) {
 	oper := cpu.zeropage()
-	cpu.bus.Write8(oper, cpu.A)
+	cpu.Write8(oper, cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -396,7 +396,7 @@ func STAzer(cpu *CPU) {
 // 86
 func STXzer(cpu *CPU) {
 	oper := cpu.zeropage()
-	cpu.bus.Write8(oper, cpu.X)
+	cpu.Write8(oper, cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -436,7 +436,7 @@ func STAzerx(cpu *CPU) {
 	// Read from the zero page
 	oper := cpu.Read8(cpu.PC + 1)
 	addr := uint16(oper + cpu.X)
-	cpu.bus.Write8(addr, cpu.A)
+	cpu.Write8(addr, cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 4
 }
@@ -445,7 +445,7 @@ func STAzerx(cpu *CPU) {
 func STAabsy(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC + 1)
 	addr := oper + uint16(cpu.Y)
-	cpu.bus.Write8(addr, cpu.A)
+	cpu.Write8(addr, cpu.A)
 	cpu.PC += 3
 	cpu.Clock += 5
 }
@@ -461,7 +461,7 @@ func TXS(cpu *CPU) {
 func STAabsx(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC + 1)
 	addr := oper + uint16(cpu.X)
-	cpu.bus.Write8(addr, cpu.A)
+	cpu.Write8(addr, cpu.A)
 	cpu.PC += 3
 	cpu.Clock += 5
 }
