@@ -171,31 +171,31 @@ func accumulator(op string) func(*disasm) (string, int) {
 
 func immediate(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
-		return fmt.Sprintf("%s #$%02X", op, d.cpu.immediate()), 2
+		return fmt.Sprintf("%s #$%02X", op, d.cpu.imm()), 2
 	}
 }
 
 func absolute(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
-		return fmt.Sprintf("%s $%04X", op, d.cpu.absolute()), 3
+		return fmt.Sprintf("%s $%04X", op, d.cpu.abs()), 3
 	}
 }
 
 func absolutex(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
-		return fmt.Sprintf("%s $%04X,X", op, d.cpu.absolute()), 3
+		return fmt.Sprintf("%s $%04X,X", op, d.cpu.abs()), 3
 	}
 }
 
 func absolutey(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
-		return fmt.Sprintf("%s $%04X,Y", op, d.cpu.absolute()), 3
+		return fmt.Sprintf("%s $%04X,Y", op, d.cpu.abs()), 3
 	}
 }
 
 func zeropage(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.zeropage()
+		addr := d.cpu.zp()
 		value := d.cpu.Read8(uint16(addr))
 		return fmt.Sprintf("%s $%02X = %02X", op, addr, value), 2
 	}
@@ -203,7 +203,7 @@ func zeropage(op string) func(*disasm) (string, int) {
 
 func zeropagex(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.zeropage()
+		addr := d.cpu.zp()
 		value := d.cpu.Read8(uint16(addr))
 		return fmt.Sprintf("%s $%02X,X = %02X", op, addr, value), 2
 	}
@@ -211,7 +211,7 @@ func zeropagex(op string) func(*disasm) (string, int) {
 
 func zeropagey(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.zeropage()
+		addr := d.cpu.zp()
 		value := d.cpu.Read8(uint16(addr))
 		return fmt.Sprintf("%s $%02X,Y = %02X", op, addr, value), 2
 	}
@@ -226,7 +226,7 @@ func relative(op string) func(*disasm) (string, int) {
 
 func absindirect(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.absolute()
+		addr := d.cpu.abs()
 		return fmt.Sprintf("%s ($%04X)", op, addr), 3
 	}
 }
