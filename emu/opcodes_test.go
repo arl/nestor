@@ -60,7 +60,7 @@ func testOpcodes(op string) func(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.Name, func(t *testing.T) {
-				mem := new(MemMap)
+				mem := &mapbus{m: make(map[uint16]uint8)}
 				cpu := NewCPU(mem)
 				cpu.A = uint8(tt.Initial.A)
 				cpu.X = uint8(tt.Initial.X)
@@ -69,38 +69,17 @@ func testOpcodes(op string) func(t *testing.T) {
 				cpu.SP = uint8(tt.Initial.SP)
 				cpu.PC = uint16(tt.Initial.PC)
 
-				// Group ram by pages of 256 bytes. Without this, we couldn't map
-				// the last byte of the memory map (0xffff) since radix gave
-				// ErrOverlappingRange when trying to map 1-byte regions (bug?).
-				m := make(map[uint16][]byte)
-				m[0x0100] = make([]byte, 0x100) // stack
-
-				for _, row := range tt.Final.RAM {
-					loff := uint16(row[0] &^ 0xff)
-					line := m[loff]
-					if line == nil {
-						line = make([]byte, 256)
-						m[loff] = line
-					}
-				}
-
 				for _, row := range tt.Initial.RAM {
-					loff := uint16(row[0] &^ 0xff)
-					line := m[loff]
-					if line == nil {
-						line = make([]byte, 256)
-						m[loff] = line
+					mem.Write8(uint16(row[0]), uint8(row[1]))
+					if testing.Verbose() {
+						fmt.Printf("init ram[0x%x] = 0x%x\n", row[0], row[1])
 					}
-					line[row[0]&0xff] = uint8(row[1])
-				}
-				for off, line := range m {
-					mem.MapSlice(off, off+255, line)
 				}
 
 				if testing.Verbose() {
 					cpu.SetDisasm(os.Stdout, true)
 				}
-				cpu.Run(int64(len(tt.Cycles)) - 1)
+				cpu.Run(int64(len(tt.Cycles)))
 
 				// check ram
 				for _, row := range tt.Final.RAM {
@@ -272,4 +251,26 @@ func TestJSR_RTS(t *testing.T) {
 	wantCPUState(t, cpu, "PC", 0x0603)
 	cpu.Run(6 + 2 + 6 + 2)
 	wantCPUState(t, cpu, "A", 0xFF)
+}
+
+type mapbus struct {
+	m map[uint16]uint8
+}
+
+func (b *mapbus) Reset() {
+	b.m = make(map[uint16]uint8)
+}
+
+func (b *mapbus) Read8(addr uint16) uint8 {
+	return b.m[addr]
+}
+
+func (b *mapbus) Write8(addr uint16, val uint8) {
+	b.m[addr] = val
+}
+
+func (b *mapbus) MapSlice(addr, end uint16, buf []byte) {
+	for i, v := range buf {
+		b.m[addr+uint16(i)] = v
+	}
 }
