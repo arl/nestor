@@ -2,10 +2,10 @@ package emu
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"testing"
 )
 
@@ -33,46 +33,80 @@ type opcodeAutoTest struct {
 }
 
 func TestOpcodes(t *testing.T) {
-	testOpcodes(t, "C0")
-	testOpcodes(t, "E0")
+	// Run tests for all implemented opcodes
+	for op, f := range ops {
+		if f == nil {
+			continue
+		}
+		opstr := fmt.Sprintf("%02x", op)
+		t.Run(opstr, testOpcodes(opstr))
+	}
 }
 
-func testOpcodes(t *testing.T, op string) {
-	path := filepath.Join("testdata", strings.ToLower(op)+".json")
-	buf, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var tests []opcodeAutoTest
-	if err := json.Unmarshal(buf, &tests); err != nil {
-		t.Fatal(err)
-	}
+// testOpcodes runs the opcode tests in testdata/<op>.json
+// these comes from https://github.com/TomHarte/ProcessorTests/tree/main/6502
+func testOpcodes(op string) func(t *testing.T) {
+	return func(t *testing.T) {
+		path := filepath.Join("testdata", "tomharte.processor.tests", "v1", op+".json")
+		buf, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var tests []opcodeAutoTest
+		if err := json.Unmarshal(buf, &tests); err != nil {
+			t.Fatal(err)
+		}
 
-	for i, tt := range tests {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			mem := new(MemMap)
-			cpu := NewCPU(mem)
-			cpu.Reset()
-			cpu.A = uint8(tt.Initial.A)
-			cpu.X = uint8(tt.Initial.X)
-			cpu.Y = uint8(tt.Initial.Y)
-			cpu.P = P(tt.Initial.P)
-			cpu.SP = uint8(tt.Initial.SP)
-			cpu.PC = uint16(tt.Initial.PC)
-			for _, row := range tt.Initial.RAM {
-				mem.MapSlice(uint16(row[0]), uint16(row[0]), []byte{uint8(row[1])})
-			}
-			cpu.Run(int64(len(tt.Cycles)))
+		for i, tt := range tests {
+			t.Run(strconv.Itoa(i), func(t *testing.T) {
+				mem := new(MemMap)
+				cpu := NewCPU(mem)
+				cpu.A = uint8(tt.Initial.A)
+				cpu.X = uint8(tt.Initial.X)
+				cpu.Y = uint8(tt.Initial.Y)
+				cpu.P = P(tt.Initial.P)
+				cpu.SP = uint8(tt.Initial.SP)
+				cpu.PC = uint16(tt.Initial.PC)
 
-			wantCPUState(t, cpu,
-				"PC", tt.Final.PC,
-				"SP", tt.Final.SP,
-				"A", tt.Final.A,
-				"X", tt.Final.X,
-				"Y", tt.Final.Y,
-				"P", tt.Final.P,
-			)
-		})
+				// Group ram by pages of 256 bytes. Without this, we couldn't map
+				// the last byte of the memory map (0xffff) since radix gave
+				// ErrOverlappingRange when trying to map 1-byte regions (bug?).
+				m := make(map[uint16][]byte)
+				m[0x0100] = make([]byte, 0x100) // stack
+				for _, row := range tt.Initial.RAM {
+					loff := uint16(row[0] &^ 0xff)
+					line := m[loff]
+					if line == nil {
+						line = make([]byte, 256)
+						m[loff] = line
+					}
+					line[row[0]&0xff] = uint8(row[1])
+				}
+				for off, line := range m {
+					mem.MapSlice(off, off+255, line)
+				}
+
+				cpu.Run(int64(len(tt.Cycles)))
+				wantCPUState(t, cpu,
+					"PC", tt.Final.PC,
+					"SP", tt.Final.SP,
+					"A", tt.Final.A,
+					"X", tt.Final.X,
+					"Y", tt.Final.Y,
+					"P", tt.Final.P,
+				)
+
+				// check ram
+				for _, row := range tt.Final.RAM {
+					addr := uint16(row[0])
+					val := uint8(row[1])
+					got := mem.Read8(addr)
+					if got != val {
+						t.Errorf("ram[0x%x] = 0x%x, want 0x%x", addr, got, val)
+					}
+				}
+			})
+		}
 	}
 }
 
