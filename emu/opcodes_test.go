@@ -75,6 +75,16 @@ func testOpcodes(op string) func(t *testing.T) {
 				// ErrOverlappingRange when trying to map 1-byte regions (bug?).
 				m := make(map[uint16][]byte)
 				m[0x0100] = make([]byte, 0x100) // stack
+
+				for _, row := range tt.Final.RAM {
+					loff := uint16(row[0] &^ 0xff)
+					line := m[loff]
+					if line == nil {
+						line = make([]byte, 256)
+						m[loff] = line
+					}
+				}
+
 				for _, row := range tt.Initial.RAM {
 					loff := uint16(row[0] &^ 0xff)
 					line := m[loff]
@@ -88,6 +98,7 @@ func testOpcodes(op string) func(t *testing.T) {
 					mem.MapSlice(off, off+255, line)
 				}
 
+				// cpu.SetDisasm(os.Stdout, true)
 				cpu.Run(int64(len(tt.Cycles)) - 1)
 
 				// check ram
