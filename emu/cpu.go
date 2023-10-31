@@ -56,7 +56,7 @@ func (c *CPU) Run(until int64) {
 
 	c.targetCycles = until
 	for c.Clock < c.targetCycles {
-		opcode := c.bus.Read8(uint16(c.PC))
+		opcode := c.Read8(uint16(c.PC))
 		op := ops[opcode]
 		if op == nil {
 			panic(fmt.Sprintf("unsupported op code %02X (PC:$%04X)", opcode, c.PC))
