@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 )
 
@@ -44,7 +43,7 @@ func TestOpcodes(t *testing.T) {
 }
 
 // testOpcodes runs the opcode tests in testdata/<op>.json
-// these comes from https://github.com/TomHarte/ProcessorTests/tree/main/6502
+// these comes from github.com/TomHarte/ProcessorTests/blob/main/nes6502.
 func testOpcodes(op string) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
@@ -59,8 +58,8 @@ func testOpcodes(op string) func(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		for i, tt := range tests {
-			t.Run(strconv.Itoa(i), func(t *testing.T) {
+		for _, tt := range tests {
+			t.Run(tt.Name, func(t *testing.T) {
 				mem := new(MemMap)
 				cpu := NewCPU(mem)
 				cpu.A = uint8(tt.Initial.A)
@@ -98,7 +97,9 @@ func testOpcodes(op string) func(t *testing.T) {
 					mem.MapSlice(off, off+255, line)
 				}
 
-				// cpu.SetDisasm(os.Stdout, true)
+				if testing.Verbose() {
+					cpu.SetDisasm(os.Stdout, true)
+				}
 				cpu.Run(int64(len(tt.Cycles)) - 1)
 
 				// check ram
