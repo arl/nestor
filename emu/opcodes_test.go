@@ -47,6 +47,8 @@ func TestOpcodes(t *testing.T) {
 // these comes from https://github.com/TomHarte/ProcessorTests/tree/main/6502
 func testOpcodes(op string) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Parallel()
+
 		path := filepath.Join("testdata", "tomharte.processor.tests", "v1", op+".json")
 		buf, err := os.ReadFile(path)
 		if err != nil {
@@ -86,15 +88,7 @@ func testOpcodes(op string) func(t *testing.T) {
 					mem.MapSlice(off, off+255, line)
 				}
 
-				cpu.Run(int64(len(tt.Cycles)))
-				wantCPUState(t, cpu,
-					"PC", tt.Final.PC,
-					"SP", tt.Final.SP,
-					"A", tt.Final.A,
-					"X", tt.Final.X,
-					"Y", tt.Final.Y,
-					"P", tt.Final.P,
-				)
+				cpu.Run(int64(len(tt.Cycles)) - 1)
 
 				// check ram
 				for _, row := range tt.Final.RAM {
@@ -105,6 +99,16 @@ func testOpcodes(op string) func(t *testing.T) {
 						t.Errorf("ram[0x%x] = 0x%x, want 0x%x", addr, got, val)
 					}
 				}
+
+				// check cpu state
+				wantCPUState(t, cpu,
+					"PC", tt.Final.PC,
+					"SP", tt.Final.SP,
+					"A", tt.Final.A,
+					"X", tt.Final.X,
+					"Y", tt.Final.Y,
+					"P", tt.Final.P,
+				)
 			})
 		}
 	}

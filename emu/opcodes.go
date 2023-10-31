@@ -2,39 +2,54 @@ package emu
 
 var ops = [256]func(cpu *CPU){
 	0x00: BRK,
+	0x04: NOP(2, 3),
 	0x05: ORAzer,
 	0x08: PHP,
 	0x09: ORAimm,
+	0x0C: NOP(3, 4),
 	0x10: BPL,
+	0x14: NOP(2, 4),
 	0x18: CLC,
+	0x1A: NOP(1, 2),
 	0x20: JSR,
 	0x24: BITzer,
 	0x28: PLP,
 	0x29: ANDimm,
 	0x2C: BITabs,
 	0x30: BMI,
+	0x34: NOP(2, 4),
 	0x38: SEC,
+	0x3A: NOP(1, 2),
+	0x44: NOP(2, 3),
 	0x45: EORzer,
+	0x48: PHA,
 	0x49: EORimm,
 	0x4C: JMPabs,
-	0x48: PHA,
 	0x50: BVC,
+	0x54: NOP(2, 4),
 	0x58: CLI,
+	0x5A: NOP(1, 2),
 	0x60: RTS,
+	0x64: NOP(2, 3),
 	0x66: RORzer,
 	0x68: PLA,
 	0x69: ADCimm,
 	0x6A: RORacc,
 	0x6C: JMPind,
 	0x70: BVS,
+	0x74: NOP(2, 4),
 	0x78: SEI,
+	0x7A: NOP(1, 2),
+	0x80: NOP(2, 2),
 	0x81: STAindx,
-	0x8D: STAabs,
-	0x8E: STXabs,
+	0x82: NOP(2, 2),
 	0x84: STYzer,
 	0x85: STAzer,
 	0x86: STXzer,
+	0x89: NOP(2, 2),
 	0x8A: TXA,
+	0x8D: STAabs,
+	0x8E: STXabs,
 	0x90: BCC,
 	0x91: STAindy,
 	0x95: STAzerx,
@@ -50,17 +65,23 @@ var ops = [256]func(cpu *CPU){
 	0xB8: CLV,
 	0xBA: TSX,
 	0xC0: CPYimm,
+	0xC2: NOP(2, 2),
 	0xC8: INY,
-	0xCA: DEX,
 	0xC9: CMPimm,
+	0xCA: DEX,
 	0xD0: BNE,
+	0xD4: NOP(2, 4),
 	0xD8: CLD,
+	0xDA: NOP(1, 2),
 	0xE0: CPXimm,
+	0xE2: NOP(2, 2),
 	0xE6: INCzer,
 	0xE8: INX,
-	0xEA: NOP,
+	0xEA: NOP(1, 2),
 	0xF0: BEQ,
+	0xF4: NOP(2, 4),
 	0xF8: SED,
+	0xFA: NOP(1, 2),
 }
 
 // 00
@@ -591,9 +612,11 @@ func INX(cpu *CPU) {
 }
 
 // EA
-func NOP(cpu *CPU) {
-	cpu.PC += 1
-	cpu.Clock += 2
+func NOP(nb uint16, nc int64) func(*CPU) {
+	return func(cpu *CPU) {
+		cpu.PC += nb
+		cpu.Clock += nc
+	}
 }
 
 // F0
@@ -662,8 +685,8 @@ func pull16(cpu *CPU) uint16 {
 // reladdr returns the destination address for a jump.
 // that is the address at PC+1 + an offset (PC+2)
 func reladdr(cpu *CPU) uint16 {
-	off := cpu.Read8(cpu.PC + 1)
-	reladdr := int32(cpu.PC+2) + int32(int8(off))
+	off := int8(cpu.Read8(cpu.PC + 1))
+	reladdr := int32(cpu.PC+2) + int32(off)
 	return uint16(reladdr)
 }
 
