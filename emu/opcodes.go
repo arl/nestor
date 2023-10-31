@@ -90,6 +90,7 @@ func BRK(cpu *CPU) {
 	p := cpu.P
 	p.setBit(pbitB)
 	push8(cpu, uint8(p))
+	cpu.P.writeBit(pbitI, true)
 	cpu.PC = cpu.Read16(IRQvector)
 	cpu.Clock += 7
 }
