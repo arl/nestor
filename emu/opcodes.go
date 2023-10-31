@@ -9,6 +9,7 @@ var ops = [256]func(cpu *CPU){
 	0x0C: NOP(3, 4),
 	0x10: BPL,
 	0x14: NOP(2, 4),
+	0x15: ORAzerx,
 	0x18: CLC,
 	0x1A: NOP(1, 2),
 	0x20: JSR,
@@ -99,7 +100,7 @@ func BRK(cpu *CPU) {
 // 05
 func ORAzer(cpu *CPU) {
 	oper := cpu.zeropage()
-	val := cpu.Read8(oper)
+	val := cpu.Read8(uint16(oper))
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 2
@@ -134,6 +135,16 @@ func BPL(cpu *CPU) {
 	branch(cpu)
 }
 
+// 15
+func ORAzerx(cpu *CPU) {
+	addr := cpu.zeropagex()
+	val := cpu.Read8(uint16(addr))
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+	cpu.PC += 2
+	cpu.Clock += 4
+}
+
 // 18
 func CLC(cpu *CPU) {
 	cpu.P.clearBit(pbitC)
@@ -154,7 +165,7 @@ func JSR(cpu *CPU) {
 // 24
 func BITzer(cpu *CPU) {
 	oper := cpu.zeropage()
-	val := cpu.Read8(oper)
+	val := cpu.Read8(uint16(oper))
 
 	// Copy bits 7 and 6 (N and V)
 	cpu.P &= 0b00111111
@@ -219,7 +230,7 @@ func SEC(cpu *CPU) {
 // 45
 func EORzer(cpu *CPU) {
 	oper := cpu.zeropage()
-	val := cpu.Read8(oper)
+	val := cpu.Read8(uint16(oper))
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 2
@@ -276,7 +287,7 @@ func RTS(cpu *CPU) {
 // 66
 func RORzer(cpu *CPU) {
 	oper := cpu.zeropage()
-	val := cpu.Read8(oper)
+	val := cpu.Read8(uint16(oper))
 	carry := val & 1 // carry will be set to bit 0
 	val >>= 1
 	// bit 7 is set to the carry
@@ -284,7 +295,7 @@ func RORzer(cpu *CPU) {
 		val |= 1 << 7
 	}
 
-	cpu.Write8(oper, val)
+	cpu.Write8(uint16(oper), val)
 
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -363,7 +374,7 @@ func STAindx(cpu *CPU) {
 // 84
 func STYzer(cpu *CPU) {
 	oper := cpu.zeropage()
-	cpu.Write8(oper, cpu.Y)
+	cpu.Write8(uint16(oper), cpu.Y)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -371,7 +382,7 @@ func STYzer(cpu *CPU) {
 // 85
 func STAzer(cpu *CPU) {
 	oper := cpu.zeropage()
-	cpu.Write8(oper, cpu.A)
+	cpu.Write8(uint16(oper), cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -379,7 +390,7 @@ func STAzer(cpu *CPU) {
 // 86
 func STXzer(cpu *CPU) {
 	oper := cpu.zeropage()
-	cpu.Write8(oper, cpu.X)
+	cpu.Write8(uint16(oper), cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -429,20 +440,16 @@ func STAindy(cpu *CPU) {
 
 // 95
 func STAzerx(cpu *CPU) {
-	// Read from the zero page
-	oper := cpu.Read8(cpu.PC + 1)
-	addr := uint16(oper + cpu.X)
-	cpu.Write8(addr, cpu.A)
+	addr := cpu.zeropagex()
+	cpu.Write8(uint16(addr), cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 4
 }
 
 // 96
 func STXzery(cpu *CPU) {
-	// Read from the zero page
-	oper := cpu.Read8(cpu.PC + 1)
-	addr := uint16(oper + cpu.Y)
-	cpu.Write8(addr, cpu.X)
+	addr := cpu.zeropagey()
+	cpu.Write8(uint16(addr), cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 4
 }
@@ -603,7 +610,7 @@ func CPXimm(cpu *CPU) {
 // E6
 func INCzer(cpu *CPU) {
 	oper := cpu.zeropage()
-	val := cpu.Read8(oper)
+	val := cpu.Read8(uint16(oper))
 	val++
 	cpu.P.checkNZ(val)
 	cpu.PC += 2
@@ -722,8 +729,16 @@ func (cpu *CPU) absolute() uint16 {
 	return cpu.Read16(cpu.PC + 1)
 }
 
-func (cpu *CPU) zeropage() uint16 {
-	return uint16(cpu.Read8(cpu.PC + 1))
+func (cpu *CPU) zeropage() uint8 {
+	return cpu.Read8(cpu.PC + 1)
+}
+
+func (cpu *CPU) zeropagex() uint8 {
+	return cpu.zeropage() + cpu.X
+}
+
+func (cpu *CPU) zeropagey() uint8 {
+	return cpu.zeropage() + cpu.Y
 }
 
 func (cpu *CPU) zpindindx() uint16 {
@@ -734,7 +749,7 @@ func (cpu *CPU) zpindindx() uint16 {
 
 func (cpu *CPU) zpindindy() uint16 {
 	oper := cpu.zeropage()
-	addr := cpu.zpr16(oper)
+	addr := cpu.zpr16(uint16(oper))
 	addr += uint16(cpu.Y)
 	return addr
 }

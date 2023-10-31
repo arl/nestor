@@ -15,6 +15,7 @@ var opsDisasm = [256]func(*disasm) (string, int){
 	0x0C: disasmOp("NOP", implied),
 	0x10: disasmOp("BPL", relative),
 	0x14: disasmOp("NOP", implied),
+	0x15: disasmOp("ORA", zeropagex),
 	0x18: disasmOp("CLC", implied),
 	0x1A: disasmOp("NOP", implied),
 	0x20: disasmOp("JSR", absolute),
@@ -195,7 +196,7 @@ func absolutey(op string) func(*disasm) (string, int) {
 func zeropage(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.zeropage()
-		value := d.cpu.Read8(addr)
+		value := d.cpu.Read8(uint16(addr))
 		return fmt.Sprintf("%s $%02X = %02X", op, addr, value), 2
 	}
 }
@@ -203,7 +204,7 @@ func zeropage(op string) func(*disasm) (string, int) {
 func zeropagex(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.zeropage()
-		value := d.cpu.Read8(addr)
+		value := d.cpu.Read8(uint16(addr))
 		return fmt.Sprintf("%s $%02X,X = %02X", op, addr, value), 2
 	}
 }
@@ -211,7 +212,7 @@ func zeropagex(op string) func(*disasm) (string, int) {
 func zeropagey(op string) func(*disasm) (string, int) {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.zeropage()
-		value := d.cpu.Read8(addr)
+		value := d.cpu.Read8(uint16(addr))
 		return fmt.Sprintf("%s $%02X,Y = %02X", op, addr, value), 2
 	}
 }
