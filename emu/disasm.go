@@ -8,16 +8,21 @@ import (
 
 var opsDisasm = [256]disasmFunc{
 	0x00: imp("BRK"),
+	0x01: izx("ORA"),
 	0x04: imp("NOP"),
 	0x05: zp("ORA"),
 	0x08: imp("PHP"),
 	0x09: imm("ORA"),
 	0x0C: imp("NOP"),
+	0x0D: abs("ORA"),
 	0x10: rel("BPL"),
+	0x11: izy("ORA"),
 	0x14: imp("NOP"),
 	0x15: zpx("ORA"),
 	0x18: imp("CLC"),
+	0x19: aby("ORA"),
 	0x1A: imp("NOP"),
+	0x1D: abx("ORA"),
 	0x20: abs("JSR"),
 	0x24: zp("BIT"),
 	0x26: zp("ROL"),
@@ -53,7 +58,7 @@ var opsDisasm = [256]disasmFunc{
 	0x6D: abs("ADC"),
 	0x6E: abs("ROR"),
 	0x70: rel("BVS"),
-	0x71: ixy("ADC"),
+	0x71: izy("ADC"),
 	0x74: imp("NOP"),
 	0x75: zpx("ADC"),
 	0x76: zpx("ROR"),
@@ -74,7 +79,7 @@ var opsDisasm = [256]disasmFunc{
 	0x8D: abs("STA"),
 	0x8E: abs("STX"),
 	0x90: rel("BCC"),
-	0x91: ixy("STA"),
+	0x91: izy("STA"),
 	0x95: zpx("STA"),
 	0x96: zpy("STX"),
 	0x99: aby("STA"),
@@ -253,7 +258,7 @@ func izx(op string) disasmFunc {
 	}
 }
 
-func ixy(op string) disasmFunc {
+func izy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		return fmt.Sprintf("%s ($%02X),Y", op, d.cpu.Read8(d.cpu.PC+1)), 2
 	}

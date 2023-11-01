@@ -2,16 +2,21 @@ package emu
 
 var ops = [256]func(cpu *CPU){
 	0x00: BRK,
+	0x01: ORAizx,
 	0x04: NOP(2, 3),
 	0x05: ORAzp,
 	0x08: PHP,
 	0x09: ORAimm,
 	0x0C: NOP(3, 4),
+	0x0D: ORAabs,
 	0x10: BPL,
+	0x11: ORAizy,
 	0x14: NOP(2, 4),
 	0x15: ORAzpx,
 	0x18: CLC,
+	0x19: ORAaby,
 	0x1A: NOP(1, 2),
+	0x1D: ORAabx,
 	0x20: JSR,
 	0x24: BITzp,
 	0x26: ROLzp,
@@ -113,12 +118,20 @@ func BRK(cpu *CPU) {
 	cpu.Clock += 7
 }
 
+// 01
+func ORAizx(cpu *CPU) {
+	oper := cpu.izx()
+	val := cpu.Read8(oper)
+	ora(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // 05
 func ORAzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
-	cpu.A |= val
-	cpu.P.checkNZ(cpu.A)
+	ora(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -134,10 +147,18 @@ func PHP(cpu *CPU) {
 
 // 09
 func ORAimm(cpu *CPU) {
-	cpu.A |= cpu.imm()
-	cpu.P.checkNZ(cpu.A)
+	ora(cpu, cpu.imm())
 	cpu.PC += 2
 	cpu.Clock += 2
+}
+
+// 0D
+func ORAabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	ora(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4
 }
 
 // 10
@@ -151,12 +172,20 @@ func BPL(cpu *CPU) {
 	branch(cpu)
 }
 
+// 11
+func ORAizy(cpu *CPU) {
+	oper, crossed := cpu.izy()
+	val := cpu.Read8(oper)
+	ora(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 5 + int64(crossed)
+}
+
 // 15
 func ORAzpx(cpu *CPU) {
 	addr := cpu.zpx()
 	val := cpu.Read8(uint16(addr))
-	cpu.A |= val
-	cpu.P.checkNZ(cpu.A)
+	ora(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 4
 }
@@ -166,6 +195,24 @@ func CLC(cpu *CPU) {
 	cpu.P.clearBit(pbitC)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+// 19
+func ORAaby(cpu *CPU) {
+	addr, crossed := cpu.aby()
+	val := cpu.Read8(uint16(addr))
+	ora(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
+}
+
+// 1D
+func ORAabx(cpu *CPU) {
+	addr, crossed := cpu.abx()
+	val := cpu.Read8(uint16(addr))
+	ora(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
 }
 
 // 20
@@ -823,6 +870,12 @@ func adc(cpu *CPU, oper uint8) {
 
 	cpu.P.checkCV(cpu.A, oper, sum)
 	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+}
+
+// or memory with accumulator
+func ora(cpu *CPU, val uint8) {
+	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 }
 
