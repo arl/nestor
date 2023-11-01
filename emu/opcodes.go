@@ -54,6 +54,7 @@ var ops = [256]func(cpu *CPU){
 	0x84: STYzp,
 	0x85: STAzp,
 	0x86: STXzp,
+	0x88: DEY,
 	0x89: NOP(2, 2),
 	0x8A: TXA,
 	0x8D: STAabs,
@@ -475,6 +476,14 @@ func STXzp(cpu *CPU) {
 	cpu.Write8(uint16(oper), cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 3
+}
+
+// 88
+func DEY(cpu *CPU) {
+	cpu.Y--
+	cpu.P.checkNZ(cpu.Y)
+	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // 8A

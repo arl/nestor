@@ -60,6 +60,7 @@ var opsDisasm = [256]disasmFunc{
 	0x84: zp("STY"),
 	0x85: zp("STA"),
 	0x86: zp("STX"),
+	0x88: imp("DEY"),
 	0x89: imp("NOP"),
 	0x8A: imp("TXA"),
 	0x8D: abs("STA"),
