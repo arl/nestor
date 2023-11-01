@@ -18,18 +18,25 @@ var ops = [256]func(cpu *CPU){
 	0x1A: NOP(1, 2),
 	0x1D: ORAabx,
 	0x20: JSR,
+	0x21: ANDizx,
 	0x24: BITzp,
+	0x25: ANDzp,
 	0x26: ROLzp,
 	0x28: PLP,
 	0x29: ANDimm,
 	0x2A: ROLacc,
 	0x2C: BITabs,
+	0x2D: ANDabs,
 	0x2E: ROLabs,
 	0x30: BMI,
+	0x31: ANDizy,
 	0x34: NOP(2, 4),
+	0x35: ANDzpx,
 	0x36: ROLzpx,
 	0x38: SEC,
+	0x39: ANDaby,
 	0x3A: NOP(1, 2),
+	0x3D: ANDabx,
 	0x3E: ROLabx,
 	0x44: NOP(2, 3),
 	0x45: EORzp,
@@ -225,6 +232,15 @@ func JSR(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 21
+func ANDizx(cpu *CPU) {
+	oper := cpu.izx()
+	val := cpu.Read8(oper)
+	and(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // 24
 func BITzp(cpu *CPU) {
 	oper := cpu.zp()
@@ -235,6 +251,15 @@ func BITzp(cpu *CPU) {
 	cpu.P |= P(val & 0b11000000)
 
 	cpu.P.checkZ(cpu.A & val)
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
+// 25
+func ANDzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	and(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -263,8 +288,7 @@ func PLP(cpu *CPU) {
 
 // 29
 func ANDimm(cpu *CPU) {
-	cpu.A &= cpu.imm()
-	cpu.P.checkNZ(cpu.A)
+	and(cpu, cpu.imm())
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -286,6 +310,15 @@ func BITabs(cpu *CPU) {
 	cpu.P |= P(val & 0b11000000)
 
 	cpu.P.checkZ(cpu.A & val)
+	cpu.PC += 3
+	cpu.Clock += 4
+}
+
+// 2D
+func ANDabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	and(cpu, val)
 	cpu.PC += 3
 	cpu.Clock += 4
 }
@@ -312,6 +345,24 @@ func BMI(cpu *CPU) {
 	branch(cpu)
 }
 
+// 31
+func ANDizy(cpu *CPU) {
+	oper, crossed := cpu.izy()
+	val := cpu.Read8(oper)
+	and(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 5 + int64(crossed)
+}
+
+// 35
+func ANDzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	and(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 4
+}
+
 // 36
 func ROLzpx(cpu *CPU) {
 	oper := cpu.zpx()
@@ -328,6 +379,24 @@ func SEC(cpu *CPU) {
 	cpu.P.setBit(pbitC)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+// 39
+func ANDaby(cpu *CPU) {
+	oper, crossed := cpu.aby()
+	val := cpu.Read8(oper)
+	and(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
+}
+
+// 3D
+func ANDabx(cpu *CPU) {
+	oper, crossed := cpu.abx()
+	val := cpu.Read8(oper)
+	and(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
 }
 
 // 3E
@@ -870,6 +939,11 @@ func adc(cpu *CPU, oper uint8) {
 
 	cpu.P.checkCV(cpu.A, oper, sum)
 	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+}
+
+func and(cpu *CPU, val uint8) {
+	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 }
 
