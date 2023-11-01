@@ -126,10 +126,13 @@ var opsDisasm = [256]disasmFunc{
 	0xE6: zp("INC"),
 	0xE8: imp("INX"),
 	0xEA: imp("NOP"),
+	0xEE: abs("INC"),
 	0xF0: rel("BEQ"),
 	0xF4: imp("NOP"),
+	0xF6: zpx("INC"),
 	0xF8: imp("SED"),
 	0xFA: imp("NOP"),
+	0xFE: abx("INC"),
 }
 
 type disasm struct {

@@ -120,10 +120,13 @@ var ops = [256]func(cpu *CPU){
 	0xE6: INCzp,
 	0xE8: INX,
 	0xEA: NOP(1, 2),
+	0xEE: INCabs,
 	0xF0: BEQ,
 	0xF4: NOP(2, 4),
+	0xF6: INCzpx,
 	0xF8: SED,
 	0xFA: NOP(1, 2),
+	0xFE: INCabx,
 }
 
 // 00
@@ -1000,8 +1003,8 @@ func CPXimm(cpu *CPU) {
 func INCzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
-	val++
-	cpu.P.checkNZ(val)
+	inc(cpu, &val)
+	cpu.Write8(uint16(oper), val)
 	cpu.PC += 2
 	cpu.Clock += 5
 }
@@ -1022,6 +1025,16 @@ func NOP(nb uint16, nc int64) func(*CPU) {
 	}
 }
 
+// EE
+func INCabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(uint16(oper))
+	inc(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 3
+	cpu.Clock += 6
+}
+
 // F0
 func BEQ(cpu *CPU) {
 	if !cpu.P.Z() {
@@ -1033,11 +1046,31 @@ func BEQ(cpu *CPU) {
 	branch(cpu)
 }
 
+// F6
+func INCzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	inc(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // F8
 func SED(cpu *CPU) {
 	cpu.P.setBit(pbitD)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+// FE
+func INCabx(cpu *CPU) {
+	oper, _ := cpu.abx()
+	val := cpu.Read8(uint16(oper))
+	inc(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 3
+	cpu.Clock += 7
 }
 
 /* common instruction implementation */
@@ -1114,6 +1147,12 @@ func bit(cpu *CPU, val uint8) {
 func cmp_(cpu *CPU, val uint8) {
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.writeBit(pbitC, val <= cpu.A)
+}
+
+// increment memory by one
+func inc(cpu *CPU, val *uint8) {
+	*val++
+	cpu.P.checkNZ(*val)
 }
 
 /* helpers */
