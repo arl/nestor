@@ -14,13 +14,18 @@ var ops = [256]func(cpu *CPU){
 	0x1A: NOP(1, 2),
 	0x20: JSR,
 	0x24: BITzp,
+	0x26: ROLzp,
 	0x28: PLP,
 	0x29: ANDimm,
+	0x2A: ROLacc,
 	0x2C: BITabs,
+	0x2E: ROLabs,
 	0x30: BMI,
 	0x34: NOP(2, 4),
+	0x36: ROLzpx,
 	0x38: SEC,
 	0x3A: NOP(1, 2),
+	0x3E: ROLabx,
 	0x44: NOP(2, 3),
 	0x45: EORzp,
 	0x48: PHA,
@@ -187,18 +192,15 @@ func BITzp(cpu *CPU) {
 	cpu.Clock += 3
 }
 
-// 2C
-func BITabs(cpu *CPU) {
-	oper := cpu.abs()
-	val := cpu.Read8(oper)
+// 26
+func ROLzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	rol(cpu, &val)
+	cpu.Write8(uint16(oper), val)
 
-	// Copy bits 7 and 6 (N and V)
-	cpu.P &= 0b00111111
-	cpu.P |= P(val & 0b11000000)
-
-	cpu.P.checkZ(cpu.A & val)
-	cpu.PC += 3
-	cpu.Clock += 4
+	cpu.PC += 2
+	cpu.Clock += 5
 }
 
 // 28
@@ -220,6 +222,38 @@ func ANDimm(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// 2A
+func ROLacc(cpu *CPU) {
+	rol(cpu, &cpu.A)
+	cpu.PC += 1
+	cpu.Clock += 2
+}
+
+// 2C
+func BITabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+
+	// Copy bits 7 and 6 (N and V)
+	cpu.P &= 0b00111111
+	cpu.P |= P(val & 0b11000000)
+
+	cpu.P.checkZ(cpu.A & val)
+	cpu.PC += 3
+	cpu.Clock += 4
+}
+
+// 2E
+func ROLabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	rol(cpu, &val)
+	cpu.Write8(oper, val)
+
+	cpu.PC += 3
+	cpu.Clock += 6
+}
+
 // 30
 func BMI(cpu *CPU) {
 	if !cpu.P.N() {
@@ -231,11 +265,33 @@ func BMI(cpu *CPU) {
 	branch(cpu)
 }
 
+// 36
+func ROLzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	rol(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // 38
 func SEC(cpu *CPU) {
 	cpu.P.setBit(pbitC)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+// 3E
+func ROLabx(cpu *CPU) {
+	oper, _ := cpu.abx()
+	val := cpu.Read8(oper)
+	rol(cpu, &val)
+	cpu.Write8(oper, val)
+
+	cpu.PC += 3
+	cpu.Clock += 7
 }
 
 // 45
@@ -760,6 +816,7 @@ func SED(cpu *CPU) {
 
 /* common instruction implementation */
 
+// add with carry
 func adc(cpu *CPU, oper uint8) {
 	carry := cpu.P.ibit(pbitC)
 	sum := uint16(cpu.A) + uint16(oper) + uint16(carry)
@@ -769,11 +826,26 @@ func adc(cpu *CPU, oper uint8) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+// rotate one bit left
+func rol(cpu *CPU, val *uint8) {
+	carry := *val & 0x80 // next carry is bit 7
+	*val <<= 1
+
+	// bit 0 is set to prev carry
+	if cpu.P.C() {
+		*val |= 1 << 0
+	}
+
+	cpu.P.checkNZ(*val)
+	cpu.P.writeBit(pbitC, carry != 0)
+}
+
+// rotate one bit right
 func ror(cpu *CPU, val *uint8) {
-	carry := *val & 0x01 // next carry
+	carry := *val & 0x01 // next carry is bit 0
 	*val >>= 1
 
-	// bit 7 is set to the carry
+	// bit 7 is set to prev carry
 	if cpu.P.C() {
 		*val |= 1 << 7
 	}
