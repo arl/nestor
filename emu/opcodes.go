@@ -40,14 +40,17 @@ var ops = [256]func(cpu *CPU){
 	0x6A: RORacc,
 	0x6C: JMPind,
 	0x6D: ADCabs,
+	0x6E: RORabs,
 	0x70: BVS,
 	0x71: ADCizy,
 	0x74: NOP(2, 4),
 	0x75: ADCzpx,
+	0x76: RORzpx,
 	0x78: SEI,
 	0x79: ADCaby,
 	0x7A: NOP(1, 2),
 	0x7D: ADCabx,
+	0x7E: RORabx,
 	0x80: NOP(2, 2),
 	0x81: STAizx,
 	0x82: NOP(2, 2),
@@ -316,17 +319,8 @@ func ADCzp(cpu *CPU) {
 func RORzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
-	carry := val & 1 // carry will be set to bit 0
-	val >>= 1
-	// bit 7 is set to the carry
-	if cpu.P.C() {
-		val |= 1 << 7
-	}
-
+	ror(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-
-	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
 
 	cpu.PC += 2
 	cpu.Clock += 5
@@ -337,17 +331,6 @@ func PLA(cpu *CPU) {
 	cpu.A = pull8(cpu)
 	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 1
-	cpu.Clock += 4
-}
-
-// 75
-func ADCzpx(cpu *CPU) {
-	addr := cpu.zpx()
-	val := cpu.Read8(uint16(addr))
-
-	adc(cpu, val)
-
-	cpu.PC += 2
 	cpu.Clock += 4
 }
 
@@ -363,16 +346,7 @@ func ADCimm(cpu *CPU) {
 
 // 6A
 func RORacc(cpu *CPU) {
-	val := cpu.A
-	// bit 7 is set to the carry
-	if cpu.P.C() {
-		val |= 1 << 7
-	}
-
-	cpu.A = val
-	cpu.P.checkNZ(cpu.A)
-	cpu.P.writeBit(pbitC, val&0x01 != 0)
-
+	ror(cpu, &cpu.A)
 	cpu.PC += 1
 	cpu.Clock += 2
 }
@@ -395,6 +369,17 @@ func ADCabs(cpu *CPU) {
 	cpu.Clock += 4
 }
 
+// 6E
+func RORabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	ror(cpu, &val)
+	cpu.Write8(oper, val)
+
+	cpu.PC += 3
+	cpu.Clock += 6
+}
+
 // 70
 func BVS(cpu *CPU) {
 	if !cpu.P.V() {
@@ -406,7 +391,7 @@ func BVS(cpu *CPU) {
 	branch(cpu)
 }
 
-// 61
+// 71
 func ADCizy(cpu *CPU) {
 	oper, crossed := cpu.izy()
 	val := cpu.Read8(oper)
@@ -415,6 +400,28 @@ func ADCizy(cpu *CPU) {
 
 	cpu.PC += 2
 	cpu.Clock += 5 + int64(crossed)
+}
+
+// 75
+func ADCzpx(cpu *CPU) {
+	addr := cpu.zpx()
+	val := cpu.Read8(uint16(addr))
+
+	adc(cpu, val)
+
+	cpu.PC += 2
+	cpu.Clock += 4
+}
+
+// 76
+func RORzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	ror(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+
+	cpu.PC += 2
+	cpu.Clock += 6
 }
 
 // 78
@@ -444,6 +451,17 @@ func ADCabx(cpu *CPU) {
 
 	cpu.PC += 3
 	cpu.Clock += 4 + int64(crossed)
+}
+
+// 7E
+func RORabx(cpu *CPU) {
+	oper, _ := cpu.abx()
+	val := cpu.Read8(oper)
+	ror(cpu, &val)
+	cpu.Write8(oper, val)
+
+	cpu.PC += 3
+	cpu.Clock += 7
 }
 
 // 81
@@ -751,9 +769,23 @@ func adc(cpu *CPU, oper uint8) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func ror(cpu *CPU, val *uint8) {
+	carry := *val & 0x01 // next carry
+	*val >>= 1
+
+	// bit 7 is set to the carry
+	if cpu.P.C() {
+		*val |= 1 << 7
+	}
+
+	cpu.P.checkNZ(*val)
+	cpu.P.writeBit(pbitC, carry != 0)
+}
+
 /* helpers */
 
 func pagecrossed(a, b uint16) bool {
+	// fmt.Printf("pagecrossed: a=%04X, b=%04X\n", a, b)
 	return 0xFF00&a != 0xFF00&b
 }
 
@@ -789,7 +821,7 @@ func pull16(cpu *CPU) uint16 {
 // that is the address at PC+1 + an offset (PC+2)
 func reladdr(cpu *CPU) uint16 {
 	off := int8(cpu.Read8(cpu.PC + 1))
-	reladdr := int32(cpu.PC+2) + int32(off)
+	reladdr := int16(cpu.PC+2) + int16(off)
 	return uint16(reladdr)
 }
 
