@@ -6,90 +6,97 @@ import (
 	"io"
 )
 
-var opsDisasm = [256]func(*disasm) (string, int){
-	0x00: disasmOp("BRK", implied),
-	0x04: disasmOp("NOP", implied),
-	0x05: disasmOp("ORA", zeropage),
-	0x08: disasmOp("PHP", implied),
-	0x09: disasmOp("ORA", immediate),
-	0x0C: disasmOp("NOP", implied),
-	0x10: disasmOp("BPL", relative),
-	0x14: disasmOp("NOP", implied),
-	0x15: disasmOp("ORA", zeropagex),
-	0x18: disasmOp("CLC", implied),
-	0x1A: disasmOp("NOP", implied),
-	0x20: disasmOp("JSR", absolute),
-	0x24: disasmOp("BIT", zeropage),
-	0x28: disasmOp("PLP", implied),
-	0x29: disasmOp("AND", immediate),
-	0x2C: disasmOp("BIT", absolute),
-	0x30: disasmOp("BMI", relative),
-	0x34: disasmOp("NOP", implied),
-	0x38: disasmOp("SEC", implied),
-	0x3A: disasmOp("NOP", implied),
-	0x44: disasmOp("NOP", implied),
-	0x45: disasmOp("EOR", zeropage),
-	0x48: disasmOp("PHA", implied),
-	0x49: disasmOp("EOR", immediate),
-	0x4C: disasmOp("JMP", absolute),
-	0x50: disasmOp("BVC", relative),
-	0x54: disasmOp("NOP", implied),
-	0x58: disasmOp("CLI", implied),
-	0x5A: disasmOp("NOP", implied),
-	0x60: disasmOp("RTS", implied),
-	0x64: disasmOp("NOP", implied),
-	0x66: disasmOp("ROR", zeropage),
-	0x68: disasmOp("PLA", implied),
-	0x69: disasmOp("ADC", immediate),
-	0x6A: disasmOp("ROR", accumulator),
-	0x6C: disasmOp("JMP", absindirect),
-	0x70: disasmOp("BVS", relative),
-	0x74: disasmOp("NOP", implied),
-	0x78: disasmOp("SEI", implied),
-	0x7A: disasmOp("NOP", implied),
-	0x80: disasmOp("NOP", implied),
-	0x81: disasmOp("STA", preidxindirect),
-	0x82: disasmOp("NOP", implied),
-	0x84: disasmOp("STY", zeropage),
-	0x85: disasmOp("STA", zeropage),
-	0x86: disasmOp("STX", zeropage),
-	0x89: disasmOp("NOP", implied),
-	0x8A: disasmOp("TXA", implied),
-	0x8D: disasmOp("STA", absolute),
-	0x8E: disasmOp("STX", absolute),
-	0x90: disasmOp("BCC", relative),
-	0x91: disasmOp("STA", postidxindirect),
-	0x95: disasmOp("STA", zeropagex),
-	0x96: disasmOp("STX", zeropagey),
-	0x99: disasmOp("STA", absolutey),
-	0x9A: disasmOp("TXS", implied),
-	0x9D: disasmOp("STA", absolutex),
-	0xA0: disasmOp("LDY", immediate),
-	0xA2: disasmOp("LDX", immediate),
-	0xA9: disasmOp("LDA", immediate),
-	0xAA: disasmOp("TAX", implied),
-	0xAD: disasmOp("LDA", absolute),
-	0xB0: disasmOp("BCS", relative),
-	0xB8: disasmOp("CLV", implied),
-	0xBA: disasmOp("TSX", implied),
-	0xC0: disasmOp("CPY", immediate),
-	0xC2: disasmOp("NOP", implied),
-	0xC8: disasmOp("INY", implied),
-	0xC9: disasmOp("CMP", immediate),
-	0xCA: disasmOp("DEX", implied),
-	0xD0: disasmOp("BNE", relative),
-	0xD4: disasmOp("NOP", implied),
-	0xD8: disasmOp("CLD", implied),
-	0xDA: disasmOp("NOP", implied),
-	0xE0: disasmOp("CPX", immediate),
-	0xE2: disasmOp("NOP", implied),
-	0xE6: disasmOp("INC", zeropage),
-	0xE8: disasmOp("INX", implied),
-	0xEA: disasmOp("NOP", implied),
-	0xF0: disasmOp("BEQ", relative),
-	0xF4: disasmOp("NOP", implied),
-	0xF8: disasmOp("SED", implied),
-	0xFA: disasmOp("NOP", implied),
+var opsDisasm = [256]disasmFunc{
+	0x00: imp("BRK"),
+	0x04: imp("NOP"),
+	0x05: zp("ORA"),
+	0x08: imp("PHP"),
+	0x09: imm("ORA"),
+	0x0C: imp("NOP"),
+	0x10: rel("BPL"),
+	0x14: imp("NOP"),
+	0x15: zpx("ORA"),
+	0x18: imp("CLC"),
+	0x1A: imp("NOP"),
+	0x20: abs("JSR"),
+	0x24: zp("BIT"),
+	0x28: imp("PLP"),
+	0x29: imm("AND"),
+	0x2C: abs("BIT"),
+	0x30: rel("BMI"),
+	0x34: imp("NOP"),
+	0x38: imp("SEC"),
+	0x3A: imp("NOP"),
+	0x44: imp("NOP"),
+	0x45: zp("EOR"),
+	0x48: imp("PHA"),
+	0x49: imm("EOR"),
+	0x4C: abs("JMP"),
+	0x50: rel("BVC"),
+	0x54: imp("NOP"),
+	0x58: imp("CLI"),
+	0x5A: imp("NOP"),
+	0x60: imp("RTS"),
+	0x61: izx("ADC"),
+	0x64: imp("NOP"),
+	0x65: zp("ADC"),
+	0x66: zp("ROR"),
+	0x68: imp("PLA"),
+	0x69: imm("ADC"),
+	0x6A: acc("ROR"),
+	0x6C: abi("JMP"),
+	0x6D: abs("ADC"),
+	0x70: rel("BVS"),
+	0x71: ixy("ADC"),
+	0x74: imp("NOP"),
+	0x75: zpx("ADC"),
+	0x78: imp("SEI"),
+	0x79: aby("ADC"),
+	0x7A: imp("NOP"),
+	0x7D: abx("ADC"),
+	0x80: imp("NOP"),
+	0x81: izx("STA"),
+	0x82: imp("NOP"),
+	0x84: zp("STY"),
+	0x85: zp("STA"),
+	0x86: zp("STX"),
+	0x89: imp("NOP"),
+	0x8A: imp("TXA"),
+	0x8D: abs("STA"),
+	0x8E: abs("STX"),
+	0x90: rel("BCC"),
+	0x91: ixy("STA"),
+	0x95: zpx("STA"),
+	0x96: zpy("STX"),
+	0x99: aby("STA"),
+	0x9A: imp("TXS"),
+	0x9D: abx("STA"),
+	0xA0: imm("LDY"),
+	0xA2: imm("LDX"),
+	0xA9: imm("LDA"),
+	0xAA: imp("TAX"),
+	0xAD: abs("LDA"),
+	0xB0: rel("BCS"),
+	0xB8: imp("CLV"),
+	0xBA: imp("TSX"),
+	0xC0: imm("CPY"),
+	0xC2: imp("NOP"),
+	0xC8: imp("INY"),
+	0xC9: imm("CMP"),
+	0xCA: imp("DEX"),
+	0xD0: rel("BNE"),
+	0xD4: imp("NOP"),
+	0xD8: imp("CLD"),
+	0xDA: imp("NOP"),
+	0xE0: imm("CPX"),
+	0xE2: imp("NOP"),
+	0xE6: zp("INC"),
+	0xE8: imp("INX"),
+	0xEA: imp("NOP"),
+	0xF0: rel("BEQ"),
+	0xF4: imp("NOP"),
+	0xF8: imp("SED"),
+	0xFA: imp("NOP"),
 }
 
 type disasm struct {
@@ -151,49 +158,47 @@ func (d *disasm) op() {
 
 // dissasembly helpers
 
-func disasmOp(opname string, mode addressing) func(*disasm) (string, int) {
-	return mode(opname)
-}
+// A disasmFunc returns the disassembly string and the number of bytes read for
+// an opcode in its context.
+type disasmFunc func(*disasm) (string, int)
 
-type addressing func(op string) func(*disasm) (string, int)
-
-func implied(opname string) func(*disasm) (string, int) {
+func imp(opname string) disasmFunc {
 	return func(*disasm) (string, int) {
 		return opname, 1
 	}
 }
 
-func accumulator(op string) func(*disasm) (string, int) {
+func acc(op string) disasmFunc {
 	return func(*disasm) (string, int) {
 		return fmt.Sprintf("%s A", op), 1
 	}
 }
 
-func immediate(op string) func(*disasm) (string, int) {
+func imm(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		return fmt.Sprintf("%s #$%02X", op, d.cpu.imm()), 2
 	}
 }
 
-func absolute(op string) func(*disasm) (string, int) {
+func abs(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		return fmt.Sprintf("%s $%04X", op, d.cpu.abs()), 3
 	}
 }
 
-func absolutex(op string) func(*disasm) (string, int) {
+func abx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		return fmt.Sprintf("%s $%04X,X", op, d.cpu.abs()), 3
 	}
 }
 
-func absolutey(op string) func(*disasm) (string, int) {
+func aby(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		return fmt.Sprintf("%s $%04X,Y", op, d.cpu.abs()), 3
 	}
 }
 
-func zeropage(op string) func(*disasm) (string, int) {
+func zp(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.zp()
 		value := d.cpu.Read8(uint16(addr))
@@ -201,7 +206,7 @@ func zeropage(op string) func(*disasm) (string, int) {
 	}
 }
 
-func zeropagex(op string) func(*disasm) (string, int) {
+func zpx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.zp()
 		value := d.cpu.Read8(uint16(addr))
@@ -209,7 +214,7 @@ func zeropagex(op string) func(*disasm) (string, int) {
 	}
 }
 
-func zeropagey(op string) func(*disasm) (string, int) {
+func zpy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.zp()
 		value := d.cpu.Read8(uint16(addr))
@@ -217,28 +222,29 @@ func zeropagey(op string) func(*disasm) (string, int) {
 	}
 }
 
-func relative(op string) func(*disasm) (string, int) {
+func rel(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := reladdr(d.cpu)
 		return fmt.Sprintf("%s $%04X", op, addr), 2
 	}
 }
 
-func absindirect(op string) func(*disasm) (string, int) {
+// absolute indirect
+func abi(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.abs()
 		return fmt.Sprintf("%s ($%04X)", op, addr), 3
 	}
 }
 
-func preidxindirect(op string) func(*disasm) (string, int) {
+func izx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		val := d.cpu.Read8(d.cpu.PC + 1)
 		return fmt.Sprintf("%s ($%02X,X)", op, val), 2
 	}
 }
 
-func postidxindirect(op string) func(*disasm) (string, int) {
+func ixy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		return fmt.Sprintf("%s ($%02X),Y", op, d.cpu.Read8(d.cpu.PC+1)), 2
 	}
