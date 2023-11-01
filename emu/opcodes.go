@@ -31,16 +31,23 @@ var ops = [256]func(cpu *CPU){
 	0x58: CLI,
 	0x5A: NOP(1, 2),
 	0x60: RTS,
+	0x61: ADCizx,
 	0x64: NOP(2, 3),
+	0x65: ADCzp,
 	0x66: RORzp,
 	0x68: PLA,
 	0x69: ADCimm,
 	0x6A: RORacc,
 	0x6C: JMPind,
+	0x6D: ADCabs,
 	0x70: BVS,
+	0x71: ADCizy,
 	0x74: NOP(2, 4),
+	0x75: ADCzpx,
 	0x78: SEI,
+	0x79: ADCaby,
 	0x7A: NOP(1, 2),
+	0x7D: ADCabx,
 	0x80: NOP(2, 2),
 	0x81: STAizx,
 	0x82: NOP(2, 2),
@@ -284,6 +291,26 @@ func RTS(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 61
+func ADCizx(cpu *CPU) {
+	oper := cpu.izx()
+	val := cpu.Read8(oper)
+
+	adc(cpu, val)
+
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
+// 65
+func ADCzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	adc(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
 // 66
 func RORzp(cpu *CPU) {
 	oper := cpu.zp()
@@ -309,6 +336,17 @@ func PLA(cpu *CPU) {
 	cpu.A = pull8(cpu)
 	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 1
+	cpu.Clock += 4
+}
+
+// 75
+func ADCzpx(cpu *CPU) {
+	addr := cpu.zpx()
+	val := cpu.Read8(uint16(addr))
+
+	adc(cpu, val)
+
+	cpu.PC += 2
 	cpu.Clock += 4
 }
 
@@ -345,6 +383,17 @@ func JMPind(cpu *CPU) {
 	cpu.Clock += 5
 }
 
+// 6D
+func ADCabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+
+	adc(cpu, val)
+
+	cpu.PC += 3
+	cpu.Clock += 4
+}
+
 // 70
 func BVS(cpu *CPU) {
 	if !cpu.P.V() {
@@ -356,11 +405,44 @@ func BVS(cpu *CPU) {
 	branch(cpu)
 }
 
+// 61
+func ADCizy(cpu *CPU) {
+	oper, crossed := cpu.izy()
+	val := cpu.Read8(oper)
+
+	adc(cpu, val)
+
+	cpu.PC += 2
+	cpu.Clock += 5 + int64(crossed)
+}
+
 // 78
 func SEI(cpu *CPU) {
 	cpu.P.setBit(pbitI)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+// 79
+func ADCaby(cpu *CPU) {
+	oper, crossed := cpu.aby()
+	val := cpu.Read8(oper)
+
+	adc(cpu, val)
+
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
+}
+
+// 7D
+func ADCabx(cpu *CPU) {
+	oper, crossed := cpu.abx()
+	val := cpu.Read8(oper)
+
+	adc(cpu, val)
+
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
 }
 
 // 81
@@ -432,7 +514,7 @@ func BCC(cpu *CPU) {
 
 // 91
 func STAizy(cpu *CPU) {
-	addr := cpu.izy()
+	addr, _ := cpu.izy()
 	cpu.Write8(addr, cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 6
@@ -456,7 +538,7 @@ func STXzpy(cpu *CPU) {
 
 // 99
 func STAaby(cpu *CPU) {
-	addr := cpu.aby()
+	addr, _ := cpu.aby()
 	cpu.Write8(addr, cpu.A)
 	cpu.PC += 3
 	cpu.Clock += 5
@@ -471,7 +553,7 @@ func TXS(cpu *CPU) {
 
 // 9D
 func STAabx(cpu *CPU) {
-	addr := cpu.abx()
+	addr, _ := cpu.abx()
 	cpu.Write8(addr, cpu.A)
 	cpu.PC += 3
 	cpu.Clock += 5
@@ -728,11 +810,25 @@ func (cpu *CPU) zpr16(addr uint16) uint16 {
 
 func (cpu *CPU) imm() uint8  { return cpu.Read8(cpu.PC + 1) }
 func (cpu *CPU) abs() uint16 { return cpu.Read16(cpu.PC + 1) }
-func (cpu *CPU) abx() uint16 { return cpu.abs() + uint16(cpu.X) }
-func (cpu *CPU) aby() uint16 { return cpu.abs() + uint16(cpu.Y) }
 func (cpu *CPU) zp() uint8   { return cpu.Read8(cpu.PC + 1) }
 func (cpu *CPU) zpx() uint8  { return cpu.zp() + cpu.X }
 func (cpu *CPU) zpy() uint8  { return cpu.zp() + cpu.Y }
+
+// abolute indexed x. returns the destination address and a integer set to 1 if
+// a page boundary was crossed.
+func (cpu *CPU) abx() (uint16, uint8) {
+	addr := cpu.abs()
+	dst := addr + uint16(cpu.X)
+	return dst, b2i(pagecrossed(addr, dst))
+}
+
+// abolute indexed y. returns the destination address and a integer set to 1 if
+// a page boundary was crossed.
+func (cpu *CPU) aby() (uint16, uint8) {
+	addr := cpu.abs()
+	dst := addr + uint16(cpu.Y)
+	return dst, b2i(pagecrossed(addr, dst))
+}
 
 // zeropage indexed indirect (zp,x)
 func (cpu *CPU) izx() uint16 {
@@ -741,10 +837,11 @@ func (cpu *CPU) izx() uint16 {
 	return cpu.zpr16(uint16(oper))
 }
 
-// zeropage indexed indirect (zp),y
-func (cpu *CPU) izy() uint16 {
+// zeropage indexed indirect (zp),y. returns the destination address and a integer set to 1 if
+// a page boundary was crossed.
+func (cpu *CPU) izy() (uint16, uint8) {
 	oper := cpu.zp()
 	addr := cpu.zpr16(uint16(oper))
-	addr += uint16(cpu.Y)
-	return addr
+	dst := addr + uint16(cpu.Y)
+	return dst, b2i(pagecrossed(addr, dst))
 }
