@@ -100,14 +100,21 @@ var ops = [256]func(cpu *CPU){
 	0xB8: CLV,
 	0xBA: TSX,
 	0xC0: CPYimm,
+	0xC1: CMPizx,
 	0xC2: NOP(2, 2),
+	0xC5: CMPzp,
 	0xC8: INY,
 	0xC9: CMPimm,
 	0xCA: DEX,
+	0xCD: CMPabs,
 	0xD0: BNE,
+	0xD1: CMPizy,
 	0xD4: NOP(2, 4),
+	0xD5: CMPzpx,
 	0xD8: CLD,
 	0xDA: NOP(1, 2),
+	0xDD: CMPabx,
+	0xD9: CMPaby,
 	0xE0: CPXimm,
 	0xE2: NOP(2, 2),
 	0xE6: INCzp,
@@ -297,12 +304,7 @@ func ANDizx(cpu *CPU) {
 func BITzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
-
-	// Copy bits 7 and 6 (N and V)
-	cpu.P &= 0b00111111
-	cpu.P |= P(val & 0b11000000)
-
-	cpu.P.checkZ(cpu.A & val)
+	bit(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -356,12 +358,7 @@ func ROLacc(cpu *CPU) {
 func BITabs(cpu *CPU) {
 	oper := cpu.abs()
 	val := cpu.Read8(oper)
-
-	// Copy bits 7 and 6 (N and V)
-	cpu.P &= 0b00111111
-	cpu.P |= P(val & 0b11000000)
-
-	cpu.P.checkZ(cpu.A & val)
+	bit(cpu, val)
 	cpu.PC += 3
 	cpu.Clock += 4
 }
@@ -886,11 +883,36 @@ func CPYimm(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// C1
+func CMPizx(cpu *CPU) {
+	oper := cpu.izx()
+	val := cpu.Read8(oper)
+	cmp_(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
+// C5
+func CMPzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	cmp_(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
 // C8
 func INY(cpu *CPU) {
 	cpu.Y++
 	cpu.P.checkNZ(cpu.Y)
 	cpu.PC += 1
+	cpu.Clock += 2
+}
+
+// C9
+func CMPimm(cpu *CPU) {
+	cmp_(cpu, cpu.imm())
+	cpu.PC += 2
 	cpu.Clock += 2
 }
 
@@ -902,13 +924,13 @@ func DEX(cpu *CPU) {
 	cpu.Clock += 2
 }
 
-// C9
-func CMPimm(cpu *CPU) {
-	oper := cpu.imm()
-	cpu.P.checkNZ(cpu.A - oper)
-	cpu.P.writeBit(pbitC, oper <= cpu.A)
-	cpu.PC += 2
-	cpu.Clock += 2
+// CD
+func CMPabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	cmp_(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4
 }
 
 // D0
@@ -922,11 +944,47 @@ func BNE(cpu *CPU) {
 	branch(cpu)
 }
 
+// D1
+func CMPizy(cpu *CPU) {
+	oper, crossed := cpu.izy()
+	val := cpu.Read8(oper)
+	cmp_(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 6 + int64(crossed)
+}
+
+// D5
+func CMPzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	cmp_(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 4
+}
+
 // D8
 func CLD(cpu *CPU) {
 	cpu.P.clearBit(pbitD)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+// D9
+func CMPaby(cpu *CPU) {
+	oper, crossed := cpu.aby()
+	val := cpu.Read8(oper)
+	cmp_(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
+}
+
+// DD
+func CMPabx(cpu *CPU) {
+	oper, crossed := cpu.abx()
+	val := cpu.Read8(oper)
+	cmp_(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
 }
 
 // E0
@@ -1042,6 +1100,20 @@ func asl(cpu *CPU, val *uint8) {
 
 	cpu.P.checkNZ(*val)
 	cpu.P.writeBit(pbitC, carry != 0)
+}
+
+// test bits in memory with accumulator
+func bit(cpu *CPU, val uint8) {
+	// Copy bits 7 and 6 (N and V)
+	cpu.P &= 0b00111111
+	cpu.P |= P(val & 0b11000000)
+	cpu.P.checkZ(cpu.A & val)
+}
+
+// compare memory with accumulator
+func cmp_(cpu *CPU, val uint8) {
+	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.writeBit(pbitC, val <= cpu.A)
 }
 
 /* helpers */
