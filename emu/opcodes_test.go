@@ -32,9 +32,11 @@ type opcodeAutoTest struct {
 }
 
 func TestOpcodes(t *testing.T) {
+	skip := [0xff]uint8{} // skip tests for those opcodes for now
+
 	// Run tests for all implemented opcodes
 	for op, f := range ops {
-		if f == nil {
+		if f == nil || skip[op] == 1 {
 			continue
 		}
 		opstr := fmt.Sprintf("%02x", op)
@@ -262,15 +264,20 @@ func (b *mapbus) Reset() {
 }
 
 func (b *mapbus) Read8(addr uint16) uint8 {
-	return b.m[addr]
+	val := b.m[addr]
+	if testing.Verbose() {
+		fmt.Printf("read8:  addr(%d 0x%04x) val=(%d 0x%02x)\n", addr, addr, val, val)
+	}
+	return val
 }
 
 func (b *mapbus) Write8(addr uint16, val uint8) {
+	if testing.Verbose() {
+		fmt.Printf("write8: addr(%d 0x%04x) val=(%d 0x%02x)\n", addr, addr, val, val)
+	}
 	b.m[addr] = val
 }
 
 func (b *mapbus) MapSlice(addr, end uint16, buf []byte) {
-	for i, v := range buf {
-		b.m[addr+uint16(i)] = v
-	}
+	panic("not implemented")
 }
