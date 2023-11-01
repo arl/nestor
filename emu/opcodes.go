@@ -5,18 +5,23 @@ var ops = [256]func(cpu *CPU){
 	0x01: ORAizx,
 	0x04: NOP(2, 3),
 	0x05: ORAzp,
+	0x06: ASLzp,
 	0x08: PHP,
 	0x09: ORAimm,
+	0x0A: ASLacc,
 	0x0C: NOP(3, 4),
 	0x0D: ORAabs,
+	0x0E: ASLabs,
 	0x10: BPL,
 	0x11: ORAizy,
 	0x14: NOP(2, 4),
 	0x15: ORAzpx,
+	0x16: ASLzpx,
 	0x18: CLC,
 	0x19: ORAaby,
 	0x1A: NOP(1, 2),
 	0x1D: ORAabx,
+	0x1E: ASLabx,
 	0x20: JSR,
 	0x21: ANDizx,
 	0x24: BITzp,
@@ -143,6 +148,26 @@ func ORAzp(cpu *CPU) {
 	cpu.Clock += 3
 }
 
+// 06
+func ASLzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	asl(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 5
+}
+
+// 0E
+func ASLabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	asl(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 6
+}
+
 // 08
 func PHP(cpu *CPU) {
 	p := cpu.P
@@ -156,6 +181,13 @@ func PHP(cpu *CPU) {
 func ORAimm(cpu *CPU) {
 	ora(cpu, cpu.imm())
 	cpu.PC += 2
+	cpu.Clock += 2
+}
+
+// 0A
+func ASLacc(cpu *CPU) {
+	asl(cpu, &cpu.A)
+	cpu.PC += 1
 	cpu.Clock += 2
 }
 
@@ -197,6 +229,16 @@ func ORAzpx(cpu *CPU) {
 	cpu.Clock += 4
 }
 
+// 16
+func ASLzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	asl(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // 18
 func CLC(cpu *CPU) {
 	cpu.P.clearBit(pbitC)
@@ -220,6 +262,16 @@ func ORAabx(cpu *CPU) {
 	ora(cpu, val)
 	cpu.PC += 3
 	cpu.Clock += 4 + int64(crossed)
+}
+
+// 1E
+func ASLabx(cpu *CPU) {
+	oper, _ := cpu.abx()
+	val := cpu.Read8(oper)
+	asl(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 7
 }
 
 // 20
@@ -942,6 +994,7 @@ func adc(cpu *CPU, oper uint8) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+// and memory with accumulator
 func and(cpu *CPU, val uint8) {
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
@@ -976,6 +1029,16 @@ func ror(cpu *CPU, val *uint8) {
 	if cpu.P.C() {
 		*val |= 1 << 7
 	}
+
+	cpu.P.checkNZ(*val)
+	cpu.P.writeBit(pbitC, carry != 0)
+}
+
+// shift left one bit (memory or accumulator)
+func asl(cpu *CPU, val *uint8) {
+	carry := *val & 0x80 // carry is bit 7
+	*val <<= 1
+	*val &= 0xfe
 
 	cpu.P.checkNZ(*val)
 	cpu.P.writeBit(pbitC, carry != 0)
