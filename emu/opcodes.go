@@ -96,6 +96,7 @@ var ops = [256]func(cpu *CPU){
 	0x94: STYzpx,
 	0x95: STAzpx,
 	0x96: STXzpy,
+	0x98: TYA,
 	0x99: STAaby,
 	0x9A: TXS,
 	0x9D: STAabx,
@@ -105,6 +106,7 @@ var ops = [256]func(cpu *CPU){
 	0xA4: LDYzp,
 	0xA5: LDAzp,
 	0xA6: LDXzp,
+	0xA8: TAY,
 	0xA9: LDAimm,
 	0xAA: TAX,
 	0xAC: LDYabs,
@@ -896,6 +898,14 @@ func STXzpy(cpu *CPU) {
 	cpu.Clock += 4
 }
 
+// 98
+func TYA(cpu *CPU) {
+	cpu.A = cpu.Y
+	cpu.P.checkNZ(cpu.A)
+	cpu.PC += 1
+	cpu.Clock += 2
+}
+
 // 99
 func STAaby(cpu *CPU) {
 	addr, _ := cpu.aby()
@@ -966,6 +976,14 @@ func LDXzp(cpu *CPU) {
 	ldx(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 3
+}
+
+// A8
+func TAY(cpu *CPU) {
+	cpu.Y = cpu.A
+	cpu.P.checkNZ(cpu.Y)
+	cpu.PC += 1
+	cpu.Clock += 2
 }
 
 // A9
