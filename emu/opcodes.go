@@ -136,16 +136,24 @@ var ops = [256]func(cpu *CPU){
 	0xDA: NOP(1, 2),
 	0xDD: CMPabx,
 	0xE0: CPXimm,
+	0xE1: SBCizx,
 	0xE2: NOP(2, 2),
+	0xE5: SBCzp,
 	0xE6: INCzp,
 	0xE8: INX,
+	0xE9: SBCimm,
 	0xEA: NOP(1, 2),
+	0xED: SBCabs,
 	0xEE: INCabs,
 	0xF0: BEQ,
+	0xF1: SBCizy,
 	0xF4: NOP(2, 4),
+	0xF5: SBCzpx,
 	0xF6: INCzpx,
 	0xF8: SED,
+	0xF9: SBCaby,
 	0xFA: NOP(1, 2),
+	0xFD: SBCabx,
 	0xFE: INCabx,
 }
 
@@ -1198,6 +1206,25 @@ func CPXimm(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// E1
+func SBCizx(cpu *CPU) {
+	oper := cpu.izx()
+	val := cpu.Read8(oper)
+	sbc(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
+// E5
+func SBCzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	sbc(cpu, val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
 // E6
 func INCzp(cpu *CPU) {
 	oper := cpu.zp()
@@ -1216,12 +1243,30 @@ func INX(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// E9
+func SBCimm(cpu *CPU) {
+	oper := cpu.imm()
+	sbc(cpu, oper)
+	cpu.PC += 2
+	cpu.Clock += 2
+}
+
 // EA
 func NOP(nb uint16, nc int64) func(*CPU) {
 	return func(cpu *CPU) {
 		cpu.PC += nb
 		cpu.Clock += nc
 	}
+}
+
+// ED
+func SBCabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	sbc(cpu, val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 4
 }
 
 // EE
@@ -1245,6 +1290,25 @@ func BEQ(cpu *CPU) {
 	branch(cpu)
 }
 
+// F1
+func SBCizy(cpu *CPU) {
+	oper, crossed := cpu.izy()
+	val := cpu.Read8(oper)
+	sbc(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 5 + int64(crossed)
+}
+
+// F5
+func SBCzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	sbc(cpu, val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 4
+}
+
 // F6
 func INCzpx(cpu *CPU) {
 	oper := cpu.zpx()
@@ -1262,6 +1326,26 @@ func SED(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// F9
+func SBCaby(cpu *CPU) {
+	oper, crossed := cpu.aby()
+	val := cpu.Read8(oper)
+	sbc(cpu, val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
+}
+
+// FD
+func SBCabx(cpu *CPU) {
+	oper, crossed := cpu.abx()
+	val := cpu.Read8(oper)
+	sbc(cpu, val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
+}
+
 // FE
 func INCabx(cpu *CPU) {
 	oper, _ := cpu.abx()
@@ -1274,14 +1358,19 @@ func INCabx(cpu *CPU) {
 
 /* common instruction implementation */
 
-// add with carry.
-func adc(cpu *CPU, oper uint8) {
+// add memory to accumulator with carry.
+func adc(cpu *CPU, val uint8) {
 	carry := cpu.P.ibit(pbitC)
-	sum := uint16(cpu.A) + uint16(oper) + uint16(carry)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 
-	cpu.P.checkCV(cpu.A, oper, sum)
+	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
 	cpu.P.checkNZ(cpu.A)
+}
+
+// substract memory from accumulator with borrow.
+func sbc(cpu *CPU, val uint8) {
+	adc(cpu, val^0xff)
 }
 
 // and memory with accumulator.
