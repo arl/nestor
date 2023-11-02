@@ -88,10 +88,12 @@ var ops = [256]func(cpu *CPU){
 	0x88: DEY,
 	0x89: NOP(2, 2),
 	0x8A: TXA,
+	0x8C: STYabs,
 	0x8D: STAabs,
 	0x8E: STXabs,
 	0x90: BCC,
 	0x91: STAizy,
+	0x94: STYzpx,
 	0x95: STAzpx,
 	0x96: STXzpy,
 	0x99: STAaby,
@@ -827,6 +829,14 @@ func TXA(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// 8C
+func STYabs(cpu *CPU) {
+	oper := cpu.abs()
+	cpu.Write8(oper, cpu.Y)
+	cpu.PC += 3
+	cpu.Clock += 4
+}
+
 // 8D
 func STAabs(cpu *CPU) {
 	oper := cpu.abs()
@@ -860,6 +870,14 @@ func STAizy(cpu *CPU) {
 	cpu.Write8(addr, cpu.A)
 	cpu.PC += 2
 	cpu.Clock += 6
+}
+
+// 94
+func STYzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	cpu.Write8(uint16(oper), cpu.Y)
+	cpu.PC += 2
+	cpu.Clock += 4
 }
 
 // 95
