@@ -44,6 +44,7 @@ var ops = [256]func(cpu *CPU){
 	0x3D: ANDabx,
 	0x3E: ROLabx,
 	0x40: RTI,
+	0x41: EORizx,
 	0x44: NOP(2, 3),
 	0x45: EORzp,
 	0x46: LSRzp,
@@ -51,12 +52,17 @@ var ops = [256]func(cpu *CPU){
 	0x49: EORimm,
 	0x4A: LSRacc,
 	0x4C: JMPabs,
+	0x4D: EORabs,
 	0x4E: LSRabs,
 	0x50: BVC,
+	0x51: EORizy,
 	0x54: NOP(2, 4),
+	0x55: EORzpx,
 	0x56: LSRzpx,
 	0x58: CLI,
+	0x59: EORaby,
 	0x5A: NOP(1, 2),
+	0x5D: EORabx,
 	0x5E: LSRabx,
 	0x60: RTS,
 	0x61: ADCizx,
@@ -505,12 +511,20 @@ func RTI(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 41
+func EORizx(cpu *CPU) {
+	oper := cpu.izx()
+	val := cpu.Read8(oper)
+	eor(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // 45
 func EORzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
-	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	eor(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -528,15 +542,13 @@ func LSRzp(cpu *CPU) {
 // 48
 func PHA(cpu *CPU) {
 	push8(cpu, cpu.A)
-
 	cpu.PC += 1
 	cpu.Clock += 3
 }
 
 // 49
 func EORimm(cpu *CPU) {
-	cpu.A ^= cpu.imm()
-	cpu.P.checkNZ(cpu.A)
+	eor(cpu, cpu.imm())
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -552,6 +564,15 @@ func LSRacc(cpu *CPU) {
 func JMPabs(cpu *CPU) {
 	cpu.PC = cpu.abs()
 	cpu.Clock += 3
+}
+
+// 4D
+func EORabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	eor(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4
 }
 
 // 4E
@@ -575,6 +596,24 @@ func BVC(cpu *CPU) {
 	branch(cpu)
 }
 
+// 51
+func EORizy(cpu *CPU) {
+	oper, crossed := cpu.izy()
+	val := cpu.Read8(oper)
+	eor(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 5 + int64(crossed)
+}
+
+// 55
+func EORzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	eor(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 4
+}
+
 // 56
 func LSRzpx(cpu *CPU) {
 	oper := cpu.zpx()
@@ -590,6 +629,24 @@ func CLI(cpu *CPU) {
 	cpu.P.clearBit(pbitI)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+// 59
+func EORaby(cpu *CPU) {
+	oper, crossed := cpu.aby()
+	val := cpu.Read8(oper)
+	eor(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
+}
+
+// 5D
+func EORabx(cpu *CPU) {
+	oper, crossed := cpu.abx()
+	val := cpu.Read8(oper)
+	eor(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
 }
 
 // 5E
@@ -1418,6 +1475,12 @@ func and(cpu *CPU, val uint8) {
 // or memory with accumulator.
 func ora(cpu *CPU, val uint8) {
 	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// exlusive-or memory with accumulator.
+func eor(cpu *CPU, val uint8) {
+	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
 }
 
