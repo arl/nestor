@@ -45,13 +45,18 @@ var ops = [256]func(cpu *CPU){
 	0x3E: ROLabx,
 	0x44: NOP(2, 3),
 	0x45: EORzp,
+	0x46: LSRzp,
 	0x48: PHA,
 	0x49: EORimm,
+	0x4A: LSRacc,
 	0x4C: JMPabs,
+	0x4E: LSRabs,
 	0x50: BVC,
 	0x54: NOP(2, 4),
+	0x56: LSRzpx,
 	0x58: CLI,
 	0x5A: NOP(1, 2),
+	0x5E: LSRabx,
 	0x60: RTS,
 	0x61: ADCizx,
 	0x64: NOP(2, 3),
@@ -486,11 +491,36 @@ func EORzp(cpu *CPU) {
 	cpu.Clock += 3
 }
 
+// 46
+func LSRzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	lsr(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 5
+}
+
+// 48
+func PHA(cpu *CPU) {
+	push8(cpu, cpu.A)
+
+	cpu.PC += 1
+	cpu.Clock += 3
+}
+
 // 49
 func EORimm(cpu *CPU) {
 	cpu.A ^= cpu.imm()
 	cpu.P.checkNZ(cpu.A)
 	cpu.PC += 2
+	cpu.Clock += 2
+}
+
+// 4A
+func LSRacc(cpu *CPU) {
+	lsr(cpu, &cpu.A)
+	cpu.PC += 1
 	cpu.Clock += 2
 }
 
@@ -500,12 +530,14 @@ func JMPabs(cpu *CPU) {
 	cpu.Clock += 3
 }
 
-// 48
-func PHA(cpu *CPU) {
-	push8(cpu, cpu.A)
-
-	cpu.PC += 1
-	cpu.Clock += 3
+// 4E
+func LSRabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	lsr(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 6
 }
 
 // 50
@@ -519,11 +551,31 @@ func BVC(cpu *CPU) {
 	branch(cpu)
 }
 
+// 56
+func LSRzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	lsr(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // 58
 func CLI(cpu *CPU) {
 	cpu.P.clearBit(pbitI)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+// 5E
+func LSRabx(cpu *CPU) {
+	oper, _ := cpu.abx()
+	val := cpu.Read8(oper)
+	lsr(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 7
 }
 
 // 60
@@ -1260,11 +1312,21 @@ func ror(cpu *CPU, val *uint8) {
 	cpu.P.writeBit(pbitC, carry != 0)
 }
 
-// shift left one bit (memory or accumulator).
+// shift one bit left (memory or accumulator).
 func asl(cpu *CPU, val *uint8) {
 	carry := *val & 0x80 // carry is bit 7
 	*val <<= 1
 	*val &= 0xfe
+
+	cpu.P.checkNZ(*val)
+	cpu.P.writeBit(pbitC, carry != 0)
+}
+
+// shift one bit right (memory or accumulator).
+func lsr(cpu *CPU, val *uint8) {
+	carry := *val & 0x01 // carry is bit 0
+	*val >>= 1
+	*val &= 0x7f
 
 	cpu.P.checkNZ(*val)
 	cpu.P.writeBit(pbitC, carry != 0)
