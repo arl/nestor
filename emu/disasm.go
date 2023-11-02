@@ -256,7 +256,13 @@ func imm(op string) disasmFunc {
 
 func abs(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		return fmt.Sprintf("%s $%04X", op, d.cpu.abs()), 3
+		addr := d.cpu.abs()
+		val := ""
+		switch op {
+		case "LDX", "STX", "LDA", "STA":
+			val = fmt.Sprintf(" = %02X", d.cpu.Read8(addr))
+		}
+		return fmt.Sprintf("%s $%04X%s", op, addr, val), 3
 	}
 }
 
@@ -313,8 +319,16 @@ func abi(op string) disasmFunc {
 
 func izx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		val := d.cpu.Read8(d.cpu.PC + 1)
-		return fmt.Sprintf("%s ($%02X,X)", op, val), 2
+		addr := d.cpu.Read8(d.cpu.PC + 1)
+		val := ""
+		switch op {
+		case "LDX", "STX", "LDA", "STA", "ORA", "AND", "EOR", "ADC", "CMP", "SBC":
+			zp := d.cpu.zp() + d.cpu.X
+			addr2 := d.cpu.izx()
+			val = fmt.Sprintf(" @ %02X = %04X = %02X", zp, addr2, d.cpu.Read8(addr2))
+		}
+
+		return fmt.Sprintf("%s ($%02X,X)%s", op, addr, val), 2
 	}
 }
 

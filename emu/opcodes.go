@@ -1615,7 +1615,7 @@ func reladdr(cpu *CPU) uint16 {
 
 func branch(cpu *CPU) {
 	addr := reladdr(cpu)
-	if pagecrossed(cpu.PC, addr) {
+	if pagecrossed(cpu.PC+2, addr) {
 		cpu.Clock += 4
 	} else {
 		cpu.Clock += 3
