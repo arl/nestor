@@ -92,13 +92,19 @@ var ops = [256]func(cpu *CPU){
 	0x9A: TXS,
 	0x9D: STAabx,
 	0xA0: LDYimm,
+	0xA1: LDAizx,
 	0xA2: LDXimm,
+	0xA5: LDAzp,
 	0xA9: LDAimm,
 	0xAA: TAX,
 	0xAD: LDAabs,
 	0xB0: BCS,
+	0xB1: LDAizy,
+	0xB5: LDAzpx,
 	0xB8: CLV,
+	0xB9: LDAaby,
 	0xBA: TSX,
+	0xBD: LDAabx,
 	0xC0: CPYimm,
 	0xC1: CMPizx,
 	0xC2: NOP(2, 2),
@@ -112,9 +118,9 @@ var ops = [256]func(cpu *CPU){
 	0xD4: NOP(2, 4),
 	0xD5: CMPzpx,
 	0xD8: CLD,
+	0xD9: CMPaby,
 	0xDA: NOP(1, 2),
 	0xDD: CMPabx,
-	0xD9: CMPaby,
 	0xE0: CPXimm,
 	0xE2: NOP(2, 2),
 	0xE6: INCzp,
@@ -823,6 +829,14 @@ func LDYimm(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// A1
+func LDAizx(cpu *CPU) {
+	oper := cpu.izx()
+	lda(cpu, cpu.Read8(oper))
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // A2
 func LDXimm(cpu *CPU) {
 	cpu.X = cpu.imm()
@@ -831,10 +845,18 @@ func LDXimm(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// A5
+func LDAzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	lda(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
 // A9
 func LDAimm(cpu *CPU) {
-	cpu.A = cpu.imm()
-	cpu.P.checkNZ(cpu.A)
+	lda(cpu, cpu.imm())
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -850,8 +872,7 @@ func TAX(cpu *CPU) {
 // AD
 func LDAabs(cpu *CPU) {
 	oper := cpu.abs()
-	cpu.A = cpu.Read8(oper)
-	cpu.P.checkNZ(cpu.A)
+	lda(cpu, cpu.Read8(oper))
 	cpu.PC += 3
 	cpu.Clock += 4
 }
@@ -867,11 +888,36 @@ func BCS(cpu *CPU) {
 	branch(cpu)
 }
 
+// B1
+func LDAizy(cpu *CPU) {
+	oper, crossed := cpu.izy()
+	lda(cpu, cpu.Read8(oper))
+	cpu.PC += 2
+	cpu.Clock += 5 + int64(crossed)
+}
+
+// B5
+func LDAzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	lda(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 4
+}
+
 // B8
 func CLV(cpu *CPU) {
 	cpu.P.clearBit(pbitV)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+// B9
+func LDAaby(cpu *CPU) {
+	oper, crossed := cpu.aby()
+	lda(cpu, cpu.Read8(oper))
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
 }
 
 // BA
@@ -880,6 +926,14 @@ func TSX(cpu *CPU) {
 	cpu.P.checkNZ(cpu.X)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+// BD
+func LDAabx(cpu *CPU) {
+	oper, crossed := cpu.abx()
+	lda(cpu, cpu.Read8(oper))
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
 }
 
 // C0
@@ -1080,7 +1134,7 @@ func INCabx(cpu *CPU) {
 
 /* common instruction implementation */
 
-// add with carry
+// add with carry.
 func adc(cpu *CPU, oper uint8) {
 	carry := cpu.P.ibit(pbitC)
 	sum := uint16(cpu.A) + uint16(oper) + uint16(carry)
@@ -1090,19 +1144,19 @@ func adc(cpu *CPU, oper uint8) {
 	cpu.P.checkNZ(cpu.A)
 }
 
-// and memory with accumulator
+// and memory with accumulator.
 func and(cpu *CPU, val uint8) {
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 }
 
-// or memory with accumulator
+// or memory with accumulator.
 func ora(cpu *CPU, val uint8) {
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 }
 
-// rotate one bit left
+// rotate one bit left.
 func rol(cpu *CPU, val *uint8) {
 	carry := *val & 0x80 // next carry is bit 7
 	*val <<= 1
@@ -1116,7 +1170,7 @@ func rol(cpu *CPU, val *uint8) {
 	cpu.P.writeBit(pbitC, carry != 0)
 }
 
-// rotate one bit right
+// rotate one bit right.
 func ror(cpu *CPU, val *uint8) {
 	carry := *val & 0x01 // next carry is bit 0
 	*val >>= 1
@@ -1130,7 +1184,7 @@ func ror(cpu *CPU, val *uint8) {
 	cpu.P.writeBit(pbitC, carry != 0)
 }
 
-// shift left one bit (memory or accumulator)
+// shift left one bit (memory or accumulator).
 func asl(cpu *CPU, val *uint8) {
 	carry := *val & 0x80 // carry is bit 7
 	*val <<= 1
@@ -1140,7 +1194,7 @@ func asl(cpu *CPU, val *uint8) {
 	cpu.P.writeBit(pbitC, carry != 0)
 }
 
-// test bits in memory with accumulator
+// test bits in memory with accumulator.
 func bit(cpu *CPU, val uint8) {
 	// Copy bits 7 and 6 (N and V)
 	cpu.P &= 0b00111111
@@ -1148,16 +1202,22 @@ func bit(cpu *CPU, val uint8) {
 	cpu.P.checkZ(cpu.A & val)
 }
 
-// compare memory with accumulator
+// compare memory with accumulator.
 func cmp_(cpu *CPU, val uint8) {
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.writeBit(pbitC, val <= cpu.A)
 }
 
-// increment memory by one
+// increment memory by one.
 func inc(cpu *CPU, val *uint8) {
 	*val++
 	cpu.P.checkNZ(*val)
+}
+
+// load accumulator with memory.
+func lda(cpu *CPU, val uint8) {
+	cpu.A = val
+	cpu.P.checkNZ(cpu.A)
 }
 
 /* helpers */
