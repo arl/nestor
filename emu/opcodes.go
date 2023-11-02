@@ -95,16 +95,20 @@ var ops = [256]func(cpu *CPU){
 	0xA1: LDAizx,
 	0xA2: LDXimm,
 	0xA5: LDAzp,
+	0xA6: LDXzp,
 	0xA9: LDAimm,
 	0xAA: TAX,
 	0xAD: LDAabs,
+	0xAE: LDXabs,
 	0xB0: BCS,
 	0xB1: LDAizy,
 	0xB5: LDAzpx,
+	0xB6: LDXzpy,
 	0xB8: CLV,
 	0xB9: LDAaby,
 	0xBA: TSX,
 	0xBD: LDAabx,
+	0xBE: LDXaby,
 	0xC0: CPYimm,
 	0xC1: CMPizx,
 	0xC2: NOP(2, 2),
@@ -839,8 +843,7 @@ func LDAizx(cpu *CPU) {
 
 // A2
 func LDXimm(cpu *CPU) {
-	cpu.X = cpu.imm()
-	cpu.P.checkNZ(cpu.X)
+	ldx(cpu, cpu.imm())
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -850,6 +853,15 @@ func LDAzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	lda(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
+// A6
+func LDXzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	ldx(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -873,6 +885,15 @@ func TAX(cpu *CPU) {
 func LDAabs(cpu *CPU) {
 	oper := cpu.abs()
 	lda(cpu, cpu.Read8(oper))
+	cpu.PC += 3
+	cpu.Clock += 4
+}
+
+// AE
+func LDXabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	ldx(cpu, val)
 	cpu.PC += 3
 	cpu.Clock += 4
 }
@@ -905,6 +926,15 @@ func LDAzpx(cpu *CPU) {
 	cpu.Clock += 4
 }
 
+// B6
+func LDXzpy(cpu *CPU) {
+	oper := cpu.zpy()
+	val := cpu.Read8(uint16(oper))
+	ldx(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 4
+}
+
 // B8
 func CLV(cpu *CPU) {
 	cpu.P.clearBit(pbitV)
@@ -932,6 +962,15 @@ func TSX(cpu *CPU) {
 func LDAabx(cpu *CPU) {
 	oper, crossed := cpu.abx()
 	lda(cpu, cpu.Read8(oper))
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
+}
+
+// BE
+func LDXaby(cpu *CPU) {
+	oper, crossed := cpu.aby()
+	val := cpu.Read8(oper)
+	ldx(cpu, val)
 	cpu.PC += 3
 	cpu.Clock += 4 + int64(crossed)
 }
@@ -1218,6 +1257,12 @@ func inc(cpu *CPU, val *uint8) {
 func lda(cpu *CPU, val uint8) {
 	cpu.A = val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// load index x with memory.
+func ldx(cpu *CPU, val uint8) {
+	cpu.X = val
+	cpu.P.checkNZ(cpu.X)
 }
 
 /* helpers */
