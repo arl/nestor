@@ -578,7 +578,12 @@ func RORacc(cpu *CPU) {
 // 6C
 func JMPind(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC + 1)
-	cpu.PC = cpu.Read16(oper)
+	lo := cpu.Read8(oper)
+	// 2 bytes address wrap around
+	hi := cpu.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
+	addr := uint16(hi)<<8 | uint16(lo)
+
+	cpu.PC = addr
 	cpu.Clock += 5
 }
 
