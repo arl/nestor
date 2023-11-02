@@ -43,6 +43,7 @@ var ops = [256]func(cpu *CPU){
 	0x3A: NOP(1, 2),
 	0x3D: ANDabx,
 	0x3E: ROLabx,
+	0x40: RTI,
 	0x44: NOP(2, 3),
 	0x45: EORzp,
 	0x46: LSRzp,
@@ -479,6 +480,17 @@ func ROLabx(cpu *CPU) {
 
 	cpu.PC += 3
 	cpu.Clock += 7
+}
+
+// 40
+func RTI(cpu *CPU) {
+	p := pull8(cpu)
+
+	const mask = 0b11001111 // ignore B and U bits
+	cpu.P = P(copybits(uint8(cpu.P), p, mask))
+
+	cpu.PC = pull16(cpu)
+	cpu.Clock += 6
 }
 
 // 45

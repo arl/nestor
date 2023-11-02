@@ -49,6 +49,7 @@ var opsDisasm = [256]disasmFunc{
 	0x3A: imp("NOP"),
 	0x3D: abx("AND"),
 	0x3E: abx("ROL"),
+	0x40: imp("RTI"),
 	0x44: imp("NOP"),
 	0x45: zp("EOR"),
 	0x46: zp("LSR"),
