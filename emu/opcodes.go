@@ -132,10 +132,12 @@ var ops = [256]func(cpu *CPU){
 	0xC0: CPYimm,
 	0xC1: CMPizx,
 	0xC2: NOP(2, 2),
+	0xC4: CPYzp,
 	0xC5: CMPzp,
 	0xC8: INY,
 	0xC9: CMPimm,
 	0xCA: DEX,
+	0xCC: CPYabs,
 	0xCD: CMPabs,
 	0xD0: BNE,
 	0xD1: CMPizy,
@@ -1182,8 +1184,7 @@ func LDXaby(cpu *CPU) {
 // C0
 func CPYimm(cpu *CPU) {
 	oper := cpu.imm()
-	cpu.P.checkNZ(cpu.Y - oper)
-	cpu.P.writeBit(pbitC, cpu.Y >= oper)
+	cpy(cpu, oper)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -1195,6 +1196,15 @@ func CMPizx(cpu *CPU) {
 	cmp_(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 6
+}
+
+// C4
+func CPYzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	cpy(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 3
 }
 
 // C5
@@ -1227,6 +1237,15 @@ func DEX(cpu *CPU) {
 	cpu.P.checkNZ(cpu.X)
 	cpu.PC += 1
 	cpu.Clock += 2
+}
+
+// CC
+func CPYabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	cpy(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4
 }
 
 // CD
@@ -1569,6 +1588,12 @@ func cmp_(cpu *CPU, val uint8) {
 func cpx(cpu *CPU, val uint8) {
 	cpu.P.checkNZ(cpu.X - val)
 	cpu.P.writeBit(pbitC, val <= cpu.X)
+}
+
+// compare memory and index y.
+func cpy(cpu *CPU, val uint8) {
+	cpu.P.checkNZ(cpu.Y - val)
+	cpu.P.writeBit(pbitC, val <= cpu.Y)
 }
 
 // increment memory by one.
