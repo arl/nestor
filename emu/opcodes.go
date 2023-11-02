@@ -148,11 +148,13 @@ var ops = [256]func(cpu *CPU){
 	0xE0: CPXimm,
 	0xE1: SBCizx,
 	0xE2: NOP(2, 2),
+	0xE4: CPXzp,
 	0xE5: SBCzp,
 	0xE6: INCzp,
 	0xE8: INX,
 	0xE9: SBCimm,
 	0xEA: NOP(1, 2),
+	0xEC: CPXabs,
 	0xED: SBCabs,
 	0xEE: INCabs,
 	0xF0: BEQ,
@@ -1293,8 +1295,7 @@ func CMPabx(cpu *CPU) {
 // E0
 func CPXimm(cpu *CPU) {
 	oper := cpu.imm()
-	cpu.P.checkNZ(cpu.X - oper)
-	cpu.P.writeBit(pbitC, cpu.X >= oper)
+	cpx(cpu, oper)
 	cpu.PC += 2
 	cpu.Clock += 2
 }
@@ -1306,6 +1307,15 @@ func SBCizx(cpu *CPU) {
 	sbc(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 6
+}
+
+// E4
+func CPXzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	cpx(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 3
 }
 
 // E5
@@ -1350,6 +1360,15 @@ func NOP(nb uint16, nc int64) func(*CPU) {
 		cpu.PC += nb
 		cpu.Clock += nc
 	}
+}
+
+// EC
+func CPXabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	cpx(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4
 }
 
 // ED
@@ -1544,6 +1563,12 @@ func bit(cpu *CPU, val uint8) {
 func cmp_(cpu *CPU, val uint8) {
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.writeBit(pbitC, val <= cpu.A)
+}
+
+// compare memory and index x.
+func cpx(cpu *CPU, val uint8) {
+	cpu.P.checkNZ(cpu.X - val)
+	cpu.P.writeBit(pbitC, val <= cpu.X)
 }
 
 // increment memory by one.
