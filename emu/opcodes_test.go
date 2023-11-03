@@ -62,7 +62,7 @@ func testOpcodes(op string) func(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.Name, func(t *testing.T) {
-				mem := &mapbus{m: make(map[uint16]uint8)}
+				mem := &mapbus{m: make(map[uint16]uint8), t: t}
 				cpu := NewCPU(mem)
 				cpu.A = uint8(tt.Initial.A)
 				cpu.X = uint8(tt.Initial.X)
@@ -73,15 +73,21 @@ func testOpcodes(op string) func(t *testing.T) {
 
 				for _, row := range tt.Initial.RAM {
 					mem.Write8(uint16(row[0]), uint8(row[1]))
-					if testing.Verbose() {
-						fmt.Printf("init ram[0x%x] = 0x%x\n", row[0], row[1])
-					}
 				}
 
 				if testing.Verbose() {
-					cpu.SetDisasm(os.Stdout, true)
+					t.Log("run")
 				}
-				cpu.Run(int64(len(tt.Cycles)))
+
+				cpu.Run(int64(len(tt.Cycles)) - 1)
+
+				if testing.Verbose() {
+					for i, row := range tt.Cycles {
+						addr := int(row[0].(float64))
+						val := int(row[1].(float64))
+						t.Logf("cycle %d: %s 0x%4x = 0x%2x\n", i, row[2], addr, val)
+					}
+				}
 
 				// check ram
 				for _, row := range tt.Final.RAM {
@@ -256,6 +262,7 @@ func TestJSR_RTS(t *testing.T) {
 }
 
 type mapbus struct {
+	t testing.TB
 	m map[uint16]uint8
 }
 
@@ -265,15 +272,15 @@ func (b *mapbus) Reset() {
 
 func (b *mapbus) Read8(addr uint16) uint8 {
 	val := b.m[addr]
-	if testing.Verbose() {
-		fmt.Printf("read8:  addr(%d 0x%04x) val=(%d 0x%02x)\n", addr, addr, val, val)
+	if b.t != nil && testing.Verbose() {
+		b.t.Logf("read8:  addr[0x%04x] -> 0x%02x\n", addr, val)
 	}
 	return val
 }
 
 func (b *mapbus) Write8(addr uint16, val uint8) {
-	if testing.Verbose() {
-		fmt.Printf("write8: addr(%d 0x%04x) val=(%d 0x%02x)\n", addr, addr, val, val)
+	if b.t != nil && testing.Verbose() {
+		b.t.Logf("write8: addr[0x%04x] <- 0x%02x\n", addr, val)
 	}
 	b.m[addr] = val
 }
