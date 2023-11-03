@@ -1760,11 +1760,19 @@ func (cpu *CPU) izx() uint16 {
 	return cpu.zpr16(uint16(oper))
 }
 
-// zeropage indexed indirect (zp),y. returns the destination address and a integer set to 1 if
-// a page boundary was crossed.
+// zeropage indexed indirect (zp),y. returns the destination address and a
+// integer set to 1 if a page boundary was crossed.
 func (cpu *CPU) izy() (uint16, uint8) {
 	oper := cpu.zp()
 	addr := cpu.zpr16(uint16(oper))
 	dst := addr + uint16(cpu.Y)
 	return dst, b2i(pagecrossed(addr, dst))
+}
+
+func (cpu *CPU) ind() uint16 {
+	oper := cpu.Read16(cpu.PC + 1)
+	lo := cpu.Read8(oper)
+	// 2 bytes address wrap around
+	hi := cpu.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
+	return uint16(hi)<<8 | uint16(lo)
 }

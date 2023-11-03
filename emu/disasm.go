@@ -78,7 +78,7 @@ var opsDisasm = [256]disasmFunc{
 	0x68: imp("PLA"),
 	0x69: imm("ADC"),
 	0x6A: acc("ROR"),
-	0x6C: abi("JMP"),
+	0x6C: ind("JMP"),
 	0x6D: abs("ADC"),
 	0x6E: abs("ROR"),
 	0x70: rel("BVS"),
@@ -267,7 +267,7 @@ func abs(op string) disasmFunc {
 		addr := d.cpu.abs()
 		val := ""
 		switch op {
-		case "LDX", "STX", "LDA", "STA":
+		case "LDA", "STA", "LDX", "STX", "LDY", "STY", "DEC", "INC", "ASL", "BIT", "AND", "EOR", "ROR", "ROL", "ADC", "CMP", "CPX", "CPY", "LSR", "SBC", "ORA":
 			val = fmt.Sprintf(" = %02X", d.cpu.Read8(addr))
 		}
 		return fmt.Sprintf("%s $%04X%s", op, addr, val), 3
@@ -276,13 +276,29 @@ func abs(op string) disasmFunc {
 
 func abx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		return fmt.Sprintf("%s $%04X,X", op, d.cpu.abs()), 3
+		oper := d.cpu.abs()
+		addr, _ := d.cpu.abx()
+		val := ""
+		switch op {
+		case "LDA", "STA", "LDX", "STX", "LDY", "STY", "ORA", "AND", "EOR", "ROR", "ROL", "ADC", "CMP", "SBC", "LSR", "ASL", "INC", "DEC":
+			val = fmt.Sprintf(" @ %04X = %02X", addr, d.cpu.Read8(addr))
+		}
+
+		return fmt.Sprintf("%s $%04X,X%s", op, oper, val), 3
 	}
 }
 
 func aby(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		return fmt.Sprintf("%s $%04X,Y", op, d.cpu.abs()), 3
+		oper := d.cpu.abs()
+		addr, _ := d.cpu.aby()
+		val := ""
+		switch op {
+		case "LDA", "STA", "LDX", "STX", "LDY", "STY", "ORA", "AND", "EOR", "ROR", "ROL", "ADC", "CMP", "SBC", "LSR", "ASL", "INC", "DEC":
+			val = fmt.Sprintf(" @ %04X = %02X", addr, d.cpu.Read8(addr))
+		}
+
+		return fmt.Sprintf("%s $%04X,Y%s", op, oper, val), 3
 	}
 }
 
@@ -297,16 +313,30 @@ func zp(op string) disasmFunc {
 func zpx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.zp()
-		value := d.cpu.Read8(uint16(addr))
-		return fmt.Sprintf("%s $%02X,X = %02X", op, addr, value), 2
+		val := ""
+		switch op {
+		case "LDA", "STA", "LDY", "STY", "ORA", "AND", "EOR", "ROR", "ROL", "ADC", "CMP", "SBC", "LSR", "ASL", "INC", "DEC":
+			addr2 := d.cpu.zpx()
+			val = fmt.Sprintf(" @ %02X = %02X", addr2, d.cpu.Read8(uint16(addr2)))
+		default:
+			val = fmt.Sprintf(" = %02X", d.cpu.Read8(uint16(addr)))
+		}
+		return fmt.Sprintf("%s $%02X,X%s", op, addr, val), 2
 	}
 }
 
 func zpy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.zp()
-		value := d.cpu.Read8(uint16(addr))
-		return fmt.Sprintf("%s $%02X,Y = %02X", op, addr, value), 2
+		val := ""
+		switch op {
+		case "LDA", "STA", "LDX", "STX", "ORA", "AND", "EOR", "ROR", "ROL", "ADC", "CMP", "SBC", "LSR", "ASL", "INC", "DEC":
+			addr2 := d.cpu.zpy()
+			val = fmt.Sprintf(" @ %02X = %02X", addr2, d.cpu.Read8(uint16(addr2)))
+		default:
+			val = fmt.Sprintf(" = %02X", d.cpu.Read8(uint16(addr)))
+		}
+		return fmt.Sprintf("%s $%02X,Y%s", op, addr, val), 2
 	}
 }
 
@@ -317,11 +347,12 @@ func rel(op string) disasmFunc {
 	}
 }
 
-// absolute indirect
-func abi(op string) disasmFunc {
+// indirect (JMP-only)
+func ind(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.abs()
-		return fmt.Sprintf("%s ($%04X)", op, addr), 3
+		oper := d.cpu.Read16(d.cpu.PC + 1)
+		dst := d.cpu.ind()
+		return fmt.Sprintf("%s ($%04X) = %04X", op, oper, dst), 3
 	}
 }
 
@@ -330,7 +361,7 @@ func izx(op string) disasmFunc {
 		addr := d.cpu.Read8(d.cpu.PC + 1)
 		val := ""
 		switch op {
-		case "LDX", "STX", "LDA", "STA", "ORA", "AND", "EOR", "ADC", "CMP", "SBC":
+		case "LDA", "STA", "LDX", "STX", "ORA", "AND", "EOR", "ADC", "CMP", "SBC":
 			zp := d.cpu.zp() + d.cpu.X
 			addr2 := d.cpu.izx()
 			val = fmt.Sprintf(" @ %02X = %04X = %02X", zp, addr2, d.cpu.Read8(addr2))
@@ -342,6 +373,17 @@ func izx(op string) disasmFunc {
 
 func izy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		return fmt.Sprintf("%s ($%02X),Y", op, d.cpu.Read8(d.cpu.PC+1)), 2
+		addr := d.cpu.Read8(d.cpu.PC + 1)
+		val := ""
+		switch op {
+		case "LDA", "STA", "LDX", "STX", "ORA", "AND", "EOR", "ADC", "CMP", "SBC":
+			oper := d.cpu.zp()
+			addr := d.cpu.zpr16(uint16(oper))
+			dst := addr + uint16(d.cpu.Y)
+
+			val = fmt.Sprintf(" = %04X @ %04X = %02X", addr, dst, d.cpu.Read8(dst))
+		}
+
+		return fmt.Sprintf("%s ($%02X),Y%s", op, addr, val), 2
 	}
 }
