@@ -20,6 +20,7 @@ var ops = [256]func(cpu *CPU){
 	0x18: CLC,
 	0x19: ORAaby,
 	0x1A: NOP(1, 2),
+	0x1C: NOPabx,
 	0x1D: ORAabx,
 	0x1E: ASLabx,
 	0x20: JSR,
@@ -41,6 +42,7 @@ var ops = [256]func(cpu *CPU){
 	0x38: SEC,
 	0x39: ANDaby,
 	0x3A: NOP(1, 2),
+	0x3C: NOPabx,
 	0x3D: ANDabx,
 	0x3E: ROLabx,
 	0x40: RTI,
@@ -62,6 +64,7 @@ var ops = [256]func(cpu *CPU){
 	0x58: CLI,
 	0x59: EORaby,
 	0x5A: NOP(1, 2),
+	0x5C: NOPabx,
 	0x5D: EORabx,
 	0x5E: LSRabx,
 	0x60: RTS,
@@ -83,6 +86,7 @@ var ops = [256]func(cpu *CPU){
 	0x78: SEI,
 	0x79: ADCaby,
 	0x7A: NOP(1, 2),
+	0x7C: NOPabx,
 	0x7D: ADCabx,
 	0x7E: RORabx,
 	0x80: NOP(2, 2),
@@ -149,6 +153,7 @@ var ops = [256]func(cpu *CPU){
 	0xD8: CLD,
 	0xD9: CMPaby,
 	0xDA: NOP(1, 2),
+	0xDC: NOPabx,
 	0xDD: CMPabx,
 	0xDE: DECabx,
 	0xE0: CPXimm,
@@ -171,6 +176,7 @@ var ops = [256]func(cpu *CPU){
 	0xF8: SED,
 	0xF9: SBCaby,
 	0xFA: NOP(1, 2),
+	0xFC: NOPabx,
 	0xFD: SBCabx,
 	0xFE: INCabx,
 }
@@ -1662,6 +1668,12 @@ func ldx(cpu *CPU, val uint8) {
 func ldy(cpu *CPU, val uint8) {
 	cpu.Y = val
 	cpu.P.checkNZ(cpu.Y)
+}
+
+func NOPabx(cpu *CPU) {
+	_, crossed := cpu.abx()
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
 }
 
 /* helpers */
