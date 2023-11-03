@@ -134,19 +134,23 @@ var ops = [256]func(cpu *CPU){
 	0xC2: NOP(2, 2),
 	0xC4: CPYzp,
 	0xC5: CMPzp,
+	0xC6: DECzp,
 	0xC8: INY,
 	0xC9: CMPimm,
 	0xCA: DEX,
 	0xCC: CPYabs,
 	0xCD: CMPabs,
+	0xCE: DECabs,
 	0xD0: BNE,
 	0xD1: CMPizy,
 	0xD4: NOP(2, 4),
 	0xD5: CMPzpx,
+	0xD6: DECzpx,
 	0xD8: CLD,
 	0xD9: CMPaby,
 	0xDA: NOP(1, 2),
 	0xDD: CMPabx,
+	0xDE: DECabx,
 	0xE0: CPXimm,
 	0xE1: SBCizx,
 	0xE2: NOP(2, 2),
@@ -728,13 +732,7 @@ func RORacc(cpu *CPU) {
 
 // 6C
 func JMPind(cpu *CPU) {
-	oper := cpu.Read16(cpu.PC + 1)
-	lo := cpu.Read8(oper)
-	// 2 bytes address wrap around
-	hi := cpu.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
-	addr := uint16(hi)<<8 | uint16(lo)
-
-	cpu.PC = addr
+	cpu.PC = cpu.ind()
 	cpu.Clock += 5
 }
 
@@ -1216,6 +1214,16 @@ func CMPzp(cpu *CPU) {
 	cpu.Clock += 3
 }
 
+// C6
+func DECzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	dec(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 5
+}
+
 // C8
 func INY(cpu *CPU) {
 	cpu.Y++
@@ -1257,6 +1265,16 @@ func CMPabs(cpu *CPU) {
 	cpu.Clock += 4
 }
 
+// CE
+func DECabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(uint16(oper))
+	dec(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 3
+	cpu.Clock += 6
+}
+
 // D0
 func BNE(cpu *CPU) {
 	if cpu.P.Z() {
@@ -1274,7 +1292,7 @@ func CMPizy(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cmp_(cpu, val)
 	cpu.PC += 2
-	cpu.Clock += 6 + int64(crossed)
+	cpu.Clock += 5 + int64(crossed)
 }
 
 // D5
@@ -1284,6 +1302,16 @@ func CMPzpx(cpu *CPU) {
 	cmp_(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 4
+}
+
+// D6
+func DECzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	dec(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 6
 }
 
 // D8
@@ -1309,6 +1337,16 @@ func CMPabx(cpu *CPU) {
 	cmp_(cpu, val)
 	cpu.PC += 3
 	cpu.Clock += 4 + int64(crossed)
+}
+
+// DE
+func DECabx(cpu *CPU) {
+	oper, _ := cpu.abx()
+	val := cpu.Read8(uint16(oper))
+	dec(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 3
+	cpu.Clock += 7
 }
 
 // E0
@@ -1599,6 +1637,12 @@ func cpy(cpu *CPU, val uint8) {
 // increment memory by one.
 func inc(cpu *CPU, val *uint8) {
 	*val++
+	cpu.P.checkNZ(*val)
+}
+
+// decrement memory by one.
+func dec(cpu *CPU, val *uint8) {
+	*val--
 	cpu.P.checkNZ(*val)
 }
 
