@@ -1,5 +1,3 @@
-// package ines implements a Reader for roms inz the iNES file format, used for
-// for the distribution of NES binary programs.
 package ines
 
 import (
@@ -30,11 +28,11 @@ func TestRomOpen(t *testing.T) {
 
 	for _, path := range paths {
 		t.Run(path, func(t *testing.T) {
-			rom, err := Open(filepath.Join(dir, path))
+			rom, err := ReadRom(filepath.Join(dir, path))
 			if err != nil {
 				t.Fatal(err)
 			}
-			t.Logf("%+v", rom)
+			_ = rom
 		})
 	}
 }

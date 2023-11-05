@@ -4,50 +4,45 @@ package ines
 
 import (
 	"fmt"
-	"io"
 	"os"
 )
 
 type Rom struct {
 	header
-	Trainer []byte // Trainer, 512 bytes if present, or empty.
-	PRG     []byte // PRG is PRG ROM data (length is multiples of 16k)
-	CHR     []byte // CHR is PRG ROM data (length is multiples of 8k)
+	Trainer []uint8 // Trainer, 512 bytes if present, or empty.
+	PRGROM  []uint8 // PRG is PRG ROM data (size is a multiple of 16k)
+	CHRROM  []uint8 // CHR is PRG ROM data (size is a multiple of 8k)
 }
 
-// Open loads a rom from file.
-func Open(path string) (*Rom, error) {
-	f, err := os.Open(path)
+// ReadRom loads a rom from an iNES file.
+func ReadRom(path string) (*Rom, error) {
+	buf, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
 
-	rom := new(Rom)
-	if _, err := rom.ReadFrom(f); err != nil {
+	rom, err := Decode(buf)
+	if err != nil {
 		return nil, err
 	}
 	return rom, nil
 }
 
-// ReadFrom implements io.ReaderFrom interface
-func (rom *Rom) ReadFrom(r io.Reader) (int64, error) {
-	buf, err := io.ReadAll(r)
-	if err != nil {
-		return 0, err
-	}
+// Decode the give buffer into a rom file.
+func Decode(buf []byte) (*Rom, error) {
+	rom := new(Rom)
 
 	// header
 	var off int
-	if err := rom.decode(buf); err != nil {
-		return 0, fmt.Errorf("failed to decode header: %w", err)
+	if err := rom.header.decode(buf); err != nil {
+		return nil, fmt.Errorf("failed to decode header: %w", err)
 	}
 	off += 16
 
 	// trainer
 	if rom.HasTrainer() {
 		if len(buf) < off+512 {
-			return 0, fmt.Errorf("incomplete TRAINER section")
+			return nil, fmt.Errorf("incomplete TRAINER section")
 		}
 		rom.Trainer = buf[off : off+512]
 		off += 512
@@ -55,26 +50,26 @@ func (rom *Rom) ReadFrom(r io.Reader) (int64, error) {
 
 	// PRG rom data
 	if len(buf) < off+rom.prgsz {
-		return 0, fmt.Errorf("incomplete PRG section")
+		return nil, fmt.Errorf("incomplete PRG section")
 	}
-	rom.PRG = buf[off : off+rom.prgsz]
+	rom.PRGROM = buf[off : off+rom.prgsz]
 	off += rom.prgsz
 
 	// CHR rom data
 	if len(buf) < off+rom.chrsz {
-		return 0, fmt.Errorf("incomplete CHR section")
+		return nil, fmt.Errorf("incomplete CHR section")
 	}
-	rom.CHR = buf[off : off+rom.chrsz]
+	rom.CHRROM = buf[off : off+rom.chrsz]
 	off += rom.chrsz
 
-	return int64(len(buf)), nil
+	return rom, nil
 }
 
 const Magic = "NES\x1a"
 
 func (hdr *header) decode(p []byte) error {
 	if len(p) < 16 {
-		return fmt.Errorf("too smaller, needs 16 bytes")
+		return fmt.Errorf("too small, needs 16 bytes")
 	}
 	if string(p[:4]) != Magic {
 		return fmt.Errorf("invalid magic number")
@@ -102,7 +97,12 @@ func (hdr *header) HasPersistent() bool {
 	return hdr.raw[6]&0x02 != 0
 }
 
-// Mapper returns the mapper number (for now only the lower nibble is used)
-func (hdr *header) Mapper() uint8 {
-	return hdr.raw[6] >> 4
+// Mapper returns the mapper number.
+func (hdr *header) Mapper() uint16 {
+	return uint16(hdr.raw[7]&0xF0) | uint16(hdr.raw[6]>>4)
+}
+
+// IsNES20 reports whether the rom is in the NES2.0 format.
+func (hdr *header) IsNES20() bool {
+	return hdr.raw[7]&0x0c == 0x08
 }
