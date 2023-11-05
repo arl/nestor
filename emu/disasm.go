@@ -181,6 +181,7 @@ var opsDisasm = [256]disasmFunc{
 	0xE8: imp("INX"),
 	0xE9: imm("SBC"),
 	0xEA: imp("NOP"),
+	0xEB: imm("*SBC"),
 	0xEC: abs("CPX"),
 	0xED: abs("SBC"),
 	0xEE: abs("INC"),

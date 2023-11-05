@@ -175,6 +175,7 @@ var ops = [256]func(cpu *CPU){
 	0xE8: INX,
 	0xE9: SBCimm,
 	0xEA: NOP(1, 2),
+	0xEB: SBCimm,
 	0xEC: CPXabs,
 	0xED: SBCabs,
 	0xEE: INCabs,
