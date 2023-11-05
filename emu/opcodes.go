@@ -146,26 +146,33 @@ var ops = [256]func(cpu *CPU){
 	0xC0: CPYimm,
 	0xC1: CMPizx,
 	0xC2: NOP(2, 2),
+	0xC3: DCPizx,
 	0xC4: CPYzp,
 	0xC5: CMPzp,
 	0xC6: DECzp,
+	0xC7: DCPzp,
 	0xC8: INY,
 	0xC9: CMPimm,
 	0xCA: DEX,
 	0xCC: CPYabs,
 	0xCD: CMPabs,
 	0xCE: DECabs,
+	0xCF: DCPabs,
 	0xD0: BNE,
 	0xD1: CMPizy,
+	0xD3: DCPizy,
 	0xD4: NOP(2, 4),
 	0xD5: CMPzpx,
 	0xD6: DECzpx,
+	0xD7: DCPzpx,
 	0xD8: CLD,
 	0xD9: CMPaby,
 	0xDA: NOP(1, 2),
+	0xDB: DCPaby,
 	0xDC: NOPabx,
 	0xDD: CMPabx,
 	0xDE: DECabx,
+	0xDF: DCPabx,
 	0xE0: CPXimm,
 	0xE1: SBCizx,
 	0xE2: NOP(2, 2),
@@ -1286,6 +1293,17 @@ func CMPizx(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// C3
+func DCPizx(cpu *CPU) {
+	oper := cpu.izx()
+	val := cpu.Read8(oper)
+	val--
+	cpu.Write8(oper, val)
+	cmp_(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 8
+}
+
 // C4
 func CPYzp(cpu *CPU) {
 	oper := cpu.zp()
@@ -1310,6 +1328,17 @@ func DECzp(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	dec(cpu, &val)
 	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 5
+}
+
+// C7
+func DCPzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	val--
+	cpu.Write8(uint16(oper), val)
+	cmp_(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 5
 }
@@ -1365,6 +1394,17 @@ func DECabs(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// CF
+func DCPabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(uint16(oper))
+	val--
+	cpu.Write8(uint16(oper), val)
+	cmp_(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 6
+}
+
 // D0
 func BNE(cpu *CPU) {
 	if cpu.P.Z() {
@@ -1383,6 +1423,17 @@ func CMPizy(cpu *CPU) {
 	cmp_(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 5 + int64(crossed)
+}
+
+// D3
+func DCPizy(cpu *CPU) {
+	oper, _ := cpu.izy()
+	val := cpu.Read8(oper)
+	val--
+	cpu.Write8(oper, val)
+	cmp_(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 8
 }
 
 // D5
@@ -1404,6 +1455,17 @@ func DECzpx(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// D7
+func DCPzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	val--
+	cpu.Write8(uint16(oper), val)
+	cmp_(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // D8
 func CLD(cpu *CPU) {
 	cpu.P.clearBit(pbitD)
@@ -1418,6 +1480,17 @@ func CMPaby(cpu *CPU) {
 	cmp_(cpu, val)
 	cpu.PC += 3
 	cpu.Clock += 4 + int64(crossed)
+}
+
+// DB
+func DCPaby(cpu *CPU) {
+	oper, _ := cpu.aby()
+	val := cpu.Read8(oper)
+	val--
+	cpu.Write8(oper, val)
+	cmp_(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 7
 }
 
 // DD
@@ -1435,6 +1508,17 @@ func DECabx(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	dec(cpu, &val)
 	cpu.Write8(uint16(oper), val)
+	cpu.PC += 3
+	cpu.Clock += 7
+}
+
+// DF
+func DCPabx(cpu *CPU) {
+	oper, _ := cpu.abx()
+	val := cpu.Read8(oper)
+	val--
+	cpu.Write8(oper, val)
+	cmp_(cpu, val)
 	cpu.PC += 3
 	cpu.Clock += 7
 }
