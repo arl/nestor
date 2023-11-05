@@ -757,9 +757,7 @@ func JMPind(cpu *CPU) {
 func ADCabs(cpu *CPU) {
 	oper := cpu.abs()
 	val := cpu.Read8(oper)
-
 	adc(cpu, val)
-
 	cpu.PC += 3
 	cpu.Clock += 4
 }
@@ -770,7 +768,6 @@ func RORabs(cpu *CPU) {
 	val := cpu.Read8(oper)
 	ror(cpu, &val)
 	cpu.Write8(oper, val)
-
 	cpu.PC += 3
 	cpu.Clock += 6
 }
@@ -790,9 +787,7 @@ func BVS(cpu *CPU) {
 func ADCizy(cpu *CPU) {
 	oper, crossed := cpu.izy()
 	val := cpu.Read8(oper)
-
 	adc(cpu, val)
-
 	cpu.PC += 2
 	cpu.Clock += 5 + int64(crossed)
 }
@@ -801,9 +796,7 @@ func ADCizy(cpu *CPU) {
 func ADCzpx(cpu *CPU) {
 	addr := cpu.zpx()
 	val := cpu.Read8(uint16(addr))
-
 	adc(cpu, val)
-
 	cpu.PC += 2
 	cpu.Clock += 4
 }
@@ -814,7 +807,6 @@ func RORzpx(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	ror(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-
 	cpu.PC += 2
 	cpu.Clock += 6
 }
@@ -841,9 +833,7 @@ func ADCaby(cpu *CPU) {
 func ADCabx(cpu *CPU) {
 	oper, crossed := cpu.abx()
 	val := cpu.Read8(oper)
-
 	adc(cpu, val)
-
 	cpu.PC += 3
 	cpu.Clock += 4 + int64(crossed)
 }
@@ -854,7 +844,6 @@ func RORabx(cpu *CPU) {
 	val := cpu.Read8(oper)
 	ror(cpu, &val)
 	cpu.Write8(oper, val)
-
 	cpu.PC += 3
 	cpu.Clock += 7
 }
