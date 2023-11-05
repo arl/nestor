@@ -9,24 +9,24 @@ import (
 var opsDisasm = [256]disasmFunc{
 	0x00: imp("BRK"),
 	0x01: izx("ORA"),
-	0x04: zp("NOP"),
+	0x04: zp("*NOP"),
 	0x05: zp("ORA"),
 	0x06: zp("ASL"),
 	0x08: imp("PHP"),
 	0x09: imm("ORA"),
 	0x0A: acc("ASL"),
-	0x0C: abs("NOP"),
+	0x0C: abs("*NOP"),
 	0x0D: abs("ORA"),
 	0x0E: abs("ASL"),
 	0x10: rel("BPL"),
 	0x11: izy("ORA"),
-	0x14: zpx("NOP"),
+	0x14: zpx("*NOP"),
 	0x15: zpx("ORA"),
 	0x16: zpx("ASL"),
 	0x18: imp("CLC"),
 	0x19: aby("ORA"),
-	0x1A: imp("NOP"),
-	0x1C: abx("NOP"),
+	0x1A: imp("*NOP"),
+	0x1C: abx("*NOP"),
 	0x1D: abx("ORA"),
 	0x1E: abx("ASL"),
 	0x20: abs("JSR"),
@@ -42,18 +42,18 @@ var opsDisasm = [256]disasmFunc{
 	0x2E: abs("ROL"),
 	0x30: rel("BMI"),
 	0x31: izy("AND"),
-	0x34: zpx("NOP"),
+	0x34: zpx("*NOP"),
 	0x35: zpx("AND"),
 	0x36: zpx("ROL"),
 	0x38: imp("SEC"),
 	0x39: aby("AND"),
-	0x3A: imp("NOP"),
-	0x3C: abx("NOP"),
+	0x3A: imp("*NOP"),
+	0x3C: abx("*NOP"),
 	0x3D: abx("AND"),
 	0x3E: abx("ROL"),
 	0x40: imp("RTI"),
 	0x41: izx("EOR"),
-	0x44: zp("NOP"),
+	0x44: zp("*NOP"),
 	0x45: zp("EOR"),
 	0x46: zp("LSR"),
 	0x48: imp("PHA"),
@@ -64,18 +64,18 @@ var opsDisasm = [256]disasmFunc{
 	0x4E: abs("LSR"),
 	0x50: rel("BVC"),
 	0x51: izy("EOR"),
-	0x54: zpx("NOP"),
+	0x54: zpx("*NOP"),
 	0x55: zpx("EOR"),
 	0x56: zpx("LSR"),
-	0x5C: abx("NOP"),
 	0x58: imp("CLI"),
 	0x59: aby("EOR"),
-	0x5A: imp("NOP"),
+	0x5A: imp("*NOP"),
+	0x5C: abx("*NOP"),
 	0x5D: abx("EOR"),
 	0x5E: abx("LSR"),
 	0x60: imp("RTS"),
 	0x61: izx("ADC"),
-	0x64: zp("NOP"),
+	0x64: zp("*NOP"),
 	0x65: zp("ADC"),
 	0x66: zp("ROR"),
 	0x68: imp("PLA"),
@@ -86,23 +86,23 @@ var opsDisasm = [256]disasmFunc{
 	0x6E: abs("ROR"),
 	0x70: rel("BVS"),
 	0x71: izy("ADC"),
-	0x74: zpx("NOP"),
+	0x74: zpx("*NOP"),
 	0x75: zpx("ADC"),
 	0x76: zpx("ROR"),
 	0x78: imp("SEI"),
 	0x79: aby("ADC"),
-	0x7A: imp("NOP"),
-	0x7C: abx("NOP"),
+	0x7A: imp("*NOP"),
+	0x7C: abx("*NOP"),
 	0x7D: abx("ADC"),
 	0x7E: abx("ROR"),
-	0x80: imm("NOP"),
+	0x80: imm("*NOP"),
 	0x81: izx("STA"),
-	0x82: imp("NOP"),
+	0x82: imp("*NOP"),
 	0x84: zp("STY"),
 	0x85: zp("STA"),
 	0x86: zp("STX"),
 	0x88: imp("DEY"),
-	0x89: imm("NOP"),
+	0x89: imm("*NOP"),
 	0x8A: imp("TXA"),
 	0x8C: abs("STY"),
 	0x8D: abs("STA"),
@@ -119,29 +119,35 @@ var opsDisasm = [256]disasmFunc{
 	0xA0: imm("LDY"),
 	0xA1: izx("LDA"),
 	0xA2: imm("LDX"),
+	0xA3: izx("*LAX"),
 	0xA4: zp("LDY"),
 	0xA5: zp("LDA"),
-	0xAC: abs("LDY"),
-	0xAE: abs("LDX"),
 	0xA6: zp("LDX"),
+	0xA7: zp("*LAX"),
 	0xA8: imp("TAY"),
 	0xA9: imm("LDA"),
 	0xAA: imp("TAX"),
+	0xAC: abs("LDY"),
 	0xAD: abs("LDA"),
+	0xAE: abs("LDX"),
+	0xAF: abs("*LAX"),
 	0xB0: rel("BCS"),
 	0xB1: izy("LDA"),
+	0xB3: izy("*LAX"),
 	0xB4: zpx("LDY"),
 	0xB5: zpx("LDA"),
 	0xB6: zpy("LDX"),
+	0xB7: zpy("*LAX"),
 	0xB8: imp("CLV"),
 	0xB9: aby("LDA"),
 	0xBA: imp("TSX"),
 	0xBC: abx("LDY"),
 	0xBD: abx("LDA"),
 	0xBE: aby("LDX"),
+	0xBF: aby("*LAX"),
 	0xC0: imm("CPY"),
 	0xC1: izx("CMP"),
-	0xC2: imm("NOP"),
+	0xC2: imm("*NOP"),
 	0xC4: zp("CPY"),
 	0xC5: zp("CMP"),
 	0xC6: zp("DEC"),
@@ -153,18 +159,18 @@ var opsDisasm = [256]disasmFunc{
 	0xCE: abs("DEC"),
 	0xD0: rel("BNE"),
 	0xD1: izy("CMP"),
-	0xD4: zpx("NOP"),
+	0xD4: zpx("*NOP"),
 	0xD5: zpx("CMP"),
 	0xD6: zpx("DEC"),
 	0xD8: imp("CLD"),
 	0xD9: aby("CMP"),
-	0xDA: imp("NOP"),
-	0xDC: abx("NOP"),
+	0xDA: imp("*NOP"),
+	0xDC: abx("*NOP"),
 	0xDD: abx("CMP"),
 	0xDE: abx("DEC"),
 	0xE0: imm("CPX"),
 	0xE1: izx("SBC"),
-	0xE2: imm("NOP"),
+	0xE2: imm("*NOP"),
 	0xE4: zp("CPX"),
 	0xE5: zp("SBC"),
 	0xE6: zp("INC"),
@@ -176,13 +182,13 @@ var opsDisasm = [256]disasmFunc{
 	0xEE: abs("INC"),
 	0xF0: rel("BEQ"),
 	0xF1: izy("SBC"),
-	0xF4: zpx("NOP"),
+	0xF4: zpx("*NOP"),
 	0xF5: zpx("SBC"),
 	0xF6: zpx("INC"),
 	0xF8: imp("SED"),
 	0xF9: aby("SBC"),
-	0xFA: imp("NOP"),
-	0xFC: abx("NOP"),
+	0xFA: imp("*NOP"),
+	0xFC: abx("*NOP"),
 	0xFD: abx("SBC"),
 	0xFE: abx("INC"),
 }
@@ -248,9 +254,6 @@ type disasmFunc func(*disasm) (string, int)
 
 func imp(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		if d.cpu.Read8(d.cpu.PC) != 0xEA {
-			op = marknop(op)
-		}
 		return fmt.Sprintf("% 4s", op), 1
 	}
 }
@@ -263,19 +266,19 @@ func acc(op string) disasmFunc {
 
 func imm(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		return fmt.Sprintf("% 4s #$%02X", marknop(op), d.cpu.imm()), 2
+		return fmt.Sprintf("% 4s #$%02X", op, d.cpu.imm()), 2
 	}
 }
 
 func abs(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.abs()
-		val := ""
 		switch op {
-		case "LDA", "STA", "LDX", "STX", "LDY", "STY", "DEC", "INC", "ASL", "BIT", "AND", "EOR", "ROR", "ROL", "ADC", "CMP", "CPX", "CPY", "LSR", "SBC", "ORA", "NOP":
-			val = fmt.Sprintf(" = %02X", d.cpu.Read8(addr))
+		case "JMP", "JSR":
+			return fmt.Sprintf("% 4s $%04X", op, addr), 3
+		default:
+			return fmt.Sprintf("% 4s $%04X = %02X", op, addr, d.cpu.Read8(addr)), 3
 		}
-		return fmt.Sprintf("% 4s $%04X%s", marknop(op), addr, val), 3
 	}
 }
 
@@ -283,13 +286,7 @@ func abx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		oper := d.cpu.abs()
 		addr, _ := d.cpu.abx()
-		val := ""
-		switch op {
-		case "LDA", "STA", "LDX", "STX", "LDY", "STY", "ORA", "AND", "EOR", "ROR", "ROL", "ADC", "CMP", "SBC", "LSR", "ASL", "INC", "DEC", "NOP":
-			val = fmt.Sprintf(" @ %04X = %02X", addr, d.cpu.Read8(addr))
-		}
-
-		return fmt.Sprintf("% 4s $%04X,X%s", marknop(op), oper, val), 3
+		return fmt.Sprintf("% 4s $%04X,X @ %04X = %02X", op, oper, addr, d.cpu.Read8(addr)), 3
 	}
 }
 
@@ -297,58 +294,31 @@ func aby(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		oper := d.cpu.abs()
 		addr, _ := d.cpu.aby()
-		val := ""
-		switch op {
-		case "LDA", "STA", "LDX", "STX", "LDY", "STY", "ORA", "AND", "EOR", "ROR", "ROL", "ADC", "CMP", "SBC", "LSR", "ASL", "INC", "DEC":
-			val = fmt.Sprintf(" @ %04X = %02X", addr, d.cpu.Read8(addr))
-		}
-
-		return fmt.Sprintf("% 4s $%04X,Y%s", op, oper, val), 3
+		return fmt.Sprintf("% 4s $%04X,Y @ %04X = %02X", op, oper, addr, d.cpu.Read8(addr)), 3
 	}
-}
-
-func marknop(op string) string {
-	if op == "NOP" {
-		return "*NOP"
-	}
-	return op
 }
 
 func zp(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.zp()
 		value := d.cpu.Read8(uint16(addr))
-		return fmt.Sprintf("% 4s $%02X = %02X", marknop(op), addr, value), 2
+		return fmt.Sprintf("% 4s $%02X = %02X", op, addr, value), 2
 	}
 }
 
 func zpx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.zp()
-		val := ""
-		switch op {
-		case "LDA", "STA", "LDY", "STY", "ORA", "AND", "EOR", "ROR", "ROL", "ADC", "CMP", "SBC", "LSR", "ASL", "INC", "DEC", "NOP":
-			addr2 := d.cpu.zpx()
-			val = fmt.Sprintf(" @ %02X = %02X", addr2, d.cpu.Read8(uint16(addr2)))
-		default:
-			val = fmt.Sprintf(" = %02X", d.cpu.Read8(uint16(addr)))
-		}
-		return fmt.Sprintf("% 4s $%02X,X%s", marknop(op), addr, val), 2
+		addr2 := d.cpu.zpx()
+		return fmt.Sprintf("% 4s $%02X,X @ %02X = %02X", op, addr, addr2, d.cpu.Read8(uint16(addr2))), 2
 	}
 }
 
 func zpy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.zp()
-		val := ""
-		switch op {
-		case "LDA", "STA", "LDX", "STX", "ORA", "AND", "EOR", "ROR", "ROL", "ADC", "CMP", "SBC", "LSR", "ASL", "INC", "DEC":
-			addr2 := d.cpu.zpy()
-			val = fmt.Sprintf(" @ %02X = %02X", addr2, d.cpu.Read8(uint16(addr2)))
-		default:
-			val = fmt.Sprintf(" = %02X", d.cpu.Read8(uint16(addr)))
-		}
-		return fmt.Sprintf("% 4s $%02X,Y%s", op, addr, val), 2
+		addr2 := d.cpu.zpy()
+		return fmt.Sprintf("% 4s $%02X,Y @ %02X = %02X", op, addr, addr2, d.cpu.Read8(uint16(addr2))), 2
 	}
 }
 
@@ -371,31 +341,18 @@ func ind(op string) disasmFunc {
 func izx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.Read8(d.cpu.PC + 1)
-		val := ""
-		switch op {
-		case "LDA", "STA", "LDX", "STX", "ORA", "AND", "EOR", "ADC", "CMP", "SBC":
-			zp := d.cpu.zp() + d.cpu.X
-			addr2 := d.cpu.izx()
-			val = fmt.Sprintf(" @ %02X = %04X = %02X", zp, addr2, d.cpu.Read8(addr2))
-		}
-
-		return fmt.Sprintf("% 4s ($%02X,X)%s", op, addr, val), 2
+		zp := d.cpu.zp() + d.cpu.X
+		addr2 := d.cpu.izx()
+		return fmt.Sprintf("% 4s ($%02X,X) @ %02X = %04X = %02X", op, addr, zp, addr2, d.cpu.Read8(addr2)), 2
 	}
 }
 
 func izy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.cpu.Read8(d.cpu.PC + 1)
-		val := ""
-		switch op {
-		case "LDA", "STA", "LDX", "STX", "ORA", "AND", "EOR", "ADC", "CMP", "SBC":
-			oper := d.cpu.zp()
-			addr := d.cpu.zpr16(uint16(oper))
-			dst := addr + uint16(d.cpu.Y)
-
-			val = fmt.Sprintf(" = %04X @ %04X = %02X", addr, dst, d.cpu.Read8(dst))
-		}
-
-		return fmt.Sprintf("% 4s ($%02X),Y%s", op, addr, val), 2
+		oper := d.cpu.zp()
+		addr2 := d.cpu.zpr16(uint16(oper))
+		dst := addr2 + uint16(d.cpu.Y)
+		return fmt.Sprintf("% 4s ($%02X),Y = %04X @ %04X = %02X", op, addr, addr2, dst, d.cpu.Read8(dst)), 2
 	}
 }

@@ -113,26 +113,32 @@ var ops = [256]func(cpu *CPU){
 	0xA0: LDYimm,
 	0xA1: LDAizx,
 	0xA2: LDXimm,
+	0xA3: LAXizx,
 	0xA4: LDYzp,
 	0xA5: LDAzp,
 	0xA6: LDXzp,
+	0xA7: LAXzp,
 	0xA8: TAY,
 	0xA9: LDAimm,
 	0xAA: TAX,
 	0xAC: LDYabs,
 	0xAD: LDAabs,
 	0xAE: LDXabs,
+	0xAF: LAXabs,
 	0xB0: BCS,
 	0xB1: LDAizy,
+	0xB3: LAXizy,
 	0xB4: LDYzpx,
 	0xB5: LDAzpx,
 	0xB6: LDXzpy,
+	0xB7: LAXzpy,
 	0xB8: CLV,
 	0xB9: LDAaby,
 	0xBA: TSX,
 	0xBC: LDYabx,
 	0xBD: LDAabx,
 	0xBE: LDXaby,
+	0xBF: LAXaby,
 	0xC0: CPYimm,
 	0xC1: CMPizx,
 	0xC2: NOP(2, 2),
@@ -1016,6 +1022,14 @@ func LDXimm(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// A3
+func LAXizx(cpu *CPU) {
+	oper := cpu.izx()
+	lax(cpu, cpu.Read8(oper))
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // A4
 func LDYzp(cpu *CPU) {
 	oper := cpu.zp()
@@ -1039,6 +1053,15 @@ func LDXzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	ldx(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
+// A7
+func LAXzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	lax(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -1091,6 +1114,15 @@ func LDXabs(cpu *CPU) {
 	cpu.Clock += 4
 }
 
+// AF
+func LAXabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	lax(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4
+}
+
 // B0
 func BCS(cpu *CPU) {
 	if !cpu.P.C() {
@@ -1106,6 +1138,14 @@ func BCS(cpu *CPU) {
 func LDAizy(cpu *CPU) {
 	oper, crossed := cpu.izy()
 	lda(cpu, cpu.Read8(oper))
+	cpu.PC += 2
+	cpu.Clock += 5 + int64(crossed)
+}
+
+// B3
+func LAXizy(cpu *CPU) {
+	oper, crossed := cpu.izy()
+	lax(cpu, cpu.Read8(oper))
 	cpu.PC += 2
 	cpu.Clock += 5 + int64(crossed)
 }
@@ -1133,6 +1173,15 @@ func LDXzpy(cpu *CPU) {
 	oper := cpu.zpy()
 	val := cpu.Read8(uint16(oper))
 	ldx(cpu, val)
+	cpu.PC += 2
+	cpu.Clock += 4
+}
+
+// B7
+func LAXzpy(cpu *CPU) {
+	oper := cpu.zpy()
+	val := cpu.Read8(uint16(oper))
+	lax(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 4
 }
@@ -1181,6 +1230,15 @@ func LDXaby(cpu *CPU) {
 	oper, crossed := cpu.aby()
 	val := cpu.Read8(oper)
 	ldx(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
+}
+
+// BF
+func LAXaby(cpu *CPU) {
+	oper, crossed := cpu.aby()
+	val := cpu.Read8(oper)
+	lax(cpu, val)
 	cpu.PC += 3
 	cpu.Clock += 4 + int64(crossed)
 }
@@ -1674,6 +1732,14 @@ func NOPabx(cpu *CPU) {
 	_, crossed := cpu.abx()
 	cpu.PC += 3
 	cpu.Clock += 4 + int64(crossed)
+}
+
+/* unofficial instructions */
+
+func lax(cpu *CPU, val uint8) {
+	cpu.A = val
+	cpu.X = val
+	cpu.P.checkNZ(cpu.A)
 }
 
 /* helpers */
