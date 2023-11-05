@@ -92,20 +92,24 @@ var ops = [256]func(cpu *CPU){
 	0x80: NOP(2, 2),
 	0x81: STAizx,
 	0x82: NOP(2, 2),
+	0x83: SAXizx,
 	0x84: STYzp,
 	0x85: STAzp,
 	0x86: STXzp,
+	0x87: SAXzp,
 	0x88: DEY,
 	0x89: NOP(2, 2),
 	0x8A: TXA,
 	0x8C: STYabs,
 	0x8D: STAabs,
 	0x8E: STXabs,
+	0x8F: SAXabs,
 	0x90: BCC,
 	0x91: STAizy,
 	0x94: STYzpx,
 	0x95: STAzpx,
 	0x96: STXzpy,
+	0x97: SAXzpy,
 	0x98: TYA,
 	0x99: STAaby,
 	0x9A: TXS,
@@ -862,6 +866,14 @@ func STAizx(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 83
+func SAXizx(cpu *CPU) {
+	addr := cpu.izx()
+	cpu.Write8(addr, cpu.A&cpu.X)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // 84
 func STYzp(cpu *CPU) {
 	oper := cpu.zp()
@@ -882,6 +894,14 @@ func STAzp(cpu *CPU) {
 func STXzp(cpu *CPU) {
 	oper := cpu.zp()
 	cpu.Write8(uint16(oper), cpu.X)
+	cpu.PC += 2
+	cpu.Clock += 3
+}
+
+// 87
+func SAXzp(cpu *CPU) {
+	oper := cpu.zp()
+	cpu.Write8(uint16(oper), cpu.A&cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 3
 }
@@ -926,6 +946,14 @@ func STXabs(cpu *CPU) {
 	cpu.Clock += 4
 }
 
+// 8F
+func SAXabs(cpu *CPU) {
+	oper := cpu.abs()
+	cpu.Write8(oper, cpu.A&cpu.X)
+	cpu.PC += 3
+	cpu.Clock += 4
+}
+
 // 90
 func BCC(cpu *CPU) {
 	if cpu.P.C() {
@@ -965,6 +993,14 @@ func STAzpx(cpu *CPU) {
 func STXzpy(cpu *CPU) {
 	addr := cpu.zpy()
 	cpu.Write8(uint16(addr), cpu.X)
+	cpu.PC += 2
+	cpu.Clock += 4
+}
+
+// 97
+func SAXzpy(cpu *CPU) {
+	addr := cpu.zpy()
+	cpu.Write8(uint16(addr), cpu.A&cpu.X)
 	cpu.PC += 2
 	cpu.Clock += 4
 }
