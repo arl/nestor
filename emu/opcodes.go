@@ -3,26 +3,33 @@ package emu
 var ops = [256]func(cpu *CPU){
 	0x00: BRK,
 	0x01: ORAizx,
+	0x03: SLOizx,
 	0x04: NOP(2, 3),
 	0x05: ORAzp,
 	0x06: ASLzp,
+	0x07: SLOzp,
 	0x08: PHP,
 	0x09: ORAimm,
 	0x0A: ASLacc,
 	0x0C: NOP(3, 4),
 	0x0D: ORAabs,
 	0x0E: ASLabs,
+	0x0F: SLOabs,
 	0x10: BPL,
 	0x11: ORAizy,
+	0x13: SLOizy,
 	0x14: NOP(2, 4),
 	0x15: ORAzpx,
 	0x16: ASLzpx,
+	0x17: SLOzpx,
 	0x18: CLC,
 	0x19: ORAaby,
 	0x1A: NOP(1, 2),
+	0x1B: SLOaby,
 	0x1C: NOPabx,
 	0x1D: ORAabx,
 	0x1E: ASLabx,
+	0x1F: SLOabx,
 	0x20: JSR,
 	0x21: ANDizx,
 	0x24: BITzp,
@@ -226,6 +233,16 @@ func ORAizx(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 03
+func SLOizx(cpu *CPU) {
+	oper := cpu.izx()
+	val := cpu.Read8(oper)
+	slo(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 2
+	cpu.Clock += 8
+}
+
 // 05
 func ORAzp(cpu *CPU) {
 	oper := cpu.zp()
@@ -245,14 +262,14 @@ func ASLzp(cpu *CPU) {
 	cpu.Clock += 5
 }
 
-// 0E
-func ASLabs(cpu *CPU) {
-	oper := cpu.abs()
-	val := cpu.Read8(oper)
-	asl(cpu, &val)
-	cpu.Write8(oper, val)
-	cpu.PC += 3
-	cpu.Clock += 6
+// 07
+func SLOzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	slo(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 5
 }
 
 // 08
@@ -287,6 +304,26 @@ func ORAabs(cpu *CPU) {
 	cpu.Clock += 4
 }
 
+// 0E
+func ASLabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	asl(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 6
+}
+
+// 0F
+func SLOabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	slo(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 6
+}
+
 // 10
 func BPL(cpu *CPU) {
 	if cpu.P.N() {
@@ -305,6 +342,16 @@ func ORAizy(cpu *CPU) {
 	ora(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 5 + int64(crossed)
+}
+
+// 13
+func SLOizy(cpu *CPU) {
+	oper, _ := cpu.izy()
+	val := cpu.Read8(oper)
+	slo(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 2
+	cpu.Clock += 8
 }
 
 // 15
@@ -326,6 +373,16 @@ func ASLzpx(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 17
+func SLOzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	slo(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // 18
 func CLC(cpu *CPU) {
 	cpu.P.clearBit(pbitC)
@@ -342,6 +399,16 @@ func ORAaby(cpu *CPU) {
 	cpu.Clock += 4 + int64(crossed)
 }
 
+// 1B
+func SLOaby(cpu *CPU) {
+	oper, _ := cpu.aby()
+	val := cpu.Read8(oper)
+	slo(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 7
+}
+
 // 1D
 func ORAabx(cpu *CPU) {
 	addr, crossed := cpu.abx()
@@ -356,6 +423,16 @@ func ASLabx(cpu *CPU) {
 	oper, _ := cpu.abx()
 	val := cpu.Read8(oper)
 	asl(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 7
+}
+
+// 1F
+func SLOabx(cpu *CPU) {
+	oper, _ := cpu.abx()
+	val := cpu.Read8(oper)
+	slo(cpu, &val)
 	cpu.Write8(oper, val)
 	cpu.PC += 3
 	cpu.Clock += 7
@@ -1933,6 +2010,17 @@ func NOPabx(cpu *CPU) {
 func lax(cpu *CPU, val uint8) {
 	cpu.A = val
 	cpu.X = val
+	cpu.P.checkNZ(cpu.A)
+}
+
+func slo(cpu *CPU, val *uint8) {
+	carry := *val & 0x80 // carry is bit 7
+	*val <<= 1
+	*val &= 0xfe
+
+	cpu.P.writeBit(pbitC, carry != 0)
+
+	cpu.A |= *val
 	cpu.P.checkNZ(cpu.A)
 }
 
