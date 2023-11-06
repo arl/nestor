@@ -61,48 +61,62 @@ var ops = [256]func(cpu *CPU){
 	0x3F: RLAabx,
 	0x40: RTI,
 	0x41: EORizx,
+	0x43: SREizx,
 	0x44: NOP(2, 3),
 	0x45: EORzp,
 	0x46: LSRzp,
+	0x47: SREzp,
 	0x48: PHA,
 	0x49: EORimm,
 	0x4A: LSRacc,
 	0x4C: JMPabs,
 	0x4D: EORabs,
 	0x4E: LSRabs,
+	0x4F: SREabs,
 	0x50: BVC,
 	0x51: EORizy,
+	0x53: SREizy,
 	0x54: NOP(2, 4),
 	0x55: EORzpx,
 	0x56: LSRzpx,
+	0x57: SREzpx,
 	0x58: CLI,
 	0x59: EORaby,
 	0x5A: NOP(1, 2),
+	0x5B: SREaby,
 	0x5C: NOPabx,
 	0x5D: EORabx,
 	0x5E: LSRabx,
+	0x5F: SREabx,
 	0x60: RTS,
 	0x61: ADCizx,
+	0x63: RRAizx,
 	0x64: NOP(2, 3),
 	0x65: ADCzp,
 	0x66: RORzp,
+	0x67: RRAzp,
 	0x68: PLA,
 	0x69: ADCimm,
 	0x6A: RORacc,
 	0x6C: JMPind,
 	0x6D: ADCabs,
 	0x6E: RORabs,
+	0x6F: RRAabs,
 	0x70: BVS,
 	0x71: ADCizy,
+	0x73: RRAizy,
 	0x74: NOP(2, 4),
 	0x75: ADCzpx,
 	0x76: RORzpx,
+	0x77: RRAzpx,
 	0x78: SEI,
 	0x79: ADCaby,
 	0x7A: NOP(1, 2),
+	0x7B: RRAaby,
 	0x7C: NOPabx,
 	0x7D: ADCabx,
 	0x7E: RORabx,
+	0x7F: RRAabx,
 	0x80: NOP(2, 2),
 	0x81: STAizx,
 	0x82: NOP(2, 2),
@@ -718,6 +732,16 @@ func EORizx(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 43
+func SREizx(cpu *CPU) {
+	oper := cpu.izx()
+	val := cpu.Read8(oper)
+	sre(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 2
+	cpu.Clock += 8
+}
+
 // 45
 func EORzp(cpu *CPU) {
 	oper := cpu.zp()
@@ -732,6 +756,16 @@ func LSRzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	lsr(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 5
+}
+
+// 47
+func SREzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	sre(cpu, &val)
 	cpu.Write8(uint16(oper), val)
 	cpu.PC += 2
 	cpu.Clock += 5
@@ -783,6 +817,16 @@ func LSRabs(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 4F
+func SREabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	sre(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 6
+}
+
 // 50
 func BVC(cpu *CPU) {
 	if cpu.P.V() {
@@ -801,6 +845,16 @@ func EORizy(cpu *CPU) {
 	eor(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 5 + int64(crossed)
+}
+
+// 53
+func SREizy(cpu *CPU) {
+	oper, _ := cpu.izy()
+	val := cpu.Read8(oper)
+	sre(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 2
+	cpu.Clock += 8
 }
 
 // 55
@@ -822,6 +876,16 @@ func LSRzpx(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 57
+func SREzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	sre(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // 58
 func CLI(cpu *CPU) {
 	cpu.P.clearBit(pbitI)
@@ -836,6 +900,16 @@ func EORaby(cpu *CPU) {
 	eor(cpu, val)
 	cpu.PC += 3
 	cpu.Clock += 4 + int64(crossed)
+}
+
+// 5B
+func SREaby(cpu *CPU) {
+	oper, _ := cpu.aby()
+	val := cpu.Read8(oper)
+	sre(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 7
 }
 
 // 5D
@@ -857,6 +931,16 @@ func LSRabx(cpu *CPU) {
 	cpu.Clock += 7
 }
 
+// 5F
+func SREabx(cpu *CPU) {
+	oper, _ := cpu.abx()
+	val := cpu.Read8(oper)
+	sre(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 7
+}
+
 // 60
 func RTS(cpu *CPU) {
 	cpu.PC = pull16(cpu)
@@ -868,11 +952,19 @@ func RTS(cpu *CPU) {
 func ADCizx(cpu *CPU) {
 	oper := cpu.izx()
 	val := cpu.Read8(oper)
-
 	adc(cpu, val)
-
 	cpu.PC += 2
 	cpu.Clock += 6
+}
+
+// 63
+func RRAizx(cpu *CPU) {
+	oper := cpu.izx()
+	val := cpu.Read8(oper)
+	rra(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 2
+	cpu.Clock += 8
 }
 
 // 65
@@ -890,7 +982,16 @@ func RORzp(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	ror(cpu, &val)
 	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 5
+}
 
+// 67
+func RRAzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	rra(cpu, &val)
+	cpu.Write8(uint16(oper), val)
 	cpu.PC += 2
 	cpu.Clock += 5
 }
@@ -945,6 +1046,16 @@ func RORabs(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 6F
+func RRAabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	rra(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 6
+}
+
 // 70
 func BVS(cpu *CPU) {
 	if !cpu.P.V() {
@@ -965,6 +1076,16 @@ func ADCizy(cpu *CPU) {
 	cpu.Clock += 5 + int64(crossed)
 }
 
+// 73
+func RRAizy(cpu *CPU) {
+	oper, _ := cpu.izy()
+	val := cpu.Read8(oper)
+	rra(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 2
+	cpu.Clock += 8
+}
+
 // 75
 func ADCzpx(cpu *CPU) {
 	addr := cpu.zpx()
@@ -979,6 +1100,16 @@ func RORzpx(cpu *CPU) {
 	oper := cpu.zpx()
 	val := cpu.Read8(uint16(oper))
 	ror(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
+// 77
+func RRAzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	rra(cpu, &val)
 	cpu.Write8(uint16(oper), val)
 	cpu.PC += 2
 	cpu.Clock += 6
@@ -1002,6 +1133,16 @@ func ADCaby(cpu *CPU) {
 	cpu.Clock += 4 + int64(crossed)
 }
 
+// 7B
+func RRAaby(cpu *CPU) {
+	oper, _ := cpu.aby()
+	val := cpu.Read8(oper)
+	rra(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 7
+}
+
 // 7D
 func ADCabx(cpu *CPU) {
 	oper, crossed := cpu.abx()
@@ -1016,6 +1157,16 @@ func RORabx(cpu *CPU) {
 	oper, _ := cpu.abx()
 	val := cpu.Read8(oper)
 	ror(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 3
+	cpu.Clock += 7
+}
+
+// 7F
+func RRAabx(cpu *CPU) {
+	oper, _ := cpu.abx()
+	val := cpu.Read8(oper)
+	rra(cpu, &val)
 	cpu.Write8(oper, val)
 	cpu.PC += 3
 	cpu.Clock += 7
@@ -2090,34 +2241,28 @@ func NOPabx(cpu *CPU) {
 /* unofficial instructions */
 
 func lax(cpu *CPU, val uint8) {
-	cpu.A = val
-	cpu.X = val
-	cpu.P.checkNZ(cpu.A)
+	lda(cpu, val)
+	ldx(cpu, val)
 }
 
 func slo(cpu *CPU, val *uint8) {
-	carry := *val & 0x80 // carry is bit 7
-	*val <<= 1
-	*val &= 0xfe
-
-	cpu.P.writeBit(pbitC, carry != 0)
-
-	cpu.A |= *val
-	cpu.P.checkNZ(cpu.A)
+	asl(cpu, val)
+	ora(cpu, *val)
 }
 
 func rla(cpu *CPU, val *uint8) {
-	carry := *val & 0x80 // next carry is bit 7
-	*val <<= 1
+	rol(cpu, val)
+	and(cpu, *val)
+}
 
-	// bit 0 is set to prev carry
-	if cpu.P.C() {
-		*val |= 1 << 0
-	}
+func sre(cpu *CPU, val *uint8) {
+	lsr(cpu, val)
+	eor(cpu, *val)
+}
 
-	cpu.A &= *val
-	cpu.P.checkNZ(cpu.A)
-	cpu.P.writeBit(pbitC, carry != 0)
+func rra(cpu *CPU, val *uint8) {
+	ror(cpu, val)
+	adc(cpu, *val)
 }
 
 /* helpers */
