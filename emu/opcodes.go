@@ -32,26 +32,33 @@ var ops = [256]func(cpu *CPU){
 	0x1F: SLOabx,
 	0x20: JSR,
 	0x21: ANDizx,
+	0x23: RLAizx,
 	0x24: BITzp,
 	0x25: ANDzp,
 	0x26: ROLzp,
+	0x27: RLAzp,
 	0x28: PLP,
 	0x29: ANDimm,
 	0x2A: ROLacc,
 	0x2C: BITabs,
 	0x2D: ANDabs,
 	0x2E: ROLabs,
+	0x2F: RLAabs,
 	0x30: BMI,
 	0x31: ANDizy,
+	0x33: RLAizy,
 	0x34: NOP(2, 4),
 	0x35: ANDzpx,
 	0x36: ROLzpx,
+	0x37: RLAzpx,
 	0x38: SEC,
 	0x39: ANDaby,
 	0x3A: NOP(1, 2),
+	0x3B: RLAaby,
 	0x3C: NOPabx,
 	0x3D: ANDabx,
 	0x3E: ROLabx,
+	0x3F: RLAabx,
 	0x40: RTI,
 	0x41: EORizx,
 	0x44: NOP(2, 3),
@@ -457,6 +464,16 @@ func ANDizx(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 23
+func RLAizx(cpu *CPU) {
+	oper := cpu.izx()
+	val := cpu.Read8(oper)
+	rla(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 2
+	cpu.Clock += 8
+}
+
 // 24
 func BITzp(cpu *CPU) {
 	oper := cpu.zp()
@@ -480,6 +497,17 @@ func ROLzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	rol(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+
+	cpu.PC += 2
+	cpu.Clock += 5
+}
+
+// 27
+func RLAzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	rla(cpu, &val)
 	cpu.Write8(uint16(oper), val)
 
 	cpu.PC += 2
@@ -540,6 +568,17 @@ func ROLabs(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 2F
+func RLAabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(oper)
+	rla(cpu, &val)
+	cpu.Write8(oper, val)
+
+	cpu.PC += 3
+	cpu.Clock += 6
+}
+
 // 30
 func BMI(cpu *CPU) {
 	if !cpu.P.N() {
@@ -558,6 +597,16 @@ func ANDizy(cpu *CPU) {
 	and(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 5 + int64(crossed)
+}
+
+// 33
+func RLAizy(cpu *CPU) {
+	oper, _ := cpu.izy()
+	val := cpu.Read8(oper)
+	rla(cpu, &val)
+	cpu.Write8(oper, val)
+	cpu.PC += 2
+	cpu.Clock += 8
 }
 
 // 35
@@ -580,6 +629,17 @@ func ROLzpx(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// 37
+func RLAzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	rla(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // 38
 func SEC(cpu *CPU) {
 	cpu.P.setBit(pbitC)
@@ -596,6 +656,17 @@ func ANDaby(cpu *CPU) {
 	cpu.Clock += 4 + int64(crossed)
 }
 
+// 3B
+func RLAaby(cpu *CPU) {
+	oper, _ := cpu.aby()
+	val := cpu.Read8(oper)
+	rla(cpu, &val)
+	cpu.Write8(oper, val)
+
+	cpu.PC += 3
+	cpu.Clock += 7
+}
+
 // 3D
 func ANDabx(cpu *CPU) {
 	oper, crossed := cpu.abx()
@@ -610,6 +681,17 @@ func ROLabx(cpu *CPU) {
 	oper, _ := cpu.abx()
 	val := cpu.Read8(oper)
 	rol(cpu, &val)
+	cpu.Write8(oper, val)
+
+	cpu.PC += 3
+	cpu.Clock += 7
+}
+
+// 3F
+func RLAabx(cpu *CPU) {
+	oper, _ := cpu.abx()
+	val := cpu.Read8(oper)
+	rla(cpu, &val)
 	cpu.Write8(oper, val)
 
 	cpu.PC += 3
@@ -2022,6 +2104,20 @@ func slo(cpu *CPU, val *uint8) {
 
 	cpu.A |= *val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func rla(cpu *CPU, val *uint8) {
+	carry := *val & 0x80 // next carry is bit 7
+	*val <<= 1
+
+	// bit 0 is set to prev carry
+	if cpu.P.C() {
+		*val |= 1 << 0
+	}
+
+	cpu.A &= *val
+	cpu.P.checkNZ(cpu.A)
+	cpu.P.writeBit(pbitC, carry != 0)
 }
 
 /* helpers */
