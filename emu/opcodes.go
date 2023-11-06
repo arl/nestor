@@ -3,6 +3,7 @@ package emu
 var ops = [256]func(cpu *CPU){
 	0x00: BRK,
 	0x01: ORAizx,
+	0x02: JAM,
 	0x03: SLOizx,
 	0x04: NOP(2, 3),
 	0x05: ORAzp,
@@ -17,6 +18,7 @@ var ops = [256]func(cpu *CPU){
 	0x0F: SLOabs,
 	0x10: BPL,
 	0x11: ORAizy,
+	0x12: JAM,
 	0x13: SLOizy,
 	0x14: NOP(2, 4),
 	0x15: ORAzpx,
@@ -32,6 +34,7 @@ var ops = [256]func(cpu *CPU){
 	0x1F: SLOabx,
 	0x20: JSR,
 	0x21: ANDizx,
+	0x22: JAM,
 	0x23: RLAizx,
 	0x24: BITzp,
 	0x25: ANDzp,
@@ -46,6 +49,7 @@ var ops = [256]func(cpu *CPU){
 	0x2F: RLAabs,
 	0x30: BMI,
 	0x31: ANDizy,
+	0x32: JAM,
 	0x33: RLAizy,
 	0x34: NOP(2, 4),
 	0x35: ANDzpx,
@@ -61,6 +65,7 @@ var ops = [256]func(cpu *CPU){
 	0x3F: RLAabx,
 	0x40: RTI,
 	0x41: EORizx,
+	0x42: JAM,
 	0x43: SREizx,
 	0x44: NOP(2, 3),
 	0x45: EORzp,
@@ -75,6 +80,7 @@ var ops = [256]func(cpu *CPU){
 	0x4F: SREabs,
 	0x50: BVC,
 	0x51: EORizy,
+	0x52: JAM,
 	0x53: SREizy,
 	0x54: NOP(2, 4),
 	0x55: EORzpx,
@@ -90,6 +96,7 @@ var ops = [256]func(cpu *CPU){
 	0x5F: SREabx,
 	0x60: RTS,
 	0x61: ADCizx,
+	0x62: JAM,
 	0x63: RRAizx,
 	0x64: NOP(2, 3),
 	0x65: ADCzp,
@@ -104,6 +111,7 @@ var ops = [256]func(cpu *CPU){
 	0x6F: RRAabs,
 	0x70: BVS,
 	0x71: ADCizy,
+	0x72: JAM,
 	0x73: RRAizy,
 	0x74: NOP(2, 4),
 	0x75: ADCzpx,
@@ -134,6 +142,7 @@ var ops = [256]func(cpu *CPU){
 	0x8F: SAXabs,
 	0x90: BCC,
 	0x91: STAizy,
+	0x92: JAM,
 	0x94: STYzpx,
 	0x95: STAzpx,
 	0x96: STXzpy,
@@ -159,6 +168,7 @@ var ops = [256]func(cpu *CPU){
 	0xAF: LAXabs,
 	0xB0: BCS,
 	0xB1: LDAizy,
+	0xB2: JAM,
 	0xB3: LAXizy,
 	0xB4: LDYzpx,
 	0xB5: LDAzpx,
@@ -188,6 +198,7 @@ var ops = [256]func(cpu *CPU){
 	0xCF: DCPabs,
 	0xD0: BNE,
 	0xD1: CMPizy,
+	0xD2: JAM,
 	0xD3: DCPizy,
 	0xD4: NOP(2, 4),
 	0xD5: CMPzpx,
@@ -219,6 +230,7 @@ var ops = [256]func(cpu *CPU){
 	0xEF: ISBabs,
 	0xF0: BEQ,
 	0xF1: SBCizy,
+	0xF2: JAM,
 	0xF3: ISBizy,
 	0xF4: NOP(2, 4),
 	0xF5: SBCzpx,
@@ -2263,6 +2275,10 @@ func sre(cpu *CPU, val *uint8) {
 func rra(cpu *CPU, val *uint8) {
 	ror(cpu, val)
 	adc(cpu, *val)
+}
+
+func JAM(cpu *CPU) {
+	panic("Halt and catch fire!")
 }
 
 /* helpers */

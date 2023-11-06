@@ -9,6 +9,7 @@ import (
 var opsDisasm = [256]disasmFunc{
 	0x00: imp("BRK"),
 	0x01: izx("ORA"),
+	0x02: jam(),
 	0x03: izx("*SLO"),
 	0x04: zp("*NOP"),
 	0x05: zp("ORA"),
@@ -23,6 +24,7 @@ var opsDisasm = [256]disasmFunc{
 	0x0F: abs("*SLO"),
 	0x10: rel("BPL"),
 	0x11: izy("ORA"),
+	0x12: jam(),
 	0x13: izy("*SLO"),
 	0x14: zpx("*NOP"),
 	0x15: zpx("ORA"),
@@ -38,6 +40,7 @@ var opsDisasm = [256]disasmFunc{
 	0x1F: abx("*SLO"),
 	0x20: abs("JSR"),
 	0x21: izx("AND"),
+	0x22: jam(),
 	0x23: izx("*RLA"),
 	0x24: zp("BIT"),
 	0x25: zp("AND"),
@@ -52,6 +55,7 @@ var opsDisasm = [256]disasmFunc{
 	0x2F: abs("*RLA"),
 	0x30: rel("BMI"),
 	0x31: izy("AND"),
+	0x32: jam(),
 	0x33: izy("*RLA"),
 	0x34: zpx("*NOP"),
 	0x35: zpx("AND"),
@@ -67,6 +71,7 @@ var opsDisasm = [256]disasmFunc{
 	0x3F: abx("*RLA"),
 	0x40: imp("RTI"),
 	0x41: izx("EOR"),
+	0x42: jam(),
 	0x43: izx("*SRE"),
 	0x44: zp("*NOP"),
 	0x45: zp("EOR"),
@@ -81,6 +86,7 @@ var opsDisasm = [256]disasmFunc{
 	0x4F: abs("*SRE"),
 	0x50: rel("BVC"),
 	0x51: izy("EOR"),
+	0x52: jam(),
 	0x53: izy("*SRE"),
 	0x54: zpx("*NOP"),
 	0x55: zpx("EOR"),
@@ -96,6 +102,7 @@ var opsDisasm = [256]disasmFunc{
 	0x5F: abx("*SRE"),
 	0x60: imp("RTS"),
 	0x61: izx("ADC"),
+	0x62: jam(),
 	0x63: izx("*RRA"),
 	0x64: zp("*NOP"),
 	0x65: zp("ADC"),
@@ -110,6 +117,7 @@ var opsDisasm = [256]disasmFunc{
 	0x6F: abs("*RRA"),
 	0x70: rel("BVS"),
 	0x71: izy("ADC"),
+	0x72: jam(),
 	0x73: izy("*RRA"),
 	0x74: zpx("*NOP"),
 	0x75: zpx("ADC"),
@@ -140,6 +148,7 @@ var opsDisasm = [256]disasmFunc{
 	0x8F: abs("*SAX"),
 	0x90: rel("BCC"),
 	0x91: izy("STA"),
+	0x92: jam(),
 	0x94: zpx("STY"),
 	0x95: zpx("STA"),
 	0x96: zpy("STX"),
@@ -165,6 +174,7 @@ var opsDisasm = [256]disasmFunc{
 	0xAF: abs("*LAX"),
 	0xB0: rel("BCS"),
 	0xB1: izy("LDA"),
+	0xB2: jam(),
 	0xB3: izy("*LAX"),
 	0xB4: zpx("LDY"),
 	0xB5: zpx("LDA"),
@@ -194,6 +204,7 @@ var opsDisasm = [256]disasmFunc{
 	0xCF: abs("*DCP"),
 	0xD0: rel("BNE"),
 	0xD1: izy("CMP"),
+	0xD2: jam(),
 	0xD3: izy("*DCP"),
 	0xD4: zpx("*NOP"),
 	0xD5: zpx("CMP"),
@@ -225,6 +236,7 @@ var opsDisasm = [256]disasmFunc{
 	0xEF: abs("*ISB"),
 	0xF0: rel("BEQ"),
 	0xF1: izy("SBC"),
+	0xF2: jam(),
 	0xF3: izy("*ISB"),
 	0xF4: zpx("*NOP"),
 	0xF5: zpx("SBC"),
@@ -314,6 +326,12 @@ func acc(op string) disasmFunc {
 func imm(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		return fmt.Sprintf("% 4s #$%02X", op, d.cpu.imm()), 2
+	}
+}
+
+func jam() disasmFunc {
+	return func(d *disasm) (string, int) {
+		return "*JAM", 2
 	}
 }
 

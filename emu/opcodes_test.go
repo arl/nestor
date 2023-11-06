@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -32,14 +33,19 @@ type opcodeAutoTest struct {
 }
 
 func TestOpcodes(t *testing.T) {
-	skip := make([]uint8, 256) // skip tests for those opcodes for now
+	// skip JAM
+	skip := []uint8{0x02, 0x12, 0x22, 0x32, 0x42, 0x52, 0x62, 0x72, 0x92, 0xB2, 0xD2, 0xF2}
 
 	// Run tests for all implemented opcodes
-	for op, f := range ops {
-		if f == nil || skip[op] == 1 {
+	for op := uint8(0); op <= 255; op++ {
+		opstr := fmt.Sprintf("%02x", op)
+		if slices.Contains(skip, op) {
+			t.Run(opstr, func(t *testing.T) { t.Skip("skipped opcode") })
 			continue
 		}
-		opstr := fmt.Sprintf("%02x", op)
+		if ops[op] == nil {
+			t.Errorf("opcode %02x not implemented", op)
+		}
 		t.Run(opstr, testOpcodes(opstr))
 	}
 }
@@ -48,8 +54,6 @@ func TestOpcodes(t *testing.T) {
 // these comes from github.com/TomHarte/ProcessorTests/blob/main/nes6502.
 func testOpcodes(op string) func(t *testing.T) {
 	return func(t *testing.T) {
-		t.Parallel()
-
 		path := filepath.Join("testdata", "tomharte.processor.tests", "v1", op+".json")
 		buf, err := os.ReadFile(path)
 		if err != nil {
