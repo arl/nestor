@@ -45,8 +45,8 @@ func TestNestest(t *testing.T) {
 
 	nes.CPU.SetDisasm(flog, true)
 
-	// For some reason the nestest.log shows an execution starting from 0xC000, at which
-	// the CPU has already executed 7 cycles.
+	// nestest.nes has an automated test mode that starts at 0xC000, with 7
+	// cycles. The manual mode starting at the reset vector requires the screen.
 	nes.CPU.PC = 0xC000
 	nes.CPU.Clock = 7
 	nes.CPU.P = emu.P(0b00100100)

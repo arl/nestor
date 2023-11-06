@@ -32,7 +32,7 @@ type opcodeAutoTest struct {
 }
 
 func TestOpcodes(t *testing.T) {
-	skip := [0xff]uint8{} // skip tests for those opcodes for now
+	skip := make([]uint8, 256) // skip tests for those opcodes for now
 
 	// Run tests for all implemented opcodes
 	for op, f := range ops {

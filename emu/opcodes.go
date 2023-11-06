@@ -176,9 +176,11 @@ var ops = [256]func(cpu *CPU){
 	0xE0: CPXimm,
 	0xE1: SBCizx,
 	0xE2: NOP(2, 2),
+	0xE3: ISBizx,
 	0xE4: CPXzp,
 	0xE5: SBCzp,
 	0xE6: INCzp,
+	0xE7: ISBzp,
 	0xE8: INX,
 	0xE9: SBCimm,
 	0xEA: NOP(1, 2),
@@ -186,17 +188,22 @@ var ops = [256]func(cpu *CPU){
 	0xEC: CPXabs,
 	0xED: SBCabs,
 	0xEE: INCabs,
+	0xEF: ISBabs,
 	0xF0: BEQ,
 	0xF1: SBCizy,
+	0xF3: ISBizy,
 	0xF4: NOP(2, 4),
 	0xF5: SBCzpx,
 	0xF6: INCzpx,
+	0xF7: ISBzpx,
 	0xF8: SED,
 	0xF9: SBCaby,
 	0xFA: NOP(1, 2),
+	0xFB: ISBaby,
 	0xFC: NOPabx,
 	0xFD: SBCabx,
 	0xFE: INCabx,
+	0xFF: ISBabx,
 }
 
 // 00
@@ -1540,6 +1547,17 @@ func SBCizx(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// E3
+func ISBizx(cpu *CPU) {
+	oper := cpu.izx()
+	val := cpu.Read8(oper)
+	val++
+	sbc(cpu, val)
+	cpu.Write8(oper, val)
+	cpu.PC += 2
+	cpu.Clock += 8
+}
+
 // E4
 func CPXzp(cpu *CPU) {
 	oper := cpu.zp()
@@ -1564,6 +1582,17 @@ func INCzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	inc(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 5
+}
+
+// E7
+func ISBzp(cpu *CPU) {
+	oper := cpu.zp()
+	val := cpu.Read8(uint16(oper))
+	val++
+	sbc(cpu, val)
 	cpu.Write8(uint16(oper), val)
 	cpu.PC += 2
 	cpu.Clock += 5
@@ -1622,6 +1651,17 @@ func INCabs(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// EF
+func ISBabs(cpu *CPU) {
+	oper := cpu.abs()
+	val := cpu.Read8(uint16(oper))
+	val++
+	sbc(cpu, val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 3
+	cpu.Clock += 6
+}
+
 // F0
 func BEQ(cpu *CPU) {
 	if !cpu.P.Z() {
@@ -1640,6 +1680,17 @@ func SBCizy(cpu *CPU) {
 	sbc(cpu, val)
 	cpu.PC += 2
 	cpu.Clock += 5 + int64(crossed)
+}
+
+// F3
+func ISBizy(cpu *CPU) {
+	oper, _ := cpu.izy()
+	val := cpu.Read8(oper)
+	val++
+	sbc(cpu, val)
+	cpu.Write8(oper, val)
+	cpu.PC += 2
+	cpu.Clock += 8
 }
 
 // F5
@@ -1662,6 +1713,17 @@ func INCzpx(cpu *CPU) {
 	cpu.Clock += 6
 }
 
+// F7
+func ISBzpx(cpu *CPU) {
+	oper := cpu.zpx()
+	val := cpu.Read8(uint16(oper))
+	val++
+	sbc(cpu, val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 2
+	cpu.Clock += 6
+}
+
 // F8
 func SED(cpu *CPU) {
 	cpu.P.setBit(pbitD)
@@ -1679,6 +1741,17 @@ func SBCaby(cpu *CPU) {
 	cpu.Clock += 4 + int64(crossed)
 }
 
+// FB
+func ISBaby(cpu *CPU) {
+	oper, _ := cpu.aby()
+	val := cpu.Read8(uint16(oper))
+	val++
+	sbc(cpu, val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 3
+	cpu.Clock += 7
+}
+
 // FD
 func SBCabx(cpu *CPU) {
 	oper, crossed := cpu.abx()
@@ -1694,6 +1767,17 @@ func INCabx(cpu *CPU) {
 	oper, _ := cpu.abx()
 	val := cpu.Read8(uint16(oper))
 	inc(cpu, &val)
+	cpu.Write8(uint16(oper), val)
+	cpu.PC += 3
+	cpu.Clock += 7
+}
+
+// FF
+func ISBabx(cpu *CPU) {
+	oper, _ := cpu.abx()
+	val := cpu.Read8(uint16(oper))
+	val++
+	sbc(cpu, val)
 	cpu.Write8(uint16(oper), val)
 	cpu.PC += 3
 	cpu.Clock += 7
