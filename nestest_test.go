@@ -51,5 +51,5 @@ func TestNestest(t *testing.T) {
 	nes.CPU.Clock = 7
 	nes.CPU.P = emu.P(0b00100100)
 
-	nes.CPU.Run(26554)
+	nes.CPU.Run(26560)
 }
