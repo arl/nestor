@@ -18,6 +18,7 @@ var opsDisasm = [256]disasmFunc{
 	0x08: imp("PHP"),
 	0x09: imm("ORA"),
 	0x0A: acc("ASL"),
+	0x0B: imm("*ANC"),
 	0x0C: abs("*NOP"),
 	0x0D: abs("ORA"),
 	0x0E: abs("ASL"),

@@ -12,6 +12,7 @@ var ops = [256]func(cpu *CPU){
 	0x08: PHP,
 	0x09: ORAimm,
 	0x0A: ASLacc,
+	0x0B: ANC,
 	0x0C: NOP(3, 4),
 	0x0D: ORAabs,
 	0x0E: ASLabs,
@@ -43,6 +44,7 @@ var ops = [256]func(cpu *CPU){
 	0x28: PLP,
 	0x29: ANDimm,
 	0x2A: ROLacc,
+	0x2B: ANC,
 	0x2C: BITabs,
 	0x2D: ANDabs,
 	0x2E: ROLabs,
@@ -328,6 +330,14 @@ func ASLacc(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// 0B
+func ANC(cpu *CPU) {
+	and(cpu, cpu.imm())
+	cpu.P.writeBit(pbitC, cpu.P.N())
+	cpu.PC += 2
+	cpu.Clock += 2
+}
+
 // 0D
 func ORAabs(cpu *CPU) {
 	oper := cpu.abs()
@@ -564,6 +574,8 @@ func ROLacc(cpu *CPU) {
 	cpu.PC += 1
 	cpu.Clock += 2
 }
+
+// 2B (see  ANC 0B)
 
 // 2C
 func BITabs(cpu *CPU) {
