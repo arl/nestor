@@ -820,8 +820,8 @@ func EORimm(cpu *CPU) {
 
 // 4A
 func LSRacc(cpu *CPU) {
-	alr(cpu, cpu.imm())
-	cpu.PC += 2
+	lsr(cpu, &cpu.A)
+	cpu.PC += 1
 	cpu.Clock += 2
 }
 
