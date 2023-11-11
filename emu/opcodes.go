@@ -1,5 +1,7 @@
 package emu
 
+import "fmt"
+
 var ops = [256]func(cpu *CPU){
 	0x00: BRK,
 	0x01: ORAizx,
@@ -140,6 +142,7 @@ var ops = [256]func(cpu *CPU){
 	0x88: DEY,
 	0x89: NOP(2, 2),
 	0x8A: TXA,
+	0x8B: unsupported,
 	0x8C: STYabs,
 	0x8D: STAabs,
 	0x8E: STXabs,
@@ -147,6 +150,7 @@ var ops = [256]func(cpu *CPU){
 	0x90: BCC,
 	0x91: STAizy,
 	0x92: JAM,
+	0x93: unsupported,
 	0x94: STYzpx,
 	0x95: STAzpx,
 	0x96: STXzpy,
@@ -154,7 +158,9 @@ var ops = [256]func(cpu *CPU){
 	0x98: TYA,
 	0x99: STAaby,
 	0x9A: TXS,
+	0x9B: unsupported,
 	0x9D: STAabx,
+	0x9F: unsupported,
 	0xA0: LDYimm,
 	0xA1: LDAizx,
 	0xA2: LDXimm,
@@ -1276,6 +1282,8 @@ func TXA(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// 8B - unsupported
+
 // 8C
 func STYabs(cpu *CPU) {
 	oper := cpu.abs()
@@ -1326,6 +1334,8 @@ func STAizy(cpu *CPU) {
 	cpu.PC += 2
 	cpu.Clock += 6
 }
+
+// 93 - unsupported
 
 // 94
 func STYzpx(cpu *CPU) {
@@ -1382,6 +1392,8 @@ func TXS(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// 9B - unsupported
+
 // 9D
 func STAabx(cpu *CPU) {
 	addr, _ := cpu.abx()
@@ -1389,6 +1401,8 @@ func STAabx(cpu *CPU) {
 	cpu.PC += 3
 	cpu.Clock += 5
 }
+
+// 9F - unsupported
 
 // A0
 func LDYimm(cpu *CPU) {
@@ -2322,6 +2336,12 @@ func arr(cpu *CPU, val uint8) {
 
 	cpu.P.checkNZ(cpu.A)
 	cpu.P.writeBit(pbitC, cpu.A&(1<<6) != 0)
+}
+
+func unsupported(cpu *CPU) {
+	op := cpu.Read8(cpu.PC)
+	msg := fmt.Sprintf("unsupported instruction (0x%02X) at %04X", op, cpu.PC)
+	panic(msg)
 }
 
 func JAM(cpu *CPU) {

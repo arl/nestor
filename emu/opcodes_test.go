@@ -94,10 +94,14 @@ func testOpcodes(op string) func(t *testing.T) {
 				if testing.Verbose() {
 					t.Logf("initial {A=0x%02x X=0x%02x Y=0x%02x P=0x%02x(%s) SP=0x%02x PC=0x%04x}\n",
 						cpu.A, cpu.X, cpu.Y, uint8(cpu.P), cpu.P.String(), cpu.SP, cpu.PC)
-					t.Log("run")
+					t.Log("run:")
 				}
 
 				cpu.Run(int64(len(tt.Cycles)) - 1)
+
+				if testing.Verbose() {
+					t.Log("test output:")
+				}
 
 				if testing.Verbose() {
 					for i, row := range tt.Cycles {
