@@ -187,6 +187,7 @@ var ops = [256]func(cpu *CPU){
 	0xB8: CLV,
 	0xB9: LDAaby,
 	0xBA: TSX,
+	0xBB: LAS,
 	0xBC: LDYabx,
 	0xBD: LDAabx,
 	0xBE: LDXaby,
@@ -1613,6 +1614,15 @@ func TSX(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// BB
+func LAS(cpu *CPU) {
+	oper, crossed := cpu.aby()
+	val := cpu.Read8(oper)
+	las(cpu, val)
+	cpu.PC += 3
+	cpu.Clock += 4 + int64(crossed)
+}
+
 // BC
 func LDYabx(cpu *CPU) {
 	oper, crossed := cpu.abx()
@@ -2322,6 +2332,13 @@ func rra(cpu *CPU, val *uint8) {
 func alr(cpu *CPU, val uint8) {
 	and(cpu, val)
 	lsr(cpu, &cpu.A)
+}
+
+func las(cpu *CPU, val uint8) {
+	cpu.A = cpu.SP & val
+	cpu.X = cpu.A
+	cpu.SP = cpu.A
+	cpu.P.checkNZ(cpu.A)
 }
 
 func arr(cpu *CPU, val uint8) {
