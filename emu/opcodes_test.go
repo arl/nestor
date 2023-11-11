@@ -62,6 +62,8 @@ func TestOpcodes(t *testing.T) {
 // these comes from github.com/TomHarte/ProcessorTests/blob/main/nes6502.
 func testOpcodes(op string) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Parallel()
+
 		path := filepath.Join("testdata", "tomharte.processor.tests", "v1", op+".json")
 		buf, err := os.ReadFile(path)
 		if err != nil {
