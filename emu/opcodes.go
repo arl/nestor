@@ -76,6 +76,7 @@ var ops = [256]func(cpu *CPU){
 	0x48: PHA,
 	0x49: EORimm,
 	0x4A: LSRacc,
+	0x4B: ALR,
 	0x4C: JMPabs,
 	0x4D: EORabs,
 	0x4E: LSRabs,
@@ -811,8 +812,15 @@ func EORimm(cpu *CPU) {
 
 // 4A
 func LSRacc(cpu *CPU) {
-	lsr(cpu, &cpu.A)
-	cpu.PC += 1
+	alr(cpu, cpu.imm())
+	cpu.PC += 2
+	cpu.Clock += 2
+}
+
+// 4B
+func ALR(cpu *CPU) {
+	alr(cpu, cpu.imm())
+	cpu.PC += 2
 	cpu.Clock += 2
 }
 
@@ -2287,6 +2295,11 @@ func sre(cpu *CPU, val *uint8) {
 func rra(cpu *CPU, val *uint8) {
 	ror(cpu, val)
 	adc(cpu, *val)
+}
+
+func alr(cpu *CPU, val uint8) {
+	and(cpu, val)
+	lsr(cpu, &cpu.A)
 }
 
 func JAM(cpu *CPU) {
