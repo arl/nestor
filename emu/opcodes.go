@@ -108,6 +108,7 @@ var ops = [256]func(cpu *CPU){
 	0x68: PLA,
 	0x69: ADCimm,
 	0x6A: RORacc,
+	0x6B: ARR,
 	0x6C: JMPind,
 	0x6D: ADCabs,
 	0x6E: RORabs,
@@ -1050,6 +1051,13 @@ func ADCimm(cpu *CPU) {
 func RORacc(cpu *CPU) {
 	ror(cpu, &cpu.A)
 	cpu.PC += 1
+	cpu.Clock += 2
+}
+
+// 6B
+func ARR(cpu *CPU) {
+	arr(cpu, cpu.imm())
+	cpu.PC += 2
 	cpu.Clock += 2
 }
 
@@ -2300,6 +2308,20 @@ func rra(cpu *CPU, val *uint8) {
 func alr(cpu *CPU, val uint8) {
 	and(cpu, val)
 	lsr(cpu, &cpu.A)
+}
+
+func arr(cpu *CPU, val uint8) {
+	cpu.A &= val
+	cpu.A >>= 1
+	cpu.P.writeBit(pbitV, (cpu.A>>6)^(cpu.A>>5)&0x01 != 0)
+
+	// bit 7 is set to prev carry
+	if cpu.P.C() {
+		cpu.A |= 1 << 7
+	}
+
+	cpu.P.checkNZ(cpu.A)
+	cpu.P.writeBit(pbitC, cpu.A&(1<<6) != 0)
 }
 
 func JAM(cpu *CPU) {

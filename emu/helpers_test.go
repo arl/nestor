@@ -57,16 +57,19 @@ func wantCPUState(t *testing.T, cpu *CPU, states ...any) {
 	}
 
 	checkbool := func(name string, got, want uint8) {
+		t.Helper()
 		if got != want {
 			t.Errorf("got %s=%d, want %d", name, got, want)
 		}
 	}
 	checkuint8 := func(name string, got, want uint8) {
+		t.Helper()
 		if got != want {
 			t.Errorf("got %s=$%02X, want $%02X", name, got, want)
 		}
 	}
 	checkuint16 := func(name string, got, want uint16) {
+		t.Helper()
 		if got != want {
 			t.Errorf("got %s=$%04X, want $%04X", name, got, want)
 		}
@@ -86,7 +89,9 @@ func wantCPUState(t *testing.T, cpu *CPU, states ...any) {
 		case s == "SP":
 			checkuint8("SP", uint8(cpu.SP), uint8(states[i+1].(int)))
 		case s == "P":
-			checkuint8("P", uint8(cpu.P), uint8(states[i+1].(int)))
+			if got, want := uint8(cpu.P), uint8(states[i+1].(int)); got != want {
+				t.Errorf("got P=$%02X(%s), want $%02X(%s)", got, P(got), want, P(want))
+			}
 		case len(s) > 1 && s[0] == 'P':
 			for j := 1; j < len(s); j++ {
 				bit := uint8(states[i+1].(int))

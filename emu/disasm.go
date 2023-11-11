@@ -113,6 +113,7 @@ var opsDisasm = [256]disasmFunc{
 	0x68: imp("PLA"),
 	0x69: imm("ADC"),
 	0x6A: acc("ROR"),
+	0x6B: imm("*ARR"),
 	0x6C: ind("JMP"),
 	0x6D: abs("ADC"),
 	0x6E: abs("ROR"),
