@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -13,8 +14,12 @@ import (
 
 func main() {
 	hexbyte := hexbyte(0x34)
+	disasmLog := new(outfile)
+
 	flag.Var(&hexbyte, "P", "P register after first cpu reset (hex)")
+	flag.Var(disasmLog, "dlog", "write execution log to [file/stdout/stderr] (test/debug)")
 	flag.Parse()
+
 	if len(flag.Args()) < 1 {
 		flag.Usage()
 		return
@@ -28,9 +33,13 @@ func main() {
 	checkf(err, "failed to open rom %s", path)
 
 	nes := new(NES)
-	checkf(nes.PowerUp(rom), "failed to power up")
+	checkf(nes.PowerUp(rom), "error during power up")
 	nes.Reset()
 	nes.CPU.P = emu.P(hexbyte)
+	if disasmLog.w != nil {
+		defer disasmLog.Close()
+		nes.CPU.SetDisasm(disasmLog, false)
+	}
 	nes.Run()
 }
 
@@ -38,8 +47,8 @@ func check(err error) {
 	if err == nil {
 		return
 	}
-	fmt.Fprintf(os.Stderr, "fatal error:\n")
-	fmt.Fprintf(os.Stderr, "\n%s\n", err)
+	fmt.Fprintf(os.Stderr, "fatal error:")
+	fmt.Fprintf(os.Stderr, "\n\t%s\n", err)
 	os.Exit(1)
 }
 
@@ -48,14 +57,14 @@ func checkf(err error, format string, args ...any) {
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "fatal error:\n")
-	fmt.Fprintf(os.Stderr, "\n%s: %s\n", fmt.Sprintf(format, args...), err)
+	fmt.Fprintf(os.Stderr, "fatal error:")
+	fmt.Fprintf(os.Stderr, "\n\t%s: %s\n", fmt.Sprintf(format, args...), err)
 	os.Exit(1)
 }
 
 func fatalf(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "fatal error:\n")
-	fmt.Fprintf(os.Stderr, "\n%s\n", fmt.Sprintf(format, args...))
+	fmt.Fprintf(os.Stderr, "fatal error:")
+	fmt.Fprintf(os.Stderr, "\n\t%s\n", fmt.Sprintf(format, args...))
 	os.Exit(1)
 }
 
@@ -72,3 +81,34 @@ func (b *hexbyte) Set(s string) error {
 }
 
 func (b *hexbyte) String() string { return fmt.Sprintf("0x%02X", *b) }
+
+type outfile struct {
+	w    io.Writer
+	name string
+}
+
+func (f *outfile) Set(s string) error {
+	f.name = s
+	switch s {
+	case "stdout":
+		f.w = os.Stdout
+	case "stderr":
+		f.w = os.Stderr
+	default:
+		fd, err := os.Create(s)
+		if err != nil {
+			return err
+		}
+		f.w = fd
+	}
+	return nil
+}
+
+func (f *outfile) String() string              { return f.name }
+func (f *outfile) Write(p []byte) (int, error) { return f.w.Write(p) }
+func (f *outfile) Close() error {
+	if f.name == "stdout" || f.name == "stderr" {
+		return nil
+	}
+	return f.w.(io.Closer).Close()
+}
