@@ -159,6 +159,7 @@ var ops = [256]func(cpu *CPU){
 	0x99: STAaby,
 	0x9A: TXS,
 	0x9B: unsupported,
+	0x9C: SHY,
 	0x9D: STAabx,
 	0x9F: unsupported,
 	0xA0: LDYimm,
@@ -1395,6 +1396,13 @@ func TXS(cpu *CPU) {
 
 // 9B - unsupported
 
+// 9C
+func SHY(cpu *CPU) {
+	shy(cpu)
+	cpu.PC += 3
+	cpu.Clock += 5
+}
+
 // 9D
 func STAabx(cpu *CPU) {
 	addr, _ := cpu.abx()
@@ -2353,6 +2361,21 @@ func arr(cpu *CPU, val uint8) {
 
 	cpu.P.checkNZ(cpu.A)
 	cpu.P.writeBit(pbitC, cpu.A&(1<<6) != 0)
+}
+
+func shy(cpu *CPU) {
+	addr := cpu.abs()
+	dst := addr + uint16(cpu.X)
+	crossed := pagecrossed(addr, dst)
+
+	val := cpu.Y & (uint8(addr>>8) + 1)
+	var waddr uint16
+	if crossed {
+		waddr = (uint16(val) << 8) | dst&0xff
+	} else {
+		waddr = (addr & 0xff00) | dst&0xff
+	}
+	cpu.Write8(waddr, val)
 }
 
 func unsupported(cpu *CPU) {

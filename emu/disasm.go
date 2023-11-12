@@ -162,6 +162,7 @@ var opsDisasm = [256]disasmFunc{
 	0x99: aby("STA"),
 	0x9A: imp("TXS"),
 	0x9B: abs("*TAS"),
+	0x9C: abx("*SHY"),
 	0x9D: abx("STA"),
 	0x9F: aby("*SHA"),
 	0xA0: imm("LDY"),
