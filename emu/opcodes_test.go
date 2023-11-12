@@ -5,42 +5,57 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
+	"runtime"
+	"strings"
 	"testing"
 )
 
-type opcodeAutoTest struct {
-	Name    string `json:"name"`
-	Initial struct {
-		PC  int     `json:"pc"`
-		SP  int     `json:"s"`
-		A   int     `json:"a"`
-		X   int     `json:"x"`
-		Y   int     `json:"y"`
-		P   int     `json:"p"`
-		RAM [][]int `json:"ram"`
-	} `json:"initial"`
-	Final struct {
-		PC  int     `json:"pc"`
-		SP  int     `json:"s"`
-		A   int     `json:"a"`
-		X   int     `json:"x"`
-		Y   int     `json:"y"`
-		P   int     `json:"p"`
-		RAM [][]int `json:"ram"`
-	} `json:"final"`
-	Cycles [][]any `json:"cycles"`
+func TestAllOpcodesAreImplemented(t *testing.T) {
+	for opcode, op := range ops {
+		if op == nil {
+			t.Errorf("opcode %02x not implemented", opcode)
+		}
+	}
+}
+
+func funcname(temp interface{}) string {
+	strs := strings.Split((runtime.FuncForPC(reflect.ValueOf(temp).Pointer()).Name()), ".")
+	return strs[len(strs)-1]
 }
 
 func TestOpcodes(t *testing.T) {
-	skip := [0xff]uint8{} // skip tests for those opcodes for now
+	skipped := map[uint8]bool{
+		0x02: true, // JAM
+		0x12: true, // JAM
+		0x22: true, // JAM
+		0x32: true, // JAM
+		0x42: true, // JAM
+		0x52: true, // JAM
+		0x62: true, // JAM
+		0x72: true, // JAM
+		0x92: true, // JAM
+		0xB2: true, // JAM
+		0xD2: true, // JAM
+		0xF2: true, // JAM
+		0x8B: true, // ANE
+		0x93: true, // SHA
+		0x9B: true, // TAS
+		0x9F: true, // SHA
+		0xAB: true, // LXA
+	}
 
-	// Run tests for all implemented opcodes
-	for op, f := range ops {
-		if f == nil || skip[op] == 1 {
-			continue
+	// Run tests for all implemented opcodes.
+	for opcode, op := range ops {
+		opstr := fmt.Sprintf("%02x", opcode)
+		switch {
+		case skipped[uint8(opcode)]:
+			t.Run(opstr, func(t *testing.T) { t.Skipf("skipping unsupported opcode") })
+		case op == nil:
+			t.Run(opstr, func(t *testing.T) { t.Skip("skipping unimplemented opcodes") })
+		default:
+			t.Run(opstr, testOpcodes(opstr))
 		}
-		opstr := fmt.Sprintf("%02x", op)
-		t.Run(opstr, testOpcodes(opstr))
 	}
 }
 
@@ -55,7 +70,30 @@ func testOpcodes(op string) func(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var tests []opcodeAutoTest
+
+		var tests []struct {
+			Name    string `json:"name"`
+			Initial struct {
+				PC  int     `json:"pc"`
+				SP  int     `json:"s"`
+				A   int     `json:"a"`
+				X   int     `json:"x"`
+				Y   int     `json:"y"`
+				P   int     `json:"p"`
+				RAM [][]int `json:"ram"`
+			} `json:"initial"`
+			Final struct {
+				PC  int     `json:"pc"`
+				SP  int     `json:"s"`
+				A   int     `json:"a"`
+				X   int     `json:"x"`
+				Y   int     `json:"y"`
+				P   int     `json:"p"`
+				RAM [][]int `json:"ram"`
+			} `json:"final"`
+			Cycles [][]any `json:"cycles"`
+		}
+
 		if err := json.Unmarshal(buf, &tests); err != nil {
 			t.Fatal(err)
 		}
@@ -76,16 +114,22 @@ func testOpcodes(op string) func(t *testing.T) {
 				}
 
 				if testing.Verbose() {
-					t.Log("run")
+					t.Logf("initial {A=0x%02x X=0x%02x Y=0x%02x P=0x%02x(%s) SP=0x%02x PC=0x%04x}\n",
+						cpu.A, cpu.X, cpu.Y, uint8(cpu.P), cpu.P.String(), cpu.SP, cpu.PC)
+					t.Log("run:")
 				}
 
 				cpu.Run(int64(len(tt.Cycles)) - 1)
 
 				if testing.Verbose() {
+					t.Log("test output:")
+				}
+
+				if testing.Verbose() {
 					for i, row := range tt.Cycles {
 						addr := int(row[0].(float64))
 						val := int(row[1].(float64))
-						t.Logf("cycle %d: %s 0x%4x = 0x%2x\n", i, row[2], addr, val)
+						t.Logf("cycle %d: %s 0x%04x = 0x%02x\n", i, row[2], addr, val)
 					}
 				}
 
