@@ -42,6 +42,7 @@ func TestOpcodes(t *testing.T) {
 		0x93: true, // SHA
 		0x9B: true, // TAS
 		0x9F: true, // SHA
+		0xAB: true, // LXA
 	}
 
 	// Run tests for all implemented opcodes.

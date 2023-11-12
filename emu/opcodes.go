@@ -174,6 +174,7 @@ var ops = [256]func(cpu *CPU){
 	0xA8: TAY,
 	0xA9: LDAimm,
 	0xAA: TAX,
+	0xAB: unsupported,
 	0xAC: LDYabs,
 	0xAD: LDAabs,
 	0xAE: LDXabs,
@@ -205,6 +206,7 @@ var ops = [256]func(cpu *CPU){
 	0xC8: INY,
 	0xC9: CMPimm,
 	0xCA: DEX,
+	0xCB: SBX,
 	0xCC: CPYabs,
 	0xCD: CMPabs,
 	0xCE: DECabs,
@@ -1510,6 +1512,8 @@ func TAX(cpu *CPU) {
 	cpu.Clock += 2
 }
 
+// AB - unsupported
+
 // AC
 func LDYabs(cpu *CPU) {
 	oper := cpu.abs()
@@ -1760,6 +1764,13 @@ func DEX(cpu *CPU) {
 	cpu.X--
 	cpu.P.checkNZ(cpu.X)
 	cpu.PC += 1
+	cpu.Clock += 2
+}
+
+// CB
+func SBX(cpu *CPU) {
+	sbx(cpu, cpu.imm())
+	cpu.PC += 2
 	cpu.Clock += 2
 }
 
@@ -2399,6 +2410,13 @@ func shy(cpu *CPU) {
 		waddr = (addr & 0xff00) | dst&0xff
 	}
 	cpu.Write8(waddr, val)
+}
+
+func sbx(cpu *CPU, oper uint8) {
+	val := (int16(cpu.A) & int16(cpu.X)) - int16(oper)
+	cpu.X = uint8(val)
+	cpu.P.checkNZ(uint8(val))
+	cpu.P.writeBit(pbitC, val >= 0)
 }
 
 func unsupported(cpu *CPU) {
