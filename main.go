@@ -34,13 +34,15 @@ func main() {
 
 	nes := new(NES)
 	checkf(nes.PowerUp(rom), "error during power up")
+
 	nes.Reset()
 	nes.CPU.P = emu.P(hexbyte)
 	if disasmLog.w != nil {
 		defer disasmLog.Close()
 		nes.CPU.SetDisasm(disasmLog, false)
 	}
-	nes.Run()
+
+	checkf(startScreen(nes), "can't start screen")
 }
 
 func check(err error) {
