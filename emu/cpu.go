@@ -24,11 +24,17 @@ type CPU struct {
 	Clock        int64 // cycles
 	targetCycles int64
 
+	t Ticker // tick callback
+
 	disasm *disasm
 }
 
+type Ticker interface {
+	Tick()
+}
+
 // NewCPU creates a new CPU at power-up state.
-func NewCPU(bus Bus) *CPU {
+func NewCPU(bus Bus, ticker Ticker) *CPU {
 	cpu := &CPU{
 		bus: bus,
 		A:   0x00,
@@ -37,6 +43,7 @@ func NewCPU(bus Bus) *CPU {
 		SP:  0xFD,
 		P:   0x00,
 		PC:  0x0000,
+		t:   ticker,
 	}
 	return cpu
 }
@@ -67,25 +74,32 @@ func (c *CPU) Run(until int64) {
 	}
 }
 
+func (c *CPU) tick() {
+	c.t.Tick()
+	c.Clock++
+}
+
 func (c *CPU) Read8(addr uint16) uint8 {
+	c.tick()
 	return c.bus.Read8(addr)
 }
 
 func (c *CPU) Write8(addr uint16, val uint8) {
+	c.tick()
 	c.bus.Write8(addr, val)
 }
 
 func (c *CPU) Read16(addr uint16) uint16 {
-	lo := c.bus.Read8(addr)
-	hi := c.bus.Read8(addr + 1)
+	lo := c.Read8(addr)
+	hi := c.Read8(addr + 1)
 	return uint16(hi)<<8 | uint16(lo)
 }
 
 func (c *CPU) Write16(addr uint16, val uint16) {
 	lo := uint8(val & 0xff)
 	hi := uint8(val >> 8)
-	c.bus.Write8(addr, lo)
-	c.bus.Write8(addr+1, hi)
+	c.Write8(addr, lo)
+	c.Write8(addr+1, hi)
 }
 
 // P is the 6502 Processor Status Register.

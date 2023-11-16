@@ -187,6 +187,10 @@ func nextpow2(v uint64) uint64 {
 	return v + 1
 }
 
+type ticker struct{}
+
+func (tt *ticker) Tick() {}
+
 // loadCPUWith loads a CPU with a memory dump.
 func loadCPUWith(tb testing.TB, dump string) *CPU {
 	mem := new(MemMap)
@@ -197,7 +201,7 @@ func loadCPUWith(tb testing.TB, dump string) *CPU {
 		mem.MapSlice(line.off, line.off+uint16(len(line.bytes))-1, line.bytes)
 	}
 
-	cpu := NewCPU(mem)
+	cpu := NewCPU(mem, &ticker{})
 	cpu.Reset()
 	if testing.Verbose() {
 		cpu.SetDisasm(tbwriter{tb}, false)
