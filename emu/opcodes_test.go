@@ -101,7 +101,7 @@ func testOpcodes(op string) func(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.Name, func(t *testing.T) {
 				mem := &mapbus{m: make(map[uint16]uint8), t: t}
-				cpu := NewCPU(mem)
+				cpu := NewCPU(mem, &ticker{})
 				cpu.A = uint8(tt.Initial.A)
 				cpu.X = uint8(tt.Initial.X)
 				cpu.Y = uint8(tt.Initial.Y)
@@ -109,8 +109,9 @@ func testOpcodes(op string) func(t *testing.T) {
 				cpu.SP = uint8(tt.Initial.SP)
 				cpu.PC = uint16(tt.Initial.PC)
 
+				// preload RAM
 				for _, row := range tt.Initial.RAM {
-					mem.Write8(uint16(row[0]), uint8(row[1]))
+					mem.m[uint16(row[0])] = uint8(row[1])
 				}
 
 				if testing.Verbose() {
@@ -125,12 +126,9 @@ func testOpcodes(op string) func(t *testing.T) {
 					t.Log("test output:")
 				}
 
-				if testing.Verbose() {
-					for i, row := range tt.Cycles {
-						addr := int(row[0].(float64))
-						val := int(row[1].(float64))
-						t.Logf("cycle %d: %s 0x%04x = 0x%02x\n", i, row[2], addr, val)
-					}
+				// check cycles
+				if len(tt.Cycles) != int(cpu.Clock) {
+					t.Errorf("cycles count mismatch: got %d want %d\ndebug:\n%s", cpu.Clock, len(tt.Cycles), strings.Join(prettyCycles(tt.Cycles), "\n"))
 				}
 
 				// check ram
@@ -155,6 +153,16 @@ func testOpcodes(op string) func(t *testing.T) {
 			})
 		}
 	}
+}
+
+func prettyCycles(cycles [][]any) []string {
+	strs := make([]string, len(cycles))
+	for i, row := range cycles {
+		addr := int(row[0].(float64))
+		val := int(row[1].(float64))
+		strs[i] = fmt.Sprintf("%s 0x%04x = 0x%02x", row[2], addr, val)
+	}
+	return strs
 }
 
 func TestCPx(t *testing.T) {
