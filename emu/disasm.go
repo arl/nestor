@@ -362,7 +362,7 @@ func abs(op string) disasmFunc {
 func abx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		oper := d.cpu.abs()
-		addr, _ := d.cpu.abx()
+		addr := d.cpu.abxpx()
 		return fmt.Sprintf("% 4s $%04X,X @ %04X = %02X", op, oper, addr, d.cpu.Read8(addr)), 3
 	}
 }
@@ -370,7 +370,7 @@ func abx(op string) disasmFunc {
 func aby(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		oper := d.cpu.abs()
-		addr, _ := d.cpu.aby()
+		addr := d.cpu.abypx()
 		return fmt.Sprintf("% 4s $%04X,Y @ %04X = %02X", op, oper, addr, d.cpu.Read8(addr)), 3
 	}
 }

@@ -437,7 +437,7 @@ func CLC(cpu *CPU) {
 
 // 19
 func ORAaby(cpu *CPU) {
-	addr, _ := cpu.aby()
+	addr := cpu.abypx()
 	val := cpu.Read8(uint16(addr))
 	ora(cpu, val)
 	cpu.PC += 3
@@ -451,19 +451,16 @@ func NOPimp(cpu *CPU) {
 
 // 1B
 func SLOaby(cpu *CPU) {
-	oper, crossed := cpu.aby()
+	oper := cpu.aby()
 	val := cpu.Read8(oper)
 	slo(cpu, &val)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	cpu.Write8(oper, val)
 	cpu.PC += 3
 }
 
 // 1D
 func ORAabx(cpu *CPU) {
-	addr, _ := cpu.abx()
+	addr := cpu.abxpx()
 	val := cpu.Read8(uint16(addr))
 	ora(cpu, val)
 	cpu.PC += 3
@@ -472,24 +469,18 @@ func ORAabx(cpu *CPU) {
 
 // 1E
 func ASLabx(cpu *CPU) {
-	oper, crossed := cpu.abx()
+	oper := cpu.abx()
 	val := cpu.Read8(oper)
 	asl(cpu, &val)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	cpu.Write8(oper, val)
 	cpu.PC += 3
 }
 
 // 1F
 func SLOabx(cpu *CPU) {
-	oper, crossed := cpu.abx()
+	oper := cpu.abx()
 	val := cpu.Read8(oper)
 	slo(cpu, &val)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	cpu.Write8(oper, val)
 	cpu.PC += 3
 }
@@ -674,7 +665,7 @@ func SEC(cpu *CPU) {
 
 // 39
 func ANDaby(cpu *CPU) {
-	oper, _ := cpu.aby()
+	oper := cpu.abypx()
 	val := cpu.Read8(oper)
 	and(cpu, val)
 	cpu.PC += 3
@@ -682,19 +673,16 @@ func ANDaby(cpu *CPU) {
 
 // 3B
 func RLAaby(cpu *CPU) {
-	oper, crossed := cpu.aby()
+	oper := cpu.aby()
 	val := cpu.Read8(oper)
 	rla(cpu, &val)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	cpu.Write8(oper, val)
 	cpu.PC += 3
 }
 
 // 3D
 func ANDabx(cpu *CPU) {
-	oper, _ := cpu.abx()
+	oper := cpu.abxpx()
 	val := cpu.Read8(oper)
 	and(cpu, val)
 	cpu.PC += 3
@@ -702,24 +690,18 @@ func ANDabx(cpu *CPU) {
 
 // 3E
 func ROLabx(cpu *CPU) {
-	oper, crossed := cpu.abx()
+	oper := cpu.abx()
 	val := cpu.Read8(oper)
 	rol(cpu, &val)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	cpu.Write8(oper, val)
 	cpu.PC += 3
 }
 
 // 3F
 func RLAabx(cpu *CPU) {
-	oper, crossed := cpu.abx()
+	oper := cpu.abx()
 	val := cpu.Read8(oper)
 	rla(cpu, &val)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	cpu.Write8(oper, val)
 	cpu.PC += 3
 }
@@ -894,7 +876,7 @@ func CLI(cpu *CPU) {
 
 // 59
 func EORaby(cpu *CPU) {
-	oper, _ := cpu.aby()
+	oper := cpu.abypx()
 	val := cpu.Read8(oper)
 	eor(cpu, val)
 	cpu.PC += 3
@@ -902,10 +884,7 @@ func EORaby(cpu *CPU) {
 
 // 5B
 func SREaby(cpu *CPU) {
-	oper, crossed := cpu.aby()
-	if crossed == 0 {
-		cpu.tick()
-	}
+	oper := cpu.aby()
 	val := cpu.Read8(oper)
 	sre(cpu, &val)
 	cpu.Write8(oper, val)
@@ -914,7 +893,7 @@ func SREaby(cpu *CPU) {
 
 // 5D
 func EORabx(cpu *CPU) {
-	oper, _ := cpu.abx()
+	oper := cpu.abxpx()
 	val := cpu.Read8(oper)
 	eor(cpu, val)
 	cpu.PC += 3
@@ -922,10 +901,7 @@ func EORabx(cpu *CPU) {
 
 // 5E
 func LSRabx(cpu *CPU) {
-	oper, crossed := cpu.abx()
-	if crossed == 0 {
-		cpu.tick()
-	}
+	oper := cpu.abx()
 	val := cpu.Read8(oper)
 	lsrmem(cpu, &val)
 	cpu.Write8(oper, val)
@@ -934,11 +910,8 @@ func LSRabx(cpu *CPU) {
 
 // 5F
 func SREabx(cpu *CPU) {
-	oper, crossed := cpu.abx()
+	oper := cpu.abx()
 	val := cpu.Read8(oper)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	sre(cpu, &val)
 	cpu.Write8(oper, val)
 	cpu.PC += 3
@@ -1116,7 +1089,7 @@ func SEI(cpu *CPU) {
 
 // 79
 func ADCaby(cpu *CPU) {
-	oper, _ := cpu.aby()
+	oper := cpu.abypx()
 	val := cpu.Read8(oper)
 	adc(cpu, val)
 	cpu.PC += 3
@@ -1124,19 +1097,16 @@ func ADCaby(cpu *CPU) {
 
 // 7B
 func RRAaby(cpu *CPU) {
-	oper, crossed := cpu.aby()
+	oper := cpu.aby()
 	val := cpu.Read8(oper)
 	rra(cpu, &val)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	cpu.Write8(oper, val)
 	cpu.PC += 3
 }
 
 // 7D
 func ADCabx(cpu *CPU) {
-	oper, _ := cpu.abx()
+	oper := cpu.abxpx()
 	val := cpu.Read8(oper)
 	adc(cpu, val)
 	cpu.PC += 3
@@ -1144,24 +1114,18 @@ func ADCabx(cpu *CPU) {
 
 // 7E
 func RORabx(cpu *CPU) {
-	oper, crossed := cpu.abx()
+	oper := cpu.abx()
 	val := cpu.Read8(oper)
 	ror(cpu, &val)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	cpu.Write8(oper, val)
 	cpu.PC += 3
 }
 
 // 7F
 func RRAabx(cpu *CPU) {
-	oper, crossed := cpu.abx()
+	oper := cpu.abx()
 	val := cpu.Read8(oper)
 	rra(cpu, &val)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	cpu.Write8(oper, val)
 	cpu.PC += 3
 }
@@ -1312,11 +1276,8 @@ func TYA(cpu *CPU) {
 
 // 99
 func STAaby(cpu *CPU) {
-	addr, crossed := cpu.aby()
+	addr := cpu.aby()
 	cpu.Write8(addr, cpu.A)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	cpu.PC += 3
 }
 
@@ -1337,10 +1298,7 @@ func SHY(cpu *CPU) {
 
 // 9D
 func STAabx(cpu *CPU) {
-	addr, crossed := cpu.abx()
-	if crossed == 0 {
-		cpu.tick()
-	}
+	addr := cpu.abx()
 	cpu.Write8(addr, cpu.A)
 	cpu.PC += 3
 }
@@ -1531,7 +1489,7 @@ func CLV(cpu *CPU) {
 
 // B9
 func LDAaby(cpu *CPU) {
-	oper, _ := cpu.aby()
+	oper := cpu.abypx()
 	lda(cpu, cpu.Read8(oper))
 	cpu.PC += 3
 }
@@ -1546,7 +1504,7 @@ func TSX(cpu *CPU) {
 
 // BB
 func LAS(cpu *CPU) {
-	oper, _ := cpu.aby()
+	oper := cpu.abypx()
 	val := cpu.Read8(oper)
 	las(cpu, val)
 	cpu.PC += 3
@@ -1554,21 +1512,21 @@ func LAS(cpu *CPU) {
 
 // BC
 func LDYabx(cpu *CPU) {
-	oper, _ := cpu.abx()
+	oper := cpu.abxpx()
 	ldy(cpu, cpu.Read8(oper))
 	cpu.PC += 3
 }
 
 // BD
 func LDAabx(cpu *CPU) {
-	oper, _ := cpu.abx()
+	oper := cpu.abxpx()
 	lda(cpu, cpu.Read8(oper))
 	cpu.PC += 3
 }
 
 // BE
 func LDXaby(cpu *CPU) {
-	oper, _ := cpu.aby()
+	oper := cpu.abypx()
 	val := cpu.Read8(oper)
 	ldx(cpu, val)
 	cpu.PC += 3
@@ -1576,7 +1534,7 @@ func LDXaby(cpu *CPU) {
 
 // BF
 func LAXaby(cpu *CPU) {
-	oper, _ := cpu.aby()
+	oper := cpu.abypx()
 	val := cpu.Read8(oper)
 	lax(cpu, val)
 	cpu.PC += 3
@@ -1767,7 +1725,7 @@ func CLD(cpu *CPU) {
 
 // D9
 func CMPaby(cpu *CPU) {
-	oper, _ := cpu.aby()
+	oper := cpu.abypx()
 	val := cpu.Read8(oper)
 	cmp_(cpu, val)
 	cpu.PC += 3
@@ -1775,11 +1733,8 @@ func CMPaby(cpu *CPU) {
 
 // DB
 func DCPaby(cpu *CPU) {
-	oper, crossed := cpu.aby()
+	oper := cpu.aby()
 	val := cpu.Read8(oper)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	dec(cpu, &val)
 	cpu.Write8(oper, val)
 	cmp_(cpu, val)
@@ -1788,7 +1743,7 @@ func DCPaby(cpu *CPU) {
 
 // DD
 func CMPabx(cpu *CPU) {
-	oper, _ := cpu.abx()
+	oper := cpu.abxpx()
 	val := cpu.Read8(oper)
 	cmp_(cpu, val)
 	cpu.PC += 3
@@ -1796,11 +1751,8 @@ func CMPabx(cpu *CPU) {
 
 // DE
 func DECabx(cpu *CPU) {
-	oper, crossed := cpu.abx()
+	oper := cpu.abx()
 	val := cpu.Read8(uint16(oper))
-	if crossed == 0 {
-		cpu.tick()
-	}
 	dec(cpu, &val)
 	cpu.Write8(uint16(oper), val)
 	cpu.PC += 3
@@ -1808,14 +1760,11 @@ func DECabx(cpu *CPU) {
 
 // DF
 func DCPabx(cpu *CPU) {
-	oper, crossed := cpu.abx()
+	oper := cpu.abx()
 	val := cpu.Read8(oper)
 	dec(cpu, &val)
 	cpu.Write8(oper, val)
 	cmp_(cpu, val)
-	if crossed != 1 {
-		cpu.tick()
-	}
 	cpu.PC += 3
 }
 
@@ -1993,7 +1942,7 @@ func SED(cpu *CPU) {
 
 // F9
 func SBCaby(cpu *CPU) {
-	oper, _ := cpu.aby()
+	oper := cpu.abypx()
 	val := cpu.Read8(oper)
 	sbc(cpu, val)
 	cpu.PC += 3
@@ -2001,21 +1950,18 @@ func SBCaby(cpu *CPU) {
 
 // FB
 func ISBaby(cpu *CPU) {
-	oper, crossed := cpu.aby()
+	oper := cpu.aby()
 	val := cpu.Read8(uint16(oper))
 	val++
 	cpu.tick()
 	sbc(cpu, val)
-	if crossed == 0 {
-		cpu.tick()
-	}
 	cpu.Write8(uint16(oper), val)
 	cpu.PC += 3
 }
 
 // FD
 func SBCabx(cpu *CPU) {
-	oper, _ := cpu.abx()
+	oper := cpu.abxpx()
 	val := cpu.Read8(oper)
 	sbc(cpu, val)
 	cpu.PC += 3
@@ -2023,7 +1969,7 @@ func SBCabx(cpu *CPU) {
 
 // FE
 func INCabx(cpu *CPU) {
-	oper := cpu.abx2()
+	oper := cpu.abx()
 	val := cpu.Read8(uint16(oper))
 	inc(cpu, &val)
 	cpu.Write8(uint16(oper), val)
@@ -2032,10 +1978,7 @@ func INCabx(cpu *CPU) {
 
 // FF
 func ISBabx(cpu *CPU) {
-	oper, crossed := cpu.abx()
-	if crossed == 0 {
-		cpu.tick()
-	}
+	oper := cpu.abx()
 	val := cpu.Read8(uint16(oper))
 	inc(cpu, &val)
 	sbc(cpu, val)
@@ -2205,7 +2148,7 @@ func ldy(cpu *CPU, val uint8) {
 // NOP variants
 
 func NOPabx(cpu *CPU) {
-	addr, _ := cpu.abx()
+	addr := cpu.abxpx()
 	_ = cpu.Read8(addr)
 	cpu.PC += 3
 }
@@ -2409,33 +2352,34 @@ func (cpu *CPU) zpy() uint8 {
 	return cpu.zp() + cpu.Y
 }
 
-// abolute indexed x. returns the destination address and a integer set to 1 if
-// a page boundary was crossed.
-func (cpu *CPU) abx() (uint16, uint8) {
+// absolute indexed x (with page cross handling).
+func (cpu *CPU) abxpx() uint16 {
 	addr := cpu.abs()
 	dst := addr + uint16(cpu.X)
-	crossed := pagecrossed(addr, dst)
-	if crossed {
+	if pagecrossed(addr, dst) {
 		cpu.tick()
 	}
-	return dst, b2i(crossed)
+	return dst
 }
 
-func (cpu *CPU) abx2() uint16 {
+func (cpu *CPU) abx() uint16 {
 	cpu.tick()
 	return cpu.abs() + uint16(cpu.X)
 }
 
-// abolute indexed y. returns the destination address and a integer set to 1 if
-// a page boundary was crossed.
-func (cpu *CPU) aby() (uint16, uint8) {
+// absolute indexed y (with page cross handling).
+func (cpu *CPU) abypx() uint16 {
 	addr := cpu.abs()
 	dst := addr + uint16(cpu.Y)
-	crossed := pagecrossed(addr, dst)
-	if crossed {
+	if pagecrossed(addr, dst) {
 		cpu.tick()
 	}
-	return dst, b2i(crossed)
+	return dst
+}
+
+func (cpu *CPU) aby() uint16 {
+	cpu.tick()
+	return cpu.abs() + uint16(cpu.Y)
 }
 
 // zeropage indexed indirect (zp,x)
