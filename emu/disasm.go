@@ -266,7 +266,6 @@ var opsDisasm = [256]disasmFunc{
 
 type disasm struct {
 	cpu       *CPU
-	prevP     P
 	prevPC    uint16
 	prevClock int64
 	bb        bytes.Buffer
@@ -278,18 +277,11 @@ type disasm struct {
 }
 
 func (d *disasm) loopinit() {
-	if d == nil {
-		return
-	}
-	d.prevP = d.cpu.P
 	d.prevPC = d.cpu.PC
 	d.prevClock = d.cpu.Clock
 }
 
 func (d *disasm) op() {
-	if d == nil {
-		return
-	}
 	d.bb.Reset()
 
 	opcode := d.cpu.bus.Read8(d.prevPC)
