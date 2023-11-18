@@ -2342,7 +2342,6 @@ func (cpu *CPU) zpr16(addr uint16) uint16 {
 func (cpu *CPU) imm() uint8  { return cpu.Read8(cpu.PC + 1) }
 func (cpu *CPU) abs() uint16 { return cpu.Read16(cpu.PC + 1) }
 func (cpu *CPU) zp() uint8   { return cpu.Read8(cpu.PC + 1) }
-
 func (cpu *CPU) zpx() uint8 {
 	cpu.tick()
 	return cpu.zp() + cpu.X

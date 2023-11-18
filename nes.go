@@ -15,7 +15,7 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 	cpubus := newCpuBus("cpu")
 	cpubus.MapMemory()
 
-	nes.CPU = emu.NewCPU(cpubus, nil)
+	nes.CPU = emu.NewCPU(cpubus, &ticker{})
 	if rom.Mapper() != 0 {
 		// Only handle mapper 000 (NROM) for now.
 		return fmt.Errorf("unsupported mapper: %d", rom.Mapper())
@@ -35,3 +35,7 @@ func (nes *NES) Reset() {
 func (nes *NES) Run() {
 	nes.CPU.Run(29692) // random
 }
+
+type ticker struct{}
+
+func (tt *ticker) Tick() {}
