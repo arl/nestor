@@ -17,7 +17,7 @@ func main() {
 	disasmLog := new(outfile)
 
 	flag.Var(&hexbyte, "P", "P register after first cpu reset (hex)")
-	flag.Var(disasmLog, "dlog", "write execution log to [file/stdout/stderr] (test/debug)")
+	flag.Var(disasmLog, "dbglog", "write execution log to [file|stdout|stderr] (for testing/debugging")
 	flag.Parse()
 
 	if len(flag.Args()) < 1 {
