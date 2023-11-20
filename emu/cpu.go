@@ -62,6 +62,7 @@ func (c *CPU) Run(until int64) {
 	c.targetCycles = until
 	for c.Clock < c.targetCycles {
 		opcode := c.Read8(uint16(c.PC))
+		c.PC++
 		op := ops[opcode]
 		if op == nil {
 			panic(fmt.Sprintf("unsupported op code %02X (PC:$%04X)", opcode, c.PC))
@@ -75,6 +76,7 @@ func (c *CPU) RunDisasm(until int64) {
 	for c.Clock < c.targetCycles {
 		c.disasm.loopinit()
 		opcode := c.Read8(uint16(c.PC))
+		c.PC++
 		op := ops[opcode]
 		if op == nil {
 			panic(fmt.Sprintf("unsupported op code %02X (PC:$%04X)", opcode, c.PC))

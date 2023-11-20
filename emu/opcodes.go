@@ -264,7 +264,7 @@ var ops = [256]func(cpu *CPU){
 // 00
 func BRK(cpu *CPU) {
 	cpu.tick()
-	push16(cpu, cpu.PC+2)
+	push16(cpu, cpu.PC+1)
 	p := cpu.P
 	p.setBit(pbitB)
 	push8(cpu, uint8(p))
