@@ -277,7 +277,6 @@ func ORAizx(cpu *CPU) {
 	oper := cpu.izx()
 	val := cpu.Read8(oper)
 	ora(cpu, val)
-	cpu.PC += 2
 }
 
 // 03
@@ -286,7 +285,6 @@ func SLOizx(cpu *CPU) {
 	val := cpu.Read8(oper)
 	slo(cpu, &val)
 	cpu.Write8(oper, val)
-	cpu.PC += 2
 }
 
 // 05
@@ -294,7 +292,6 @@ func ORAzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	ora(cpu, val)
-	cpu.PC += 2
 }
 
 // 06
@@ -303,7 +300,6 @@ func ASLzp(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	asl(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 07
@@ -312,7 +308,6 @@ func SLOzp(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	slo(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 08
@@ -327,7 +322,6 @@ func PHP(cpu *CPU) {
 // 09
 func ORAimm(cpu *CPU) {
 	ora(cpu, cpu.imm())
-	cpu.PC += 2
 }
 
 // 0A
@@ -388,18 +382,15 @@ func ORAizy(cpu *CPU) {
 	if crossed == 1 {
 		cpu.tick()
 	}
-	cpu.PC += 2
 }
 
 // 13
 func SLOizy(cpu *CPU) {
-	oper, crossed := cpu.izy()
+	oper, _ := cpu.izy()
 	val := cpu.Read8(oper)
 	slo(cpu, &val)
 	cpu.tick()
-	_ = crossed
 	cpu.Write8(oper, val)
-	cpu.PC += 2
 }
 
 // 15
@@ -407,7 +398,6 @@ func ORAzpx(cpu *CPU) {
 	addr := cpu.zpx()
 	val := cpu.Read8(uint16(addr))
 	ora(cpu, val)
-	cpu.PC += 2
 }
 
 // 16
@@ -416,7 +406,6 @@ func ASLzpx(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	asl(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 17
@@ -425,7 +414,6 @@ func SLOzpx(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	slo(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 18
@@ -500,7 +488,6 @@ func ANDizx(cpu *CPU) {
 	oper := cpu.izx()
 	val := cpu.Read8(oper)
 	and(cpu, val)
-	cpu.PC += 2
 }
 
 // 23
@@ -517,7 +504,6 @@ func BITzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	bit(cpu, val)
-	cpu.PC += 2
 }
 
 // 25
@@ -525,7 +511,6 @@ func ANDzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	and(cpu, val)
-	cpu.PC += 2
 }
 
 // 26
@@ -534,7 +519,6 @@ func ROLzp(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	rol(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 27
@@ -543,7 +527,6 @@ func RLAzp(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	rla(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 28
@@ -559,7 +542,6 @@ func PLP(cpu *CPU) {
 // 29
 func ANDimm(cpu *CPU) {
 	and(cpu, cpu.imm())
-	cpu.PC += 2
 }
 
 // 2A
@@ -617,7 +599,6 @@ func ANDizy(cpu *CPU) {
 	if crossed == 1 {
 		cpu.tick()
 	}
-	cpu.PC += 2
 }
 
 // 33
@@ -627,7 +608,6 @@ func RLAizy(cpu *CPU) {
 	rla(cpu, &val)
 	cpu.tick()
 	cpu.Write8(oper, val)
-	cpu.PC += 2
 }
 
 // 35
@@ -635,7 +615,6 @@ func ANDzpx(cpu *CPU) {
 	oper := cpu.zpx()
 	val := cpu.Read8(uint16(oper))
 	and(cpu, val)
-	cpu.PC += 2
 }
 
 // 36
@@ -644,7 +623,6 @@ func ROLzpx(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	rol(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 37
@@ -653,7 +631,6 @@ func RLAzpx(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	rla(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 38
@@ -721,7 +698,6 @@ func EORizx(cpu *CPU) {
 	oper := cpu.izx()
 	val := cpu.Read8(oper)
 	eor(cpu, val)
-	cpu.PC += 2
 }
 
 // 43
@@ -730,7 +706,6 @@ func SREizx(cpu *CPU) {
 	val := cpu.Read8(oper)
 	sre(cpu, &val)
 	cpu.Write8(oper, val)
-	cpu.PC += 2
 }
 
 // 45
@@ -738,7 +713,6 @@ func EORzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	eor(cpu, val)
-	cpu.PC += 2
 }
 
 // 46
@@ -747,7 +721,6 @@ func LSRzp(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	lsrmem(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 47
@@ -756,7 +729,6 @@ func SREzp(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	sre(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 48
@@ -828,7 +800,6 @@ func EORizy(cpu *CPU) {
 	}
 	val := cpu.Read8(oper)
 	eor(cpu, val)
-	cpu.PC += 2
 }
 
 // 53
@@ -838,7 +809,6 @@ func SREizy(cpu *CPU) {
 	val := cpu.Read8(oper)
 	sre(cpu, &val)
 	cpu.Write8(oper, val)
-	cpu.PC += 2
 }
 
 // 55
@@ -846,7 +816,6 @@ func EORzpx(cpu *CPU) {
 	oper := cpu.zpx()
 	val := cpu.Read8(uint16(oper))
 	eor(cpu, val)
-	cpu.PC += 2
 }
 
 // 56
@@ -855,7 +824,6 @@ func LSRzpx(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	lsrmem(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 57
@@ -864,7 +832,6 @@ func SREzpx(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	sre(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 58
@@ -931,7 +898,6 @@ func ADCizx(cpu *CPU) {
 	oper := cpu.izx()
 	val := cpu.Read8(oper)
 	adc(cpu, val)
-	cpu.PC += 2
 }
 
 // 63
@@ -940,7 +906,6 @@ func RRAizx(cpu *CPU) {
 	val := cpu.Read8(oper)
 	rra(cpu, &val)
 	cpu.Write8(oper, val)
-	cpu.PC += 2
 }
 
 // 65
@@ -948,7 +913,6 @@ func ADCzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	adc(cpu, val)
-	cpu.PC += 2
 }
 
 // 66
@@ -957,7 +921,6 @@ func RORzp(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	ror(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 67
@@ -966,7 +929,6 @@ func RRAzp(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	rra(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 68
@@ -982,7 +944,6 @@ func PLA(cpu *CPU) {
 func ADCimm(cpu *CPU) {
 	oper := cpu.imm()
 	adc(cpu, oper)
-	cpu.PC += 2
 }
 
 // 6A
@@ -1038,7 +999,6 @@ func ADCizy(cpu *CPU) {
 	oper, crossed := cpu.izy()
 	val := cpu.Read8(oper)
 	adc(cpu, val)
-	cpu.PC += 2
 	if crossed == 1 {
 		cpu.tick()
 	}
@@ -1051,7 +1011,6 @@ func RRAizy(cpu *CPU) {
 	rra(cpu, &val)
 	cpu.tick()
 	cpu.Write8(oper, val)
-	cpu.PC += 2
 }
 
 // 75
@@ -1059,7 +1018,6 @@ func ADCzpx(cpu *CPU) {
 	addr := cpu.zpx()
 	val := cpu.Read8(uint16(addr))
 	adc(cpu, val)
-	cpu.PC += 2
 }
 
 // 76
@@ -1068,7 +1026,6 @@ func RORzpx(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	ror(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 77
@@ -1077,7 +1034,6 @@ func RRAzpx(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	rra(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // 78
@@ -1133,49 +1089,42 @@ func RRAabx(cpu *CPU) {
 // 80
 func NOPimm(cpu *CPU) {
 	cpu.imm()
-	cpu.PC += 2
 }
 
 // 81
 func STAizx(cpu *CPU) {
 	addr := cpu.izx()
 	cpu.Write8(addr, cpu.A)
-	cpu.PC += 2
 }
 
 // 83
 func SAXizx(cpu *CPU) {
 	addr := cpu.izx()
 	cpu.Write8(addr, cpu.A&cpu.X)
-	cpu.PC += 2
 }
 
 // 84
 func STYzp(cpu *CPU) {
 	oper := cpu.zp()
 	cpu.Write8(uint16(oper), cpu.Y)
-	cpu.PC += 2
 }
 
 // 85
 func STAzp(cpu *CPU) {
 	oper := cpu.zp()
 	cpu.Write8(uint16(oper), cpu.A)
-	cpu.PC += 2
 }
 
 // 86
 func STXzp(cpu *CPU) {
 	oper := cpu.zp()
 	cpu.Write8(uint16(oper), cpu.X)
-	cpu.PC += 2
 }
 
 // 87
 func SAXzp(cpu *CPU) {
 	oper := cpu.zp()
 	cpu.Write8(uint16(oper), cpu.A&cpu.X)
-	cpu.PC += 2
 }
 
 // 88
@@ -1190,7 +1139,6 @@ func TXA(cpu *CPU) {
 	cpu.A = cpu.X
 	cpu.P.checkNZ(cpu.A)
 	cpu.tick()
-	cpu.PC += 1
 }
 
 // 8B - unsupported
@@ -1233,7 +1181,6 @@ func STAizy(cpu *CPU) {
 	cpu.tick()
 	addr, _ := cpu.izy()
 	cpu.Write8(addr, cpu.A)
-	cpu.PC += 2
 }
 
 // 93 - unsupported
@@ -1242,28 +1189,24 @@ func STAizy(cpu *CPU) {
 func STYzpx(cpu *CPU) {
 	oper := cpu.zpx()
 	cpu.Write8(uint16(oper), cpu.Y)
-	cpu.PC += 2
 }
 
 // 95
 func STAzpx(cpu *CPU) {
 	addr := cpu.zpx()
 	cpu.Write8(uint16(addr), cpu.A)
-	cpu.PC += 2
 }
 
 // 96
 func STXzpy(cpu *CPU) {
 	addr := cpu.zpy()
 	cpu.Write8(uint16(addr), cpu.X)
-	cpu.PC += 2
 }
 
 // 97
 func SAXzpy(cpu *CPU) {
 	addr := cpu.zpy()
 	cpu.Write8(uint16(addr), cpu.A&cpu.X)
-	cpu.PC += 2
 }
 
 // 98
@@ -1271,7 +1214,6 @@ func TYA(cpu *CPU) {
 	cpu.A = cpu.Y
 	cpu.P.checkNZ(cpu.A)
 	cpu.tick()
-	cpu.PC += 1
 }
 
 // 99
@@ -1285,7 +1227,6 @@ func STAaby(cpu *CPU) {
 func TXS(cpu *CPU) {
 	cpu.SP = cpu.X
 	cpu.tick()
-	cpu.PC += 1
 }
 
 // 9B - unsupported
@@ -1314,27 +1255,23 @@ func SHX(cpu *CPU) {
 // A0
 func LDYimm(cpu *CPU) {
 	ldy(cpu, cpu.imm())
-	cpu.PC += 2
 }
 
 // A1
 func LDAizx(cpu *CPU) {
 	oper := cpu.izx()
 	lda(cpu, cpu.Read8(oper))
-	cpu.PC += 2
 }
 
 // A2
 func LDXimm(cpu *CPU) {
 	ldx(cpu, cpu.imm())
-	cpu.PC += 2
 }
 
 // A3
 func LAXizx(cpu *CPU) {
 	oper := cpu.izx()
 	lax(cpu, cpu.Read8(oper))
-	cpu.PC += 2
 }
 
 // A4
@@ -1342,7 +1279,6 @@ func LDYzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	ldy(cpu, val)
-	cpu.PC += 2
 }
 
 // A5
@@ -1350,7 +1286,6 @@ func LDAzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	lda(cpu, val)
-	cpu.PC += 2
 }
 
 // A6
@@ -1358,7 +1293,6 @@ func LDXzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	ldx(cpu, val)
-	cpu.PC += 2
 }
 
 // A7
@@ -1366,7 +1300,6 @@ func LAXzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	lax(cpu, val)
-	cpu.PC += 2
 }
 
 // A8
@@ -1374,13 +1307,11 @@ func TAY(cpu *CPU) {
 	cpu.Y = cpu.A
 	cpu.P.checkNZ(cpu.Y)
 	cpu.tick()
-	cpu.PC += 1
 }
 
 // A9
 func LDAimm(cpu *CPU) {
 	lda(cpu, cpu.imm())
-	cpu.PC += 2
 }
 
 // AA
@@ -1388,7 +1319,6 @@ func TAX(cpu *CPU) {
 	cpu.X = cpu.A
 	cpu.P.checkNZ(cpu.X)
 	cpu.tick()
-	cpu.PC += 1
 }
 
 // AB - unsupported
@@ -1435,7 +1365,6 @@ func LDAizy(cpu *CPU) {
 		cpu.tick()
 	}
 	lda(cpu, cpu.Read8(oper))
-	cpu.PC += 2
 }
 
 // B3
@@ -1445,7 +1374,6 @@ func LAXizy(cpu *CPU) {
 		cpu.tick()
 	}
 	lax(cpu, cpu.Read8(oper))
-	cpu.PC += 2
 }
 
 // B4
@@ -1453,7 +1381,6 @@ func LDYzpx(cpu *CPU) {
 	oper := cpu.zpx()
 	val := cpu.Read8(uint16(oper))
 	ldy(cpu, val)
-	cpu.PC += 2
 }
 
 // B5
@@ -1461,7 +1388,6 @@ func LDAzpx(cpu *CPU) {
 	oper := cpu.zpx()
 	val := cpu.Read8(uint16(oper))
 	lda(cpu, val)
-	cpu.PC += 2
 }
 
 // B6
@@ -1469,7 +1395,6 @@ func LDXzpy(cpu *CPU) {
 	oper := cpu.zpy()
 	val := cpu.Read8(uint16(oper))
 	ldx(cpu, val)
-	cpu.PC += 2
 }
 
 // B7
@@ -1477,14 +1402,12 @@ func LAXzpy(cpu *CPU) {
 	oper := cpu.zpy()
 	val := cpu.Read8(uint16(oper))
 	lax(cpu, val)
-	cpu.PC += 2
 }
 
 // B8
 func CLV(cpu *CPU) {
 	cpu.P.clearBit(pbitV)
 	cpu.tick()
-	cpu.PC += 1
 }
 
 // B9
@@ -1542,9 +1465,7 @@ func LAXaby(cpu *CPU) {
 
 // C0
 func CPYimm(cpu *CPU) {
-	oper := cpu.imm()
-	cpy(cpu, oper)
-	cpu.PC += 2
+	cpy(cpu, cpu.imm())
 }
 
 // C1
@@ -1552,18 +1473,15 @@ func CMPizx(cpu *CPU) {
 	oper := cpu.izx()
 	val := cpu.Read8(oper)
 	cmp_(cpu, val)
-	cpu.PC += 2
 }
 
 // C3
 func DCPizx(cpu *CPU) {
 	oper := cpu.izx()
 	val := cpu.Read8(oper)
-	val--
-	cpu.tick()
+	dec(cpu, &val)
 	cpu.Write8(oper, val)
 	cmp_(cpu, val)
-	cpu.PC += 2
 }
 
 // C4
@@ -1571,7 +1489,6 @@ func CPYzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	cpy(cpu, val)
-	cpu.PC += 2
 }
 
 // C5
@@ -1579,7 +1496,6 @@ func CMPzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	cmp_(cpu, val)
-	cpu.PC += 2
 }
 
 // C6
@@ -1588,7 +1504,6 @@ func DECzp(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	dec(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // C7
@@ -1598,33 +1513,28 @@ func DCPzp(cpu *CPU) {
 	dec(cpu, &val)
 	cpu.Write8(uint16(oper), val)
 	cmp_(cpu, val)
-	cpu.PC += 2
 }
 
 // C8
 func INY(cpu *CPU) {
 	inc(cpu, &cpu.Y)
 	cpu.P.checkNZ(cpu.Y)
-	cpu.PC += 1
 }
 
 // C9
 func CMPimm(cpu *CPU) {
 	cmp_(cpu, cpu.imm())
-	cpu.PC += 2
 }
 
 // CA
 func DEX(cpu *CPU) {
 	dec(cpu, &cpu.X)
 	cpu.P.checkNZ(cpu.X)
-	cpu.PC += 1
 }
 
 // CB
 func SBX(cpu *CPU) {
 	sbx(cpu, cpu.imm())
-	cpu.PC += 2
 }
 
 // CC
@@ -1675,7 +1585,6 @@ func CMPizy(cpu *CPU) {
 	}
 	val := cpu.Read8(oper)
 	cmp_(cpu, val)
-	cpu.PC += 2
 }
 
 // D3
@@ -1686,7 +1595,6 @@ func DCPizy(cpu *CPU) {
 	dec(cpu, &val)
 	cpu.Write8(oper, val)
 	cmp_(cpu, val)
-	cpu.PC += 2
 }
 
 // D5
@@ -1694,7 +1602,6 @@ func CMPzpx(cpu *CPU) {
 	oper := cpu.zpx()
 	val := cpu.Read8(uint16(oper))
 	cmp_(cpu, val)
-	cpu.PC += 2
 }
 
 // D6
@@ -1703,7 +1610,6 @@ func DECzpx(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	dec(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // D7
@@ -1713,14 +1619,12 @@ func DCPzpx(cpu *CPU) {
 	dec(cpu, &val)
 	cpu.Write8(uint16(oper), val)
 	cmp_(cpu, val)
-	cpu.PC += 2
 }
 
 // D8
 func CLD(cpu *CPU) {
 	cpu.P.clearBit(pbitD)
 	cpu.tick()
-	cpu.PC += 1
 }
 
 // D9
@@ -1770,9 +1674,7 @@ func DCPabx(cpu *CPU) {
 
 // E0
 func CPXimm(cpu *CPU) {
-	oper := cpu.imm()
-	cpx(cpu, oper)
-	cpu.PC += 2
+	cpx(cpu, cpu.imm())
 }
 
 // E1
@@ -1780,7 +1682,6 @@ func SBCizx(cpu *CPU) {
 	oper := cpu.izx()
 	val := cpu.Read8(oper)
 	sbc(cpu, val)
-	cpu.PC += 2
 }
 
 // E3
@@ -1790,7 +1691,6 @@ func ISBizx(cpu *CPU) {
 	inc(cpu, &val)
 	sbc(cpu, val)
 	cpu.Write8(oper, val)
-	cpu.PC += 2
 }
 
 // E4
@@ -1798,7 +1698,6 @@ func CPXzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	cpx(cpu, val)
-	cpu.PC += 2
 }
 
 // E5
@@ -1806,7 +1705,6 @@ func SBCzp(cpu *CPU) {
 	oper := cpu.zp()
 	val := cpu.Read8(uint16(oper))
 	sbc(cpu, val)
-	cpu.PC += 2
 }
 
 // E6
@@ -1815,7 +1713,6 @@ func INCzp(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	inc(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // E7
@@ -1825,21 +1722,17 @@ func ISBzp(cpu *CPU) {
 	inc(cpu, &val)
 	sbc(cpu, val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // E8
 func INX(cpu *CPU) {
 	inc(cpu, &cpu.X)
 	cpu.P.checkNZ(cpu.X)
-	cpu.PC += 1
 }
 
 // E9
 func SBCimm(cpu *CPU) {
-	oper := cpu.imm()
-	sbc(cpu, oper)
-	cpu.PC += 2
+	sbc(cpu, cpu.imm())
 }
 
 // EA - NOP
@@ -1889,7 +1782,6 @@ func SBCizy(cpu *CPU) {
 	oper, crossed := cpu.izy()
 	val := cpu.Read8(oper)
 	sbc(cpu, val)
-	cpu.PC += 2
 	if crossed == 1 {
 		cpu.tick()
 	}
@@ -1903,7 +1795,6 @@ func ISBizy(cpu *CPU) {
 	sbc(cpu, val)
 	cpu.tick()
 	cpu.Write8(oper, val)
-	cpu.PC += 2
 }
 
 // F5
@@ -1911,7 +1802,6 @@ func SBCzpx(cpu *CPU) {
 	oper := cpu.zpx()
 	val := cpu.Read8(uint16(oper))
 	sbc(cpu, val)
-	cpu.PC += 2
 }
 
 // F6
@@ -1920,7 +1810,6 @@ func INCzpx(cpu *CPU) {
 	val := cpu.Read8(uint16(oper))
 	inc(cpu, &val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // F7
@@ -1930,14 +1819,12 @@ func ISBzpx(cpu *CPU) {
 	inc(cpu, &val)
 	sbc(cpu, val)
 	cpu.Write8(uint16(oper), val)
-	cpu.PC += 2
 }
 
 // F8
 func SED(cpu *CPU) {
 	cpu.P.setBit(pbitD)
 	cpu.tick()
-	cpu.PC += 1
 }
 
 // F9
@@ -2339,13 +2226,27 @@ func (cpu *CPU) zpr16(addr uint16) uint16 {
 
 // addressing modes
 
-func (cpu *CPU) imm() uint8  { return cpu.Read8(cpu.PC + 1) }
+func (cpu *CPU) imm() uint8 {
+	val := cpu.Read8(cpu.PC)
+	cpu.PC++
+	return val
+}
 func (cpu *CPU) abs() uint16 { return cpu.Read16(cpu.PC + 1) }
-func (cpu *CPU) zp() uint8   { return cpu.Read8(cpu.PC + 1) }
+
+// TODO(arl): make zp return an uint16. Also, if cpu.zp() is actually always
+// followed by a cpu.Read8(cpu.zp()), and it should, then we could directly make
+// zp returns the final value, and not the intermediate address.
+func (cpu *CPU) zp() uint8 {
+	val := cpu.Read8(cpu.PC)
+	cpu.PC++
+	return val
+}
+
 func (cpu *CPU) zpx() uint8 {
 	cpu.tick()
 	return cpu.zp() + cpu.X
 }
+
 func (cpu *CPU) zpy() uint8 {
 	cpu.tick()
 	return cpu.zp() + cpu.Y
