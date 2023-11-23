@@ -228,35 +228,35 @@ var ops = [256]func(cpu *CPU){
 	0xDE: DEC(abx),
 	0xDF: DCP(abx),
 	0xE0: CPXimm,
-	0xE1: SBCizx,
+	0xE1: SBC(izx),
 	0xE2: NOP(imm),
 	0xE3: ISBizx,
 	0xE4: CPXzp,
-	0xE5: SBCzp,
+	0xE5: SBC(zp),
 	0xE6: INCzp,
 	0xE7: ISBzp,
 	0xE8: INX,
-	0xE9: SBCimm,
+	0xE9: SBC(imm),
 	0xEA: NOPimp,
-	0xEB: SBCimm,
+	0xEB: SBC(imm),
 	0xEC: CPXabs,
-	0xED: SBCabs,
+	0xED: SBC(abs),
 	0xEE: INCabs,
 	0xEF: ISBabs,
 	0xF0: BEQ,
-	0xF1: SBCizy,
+	0xF1: SBC(izy_xp),
 	0xF2: JAM,
 	0xF3: ISBizy,
 	0xF4: NOP(zpx),
-	0xF5: SBCzpx,
+	0xF5: SBC(zpx),
 	0xF6: INCzpx,
 	0xF7: ISBzpx,
 	0xF8: SE(pbitD),
-	0xF9: SBCaby,
+	0xF9: SBC(aby_xp),
 	0xFA: NOPimp,
 	0xFB: ISBaby,
 	0xFC: NOP(abx_xp),
-	0xFD: SBCabx,
+	0xFD: SBC(abx_xp),
 	0xFE: INCabx,
 	0xFF: ISBabx,
 }
@@ -547,11 +547,6 @@ func CPXimm(cpu *CPU) {
 	cpx(cpu, cpu.Read8(imm(cpu)))
 }
 
-// E1
-func SBCizx(cpu *CPU) {
-	sbc(cpu, cpu.Read8(izx(cpu)))
-}
-
 // E3
 func ISBizx(cpu *CPU) {
 	oper := izx(cpu)
@@ -564,11 +559,6 @@ func ISBizx(cpu *CPU) {
 // E4
 func CPXzp(cpu *CPU) {
 	cpx(cpu, cpu.Read8(zp(cpu)))
-}
-
-// E5
-func SBCzp(cpu *CPU) {
-	sbc(cpu, cpu.Read8(zp(cpu)))
 }
 
 // E6
@@ -594,21 +584,9 @@ func INX(cpu *CPU) {
 	cpu.P.checkNZ(cpu.X)
 }
 
-// E9
-func SBCimm(cpu *CPU) {
-	sbc(cpu, cpu.Read8(imm(cpu)))
-}
-
-// EA - NOP
-
 // EC
 func CPXabs(cpu *CPU) {
 	cpx(cpu, cpu.Read8(abs(cpu)))
-}
-
-// ED
-func SBCabs(cpu *CPU) {
-	sbc(cpu, cpu.Read8(abs(cpu)))
 }
 
 // EE
@@ -633,11 +611,6 @@ func BEQ(cpu *CPU) {
 	branch(cpu, cpu.P.Z())
 }
 
-// F1
-func SBCizy(cpu *CPU) {
-	sbc(cpu, cpu.Read8(izy_xp(cpu)))
-}
-
 // F3
 func ISBizy(cpu *CPU) {
 	oper := izy(cpu)
@@ -646,11 +619,6 @@ func ISBizy(cpu *CPU) {
 	sbc(cpu, val)
 	cpu.tick()
 	cpu.Write8(oper, val)
-}
-
-// F5
-func SBCzpx(cpu *CPU) {
-	sbc(cpu, cpu.Read8(zpx(cpu)))
 }
 
 // F6
@@ -670,11 +638,6 @@ func ISBzpx(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// F9
-func SBCaby(cpu *CPU) {
-	sbc(cpu, cpu.Read8(aby_xp(cpu)))
-}
-
 // FB
 func ISBaby(cpu *CPU) {
 	oper := aby(cpu)
@@ -682,11 +645,6 @@ func ISBaby(cpu *CPU) {
 	inc(cpu, &val)
 	sbc(cpu, val)
 	cpu.Write8(oper, val)
-}
-
-// FD
-func SBCabx(cpu *CPU) {
-	sbc(cpu, cpu.Read8(abx_xp(cpu)))
 }
 
 // FE
@@ -905,6 +863,12 @@ func DEC(m addrmode) func(cpu *CPU) {
 		val := cpu.Read8(oper)
 		dec(cpu, &val)
 		cpu.Write8(oper, val)
+	}
+}
+
+func SBC(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		sbc(cpu, cpu.Read8(m(cpu)))
 	}
 }
 
