@@ -163,37 +163,37 @@ var ops = [256]func(cpu *CPU){
 	0x9D: STA(abx),
 	0x9E: SHX,
 	0x9F: unsupported,
-	0xA0: LDYimm,
-	0xA1: LDAizx,
-	0xA2: LDXimm,
+	0xA0: LDY(imm),
+	0xA1: LDA(izx),
+	0xA2: LDX(imm),
 	0xA3: LAXizx,
-	0xA4: LDYzp,
-	0xA5: LDAzp,
-	0xA6: LDXzp,
+	0xA4: LDY(zp),
+	0xA5: LDA(zp),
+	0xA6: LDX(zp),
 	0xA7: LAXzp,
 	0xA8: TAY,
-	0xA9: LDAimm,
+	0xA9: LDA(imm),
 	0xAA: TAX,
 	0xAB: unsupported,
-	0xAC: LDYabs,
-	0xAD: LDAabs,
-	0xAE: LDXabs,
+	0xAC: LDY(abs),
+	0xAD: LDA(abs),
+	0xAE: LDX(abs),
 	0xAF: LAXabs,
 	0xB0: BCS,
-	0xB1: LDAizy,
+	0xB1: LDA(izy_xp),
 	0xB2: JAM,
 	0xB3: LAXizy,
-	0xB4: LDYzpx,
-	0xB5: LDAzpx,
-	0xB6: LDXzpy,
+	0xB4: LDY(zpx),
+	0xB5: LDA(zpx),
+	0xB6: LDX(zpy),
 	0xB7: LAXzpy,
 	0xB8: CLV,
-	0xB9: LDAaby,
+	0xB9: LDA(abypx),
 	0xBA: TSX,
 	0xBB: LAS,
-	0xBC: LDYabx,
-	0xBD: LDAabx,
-	0xBE: LDXaby,
+	0xBC: LDY(abxpx),
+	0xBD: LDA(abxpx),
+	0xBE: LDX(abypx),
 	0xBF: LAXaby,
 	0xC0: CPYimm,
 	0xC1: CMPizx,
@@ -543,39 +543,9 @@ func SHX(cpu *CPU) {
 
 // 9F - unsupported
 
-// A0
-func LDYimm(cpu *CPU) {
-	ldy(cpu, cpu.Read8(imm(cpu)))
-}
-
-// A1
-func LDAizx(cpu *CPU) {
-	lda(cpu, cpu.Read8(izx(cpu)))
-}
-
-// A2
-func LDXimm(cpu *CPU) {
-	ldx(cpu, cpu.Read8(imm(cpu)))
-}
-
 // A3
 func LAXizx(cpu *CPU) {
 	lax(cpu, cpu.Read8(izx(cpu)))
-}
-
-// A4
-func LDYzp(cpu *CPU) {
-	ldy(cpu, cpu.Read8(zp(cpu)))
-}
-
-// A5
-func LDAzp(cpu *CPU) {
-	lda(cpu, cpu.Read8(zp(cpu)))
-}
-
-// A6
-func LDXzp(cpu *CPU) {
-	ldx(cpu, cpu.Read8(zp(cpu)))
 }
 
 // A7
@@ -590,11 +560,6 @@ func TAY(cpu *CPU) {
 	cpu.tick()
 }
 
-// A9
-func LDAimm(cpu *CPU) {
-	lda(cpu, cpu.Read8(imm(cpu)))
-}
-
 // AA
 func TAX(cpu *CPU) {
 	cpu.X = cpu.A
@@ -603,21 +568,6 @@ func TAX(cpu *CPU) {
 }
 
 // AB - unsupported
-
-// AC
-func LDYabs(cpu *CPU) {
-	ldy(cpu, cpu.Read8(abs(cpu)))
-}
-
-// AD
-func LDAabs(cpu *CPU) {
-	lda(cpu, cpu.Read8(abs(cpu)))
-}
-
-// AE
-func LDXabs(cpu *CPU) {
-	ldx(cpu, cpu.Read8(abs(cpu)))
-}
 
 // AF
 func LAXabs(cpu *CPU) {
@@ -629,29 +579,9 @@ func BCS(cpu *CPU) {
 	branch(cpu, cpu.P.C())
 }
 
-// B1
-func LDAizy(cpu *CPU) {
-	lda(cpu, cpu.Read8(izy_xp(cpu)))
-}
-
 // B3
 func LAXizy(cpu *CPU) {
 	lax(cpu, cpu.Read8(izy_xp(cpu)))
-}
-
-// B4
-func LDYzpx(cpu *CPU) {
-	ldy(cpu, cpu.Read8(zpx(cpu)))
-}
-
-// B5
-func LDAzpx(cpu *CPU) {
-	lda(cpu, cpu.Read8(zpx(cpu)))
-}
-
-// B6
-func LDXzpy(cpu *CPU) {
-	ldx(cpu, cpu.Read8(zpy(cpu)))
 }
 
 // B7
@@ -665,11 +595,6 @@ func CLV(cpu *CPU) {
 	cpu.tick()
 }
 
-// B9
-func LDAaby(cpu *CPU) {
-	lda(cpu, cpu.Read8(abypx(cpu)))
-}
-
 // BA
 func TSX(cpu *CPU) {
 	cpu.X = cpu.SP
@@ -680,21 +605,6 @@ func TSX(cpu *CPU) {
 // BB
 func LAS(cpu *CPU) {
 	las(cpu, cpu.Read8(abypx(cpu)))
-}
-
-// BC
-func LDYabx(cpu *CPU) {
-	ldy(cpu, cpu.Read8(abxpx(cpu)))
-}
-
-// BD
-func LDAabx(cpu *CPU) {
-	lda(cpu, cpu.Read8(abxpx(cpu)))
-}
-
-// BE
-func LDXaby(cpu *CPU) {
-	ldx(cpu, cpu.Read8(abypx(cpu)))
 }
 
 // BF
@@ -1185,6 +1095,24 @@ func SAX(m addrmode) func(cpu *CPU) {
 func STY(m addrmode) func(cpu *CPU) {
 	return func(cpu *CPU) {
 		cpu.Write8(m(cpu), cpu.Y)
+	}
+}
+
+func LDY(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		ldy(cpu, cpu.Read8(m(cpu)))
+	}
+}
+
+func LDA(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		lda(cpu, cpu.Read8(m(cpu)))
+	}
+}
+
+func LDX(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		ldx(cpu, cpu.Read8(m(cpu)))
 	}
 }
 
