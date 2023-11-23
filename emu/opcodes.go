@@ -73,7 +73,7 @@ var ops = [256]func(cpu *CPU){
 	0x43: SRE(izx),
 	0x44: NOP(zp),
 	0x45: EOR(zp),
-	0x46: LSRzp,
+	0x46: LSR(zp),
 	0x47: SRE(zp),
 	0x48: PHA,
 	0x49: EOR(imm),
@@ -81,7 +81,7 @@ var ops = [256]func(cpu *CPU){
 	0x4B: ALR,
 	0x4C: JMPabs,
 	0x4D: EOR(abs),
-	0x4E: LSRabs,
+	0x4E: LSR(abs),
 	0x4F: SRE(abs),
 	0x50: BVC,
 	0x51: EOR(izy_xp),
@@ -89,7 +89,7 @@ var ops = [256]func(cpu *CPU){
 	0x53: SREizy,
 	0x54: NOP(zpx),
 	0x55: EOR(zpx),
-	0x56: LSRzpx,
+	0x56: LSR(zpx),
 	0x57: SRE(zpx),
 	0x58: CLI,
 	0x59: EOR(abypx),
@@ -97,7 +97,7 @@ var ops = [256]func(cpu *CPU){
 	0x5B: SRE(aby),
 	0x5C: NOP(abxpx),
 	0x5D: EOR(abxpx),
-	0x5E: LSRabx,
+	0x5E: LSR(abx),
 	0x5F: SRE(abx),
 	0x60: RTS,
 	0x61: ADCizx,
@@ -380,14 +380,6 @@ func RTI(cpu *CPU) {
 	cpu.PC = pull16(cpu)
 }
 
-// 46
-func LSRzp(cpu *CPU) {
-	oper := zp(cpu)
-	val := cpu.Read8(oper)
-	lsrmem(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 48
 func PHA(cpu *CPU) {
 	cpu.tick()
@@ -409,14 +401,6 @@ func JMPabs(cpu *CPU) {
 	cpu.PC = abs(cpu)
 }
 
-// 4E
-func LSRabs(cpu *CPU) {
-	oper := abs(cpu)
-	val := cpu.Read8(oper)
-	lsrmem(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 50
 func BVC(cpu *CPU) {
 	branch(cpu, !cpu.P.V())
@@ -431,26 +415,10 @@ func SREizy(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// 56
-func LSRzpx(cpu *CPU) {
-	oper := zpx(cpu)
-	val := cpu.Read8(oper)
-	lsrmem(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 58
 func CLI(cpu *CPU) {
 	cpu.P.clearBit(pbitI)
 	cpu.tick()
-}
-
-// 5E
-func LSRabx(cpu *CPU) {
-	oper := abx(cpu)
-	val := cpu.Read8(oper)
-	lsrmem(cpu, &val)
-	cpu.Write8(oper, val)
 }
 
 // 60
@@ -1355,6 +1323,15 @@ func SRE(m addrmode) func(cpu *CPU) {
 		oper := m(cpu)
 		val := cpu.Read8(oper)
 		sre(cpu, &val)
+		cpu.Write8(oper, val)
+	}
+}
+
+func LSR(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		oper := m(cpu)
+		val := cpu.Read8(oper)
+		lsrmem(cpu, &val)
 		cpu.Write8(oper, val)
 	}
 }
