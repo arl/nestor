@@ -28,11 +28,11 @@ var ops = [256]func(cpu *CPU){
 	0x16: ASL(zpx),
 	0x17: SLO(zpx),
 	0x18: CLC,
-	0x19: ORA(abypx),
+	0x19: ORA(aby_xp),
 	0x1A: NOPimp,
 	0x1B: SLO(aby),
-	0x1C: NOP(abxpx),
-	0x1D: ORA(abxpx),
+	0x1C: NOP(abx_xp),
+	0x1D: ORA(abx_xp),
 	0x1E: ASL(abx),
 	0x1F: SLO(abx),
 	0x20: JSR,
@@ -60,11 +60,11 @@ var ops = [256]func(cpu *CPU){
 	0x36: ROL(zpx),
 	0x37: RLA(zpx),
 	0x38: SEC,
-	0x39: AND(abypx),
+	0x39: AND(aby_xp),
 	0x3A: NOPimp,
 	0x3B: RLA(aby),
-	0x3C: NOP(abxpx),
-	0x3D: AND(abxpx),
+	0x3C: NOP(abx_xp),
+	0x3D: AND(abx_xp),
 	0x3E: ROL(abx),
 	0x3F: RLA(abx),
 	0x40: RTI,
@@ -92,11 +92,11 @@ var ops = [256]func(cpu *CPU){
 	0x56: LSR(zpx),
 	0x57: SRE(zpx),
 	0x58: CLI,
-	0x59: EOR(abypx),
+	0x59: EOR(aby_xp),
 	0x5A: NOPimp,
 	0x5B: SRE(aby),
-	0x5C: NOP(abxpx),
-	0x5D: EOR(abxpx),
+	0x5C: NOP(abx_xp),
+	0x5D: EOR(abx_xp),
 	0x5E: LSR(abx),
 	0x5F: SRE(abx),
 	0x60: RTS,
@@ -124,11 +124,11 @@ var ops = [256]func(cpu *CPU){
 	0x76: ROR(zpx),
 	0x77: RRA(zpx),
 	0x78: SEI,
-	0x79: ADC(abypx),
+	0x79: ADC(aby_xp),
 	0x7A: NOPimp,
 	0x7B: RRA(aby),
-	0x7C: NOP(abxpx),
-	0x7D: ADC(abxpx),
+	0x7C: NOP(abx_xp),
+	0x7D: ADC(abx_xp),
 	0x7E: ROR(abx),
 	0x7F: RRA(abx),
 	0x80: NOP(imm),
@@ -166,11 +166,11 @@ var ops = [256]func(cpu *CPU){
 	0xA0: LDY(imm),
 	0xA1: LDA(izx),
 	0xA2: LDX(imm),
-	0xA3: LAXizx,
+	0xA3: LAX(izx),
 	0xA4: LDY(zp),
 	0xA5: LDA(zp),
 	0xA6: LDX(zp),
-	0xA7: LAXzp,
+	0xA7: LAX(zp),
 	0xA8: TAY,
 	0xA9: LDA(imm),
 	0xAA: TAX,
@@ -178,23 +178,23 @@ var ops = [256]func(cpu *CPU){
 	0xAC: LDY(abs),
 	0xAD: LDA(abs),
 	0xAE: LDX(abs),
-	0xAF: LAXabs,
+	0xAF: LAX(abs),
 	0xB0: BCS,
 	0xB1: LDA(izy_xp),
 	0xB2: JAM,
-	0xB3: LAXizy,
+	0xB3: LAX(izy_xp),
 	0xB4: LDY(zpx),
 	0xB5: LDA(zpx),
 	0xB6: LDX(zpy),
-	0xB7: LAXzpy,
+	0xB7: LAX(zpy),
 	0xB8: CLV,
-	0xB9: LDA(abypx),
+	0xB9: LDA(aby_xp),
 	0xBA: TSX,
 	0xBB: LAS,
-	0xBC: LDY(abxpx),
-	0xBD: LDA(abxpx),
-	0xBE: LDX(abypx),
-	0xBF: LAXaby,
+	0xBC: LDY(abx_xp),
+	0xBD: LDA(abx_xp),
+	0xBE: LDX(aby_xp),
+	0xBF: LAX(aby_xp),
 	0xC0: CPYimm,
 	0xC1: CMPizx,
 	0xC2: NOP(imm),
@@ -223,7 +223,7 @@ var ops = [256]func(cpu *CPU){
 	0xD9: CMPaby,
 	0xDA: NOPimp,
 	0xDB: DCPaby,
-	0xDC: NOP(abxpx),
+	0xDC: NOP(abx_xp),
 	0xDD: CMPabx,
 	0xDE: DECabx,
 	0xDF: DCPabx,
@@ -255,7 +255,7 @@ var ops = [256]func(cpu *CPU){
 	0xF9: SBCaby,
 	0xFA: NOPimp,
 	0xFB: ISBaby,
-	0xFC: NOP(abxpx),
+	0xFC: NOP(abx_xp),
 	0xFD: SBCabx,
 	0xFE: INCabx,
 	0xFF: ISBabx,
@@ -543,16 +543,6 @@ func SHX(cpu *CPU) {
 
 // 9F - unsupported
 
-// A3
-func LAXizx(cpu *CPU) {
-	lax(cpu, cpu.Read8(izx(cpu)))
-}
-
-// A7
-func LAXzp(cpu *CPU) {
-	lax(cpu, cpu.Read8(zp(cpu)))
-}
-
 // A8
 func TAY(cpu *CPU) {
 	cpu.Y = cpu.A
@@ -569,24 +559,9 @@ func TAX(cpu *CPU) {
 
 // AB - unsupported
 
-// AF
-func LAXabs(cpu *CPU) {
-	lax(cpu, cpu.Read8(abs(cpu)))
-}
-
 // B0
 func BCS(cpu *CPU) {
 	branch(cpu, cpu.P.C())
-}
-
-// B3
-func LAXizy(cpu *CPU) {
-	lax(cpu, cpu.Read8(izy_xp(cpu)))
-}
-
-// B7
-func LAXzpy(cpu *CPU) {
-	lax(cpu, cpu.Read8(zpy(cpu)))
 }
 
 // B8
@@ -604,12 +579,7 @@ func TSX(cpu *CPU) {
 
 // BB
 func LAS(cpu *CPU) {
-	las(cpu, cpu.Read8(abypx(cpu)))
-}
-
-// BF
-func LAXaby(cpu *CPU) {
-	lax(cpu, cpu.Read8(abypx(cpu)))
+	las(cpu, cpu.Read8(aby_xp(cpu)))
 }
 
 // C0
@@ -757,7 +727,7 @@ func CLD(cpu *CPU) {
 
 // D9
 func CMPaby(cpu *CPU) {
-	cmp_(cpu, cpu.Read8(abypx(cpu)))
+	cmp_(cpu, cpu.Read8(aby_xp(cpu)))
 }
 
 // DB
@@ -771,7 +741,7 @@ func DCPaby(cpu *CPU) {
 
 // DD
 func CMPabx(cpu *CPU) {
-	cmp_(cpu, cpu.Read8(abxpx(cpu)))
+	cmp_(cpu, cpu.Read8(abx_xp(cpu)))
 }
 
 // DE
@@ -927,7 +897,7 @@ func SED(cpu *CPU) {
 
 // F9
 func SBCaby(cpu *CPU) {
-	sbc(cpu, cpu.Read8(abypx(cpu)))
+	sbc(cpu, cpu.Read8(aby_xp(cpu)))
 }
 
 // FB
@@ -941,7 +911,7 @@ func ISBaby(cpu *CPU) {
 
 // FD
 func SBCabx(cpu *CPU) {
-	sbc(cpu, cpu.Read8(abxpx(cpu)))
+	sbc(cpu, cpu.Read8(abx_xp(cpu)))
 }
 
 // FE
@@ -1113,6 +1083,12 @@ func LDA(m addrmode) func(cpu *CPU) {
 func LDX(m addrmode) func(cpu *CPU) {
 	return func(cpu *CPU) {
 		ldx(cpu, cpu.Read8(m(cpu)))
+	}
+}
+
+func LAX(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		lax(cpu, cpu.Read8(m(cpu)))
 	}
 }
 
@@ -1473,7 +1449,7 @@ func zpy(cpu *CPU) uint16 {
 }
 
 // absolute indexed x (with page cross handling).
-func abxpx(cpu *CPU) uint16 {
+func abx_xp(cpu *CPU) uint16 {
 	addr := abs(cpu)
 	dst := addr + uint16(cpu.X)
 	if pagecrossed(addr, dst) {
@@ -1488,7 +1464,7 @@ func abx(cpu *CPU) uint16 {
 }
 
 // absolute indexed y (with page cross handling).
-func abypx(cpu *CPU) uint16 {
+func aby_xp(cpu *CPU) uint16 {
 	addr := abs(cpu)
 	dst := addr + uint16(cpu.Y)
 	if pagecrossed(addr, dst) {
