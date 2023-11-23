@@ -227,21 +227,21 @@ var ops = [256]func(cpu *CPU){
 	0xDD: CMP(abx_xp),
 	0xDE: DEC(abx),
 	0xDF: DCP(abx),
-	0xE0: CPXimm,
+	0xE0: CPX(imm),
 	0xE1: SBC(izx),
 	0xE2: NOP(imm),
 	0xE3: ISBizx,
-	0xE4: CPXzp,
+	0xE4: CPX(zp),
 	0xE5: SBC(zp),
-	0xE6: INCzp,
+	0xE6: INC(zp),
 	0xE7: ISBzp,
 	0xE8: INX,
 	0xE9: SBC(imm),
 	0xEA: NOPimp,
 	0xEB: SBC(imm),
-	0xEC: CPXabs,
+	0xEC: CPX(abs),
 	0xED: SBC(abs),
-	0xEE: INCabs,
+	0xEE: INC(abs),
 	0xEF: ISBabs,
 	0xF0: BEQ,
 	0xF1: SBC(izy_xp),
@@ -249,7 +249,7 @@ var ops = [256]func(cpu *CPU){
 	0xF3: ISBizy,
 	0xF4: NOP(zpx),
 	0xF5: SBC(zpx),
-	0xF6: INCzpx,
+	0xF6: INC(zpx),
 	0xF7: ISBzpx,
 	0xF8: SE(pbitD),
 	0xF9: SBC(aby_xp),
@@ -257,7 +257,7 @@ var ops = [256]func(cpu *CPU){
 	0xFB: ISBaby,
 	0xFC: NOP(abx_xp),
 	0xFD: SBC(abx_xp),
-	0xFE: INCabx,
+	0xFE: INC(abx),
 	0xFF: ISBabx,
 }
 
@@ -542,30 +542,12 @@ func DCPizy(cpu *CPU) {
 	cmp_(cpu, val)
 }
 
-// E0
-func CPXimm(cpu *CPU) {
-	cpx(cpu, cpu.Read8(imm(cpu)))
-}
-
 // E3
 func ISBizx(cpu *CPU) {
 	oper := izx(cpu)
 	val := cpu.Read8(oper)
 	inc(cpu, &val)
 	sbc(cpu, val)
-	cpu.Write8(oper, val)
-}
-
-// E4
-func CPXzp(cpu *CPU) {
-	cpx(cpu, cpu.Read8(zp(cpu)))
-}
-
-// E6
-func INCzp(cpu *CPU) {
-	oper := zp(cpu)
-	val := cpu.Read8(oper)
-	inc(cpu, &val)
 	cpu.Write8(oper, val)
 }
 
@@ -582,19 +564,6 @@ func ISBzp(cpu *CPU) {
 func INX(cpu *CPU) {
 	inc(cpu, &cpu.X)
 	cpu.P.checkNZ(cpu.X)
-}
-
-// EC
-func CPXabs(cpu *CPU) {
-	cpx(cpu, cpu.Read8(abs(cpu)))
-}
-
-// EE
-func INCabs(cpu *CPU) {
-	oper := abs(cpu)
-	val := cpu.Read8(oper)
-	inc(cpu, &val)
-	cpu.Write8(oper, val)
 }
 
 // EF
@@ -621,14 +590,6 @@ func ISBizy(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// F6
-func INCzpx(cpu *CPU) {
-	oper := zpx(cpu)
-	val := cpu.Read8(oper)
-	inc(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // F7
 func ISBzpx(cpu *CPU) {
 	oper := zpx(cpu)
@@ -644,14 +605,6 @@ func ISBaby(cpu *CPU) {
 	val := cpu.Read8(oper)
 	inc(cpu, &val)
 	sbc(cpu, val)
-	cpu.Write8(oper, val)
-}
-
-// FE
-func INCabx(cpu *CPU) {
-	oper := abx(cpu)
-	val := cpu.Read8(oper)
-	inc(cpu, &val)
 	cpu.Write8(oper, val)
 }
 
@@ -869,6 +822,21 @@ func DEC(m addrmode) func(cpu *CPU) {
 func SBC(m addrmode) func(cpu *CPU) {
 	return func(cpu *CPU) {
 		sbc(cpu, cpu.Read8(m(cpu)))
+	}
+}
+
+func CPX(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		cpx(cpu, cpu.Read8(m(cpu)))
+	}
+}
+
+func INC(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		oper := m(cpu)
+		val := cpu.Read8(oper)
+		inc(cpu, &val)
+		cpu.Write8(oper, val)
 	}
 }
 
