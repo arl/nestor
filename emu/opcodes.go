@@ -9,7 +9,7 @@ var ops = [256]func(cpu *CPU){
 	0x03: SLO(izx),
 	0x04: NOP(zp),
 	0x05: ORA(zp),
-	0x06: ASLzp,
+	0x06: ASL(zp),
 	0x07: SLO(zp),
 	0x08: PHP,
 	0x09: ORA(imm),
@@ -17,7 +17,7 @@ var ops = [256]func(cpu *CPU){
 	0x0B: ANC,
 	0x0C: NOP(abs),
 	0x0D: ORA(abs),
-	0x0E: ASLabs,
+	0x0E: ASL(abs),
 	0x0F: SLO(abs),
 	0x10: BPL,
 	0x11: ORA(izy_xp),
@@ -25,7 +25,7 @@ var ops = [256]func(cpu *CPU){
 	0x13: SLOizy,
 	0x14: NOP(zpx),
 	0x15: ORA(zpx),
-	0x16: ASLzpx,
+	0x16: ASL(zpx),
 	0x17: SLO(zpx),
 	0x18: CLC,
 	0x19: ORA(abypx),
@@ -33,7 +33,7 @@ var ops = [256]func(cpu *CPU){
 	0x1B: SLO(aby),
 	0x1C: NOP(abxpx),
 	0x1D: ORA(abxpx),
-	0x1E: ASLabx,
+	0x1E: ASL(abx),
 	0x1F: SLO(abx),
 	0x20: JSR,
 	0x21: ANDizx,
@@ -272,14 +272,6 @@ func BRK(cpu *CPU) {
 	cpu.PC = cpu.Read16(IRQvector)
 }
 
-// 06
-func ASLzp(cpu *CPU) {
-	oper := zp(cpu)
-	val := cpu.Read8(oper)
-	asl(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 08
 func PHP(cpu *CPU) {
 	cpu.tick()
@@ -304,14 +296,6 @@ func NOPabs(cpu *CPU) {
 	_ = cpu.Read8(abs(cpu))
 }
 
-// 0E
-func ASLabs(cpu *CPU) {
-	oper := abs(cpu)
-	val := cpu.Read8(oper)
-	asl(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 10
 func BPL(cpu *CPU) {
 	branch(cpu, !cpu.P.N())
@@ -326,14 +310,6 @@ func SLOizy(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// 16
-func ASLzpx(cpu *CPU) {
-	oper := zpx(cpu)
-	val := cpu.Read8(uint16(oper))
-	asl(cpu, &val)
-	cpu.Write8(uint16(oper), val)
-}
-
 // 18
 func CLC(cpu *CPU) {
 	cpu.P.clearBit(pbitC)
@@ -343,14 +319,6 @@ func CLC(cpu *CPU) {
 // 1A
 func NOPimp(cpu *CPU) {
 	_ = cpu.Read8(cpu.PC)
-}
-
-// 1E
-func ASLabx(cpu *CPU) {
-	oper := abx(cpu)
-	val := cpu.Read8(oper)
-	asl(cpu, &val)
-	cpu.Write8(oper, val)
 }
 
 // 20
@@ -1552,11 +1520,19 @@ func SLO(m addrmode) func(cpu *CPU) {
 	}
 }
 
+func ASL(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		oper := m(cpu)
+		val := cpu.Read8(oper)
+		asl(cpu, &val)
+		cpu.Write8(oper, val)
+	}
+}
+
 // add memory to accumulator with carry.
 func adc(cpu *CPU, val uint8) {
 	carry := cpu.P.ibit(pbitC)
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
-
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
 	cpu.P.checkNZ(cpu.A)
