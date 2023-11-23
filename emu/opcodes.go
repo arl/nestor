@@ -100,35 +100,35 @@ var ops = [256]func(cpu *CPU){
 	0x5E: LSR(abx),
 	0x5F: SRE(abx),
 	0x60: RTS,
-	0x61: ADCizx,
+	0x61: ADC(izx),
 	0x62: JAM,
 	0x63: RRAizx,
 	0x64: NOP(zp),
-	0x65: ADCzp,
+	0x65: ADC(zp),
 	0x66: RORzp,
 	0x67: RRAzp,
 	0x68: PLA,
-	0x69: ADCimm,
+	0x69: ADC(imm),
 	0x6A: RORacc,
 	0x6B: ARR,
 	0x6C: JMPind,
-	0x6D: ADCabs,
+	0x6D: ADC(abs),
 	0x6E: RORabs,
 	0x6F: RRAabs,
 	0x70: BVS,
-	0x71: ADCizy,
+	0x71: ADC(izy_xp),
 	0x72: JAM,
 	0x73: RRAizy,
 	0x74: NOP(zpx),
-	0x75: ADCzpx,
+	0x75: ADC(zpx),
 	0x76: RORzpx,
 	0x77: RRAzpx,
 	0x78: SEI,
-	0x79: ADCaby,
+	0x79: ADC(abypx),
 	0x7A: NOPimp,
 	0x7B: RRAaby,
 	0x7C: NOP(abxpx),
-	0x7D: ADCabx,
+	0x7D: ADC(abxpx),
 	0x7E: RORabx,
 	0x7F: RRAabx,
 	0x80: NOP(imm),
@@ -430,22 +430,12 @@ func RTS(cpu *CPU) {
 	cpu.tick()
 }
 
-// 61
-func ADCizx(cpu *CPU) {
-	adc(cpu, cpu.Read8(izx(cpu)))
-}
-
 // 63
 func RRAizx(cpu *CPU) {
 	oper := izx(cpu)
 	val := cpu.Read8(oper)
 	rra(cpu, &val)
 	cpu.Write8(oper, val)
-}
-
-// 65
-func ADCzp(cpu *CPU) {
-	adc(cpu, cpu.Read8(zp(cpu)))
 }
 
 // 66
@@ -472,11 +462,6 @@ func PLA(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
-// 69
-func ADCimm(cpu *CPU) {
-	adc(cpu, cpu.Read8(imm(cpu)))
-}
-
 // 6A
 func RORacc(cpu *CPU) {
 	ror(cpu, &cpu.A)
@@ -490,11 +475,6 @@ func ARR(cpu *CPU) {
 // 6C
 func JMPind(cpu *CPU) {
 	cpu.PC = ind(cpu)
-}
-
-// 6D
-func ADCabs(cpu *CPU) {
-	adc(cpu, cpu.Read8(abs(cpu)))
 }
 
 // 6E
@@ -518,11 +498,6 @@ func BVS(cpu *CPU) {
 	branch(cpu, cpu.P.V())
 }
 
-// 71
-func ADCizy(cpu *CPU) {
-	adc(cpu, cpu.Read8(izy_xp(cpu)))
-}
-
 // 73
 func RRAizy(cpu *CPU) {
 	oper := izy(cpu)
@@ -530,11 +505,6 @@ func RRAizy(cpu *CPU) {
 	rra(cpu, &val)
 	cpu.tick()
 	cpu.Write8(oper, val)
-}
-
-// 75
-func ADCzpx(cpu *CPU) {
-	adc(cpu, cpu.Read8(zpx(cpu)))
 }
 
 // 76
@@ -559,22 +529,12 @@ func SEI(cpu *CPU) {
 	cpu.tick()
 }
 
-// 79
-func ADCaby(cpu *CPU) {
-	adc(cpu, cpu.Read8(abypx(cpu)))
-}
-
 // 7B
 func RRAaby(cpu *CPU) {
 	oper := aby(cpu)
 	val := cpu.Read8(oper)
 	rra(cpu, &val)
 	cpu.Write8(oper, val)
-}
-
-// 7D
-func ADCabx(cpu *CPU) {
-	adc(cpu, cpu.Read8(abxpx(cpu)))
 }
 
 // 7E
@@ -591,11 +551,6 @@ func RRAabx(cpu *CPU) {
 	val := cpu.Read8(oper)
 	rra(cpu, &val)
 	cpu.Write8(oper, val)
-}
-
-// 80
-func NOPimm(cpu *CPU) {
-	cpu.Read8(imm(cpu))
 }
 
 // 81
@@ -1333,6 +1288,12 @@ func LSR(m addrmode) func(cpu *CPU) {
 		val := cpu.Read8(oper)
 		lsrmem(cpu, &val)
 		cpu.Write8(oper, val)
+	}
+}
+
+func ADC(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		adc(cpu, cpu.Read8(m(cpu)))
 	}
 }
 
