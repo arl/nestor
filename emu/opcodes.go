@@ -339,9 +339,7 @@ func NOPabs(cpu *CPU) {
 
 // 0D
 func ORAabs(cpu *CPU) {
-	oper := cpu.abs()
-	val := cpu.Read8(oper)
-	ora(cpu, val)
+	ora(cpu, cpu.Read8(cpu.abs()))
 }
 
 // 0E
@@ -367,17 +365,14 @@ func BPL(cpu *CPU) {
 
 // 11
 func ORAizy(cpu *CPU) {
-	oper, crossed := cpu.izy()
+	oper := cpu.izy_xp()
 	val := cpu.Read8(oper)
 	ora(cpu, val)
-	if crossed == 1 {
-		cpu.tick()
-	}
 }
 
 // 13
 func SLOizy(cpu *CPU) {
-	oper, _ := cpu.izy()
+	oper := cpu.izy()
 	val := cpu.Read8(oper)
 	slo(cpu, &val)
 	cpu.tick()
@@ -567,17 +562,14 @@ func BMI(cpu *CPU) {
 
 // 31
 func ANDizy(cpu *CPU) {
-	oper, crossed := cpu.izy()
+	oper := cpu.izy_xp()
 	val := cpu.Read8(oper)
 	and(cpu, val)
-	if crossed == 1 {
-		cpu.tick()
-	}
 }
 
 // 33
 func RLAizy(cpu *CPU) {
-	oper, _ := cpu.izy()
+	oper := cpu.izy()
 	val := cpu.Read8(oper)
 	rla(cpu, &val)
 	cpu.tick()
@@ -753,17 +745,14 @@ func BVC(cpu *CPU) {
 
 // 51
 func EORizy(cpu *CPU) {
-	oper, crossed := cpu.izy()
-	if crossed == 1 {
-		cpu.tick()
-	}
+	oper := cpu.izy_xp()
 	val := cpu.Read8(oper)
 	eor(cpu, val)
 }
 
 // 53
 func SREizy(cpu *CPU) {
-	oper, _ := cpu.izy()
+	oper := cpu.izy()
 	cpu.tick()
 	val := cpu.Read8(oper)
 	sre(cpu, &val)
@@ -942,17 +931,14 @@ func BVS(cpu *CPU) {
 
 // 71
 func ADCizy(cpu *CPU) {
-	oper, crossed := cpu.izy()
+	oper := cpu.izy_xp()
 	val := cpu.Read8(oper)
 	adc(cpu, val)
-	if crossed == 1 {
-		cpu.tick()
-	}
 }
 
 // 73
 func RRAizy(cpu *CPU) {
-	oper, _ := cpu.izy()
+	oper := cpu.izy()
 	val := cpu.Read8(oper)
 	rra(cpu, &val)
 	cpu.tick()
@@ -1110,7 +1096,7 @@ func BCC(cpu *CPU) {
 // 91
 func STAizy(cpu *CPU) {
 	cpu.tick()
-	addr, _ := cpu.izy()
+	addr := cpu.izy()
 	cpu.Write8(addr, cpu.A)
 }
 
@@ -1267,19 +1253,13 @@ func BCS(cpu *CPU) {
 
 // B1
 func LDAizy(cpu *CPU) {
-	oper, crossed := cpu.izy()
-	if crossed == 1 {
-		cpu.tick()
-	}
+	oper := cpu.izy_xp()
 	lda(cpu, cpu.Read8(oper))
 }
 
 // B3
 func LAXizy(cpu *CPU) {
-	oper, crossed := cpu.izy()
-	if crossed == 1 {
-		cpu.tick()
-	}
+	oper := cpu.izy_xp()
 	lax(cpu, cpu.Read8(oper))
 }
 
@@ -1448,17 +1428,14 @@ func BNE(cpu *CPU) {
 
 // D1
 func CMPizy(cpu *CPU) {
-	oper, crossed := cpu.izy()
-	if crossed == 1 {
-		cpu.tick()
-	}
+	oper := cpu.izy_xp()
 	val := cpu.Read8(oper)
 	cmp_(cpu, val)
 }
 
 // D3
 func DCPizy(cpu *CPU) {
-	oper, _ := cpu.izy()
+	oper := cpu.izy()
 	cpu.tick()
 	val := cpu.Read8(oper)
 	dec(cpu, &val)
@@ -1624,17 +1601,14 @@ func BEQ(cpu *CPU) {
 
 // F1
 func SBCizy(cpu *CPU) {
-	oper, crossed := cpu.izy()
+	oper := cpu.izy_xp()
 	val := cpu.Read8(oper)
 	sbc(cpu, val)
-	if crossed == 1 {
-		cpu.tick()
-	}
 }
 
 // F3
 func ISBizy(cpu *CPU) {
-	oper, _ := cpu.izy()
+	oper := cpu.izy()
 	val := cpu.Read8(oper)
 	inc(cpu, &val)
 	sbc(cpu, val)
@@ -1990,7 +1964,6 @@ func JAM(cpu *CPU) {
 /* helpers */
 
 func pagecrossed(a, b uint16) bool {
-	// fmt.Printf("pagecrossed: a=%04X, b=%04X\n", a, b)
 	return 0xFF00&a != 0xFF00&b
 }
 
@@ -2040,7 +2013,7 @@ func branch(cpu *CPU, cond bool) {
 		cpu.PC = addr
 		return
 	}
-	cpu.PC += 1
+	cpu.PC++
 }
 
 // Copy bits from src to dst, using mask to select which bits to copy.
@@ -2120,18 +2093,24 @@ func (cpu *CPU) aby() uint16 {
 // zeropage indexed indirect (zp,x)
 func (cpu *CPU) izx() uint16 {
 	cpu.tick()
-	oper := uint8(cpu.zp())
-	oper += cpu.X
+	oper := uint8(cpu.zp()) + cpu.X
 	return cpu.zpr16(uint16(oper))
 }
 
-// zeropage indexed indirect (zp),y. returns the destination address and a
-// integer set to 1 if a page boundary was crossed.
-func (cpu *CPU) izy() (uint16, uint8) {
+// zeropage indexed indirect (zp),y.
+func (cpu *CPU) izy() uint16 {
+	return cpu.zpr16(cpu.zp()) + uint16(cpu.Y)
+}
+
+// zeropage indexed indirect (zp),y.
+// (like izy but with an additional cycle if page boundary is crossed)
+func (cpu *CPU) izy_xp() uint16 {
 	oper := cpu.zp()
-	addr := cpu.zpr16(uint16(oper))
-	dst := addr + uint16(cpu.Y)
-	return dst, b2i(pagecrossed(addr, dst))
+	addr := cpu.zpr16(oper)
+	if pagecrossed(addr, addr+uint16(cpu.Y)) {
+		cpu.tick()
+	}
+	return addr + uint16(cpu.Y)
 }
 
 func (cpu *CPU) ind() uint16 {
