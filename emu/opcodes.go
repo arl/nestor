@@ -660,7 +660,12 @@ func LSR(m addrmode) func(cpu *CPU) {
 
 func ADC(m addrmode) func(cpu *CPU) {
 	return func(cpu *CPU) {
-		adc(cpu, cpu.Read8(m(cpu)))
+		val := cpu.Read8(m(cpu))
+		carry := cpu.P.ibit(pbitC)
+		sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+		cpu.P.checkCV(cpu.A, val, sum)
+		cpu.A = uint8(sum)
+		cpu.P.checkNZ(cpu.A)
 	}
 }
 
@@ -784,21 +789,6 @@ func ISB(m addrmode) func(cpu *CPU) {
 		sbc(cpu, val)
 		cpu.Write8(oper, val)
 	}
-}
-
-// or memory with accumulator.
-func ora(cpu *CPU, val uint8) {
-	cpu.A |= val
-	cpu.P.checkNZ(cpu.A)
-}
-
-// add memory to accumulator with carry.
-func adc(cpu *CPU, val uint8) {
-	carry := cpu.P.ibit(pbitC)
-	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
-	cpu.P.checkCV(cpu.A, val, sum)
-	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
 }
 
 // substract memory from accumulator with borrow.
@@ -951,7 +941,8 @@ func lax(cpu *CPU, val uint8) {
 
 func slo(cpu *CPU, val *uint8) {
 	asl(cpu, val)
-	ora(cpu, *val)
+	cpu.A |= *val
+	cpu.P.checkNZ(cpu.A)
 }
 
 func rla(cpu *CPU, val *uint8) {
@@ -966,7 +957,11 @@ func sre(cpu *CPU, val *uint8) {
 
 func rra(cpu *CPU, val *uint8) {
 	ror(cpu, val)
-	adc(cpu, *val)
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(*val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, *val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
 }
 
 func alr(cpu *CPU, val uint8) {
