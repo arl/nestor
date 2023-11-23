@@ -4,35 +4,35 @@ import "fmt"
 
 var ops = [256]func(cpu *CPU){
 	0x00: BRK,
-	0x01: ORAizx,
+	0x01: ORA((*CPU).izx),
 	0x02: JAM,
 	0x03: SLOizx,
 	0x04: NOPzp,
-	0x05: ORAzp,
+	0x05: ORA((*CPU).zp),
 	0x06: ASLzp,
 	0x07: SLOzp,
 	0x08: PHP,
-	0x09: ORAimm,
+	0x09: ORA((*CPU).imm),
 	0x0A: ASLacc,
 	0x0B: ANC,
 	0x0C: NOPabs,
-	0x0D: ORAabs,
+	0x0D: ORA((*CPU).abs),
 	0x0E: ASLabs,
 	0x0F: SLOabs,
 	0x10: BPL,
-	0x11: ORAizy,
+	0x11: ORA((*CPU).izy_xp),
 	0x12: JAM,
 	0x13: SLOizy,
 	0x14: NOPzpx,
-	0x15: ORAzpx,
+	0x15: ORA((*CPU).zpx),
 	0x16: ASLzpx,
 	0x17: SLOzpx,
 	0x18: CLC,
-	0x19: ORAaby,
+	0x19: ORA((*CPU).abypx),
 	0x1A: NOPimp,
 	0x1B: SLOaby,
 	0x1C: NOPabx,
-	0x1D: ORAabx,
+	0x1D: ORA((*CPU).abxpx),
 	0x1E: ASLabx,
 	0x1F: SLOabx,
 	0x20: JSR,
@@ -272,22 +272,12 @@ func BRK(cpu *CPU) {
 	cpu.PC = cpu.Read16(IRQvector)
 }
 
-// 01
-func ORAizx(cpu *CPU) {
-	ora(cpu, cpu.Read8(cpu.izx()))
-}
-
 // 03
 func SLOizx(cpu *CPU) {
 	oper := cpu.izx()
 	val := cpu.Read8(oper)
 	slo(cpu, &val)
 	cpu.Write8(oper, val)
-}
-
-// 05
-func ORAzp(cpu *CPU) {
-	ora(cpu, cpu.Read8(cpu.zp()))
 }
 
 // 06
@@ -314,11 +304,6 @@ func PHP(cpu *CPU) {
 	push8(cpu, uint8(p))
 }
 
-// 09
-func ORAimm(cpu *CPU) {
-	ora(cpu, cpu.imm())
-}
-
 // 0A
 func ASLacc(cpu *CPU) {
 	asl(cpu, &cpu.A)
@@ -326,18 +311,13 @@ func ASLacc(cpu *CPU) {
 
 // 0B
 func ANC(cpu *CPU) {
-	and(cpu, cpu.imm())
+	and(cpu, cpu.Read8(cpu.imm()))
 	cpu.P.writeBit(pbitC, cpu.P.N())
 }
 
 // 0C
 func NOPabs(cpu *CPU) {
 	_ = cpu.Read8(cpu.abs())
-}
-
-// 0D
-func ORAabs(cpu *CPU) {
-	ora(cpu, cpu.Read8(cpu.abs()))
 }
 
 // 0E
@@ -361,11 +341,6 @@ func BPL(cpu *CPU) {
 	branch(cpu, !cpu.P.N())
 }
 
-// 11
-func ORAizy(cpu *CPU) {
-	ora(cpu, cpu.Read8(cpu.izy_xp()))
-}
-
 // 13
 func SLOizy(cpu *CPU) {
 	oper := cpu.izy()
@@ -373,11 +348,6 @@ func SLOizy(cpu *CPU) {
 	slo(cpu, &val)
 	cpu.tick()
 	cpu.Write8(oper, val)
-}
-
-// 15
-func ORAzpx(cpu *CPU) {
-	ora(cpu, cpu.Read8(cpu.zpx()))
 }
 
 // 16
@@ -402,11 +372,6 @@ func CLC(cpu *CPU) {
 	cpu.tick()
 }
 
-// 19
-func ORAaby(cpu *CPU) {
-	ora(cpu, cpu.Read8(cpu.abypx()))
-}
-
 // 1A
 func NOPimp(cpu *CPU) {
 	_ = cpu.Read8(cpu.PC + 1)
@@ -418,11 +383,6 @@ func SLOaby(cpu *CPU) {
 	val := cpu.Read8(oper)
 	slo(cpu, &val)
 	cpu.Write8(oper, val)
-}
-
-// 1D
-func ORAabx(cpu *CPU) {
-	ora(cpu, cpu.Read8(cpu.abxpx()))
 }
 
 // 1E
@@ -501,7 +461,7 @@ func PLP(cpu *CPU) {
 
 // 29
 func ANDimm(cpu *CPU) {
-	and(cpu, cpu.imm())
+	and(cpu, cpu.Read8(cpu.imm()))
 }
 
 // 2A
@@ -669,7 +629,7 @@ func PHA(cpu *CPU) {
 
 // 49
 func EORimm(cpu *CPU) {
-	eor(cpu, cpu.imm())
+	eor(cpu, cpu.Read8(cpu.imm()))
 }
 
 // 4A
@@ -679,7 +639,7 @@ func LSRacc(cpu *CPU) {
 
 // 4B
 func ALR(cpu *CPU) {
-	alr(cpu, cpu.imm())
+	alr(cpu, cpu.Read8(cpu.imm()))
 }
 
 // 4C
@@ -841,7 +801,7 @@ func PLA(cpu *CPU) {
 
 // 69
 func ADCimm(cpu *CPU) {
-	adc(cpu, cpu.imm())
+	adc(cpu, cpu.Read8(cpu.imm()))
 }
 
 // 6A
@@ -851,7 +811,7 @@ func RORacc(cpu *CPU) {
 
 // 6B
 func ARR(cpu *CPU) {
-	arr(cpu, cpu.imm())
+	arr(cpu, cpu.Read8(cpu.imm()))
 }
 
 // 6C
@@ -962,7 +922,7 @@ func RRAabx(cpu *CPU) {
 
 // 80
 func NOPimm(cpu *CPU) {
-	cpu.imm()
+	cpu.Read8(cpu.imm())
 }
 
 // 81
@@ -1102,7 +1062,7 @@ func SHX(cpu *CPU) {
 
 // A0
 func LDYimm(cpu *CPU) {
-	ldy(cpu, cpu.imm())
+	ldy(cpu, cpu.Read8(cpu.imm()))
 }
 
 // A1
@@ -1112,7 +1072,7 @@ func LDAizx(cpu *CPU) {
 
 // A2
 func LDXimm(cpu *CPU) {
-	ldx(cpu, cpu.imm())
+	ldx(cpu, cpu.Read8(cpu.imm()))
 }
 
 // A3
@@ -1149,7 +1109,7 @@ func TAY(cpu *CPU) {
 
 // A9
 func LDAimm(cpu *CPU) {
-	lda(cpu, cpu.imm())
+	lda(cpu, cpu.Read8(cpu.imm()))
 }
 
 // AA
@@ -1261,7 +1221,7 @@ func LAXaby(cpu *CPU) {
 
 // C0
 func CPYimm(cpu *CPU) {
-	cpy(cpu, cpu.imm())
+	cpy(cpu, cpu.Read8(cpu.imm()))
 }
 
 // C1
@@ -1313,7 +1273,7 @@ func INY(cpu *CPU) {
 
 // C9
 func CMPimm(cpu *CPU) {
-	cmp_(cpu, cpu.imm())
+	cmp_(cpu, cpu.Read8(cpu.imm()))
 }
 
 // CA
@@ -1324,7 +1284,7 @@ func DEX(cpu *CPU) {
 
 // CB
 func SBX(cpu *CPU) {
-	sbx(cpu, cpu.imm())
+	sbx(cpu, cpu.Read8(cpu.imm()))
 }
 
 // CC
@@ -1440,7 +1400,7 @@ func DCPabx(cpu *CPU) {
 
 // E0
 func CPXimm(cpu *CPU) {
-	cpx(cpu, cpu.imm())
+	cpx(cpu, cpu.Read8(cpu.imm()))
 }
 
 // E1
@@ -1492,7 +1452,7 @@ func INX(cpu *CPU) {
 
 // E9
 func SBCimm(cpu *CPU) {
-	sbc(cpu, cpu.imm())
+	sbc(cpu, cpu.Read8(cpu.imm()))
 }
 
 // EA - NOP
@@ -1641,6 +1601,15 @@ func and(cpu *CPU, val uint8) {
 func ora(cpu *CPU, val uint8) {
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// or memory with accumulator.
+func ORA(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		val := cpu.Read8(m(cpu))
+		cpu.A |= val
+		cpu.P.checkNZ(cpu.A)
+	}
 }
 
 // exlusive-or memory with accumulator.
@@ -1956,8 +1925,10 @@ func (cpu *CPU) zpr16(addr uint16) uint16 {
 
 // addressing modes
 
-func (cpu *CPU) imm() uint8 {
-	val := cpu.Read8(cpu.PC)
+type addrmode func(*CPU) uint16
+
+func (cpu *CPU) imm() uint16 {
+	val := cpu.PC
 	cpu.PC++
 	return val
 }
