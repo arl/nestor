@@ -6,11 +6,11 @@ var ops = [256]func(cpu *CPU){
 	0x00: BRK,
 	0x01: ORA(izx),
 	0x02: JAM,
-	0x03: SLOizx,
+	0x03: SLO(izx),
 	0x04: NOPzp,
 	0x05: ORA(zp),
 	0x06: ASLzp,
-	0x07: SLOzp,
+	0x07: SLO(zp),
 	0x08: PHP,
 	0x09: ORA(imm),
 	0x0A: ASLacc,
@@ -18,7 +18,7 @@ var ops = [256]func(cpu *CPU){
 	0x0C: NOPabs,
 	0x0D: ORA(abs),
 	0x0E: ASLabs,
-	0x0F: SLOabs,
+	0x0F: SLO(abs),
 	0x10: BPL,
 	0x11: ORA(izy_xp),
 	0x12: JAM,
@@ -26,15 +26,15 @@ var ops = [256]func(cpu *CPU){
 	0x14: NOPzpx,
 	0x15: ORA(zpx),
 	0x16: ASLzpx,
-	0x17: SLOzpx,
+	0x17: SLO(zpx),
 	0x18: CLC,
 	0x19: ORA(abypx),
 	0x1A: NOPimp,
-	0x1B: SLOaby,
+	0x1B: SLO(aby),
 	0x1C: NOPabx,
 	0x1D: ORA(abxpx),
 	0x1E: ASLabx,
-	0x1F: SLOabx,
+	0x1F: SLO(abx),
 	0x20: JSR,
 	0x21: ANDizx,
 	0x22: JAM,
@@ -272,27 +272,11 @@ func BRK(cpu *CPU) {
 	cpu.PC = cpu.Read16(IRQvector)
 }
 
-// 03
-func SLOizx(cpu *CPU) {
-	oper := izx(cpu)
-	val := cpu.Read8(oper)
-	slo(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 06
 func ASLzp(cpu *CPU) {
 	oper := zp(cpu)
 	val := cpu.Read8(oper)
 	asl(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
-// 07
-func SLOzp(cpu *CPU) {
-	oper := zp(cpu)
-	val := cpu.Read8(oper)
-	slo(cpu, &val)
 	cpu.Write8(oper, val)
 }
 
@@ -328,25 +312,17 @@ func ASLabs(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// 0F
-func SLOabs(cpu *CPU) {
-	oper := abs(cpu)
-	val := cpu.Read8(oper)
-	slo(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 10
 func BPL(cpu *CPU) {
 	branch(cpu, !cpu.P.N())
 }
 
-// 13
+// 13 (extra tick)
 func SLOizy(cpu *CPU) {
 	oper := izy(cpu)
+	cpu.tick()
 	val := cpu.Read8(oper)
 	slo(cpu, &val)
-	cpu.tick()
 	cpu.Write8(oper, val)
 }
 
@@ -355,14 +331,6 @@ func ASLzpx(cpu *CPU) {
 	oper := zpx(cpu)
 	val := cpu.Read8(uint16(oper))
 	asl(cpu, &val)
-	cpu.Write8(uint16(oper), val)
-}
-
-// 17
-func SLOzpx(cpu *CPU) {
-	oper := zpx(cpu)
-	val := cpu.Read8(uint16(oper))
-	slo(cpu, &val)
 	cpu.Write8(uint16(oper), val)
 }
 
@@ -377,27 +345,11 @@ func NOPimp(cpu *CPU) {
 	_ = cpu.Read8(cpu.PC + 1)
 }
 
-// 1B
-func SLOaby(cpu *CPU) {
-	oper := aby(cpu)
-	val := cpu.Read8(oper)
-	slo(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 1E
 func ASLabx(cpu *CPU) {
 	oper := abx(cpu)
 	val := cpu.Read8(oper)
 	asl(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
-// 1F
-func SLOabx(cpu *CPU) {
-	oper := abx(cpu)
-	val := cpu.Read8(oper)
-	slo(cpu, &val)
 	cpu.Write8(oper, val)
 }
 
@@ -1609,6 +1561,15 @@ func ORA(m addrmode) func(cpu *CPU) {
 		val := cpu.Read8(m(cpu))
 		cpu.A |= val
 		cpu.P.checkNZ(cpu.A)
+	}
+}
+
+func SLO(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		oper := m(cpu)
+		val := cpu.Read8(oper)
+		slo(cpu, &val)
+		cpu.Write8(oper, val)
 	}
 }
 
