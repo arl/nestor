@@ -36,37 +36,37 @@ var ops = [256]func(cpu *CPU){
 	0x1E: ASL(abx),
 	0x1F: SLO(abx),
 	0x20: JSR,
-	0x21: ANDizx,
+	0x21: AND(izx),
 	0x22: JAM,
-	0x23: RLAizx,
+	0x23: RLA(izx),
 	0x24: BITzp,
-	0x25: ANDzp,
+	0x25: AND(zp),
 	0x26: ROLzp,
-	0x27: RLAzp,
+	0x27: RLA(zp),
 	0x28: PLP,
-	0x29: ANDimm,
+	0x29: AND(imm),
 	0x2A: ROLacc,
 	0x2B: ANC,
 	0x2C: BITabs,
-	0x2D: ANDabs,
+	0x2D: AND(abs),
 	0x2E: ROLabs,
-	0x2F: RLAabs,
+	0x2F: RLA(abs),
 	0x30: BMI,
-	0x31: ANDizy,
+	0x31: AND(izy_xp),
 	0x32: JAM,
 	0x33: RLAizy,
 	0x34: NOP(zpx),
-	0x35: ANDzpx,
+	0x35: AND(zpx),
 	0x36: ROLzpx,
-	0x37: RLAzpx,
+	0x37: RLA(zpx),
 	0x38: SEC,
-	0x39: ANDaby,
+	0x39: AND(abypx),
 	0x3A: NOPimp,
-	0x3B: RLAaby,
+	0x3B: RLA(aby),
 	0x3C: NOP(abxpx),
-	0x3D: ANDabx,
+	0x3D: AND(abxpx),
 	0x3E: ROLabx,
-	0x3F: RLAabx,
+	0x3F: RLA(abx),
 	0x40: RTI,
 	0x41: EORizx,
 	0x42: JAM,
@@ -331,27 +331,9 @@ func JSR(cpu *CPU) {
 	cpu.PC = oper
 }
 
-// 21
-func ANDizx(cpu *CPU) {
-	and(cpu, cpu.Read8(izx(cpu)))
-}
-
-// 23
-func RLAizx(cpu *CPU) {
-	oper := izx(cpu)
-	val := cpu.Read8(oper)
-	rla(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 24
 func BITzp(cpu *CPU) {
 	bit(cpu, cpu.Read8(zp(cpu)))
-}
-
-// 25
-func ANDzp(cpu *CPU) {
-	and(cpu, cpu.Read8(zp(cpu)))
 }
 
 // 26
@@ -359,14 +341,6 @@ func ROLzp(cpu *CPU) {
 	oper := zp(cpu)
 	val := cpu.Read8(oper)
 	rol(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
-// 27
-func RLAzp(cpu *CPU) {
-	oper := zp(cpu)
-	val := cpu.Read8(oper)
-	rla(cpu, &val)
 	cpu.Write8(oper, val)
 }
 
@@ -379,26 +353,14 @@ func PLP(cpu *CPU) {
 	cpu.P = P(copybits(uint8(cpu.P), p, mask))
 }
 
-// 29
-func ANDimm(cpu *CPU) {
-	and(cpu, cpu.Read8(imm(cpu)))
-}
-
 // 2A
 func ROLacc(cpu *CPU) {
 	rol(cpu, &cpu.A)
 }
 
-// 2B (see  ANC 0B)
-
 // 2C
 func BITabs(cpu *CPU) {
 	bit(cpu, cpu.Read8(abs(cpu)))
-}
-
-// 2D
-func ANDabs(cpu *CPU) {
-	and(cpu, cpu.Read8(abs(cpu)))
 }
 
 // 2E
@@ -409,22 +371,9 @@ func ROLabs(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// 2F
-func RLAabs(cpu *CPU) {
-	oper := abs(cpu)
-	val := cpu.Read8(oper)
-	rla(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 30
 func BMI(cpu *CPU) {
 	branch(cpu, cpu.P.N())
-}
-
-// 31
-func ANDizy(cpu *CPU) {
-	and(cpu, cpu.Read8(izy_xp(cpu)))
 }
 
 // 33
@@ -436,24 +385,11 @@ func RLAizy(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// 35
-func ANDzpx(cpu *CPU) {
-	and(cpu, cpu.Read8(zpx(cpu)))
-}
-
 // 36
 func ROLzpx(cpu *CPU) {
 	oper := zpx(cpu)
 	val := cpu.Read8(oper)
 	rol(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
-// 37
-func RLAzpx(cpu *CPU) {
-	oper := zpx(cpu)
-	val := cpu.Read8(oper)
-	rla(cpu, &val)
 	cpu.Write8(oper, val)
 }
 
@@ -463,37 +399,11 @@ func SEC(cpu *CPU) {
 	cpu.tick()
 }
 
-// 39
-func ANDaby(cpu *CPU) {
-	and(cpu, cpu.Read8(abypx(cpu)))
-}
-
-// 3B
-func RLAaby(cpu *CPU) {
-	oper := aby(cpu)
-	val := cpu.Read8(oper)
-	rla(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
-// 3D
-func ANDabx(cpu *CPU) {
-	and(cpu, cpu.Read8(abxpx(cpu)))
-}
-
 // 3E
 func ROLabx(cpu *CPU) {
 	oper := abx(cpu)
 	val := cpu.Read8(oper)
 	rol(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
-// 3F
-func RLAabx(cpu *CPU) {
-	oper := abx(cpu)
-	val := cpu.Read8(oper)
-	rla(cpu, &val)
 	cpu.Write8(oper, val)
 }
 
@@ -1525,6 +1435,21 @@ func ASL(m addrmode) func(cpu *CPU) {
 		oper := m(cpu)
 		val := cpu.Read8(oper)
 		asl(cpu, &val)
+		cpu.Write8(oper, val)
+	}
+}
+
+func AND(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		and(cpu, cpu.Read8(m(cpu)))
+	}
+}
+
+func RLA(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		oper := m(cpu)
+		val := cpu.Read8(oper)
+		rla(cpu, &val)
 		cpu.Write8(oper, val)
 	}
 }
