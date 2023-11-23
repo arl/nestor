@@ -59,7 +59,7 @@ var ops = [256]func(cpu *CPU){
 	0x35: AND(zpx),
 	0x36: ROL(zpx),
 	0x37: RLA(zpx),
-	0x38: SEC,
+	0x38: SE(pbitC),
 	0x39: AND(aby_xp),
 	0x3A: NOPimp,
 	0x3B: RLA(aby),
@@ -123,7 +123,7 @@ var ops = [256]func(cpu *CPU){
 	0x75: ADC(zpx),
 	0x76: ROR(zpx),
 	0x77: RRA(zpx),
-	0x78: SEI,
+	0x78: SE(pbitI),
 	0x79: ADC(aby_xp),
 	0x7A: NOPimp,
 	0x7B: RRA(aby),
@@ -251,7 +251,7 @@ var ops = [256]func(cpu *CPU){
 	0xF5: SBCzpx,
 	0xF6: INCzpx,
 	0xF7: ISBzpx,
-	0xF8: SED,
+	0xF8: SE(pbitD),
 	0xF9: SBCaby,
 	0xFA: NOPimp,
 	0xFB: ISBaby,
@@ -358,12 +358,6 @@ func RLAizy(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// 38
-func SEC(cpu *CPU) {
-	cpu.P.setBit(pbitC)
-	cpu.tick()
-}
-
 // 40
 func RTI(cpu *CPU) {
 	cpu.tick()
@@ -453,12 +447,6 @@ func RRAizy(cpu *CPU) {
 	rra(cpu, &val)
 	cpu.tick()
 	cpu.Write8(oper, val)
-}
-
-// 78
-func SEI(cpu *CPU) {
-	cpu.P.setBit(pbitI)
-	cpu.tick()
 }
 
 // 86
@@ -724,12 +712,6 @@ func ISBzpx(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// F8
-func SED(cpu *CPU) {
-	cpu.P.setBit(pbitD)
-	cpu.tick()
-}
-
 // F9
 func SBCaby(cpu *CPU) {
 	sbc(cpu, cpu.Read8(aby_xp(cpu)))
@@ -774,10 +756,18 @@ func NOP(m addrmode) func(cpu *CPU) {
 	}
 }
 
-// Generates a CLear flag instruction.
+// CLear flag instruction.
 func CL(ibit int) func(cpu *CPU) {
 	return func(cpu *CPU) {
 		cpu.P.clearBit(ibit)
+		cpu.tick()
+	}
+}
+
+// SEt flag instruction.
+func SE(ibit int) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		cpu.P.setBit(ibit)
 		cpu.tick()
 	}
 }
