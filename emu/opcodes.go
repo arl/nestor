@@ -230,11 +230,11 @@ var ops = [256]func(cpu *CPU){
 	0xE0: CPX(imm),
 	0xE1: SBC(izx),
 	0xE2: NOP(imm),
-	0xE3: ISBizx,
+	0xE3: ISB(izx),
 	0xE4: CPX(zp),
 	0xE5: SBC(zp),
 	0xE6: INC(zp),
-	0xE7: ISBzp,
+	0xE7: ISB(zp),
 	0xE8: INX,
 	0xE9: SBC(imm),
 	0xEA: NOPimp,
@@ -242,23 +242,23 @@ var ops = [256]func(cpu *CPU){
 	0xEC: CPX(abs),
 	0xED: SBC(abs),
 	0xEE: INC(abs),
-	0xEF: ISBabs,
+	0xEF: ISB(abs),
 	0xF0: BEQ,
 	0xF1: SBC(izy_xp),
 	0xF2: JAM,
-	0xF3: ISBizy,
+	0xF3: ISB(izy_xt),
 	0xF4: NOP(zpx),
 	0xF5: SBC(zpx),
 	0xF6: INC(zpx),
-	0xF7: ISBzpx,
+	0xF7: ISB(zpx),
 	0xF8: SE(pbitD),
 	0xF9: SBC(aby_xp),
 	0xFA: NOPimp,
-	0xFB: ISBaby,
+	0xFB: ISB(aby),
 	0xFC: NOP(abx_xp),
 	0xFD: SBC(abx_xp),
 	0xFE: INC(abx),
-	0xFF: ISBabx,
+	0xFF: ISB(abx),
 }
 
 // 00
@@ -542,79 +542,15 @@ func DCPizy(cpu *CPU) {
 	cmp_(cpu, val)
 }
 
-// E3
-func ISBizx(cpu *CPU) {
-	oper := izx(cpu)
-	val := cpu.Read8(oper)
-	inc(cpu, &val)
-	sbc(cpu, val)
-	cpu.Write8(oper, val)
-}
-
-// E7
-func ISBzp(cpu *CPU) {
-	oper := zp(cpu)
-	val := cpu.Read8(oper)
-	inc(cpu, &val)
-	sbc(cpu, val)
-	cpu.Write8(oper, val)
-}
-
 // E8
 func INX(cpu *CPU) {
 	inc(cpu, &cpu.X)
 	cpu.P.checkNZ(cpu.X)
 }
 
-// EF
-func ISBabs(cpu *CPU) {
-	oper := abs(cpu)
-	val := cpu.Read8(oper)
-	inc(cpu, &val)
-	sbc(cpu, val)
-	cpu.Write8(oper, val)
-}
-
 // F0
 func BEQ(cpu *CPU) {
 	branch(cpu, cpu.P.Z())
-}
-
-// F3
-func ISBizy(cpu *CPU) {
-	oper := izy(cpu)
-	val := cpu.Read8(oper)
-	inc(cpu, &val)
-	sbc(cpu, val)
-	cpu.tick()
-	cpu.Write8(oper, val)
-}
-
-// F7
-func ISBzpx(cpu *CPU) {
-	oper := zpx(cpu)
-	val := cpu.Read8(oper)
-	inc(cpu, &val)
-	sbc(cpu, val)
-	cpu.Write8(oper, val)
-}
-
-// FB
-func ISBaby(cpu *CPU) {
-	oper := aby(cpu)
-	val := cpu.Read8(oper)
-	inc(cpu, &val)
-	sbc(cpu, val)
-	cpu.Write8(oper, val)
-}
-
-// FF
-func ISBabx(cpu *CPU) {
-	oper := abx(cpu)
-	val := cpu.Read8(oper)
-	inc(cpu, &val)
-	sbc(cpu, val)
-	cpu.Write8(oper, val)
 }
 
 /* common instruction implementation */
@@ -836,6 +772,16 @@ func INC(m addrmode) func(cpu *CPU) {
 		oper := m(cpu)
 		val := cpu.Read8(oper)
 		inc(cpu, &val)
+		cpu.Write8(oper, val)
+	}
+}
+
+func ISB(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		oper := m(cpu)
+		val := cpu.Read8(oper)
+		inc(cpu, &val)
+		sbc(cpu, val)
 		cpu.Write8(oper, val)
 	}
 }
