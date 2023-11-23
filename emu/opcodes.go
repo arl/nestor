@@ -77,7 +77,7 @@ var ops = [256]func(cpu *CPU){
 	0x47: SRE(zp),
 	0x48: PHA,
 	0x49: EOR(imm),
-	0x4A: LSRacc,
+	0x4A: LSRacc(),
 	0x4B: ALR,
 	0x4C: JMPabs,
 	0x4D: EOR(abs),
@@ -354,11 +354,6 @@ func RTI(cpu *CPU) {
 func PHA(cpu *CPU) {
 	cpu.tick()
 	push8(cpu, cpu.A)
-}
-
-// 4A
-func LSRacc(cpu *CPU) {
-	lsracc(cpu)
 }
 
 // 4B
@@ -653,8 +648,14 @@ func LSR(m addrmode) func(cpu *CPU) {
 	return func(cpu *CPU) {
 		oper := m(cpu)
 		val := cpu.Read8(oper)
-		lsrmem(cpu, &val)
+		lsr(cpu, &val)
 		cpu.Write8(oper, val)
+	}
+}
+
+func LSRacc() func(cpu *CPU) {
+	return func(cpu *CPU) {
+		lsr(cpu, &cpu.A)
 	}
 }
 
@@ -854,24 +855,14 @@ func asl(cpu *CPU, val *uint8) {
 	cpu.P.writeBit(pbitC, carry != 0)
 }
 
-// shift one bit right (memory)
-func lsrmem(cpu *CPU, val *uint8) {
+// shift one bit right
+func lsr(cpu *CPU, val *uint8) {
 	carry := *val & 0x01 // carry is bit 0
 	*val >>= 1
 	*val &= 0x7f
 	cpu.tick()
 	cpu.P.checkNZ(*val)
 	cpu.P.writeBit(pbitC, carry != 0)
-}
-
-// shift one bit right (accumulator).
-func lsracc(cpu *CPU) {
-	carry := cpu.A & 0x01 // carry is bit 0
-	cpu.A >>= 1
-	cpu.A &= 0x7f
-	cpu.P.checkNZ(cpu.A)
-	cpu.P.writeBit(pbitC, carry != 0)
-	cpu.tick()
 }
 
 // test bits in memory with accumulator.
@@ -951,7 +942,7 @@ func rla(cpu *CPU, val *uint8) {
 }
 
 func sre(cpu *CPU, val *uint8) {
-	lsrmem(cpu, val)
+	lsr(cpu, val)
 	eor(cpu, *val)
 }
 
