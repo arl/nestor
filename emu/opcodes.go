@@ -27,7 +27,7 @@ var ops = [256]func(cpu *CPU){
 	0x15: ORA(zpx),
 	0x16: ASL(zpx),
 	0x17: SLO(zpx),
-	0x18: CLC,
+	0x18: CL(pbitC),
 	0x19: ORA(aby_xp),
 	0x1A: NOPimp,
 	0x1B: SLO(aby),
@@ -91,7 +91,7 @@ var ops = [256]func(cpu *CPU){
 	0x55: EOR(zpx),
 	0x56: LSR(zpx),
 	0x57: SRE(zpx),
-	0x58: CLI,
+	0x58: CL(pbitI),
 	0x59: EOR(aby_xp),
 	0x5A: NOPimp,
 	0x5B: SRE(aby),
@@ -187,7 +187,7 @@ var ops = [256]func(cpu *CPU){
 	0xB5: LDA(zpx),
 	0xB6: LDX(zpy),
 	0xB7: LAX(zpy),
-	0xB8: CLV,
+	0xB8: CL(pbitV),
 	0xB9: LDA(aby_xp),
 	0xBA: TSX,
 	0xBB: LAS,
@@ -219,7 +219,7 @@ var ops = [256]func(cpu *CPU){
 	0xD5: CMP(zpx),
 	0xD6: DEC(zpx),
 	0xD7: DCP(zpx),
-	0xD8: CLD,
+	0xD8: CL(pbitD),
 	0xD9: CMP(aby_xp),
 	0xDA: NOPimp,
 	0xDB: DCP(aby),
@@ -308,12 +308,6 @@ func SLOizy(cpu *CPU) {
 	val := cpu.Read8(oper)
 	slo(cpu, &val)
 	cpu.Write8(oper, val)
-}
-
-// 18
-func CLC(cpu *CPU) {
-	cpu.P.clearBit(pbitC)
-	cpu.tick()
 }
 
 // 1A
@@ -413,12 +407,6 @@ func SREizy(cpu *CPU) {
 	val := cpu.Read8(oper)
 	sre(cpu, &val)
 	cpu.Write8(oper, val)
-}
-
-// 58
-func CLI(cpu *CPU) {
-	cpu.P.clearBit(pbitI)
-	cpu.tick()
 }
 
 // 60
@@ -564,12 +552,6 @@ func BCS(cpu *CPU) {
 	branch(cpu, cpu.P.C())
 }
 
-// B8
-func CLV(cpu *CPU) {
-	cpu.P.clearBit(pbitV)
-	cpu.tick()
-}
-
 // BA
 func TSX(cpu *CPU) {
 	cpu.X = cpu.SP
@@ -612,12 +594,6 @@ func DCPizy(cpu *CPU) {
 	dec(cpu, &val)
 	cpu.Write8(oper, val)
 	cmp_(cpu, val)
-}
-
-// D8
-func CLD(cpu *CPU) {
-	cpu.P.clearBit(pbitD)
-	cpu.tick()
 }
 
 // E0
@@ -798,10 +774,12 @@ func NOP(m addrmode) func(cpu *CPU) {
 	}
 }
 
-// or memory with accumulator.
-func ora(cpu *CPU, val uint8) {
-	cpu.A |= val
-	cpu.P.checkNZ(cpu.A)
+// Generates a CLear flag instruction.
+func CL(ibit int) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		cpu.P.clearBit(ibit)
+		cpu.tick()
+	}
 }
 
 // or memory with accumulator.
@@ -980,6 +958,12 @@ func DEC(m addrmode) func(cpu *CPU) {
 		dec(cpu, &val)
 		cpu.Write8(oper, val)
 	}
+}
+
+// or memory with accumulator.
+func ora(cpu *CPU, val uint8) {
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
 }
 
 // add memory to accumulator with carry.
