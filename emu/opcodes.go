@@ -132,35 +132,35 @@ var ops = [256]func(cpu *CPU){
 	0x7E: ROR(abx),
 	0x7F: RRA(abx),
 	0x80: NOP(imm),
-	0x81: STAizx,
+	0x81: STA(izx),
 	0x82: NOP(imm),
-	0x83: SAXizx,
-	0x84: STYzp,
-	0x85: STAzp,
+	0x83: SAX(izx),
+	0x84: STY(zp),
+	0x85: STA(zp),
 	0x86: STXzp,
-	0x87: SAXzp,
+	0x87: SAX(zp),
 	0x88: DEY,
 	0x89: NOP(imm),
 	0x8A: TXA,
 	0x8B: unsupported,
-	0x8C: STYabs,
-	0x8D: STAabs,
+	0x8C: STY(abs),
+	0x8D: STA(abs),
 	0x8E: STXabs,
-	0x8F: SAXabs,
+	0x8F: SAX(abs),
 	0x90: BCC,
 	0x91: STAizy,
 	0x92: JAM,
 	0x93: unsupported,
-	0x94: STYzpx,
-	0x95: STAzpx,
+	0x94: STY(zpx),
+	0x95: STA(zpx),
 	0x96: STXzpy,
-	0x97: SAXzpy,
+	0x97: SAX(zpy),
 	0x98: TYA,
-	0x99: STAaby,
+	0x99: STA(aby),
 	0x9A: TXS,
 	0x9B: unsupported,
 	0x9C: SHY,
-	0x9D: STAabx,
+	0x9D: STA(abx),
 	0x9E: SHX,
 	0x9F: unsupported,
 	0xA0: LDYimm,
@@ -473,34 +473,9 @@ func SEI(cpu *CPU) {
 	cpu.tick()
 }
 
-// 81
-func STAizx(cpu *CPU) {
-	cpu.Write8(izx(cpu), cpu.A)
-}
-
-// 83
-func SAXizx(cpu *CPU) {
-	cpu.Write8(izx(cpu), cpu.A&cpu.X)
-}
-
-// 84
-func STYzp(cpu *CPU) {
-	cpu.Write8(zp(cpu), cpu.Y)
-}
-
-// 85
-func STAzp(cpu *CPU) {
-	cpu.Write8(zp(cpu), cpu.A)
-}
-
 // 86
 func STXzp(cpu *CPU) {
 	cpu.Write8(zp(cpu), cpu.X)
-}
-
-// 87
-func SAXzp(cpu *CPU) {
-	cpu.Write8(zp(cpu), cpu.A&cpu.X)
 }
 
 // 88
@@ -518,24 +493,9 @@ func TXA(cpu *CPU) {
 
 // 8B - unsupported
 
-// 8C
-func STYabs(cpu *CPU) {
-	cpu.Write8(abs(cpu), cpu.Y)
-}
-
-// 8D
-func STAabs(cpu *CPU) {
-	cpu.Write8(abs(cpu), cpu.A)
-}
-
 // 8E
 func STXabs(cpu *CPU) {
 	cpu.Write8(abs(cpu), cpu.X)
-}
-
-// 8F
-func SAXabs(cpu *CPU) {
-	cpu.Write8(abs(cpu), cpu.A&cpu.X)
 }
 
 // 90
@@ -543,7 +503,7 @@ func BCC(cpu *CPU) {
 	branch(cpu, !cpu.P.C())
 }
 
-// 91
+// 91 - extra tick
 func STAizy(cpu *CPU) {
 	cpu.tick()
 	cpu.Write8(izy(cpu), cpu.A)
@@ -551,24 +511,9 @@ func STAizy(cpu *CPU) {
 
 // 93 - unsupported
 
-// 94
-func STYzpx(cpu *CPU) {
-	cpu.Write8(zpx(cpu), cpu.Y)
-}
-
-// 95
-func STAzpx(cpu *CPU) {
-	cpu.Write8(zpx(cpu), cpu.A)
-}
-
 // 96
 func STXzpy(cpu *CPU) {
 	cpu.Write8(zpy(cpu), cpu.X)
-}
-
-// 97
-func SAXzpy(cpu *CPU) {
-	cpu.Write8(zpy(cpu), cpu.A&cpu.X)
 }
 
 // 98
@@ -576,11 +521,6 @@ func TYA(cpu *CPU) {
 	cpu.A = cpu.Y
 	cpu.P.checkNZ(cpu.A)
 	cpu.tick()
-}
-
-// 99
-func STAaby(cpu *CPU) {
-	cpu.Write8(aby(cpu), cpu.A)
 }
 
 // 9A
@@ -594,11 +534,6 @@ func TXS(cpu *CPU) {
 // 9C
 func SHY(cpu *CPU) {
 	shy(cpu)
-}
-
-// 9D
-func STAabx(cpu *CPU) {
-	cpu.Write8(abx(cpu), cpu.A)
 }
 
 // 9E
@@ -1232,6 +1167,24 @@ func ROR(m addrmode) func(cpu *CPU) {
 		val := cpu.Read8(oper)
 		ror(cpu, &val)
 		cpu.Write8(oper, val)
+	}
+}
+
+func STA(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		cpu.Write8(m(cpu), cpu.A)
+	}
+}
+
+func SAX(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		cpu.Write8(m(cpu), cpu.A&cpu.X)
+	}
+}
+
+func STY(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		cpu.Write8(m(cpu), cpu.Y)
 	}
 }
 
