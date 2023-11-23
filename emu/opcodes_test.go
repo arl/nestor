@@ -123,6 +123,7 @@ func testOpcodes(op string) func(t *testing.T) {
 				cpu.Run(int64(len(tt.Cycles)) - 1)
 
 				if testing.Verbose() {
+					t.Logf("expecting cycles:\n%s\n\n", strings.Join(prettyCycles(tt.Cycles), "\n"))
 					t.Log("test output:")
 				}
 
