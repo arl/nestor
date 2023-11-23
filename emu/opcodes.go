@@ -137,7 +137,7 @@ var ops = [256]func(cpu *CPU){
 	0x83: SAX(izx),
 	0x84: STY(zp),
 	0x85: STA(zp),
-	0x86: STXzp,
+	0x86: STX(zp),
 	0x87: SAX(zp),
 	0x88: DEY,
 	0x89: NOP(imm),
@@ -145,7 +145,7 @@ var ops = [256]func(cpu *CPU){
 	0x8B: unsupported,
 	0x8C: STY(abs),
 	0x8D: STA(abs),
-	0x8E: STXabs,
+	0x8E: STX(abs),
 	0x8F: SAX(abs),
 	0x90: BCC,
 	0x91: STA(izy_xt),
@@ -153,7 +153,7 @@ var ops = [256]func(cpu *CPU){
 	0x93: unsupported,
 	0x94: STY(zpx),
 	0x95: STA(zpx),
-	0x96: STXzpy,
+	0x96: STX(zpy),
 	0x97: SAX(zpy),
 	0x98: TYA,
 	0x99: STA(aby),
@@ -291,11 +291,6 @@ func ANC(cpu *CPU) {
 	cpu.P.writeBit(pbitC, cpu.P.N())
 }
 
-// 0C
-func NOPabs(cpu *CPU) {
-	_ = cpu.Read8(abs(cpu))
-}
-
 // 10
 func BPL(cpu *CPU) {
 	branch(cpu, !cpu.P.N())
@@ -328,11 +323,6 @@ func PLP(cpu *CPU) {
 // 2A
 func ROLacc(cpu *CPU) {
 	rol(cpu, &cpu.A)
-}
-
-// 2C
-func BITabs(cpu *CPU) {
-	bit(cpu, cpu.Read8(abs(cpu)))
 }
 
 // 30
@@ -408,11 +398,6 @@ func BVS(cpu *CPU) {
 	branch(cpu, cpu.P.V())
 }
 
-// 86
-func STXzp(cpu *CPU) {
-	cpu.Write8(zp(cpu), cpu.X)
-}
-
 // 88
 func DEY(cpu *CPU) {
 	dec(cpu, &cpu.Y)
@@ -428,22 +413,12 @@ func TXA(cpu *CPU) {
 
 // 8B - unsupported
 
-// 8E
-func STXabs(cpu *CPU) {
-	cpu.Write8(abs(cpu), cpu.X)
-}
-
 // 90
 func BCC(cpu *CPU) {
 	branch(cpu, !cpu.P.C())
 }
 
 // 93 - unsupported
-
-// 96
-func STXzpy(cpu *CPU) {
-	cpu.Write8(zpy(cpu), cpu.X)
-}
 
 // 98
 func TYA(cpu *CPU) {
@@ -697,6 +672,12 @@ func STA(m addrmode) func(cpu *CPU) {
 func SAX(m addrmode) func(cpu *CPU) {
 	return func(cpu *CPU) {
 		cpu.Write8(m(cpu), cpu.A&cpu.X)
+	}
+}
+
+func STX(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		cpu.Write8(m(cpu), cpu.X)
 	}
 }
 
