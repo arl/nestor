@@ -105,7 +105,7 @@ var ops = [256]func(cpu *CPU){
 	0x63: RRA(izx),
 	0x64: NOP(zp),
 	0x65: ADC(zp),
-	0x66: RORzp,
+	0x66: ROR(zp),
 	0x67: RRA(zp),
 	0x68: PLA,
 	0x69: ADC(imm),
@@ -113,7 +113,7 @@ var ops = [256]func(cpu *CPU){
 	0x6B: ARR,
 	0x6C: JMPind,
 	0x6D: ADC(abs),
-	0x6E: RORabs,
+	0x6E: ROR(abs),
 	0x6F: RRA(abs),
 	0x70: BVS,
 	0x71: ADC(izy_xp),
@@ -121,7 +121,7 @@ var ops = [256]func(cpu *CPU){
 	0x73: RRAizy,
 	0x74: NOP(zpx),
 	0x75: ADC(zpx),
-	0x76: RORzpx,
+	0x76: ROR(zpx),
 	0x77: RRA(zpx),
 	0x78: SEI,
 	0x79: ADC(abypx),
@@ -129,7 +129,7 @@ var ops = [256]func(cpu *CPU){
 	0x7B: RRA(aby),
 	0x7C: NOP(abxpx),
 	0x7D: ADC(abxpx),
-	0x7E: RORabx,
+	0x7E: ROR(abx),
 	0x7F: RRA(abx),
 	0x80: NOP(imm),
 	0x81: STAizx,
@@ -430,14 +430,6 @@ func RTS(cpu *CPU) {
 	cpu.tick()
 }
 
-// 66
-func RORzp(cpu *CPU) {
-	oper := zp(cpu)
-	val := cpu.Read8(oper)
-	ror(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 68
 func PLA(cpu *CPU) {
 	cpu.tick()
@@ -461,14 +453,6 @@ func JMPind(cpu *CPU) {
 	cpu.PC = ind(cpu)
 }
 
-// 6E
-func RORabs(cpu *CPU) {
-	oper := abs(cpu)
-	val := cpu.Read8(oper)
-	ror(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 70
 func BVS(cpu *CPU) {
 	branch(cpu, cpu.P.V())
@@ -483,26 +467,10 @@ func RRAizy(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// 76
-func RORzpx(cpu *CPU) {
-	oper := zpx(cpu)
-	val := cpu.Read8(oper)
-	ror(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 78
 func SEI(cpu *CPU) {
 	cpu.P.setBit(pbitI)
 	cpu.tick()
-}
-
-// 7E
-func RORabx(cpu *CPU) {
-	oper := abx(cpu)
-	val := cpu.Read8(oper)
-	ror(cpu, &val)
-	cpu.Write8(oper, val)
 }
 
 // 81
@@ -1254,6 +1222,15 @@ func RRA(m addrmode) func(cpu *CPU) {
 		oper := m(cpu)
 		val := cpu.Read8(oper)
 		rra(cpu, &val)
+		cpu.Write8(oper, val)
+	}
+}
+
+func ROR(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		oper := m(cpu)
+		val := cpu.Read8(oper)
+		ror(cpu, &val)
 		cpu.Write8(oper, val)
 	}
 }
