@@ -7,7 +7,7 @@ var ops = [256]func(cpu *CPU){
 	0x01: ORA(izx),
 	0x02: JAM,
 	0x03: SLO(izx),
-	0x04: NOPzp,
+	0x04: NOP(zp),
 	0x05: ORA(zp),
 	0x06: ASLzp,
 	0x07: SLO(zp),
@@ -15,7 +15,7 @@ var ops = [256]func(cpu *CPU){
 	0x09: ORA(imm),
 	0x0A: ASLacc,
 	0x0B: ANC,
-	0x0C: NOPabs,
+	0x0C: NOP(abs),
 	0x0D: ORA(abs),
 	0x0E: ASLabs,
 	0x0F: SLO(abs),
@@ -23,7 +23,7 @@ var ops = [256]func(cpu *CPU){
 	0x11: ORA(izy_xp),
 	0x12: JAM,
 	0x13: SLOizy,
-	0x14: NOPzpx,
+	0x14: NOP(zpx),
 	0x15: ORA(zpx),
 	0x16: ASLzpx,
 	0x17: SLO(zpx),
@@ -31,7 +31,7 @@ var ops = [256]func(cpu *CPU){
 	0x19: ORA(abypx),
 	0x1A: NOPimp,
 	0x1B: SLO(aby),
-	0x1C: NOPabx,
+	0x1C: NOP(abxpx),
 	0x1D: ORA(abxpx),
 	0x1E: ASLabx,
 	0x1F: SLO(abx),
@@ -55,7 +55,7 @@ var ops = [256]func(cpu *CPU){
 	0x31: ANDizy,
 	0x32: JAM,
 	0x33: RLAizy,
-	0x34: NOPzpx,
+	0x34: NOP(zpx),
 	0x35: ANDzpx,
 	0x36: ROLzpx,
 	0x37: RLAzpx,
@@ -63,7 +63,7 @@ var ops = [256]func(cpu *CPU){
 	0x39: ANDaby,
 	0x3A: NOPimp,
 	0x3B: RLAaby,
-	0x3C: NOPabx,
+	0x3C: NOP(abxpx),
 	0x3D: ANDabx,
 	0x3E: ROLabx,
 	0x3F: RLAabx,
@@ -71,7 +71,7 @@ var ops = [256]func(cpu *CPU){
 	0x41: EORizx,
 	0x42: JAM,
 	0x43: SREizx,
-	0x44: NOPzp,
+	0x44: NOP(zp),
 	0x45: EORzp,
 	0x46: LSRzp,
 	0x47: SREzp,
@@ -87,7 +87,7 @@ var ops = [256]func(cpu *CPU){
 	0x51: EORizy,
 	0x52: JAM,
 	0x53: SREizy,
-	0x54: NOPzpx,
+	0x54: NOP(zpx),
 	0x55: EORzpx,
 	0x56: LSRzpx,
 	0x57: SREzpx,
@@ -95,7 +95,7 @@ var ops = [256]func(cpu *CPU){
 	0x59: EORaby,
 	0x5A: NOPimp,
 	0x5B: SREaby,
-	0x5C: NOPabx,
+	0x5C: NOP(abxpx),
 	0x5D: EORabx,
 	0x5E: LSRabx,
 	0x5F: SREabx,
@@ -103,7 +103,7 @@ var ops = [256]func(cpu *CPU){
 	0x61: ADCizx,
 	0x62: JAM,
 	0x63: RRAizx,
-	0x64: NOPzp,
+	0x64: NOP(zp),
 	0x65: ADCzp,
 	0x66: RORzp,
 	0x67: RRAzp,
@@ -119,7 +119,7 @@ var ops = [256]func(cpu *CPU){
 	0x71: ADCizy,
 	0x72: JAM,
 	0x73: RRAizy,
-	0x74: NOPzpx,
+	0x74: NOP(zpx),
 	0x75: ADCzpx,
 	0x76: RORzpx,
 	0x77: RRAzpx,
@@ -127,20 +127,20 @@ var ops = [256]func(cpu *CPU){
 	0x79: ADCaby,
 	0x7A: NOPimp,
 	0x7B: RRAaby,
-	0x7C: NOPabx,
+	0x7C: NOP(abxpx),
 	0x7D: ADCabx,
 	0x7E: RORabx,
 	0x7F: RRAabx,
-	0x80: NOPimm,
+	0x80: NOP(imm),
 	0x81: STAizx,
-	0x82: NOPimm,
+	0x82: NOP(imm),
 	0x83: SAXizx,
 	0x84: STYzp,
 	0x85: STAzp,
 	0x86: STXzp,
 	0x87: SAXzp,
 	0x88: DEY,
-	0x89: NOPimm,
+	0x89: NOP(imm),
 	0x8A: TXA,
 	0x8B: unsupported,
 	0x8C: STYabs,
@@ -197,7 +197,7 @@ var ops = [256]func(cpu *CPU){
 	0xBF: LAXaby,
 	0xC0: CPYimm,
 	0xC1: CMPizx,
-	0xC2: NOPimm,
+	0xC2: NOP(imm),
 	0xC3: DCPizx,
 	0xC4: CPYzp,
 	0xC5: CMPzp,
@@ -215,7 +215,7 @@ var ops = [256]func(cpu *CPU){
 	0xD1: CMPizy,
 	0xD2: JAM,
 	0xD3: DCPizy,
-	0xD4: NOPzpx,
+	0xD4: NOP(zpx),
 	0xD5: CMPzpx,
 	0xD6: DECzpx,
 	0xD7: DCPzpx,
@@ -223,13 +223,13 @@ var ops = [256]func(cpu *CPU){
 	0xD9: CMPaby,
 	0xDA: NOPimp,
 	0xDB: DCPaby,
-	0xDC: NOPabx,
+	0xDC: NOP(abxpx),
 	0xDD: CMPabx,
 	0xDE: DECabx,
 	0xDF: DCPabx,
 	0xE0: CPXimm,
 	0xE1: SBCizx,
-	0xE2: NOPimm,
+	0xE2: NOP(imm),
 	0xE3: ISBizx,
 	0xE4: CPXzp,
 	0xE5: SBCzp,
@@ -247,7 +247,7 @@ var ops = [256]func(cpu *CPU){
 	0xF1: SBCizy,
 	0xF2: JAM,
 	0xF3: ISBizy,
-	0xF4: NOPzpx,
+	0xF4: NOP(zpx),
 	0xF5: SBCzpx,
 	0xF6: INCzpx,
 	0xF7: ISBzpx,
@@ -255,7 +255,7 @@ var ops = [256]func(cpu *CPU){
 	0xF9: SBCaby,
 	0xFA: NOPimp,
 	0xFB: ISBaby,
-	0xFC: NOPabx,
+	0xFC: NOP(abxpx),
 	0xFD: SBCabx,
 	0xFE: INCabx,
 	0xFF: ISBabx,
@@ -342,7 +342,7 @@ func CLC(cpu *CPU) {
 
 // 1A
 func NOPimp(cpu *CPU) {
-	_ = cpu.Read8(cpu.PC + 1)
+	_ = cpu.Read8(cpu.PC)
 }
 
 // 1E
@@ -1522,6 +1522,36 @@ func ISBabx(cpu *CPU) {
 
 /* common instruction implementation */
 
+func NOP(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		_ = cpu.Read8(m(cpu))
+	}
+}
+
+// or memory with accumulator.
+func ora(cpu *CPU, val uint8) {
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// or memory with accumulator.
+func ORA(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		val := cpu.Read8(m(cpu))
+		cpu.A |= val
+		cpu.P.checkNZ(cpu.A)
+	}
+}
+
+func SLO(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		oper := m(cpu)
+		val := cpu.Read8(oper)
+		slo(cpu, &val)
+		cpu.Write8(oper, val)
+	}
+}
+
 // add memory to accumulator with carry.
 func adc(cpu *CPU, val uint8) {
 	carry := cpu.P.ibit(pbitC)
@@ -1547,30 +1577,6 @@ func sbc(cpu *CPU, val uint8) {
 func and(cpu *CPU, val uint8) {
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
-}
-
-// or memory with accumulator.
-func ora(cpu *CPU, val uint8) {
-	cpu.A |= val
-	cpu.P.checkNZ(cpu.A)
-}
-
-// or memory with accumulator.
-func ORA(m addrmode) func(cpu *CPU) {
-	return func(cpu *CPU) {
-		val := cpu.Read8(m(cpu))
-		cpu.A |= val
-		cpu.P.checkNZ(cpu.A)
-	}
-}
-
-func SLO(m addrmode) func(cpu *CPU) {
-	return func(cpu *CPU) {
-		oper := m(cpu)
-		val := cpu.Read8(oper)
-		slo(cpu, &val)
-		cpu.Write8(oper, val)
-	}
 }
 
 // exlusive-or memory with accumulator.
@@ -1695,21 +1701,6 @@ func ldx(cpu *CPU, val uint8) {
 func ldy(cpu *CPU, val uint8) {
 	cpu.Y = val
 	cpu.P.checkNZ(cpu.Y)
-}
-
-// NOP variants
-
-func NOPabx(cpu *CPU) {
-	addr := abxpx(cpu)
-	_ = cpu.Read8(addr)
-}
-
-func NOPzpx(cpu *CPU) {
-	_ = cpu.Read8(uint16(zpx(cpu)))
-}
-
-func NOPzp(cpu *CPU) {
-	_ = cpu.Read8(uint16(zp(cpu)))
 }
 
 /* unofficial instructions */
