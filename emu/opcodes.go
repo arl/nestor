@@ -22,7 +22,7 @@ var ops = [256]func(cpu *CPU){
 	0x10: BPL,
 	0x11: ORA(izy_xp),
 	0x12: JAM,
-	0x13: SLOizy,
+	0x13: SLO(izy_xt),
 	0x14: NOP(zpx),
 	0x15: ORA(zpx),
 	0x16: ASL(zpx),
@@ -54,7 +54,7 @@ var ops = [256]func(cpu *CPU){
 	0x30: BMI,
 	0x31: AND(izy_xp),
 	0x32: JAM,
-	0x33: RLAizy,
+	0x33: RLA(izy_xt),
 	0x34: NOP(zpx),
 	0x35: AND(zpx),
 	0x36: ROL(zpx),
@@ -86,7 +86,7 @@ var ops = [256]func(cpu *CPU){
 	0x50: BVC,
 	0x51: EOR(izy_xp),
 	0x52: JAM,
-	0x53: SREizy,
+	0x53: SRE(izy_xt),
 	0x54: NOP(zpx),
 	0x55: EOR(zpx),
 	0x56: LSR(zpx),
@@ -118,7 +118,7 @@ var ops = [256]func(cpu *CPU){
 	0x70: BVS,
 	0x71: ADC(izy_xp),
 	0x72: JAM,
-	0x73: RRAizy,
+	0x73: RRA(izy_xt),
 	0x74: NOP(zpx),
 	0x75: ADC(zpx),
 	0x76: ROR(zpx),
@@ -148,7 +148,7 @@ var ops = [256]func(cpu *CPU){
 	0x8E: STXabs,
 	0x8F: SAX(abs),
 	0x90: BCC,
-	0x91: STAizy,
+	0x91: STA(izy_xt),
 	0x92: JAM,
 	0x93: unsupported,
 	0x94: STY(zpx),
@@ -301,15 +301,6 @@ func BPL(cpu *CPU) {
 	branch(cpu, !cpu.P.N())
 }
 
-// 13 (extra tick)
-func SLOizy(cpu *CPU) {
-	oper := izy(cpu)
-	cpu.tick()
-	val := cpu.Read8(oper)
-	slo(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 1A
 func NOPimp(cpu *CPU) {
 	_ = cpu.Read8(cpu.PC)
@@ -349,15 +340,6 @@ func BMI(cpu *CPU) {
 	branch(cpu, cpu.P.N())
 }
 
-// 33
-func RLAizy(cpu *CPU) {
-	oper := izy(cpu)
-	val := cpu.Read8(oper)
-	rla(cpu, &val)
-	cpu.tick()
-	cpu.Write8(oper, val)
-}
-
 // 40
 func RTI(cpu *CPU) {
 	cpu.tick()
@@ -392,15 +374,6 @@ func JMPabs(cpu *CPU) {
 // 50
 func BVC(cpu *CPU) {
 	branch(cpu, !cpu.P.V())
-}
-
-// 53 - SRE with an extra tick
-func SREizy(cpu *CPU) {
-	oper := izy(cpu)
-	cpu.tick()
-	val := cpu.Read8(oper)
-	sre(cpu, &val)
-	cpu.Write8(oper, val)
 }
 
 // 60
@@ -440,15 +413,6 @@ func BVS(cpu *CPU) {
 	branch(cpu, cpu.P.V())
 }
 
-// 73 - extra tick
-func RRAizy(cpu *CPU) {
-	oper := izy(cpu)
-	val := cpu.Read8(oper)
-	rra(cpu, &val)
-	cpu.tick()
-	cpu.Write8(oper, val)
-}
-
 // 86
 func STXzp(cpu *CPU) {
 	cpu.Write8(zp(cpu), cpu.X)
@@ -477,12 +441,6 @@ func STXabs(cpu *CPU) {
 // 90
 func BCC(cpu *CPU) {
 	branch(cpu, !cpu.P.C())
-}
-
-// 91 - extra tick
-func STAizy(cpu *CPU) {
-	cpu.tick()
-	cpu.Write8(izy(cpu), cpu.A)
 }
 
 // 93 - unsupported
@@ -1352,6 +1310,13 @@ func izx(cpu *CPU) uint16 {
 // zeropage indexed indirect (zp),y.
 func izy(cpu *CPU) uint16 {
 	return cpu.zpr16(zp(cpu)) + uint16(cpu.Y)
+}
+
+// izy with extra tick.
+func izy_xt(cpu *CPU) uint16 {
+	addr := cpu.zpr16(zp(cpu)) + uint16(cpu.Y)
+	cpu.tick()
+	return addr
 }
 
 // zeropage indexed indirect (zp),y.
