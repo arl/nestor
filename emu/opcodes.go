@@ -68,35 +68,35 @@ var ops = [256]func(cpu *CPU){
 	0x3E: ROL(abx),
 	0x3F: RLA(abx),
 	0x40: RTI,
-	0x41: EORizx,
+	0x41: EOR(izx),
 	0x42: JAM,
 	0x43: SREizx,
 	0x44: NOP(zp),
-	0x45: EORzp,
+	0x45: EOR(zp),
 	0x46: LSRzp,
 	0x47: SREzp,
 	0x48: PHA,
-	0x49: EORimm,
+	0x49: EOR(imm),
 	0x4A: LSRacc,
 	0x4B: ALR,
 	0x4C: JMPabs,
-	0x4D: EORabs,
+	0x4D: EOR(abs),
 	0x4E: LSRabs,
 	0x4F: SREabs,
 	0x50: BVC,
-	0x51: EORizy,
+	0x51: EOR(izy_xp),
 	0x52: JAM,
 	0x53: SREizy,
 	0x54: NOP(zpx),
-	0x55: EORzpx,
+	0x55: EOR(zpx),
 	0x56: LSRzpx,
 	0x57: SREzpx,
 	0x58: CLI,
-	0x59: EORaby,
+	0x59: EOR(abypx),
 	0x5A: NOPimp,
 	0x5B: SREaby,
 	0x5C: NOP(abxpx),
-	0x5D: EORabx,
+	0x5D: EOR(abxpx),
 	0x5E: LSRabx,
 	0x5F: SREabx,
 	0x60: RTS,
@@ -380,22 +380,12 @@ func RTI(cpu *CPU) {
 	cpu.PC = pull16(cpu)
 }
 
-// 41
-func EORizx(cpu *CPU) {
-	eor(cpu, cpu.Read8(izx(cpu)))
-}
-
 // 43
 func SREizx(cpu *CPU) {
 	oper := izx(cpu)
 	val := cpu.Read8(oper)
 	sre(cpu, &val)
 	cpu.Write8(oper, val)
-}
-
-// 45
-func EORzp(cpu *CPU) {
-	eor(cpu, cpu.Read8(zp(cpu)))
 }
 
 // 46
@@ -420,11 +410,6 @@ func PHA(cpu *CPU) {
 	push8(cpu, cpu.A)
 }
 
-// 49
-func EORimm(cpu *CPU) {
-	eor(cpu, cpu.Read8(imm(cpu)))
-}
-
 // 4A
 func LSRacc(cpu *CPU) {
 	lsracc(cpu)
@@ -438,11 +423,6 @@ func ALR(cpu *CPU) {
 // 4C
 func JMPabs(cpu *CPU) {
 	cpu.PC = abs(cpu)
-}
-
-// 4D
-func EORabs(cpu *CPU) {
-	eor(cpu, cpu.Read8(abs(cpu)))
 }
 
 // 4E
@@ -466,11 +446,6 @@ func BVC(cpu *CPU) {
 	branch(cpu, !cpu.P.V())
 }
 
-// 51
-func EORizy(cpu *CPU) {
-	eor(cpu, cpu.Read8(izy_xp(cpu)))
-}
-
 // 53
 func SREizy(cpu *CPU) {
 	oper := izy(cpu)
@@ -478,11 +453,6 @@ func SREizy(cpu *CPU) {
 	val := cpu.Read8(oper)
 	sre(cpu, &val)
 	cpu.Write8(oper, val)
-}
-
-// 55
-func EORzpx(cpu *CPU) {
-	eor(cpu, cpu.Read8(zpx(cpu)))
 }
 
 // 56
@@ -507,22 +477,12 @@ func CLI(cpu *CPU) {
 	cpu.tick()
 }
 
-// 59
-func EORaby(cpu *CPU) {
-	eor(cpu, cpu.Read8(abypx(cpu)))
-}
-
 // 5B
 func SREaby(cpu *CPU) {
 	oper := aby(cpu)
 	val := cpu.Read8(oper)
 	sre(cpu, &val)
 	cpu.Write8(oper, val)
-}
-
-// 5D
-func EORabx(cpu *CPU) {
-	eor(cpu, cpu.Read8(abxpx(cpu)))
 }
 
 // 5E
@@ -1429,6 +1389,12 @@ func ROL(m addrmode) func(cpu *CPU) {
 		val := cpu.Read8(oper)
 		rol(cpu, &val)
 		cpu.Write8(oper, val)
+	}
+}
+
+func EOR(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		eor(cpu, cpu.Read8(m(cpu)))
 	}
 }
 
