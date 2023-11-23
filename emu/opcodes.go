@@ -195,38 +195,38 @@ var ops = [256]func(cpu *CPU){
 	0xBD: LDA(abx_xp),
 	0xBE: LDX(aby_xp),
 	0xBF: LAX(aby_xp),
-	0xC0: CPYimm,
-	0xC1: CMPizx,
+	0xC0: CPY(imm),
+	0xC1: CMP(izx),
 	0xC2: NOP(imm),
-	0xC3: DCPizx,
-	0xC4: CPYzp,
-	0xC5: CMPzp,
-	0xC6: DECzp,
-	0xC7: DCPzp,
+	0xC3: DCP(izx),
+	0xC4: CPY(zp),
+	0xC5: CMP(zp),
+	0xC6: DEC(zp),
+	0xC7: DCP(zp),
 	0xC8: INY,
-	0xC9: CMPimm,
+	0xC9: CMP(imm),
 	0xCA: DEX,
 	0xCB: SBX,
-	0xCC: CPYabs,
-	0xCD: CMPabs,
-	0xCE: DECabs,
-	0xCF: DCPabs,
+	0xCC: CPY(abs),
+	0xCD: CMP(abs),
+	0xCE: DEC(abs),
+	0xCF: DCP(abs),
 	0xD0: BNE,
-	0xD1: CMPizy,
+	0xD1: CMP(izy_xp),
 	0xD2: JAM,
 	0xD3: DCPizy,
 	0xD4: NOP(zpx),
-	0xD5: CMPzpx,
-	0xD6: DECzpx,
-	0xD7: DCPzpx,
+	0xD5: CMP(zpx),
+	0xD6: DEC(zpx),
+	0xD7: DCP(zpx),
 	0xD8: CLD,
-	0xD9: CMPaby,
+	0xD9: CMP(aby_xp),
 	0xDA: NOPimp,
-	0xDB: DCPaby,
+	0xDB: DCP(aby),
 	0xDC: NOP(abx_xp),
-	0xDD: CMPabx,
-	0xDE: DECabx,
-	0xDF: DCPabx,
+	0xDD: CMP(abx_xp),
+	0xDE: DEC(abx),
+	0xDF: DCP(abx),
 	0xE0: CPXimm,
 	0xE1: SBCizx,
 	0xE2: NOP(imm),
@@ -582,61 +582,10 @@ func LAS(cpu *CPU) {
 	las(cpu, cpu.Read8(aby_xp(cpu)))
 }
 
-// C0
-func CPYimm(cpu *CPU) {
-	cpy(cpu, cpu.Read8(imm(cpu)))
-}
-
-// C1
-func CMPizx(cpu *CPU) {
-	cmp_(cpu, cpu.Read8(izx(cpu)))
-}
-
-// C3
-func DCPizx(cpu *CPU) {
-	oper := izx(cpu)
-	val := cpu.Read8(oper)
-	dec(cpu, &val)
-	cpu.Write8(oper, val)
-	cmp_(cpu, val)
-}
-
-// C4
-func CPYzp(cpu *CPU) {
-	cpy(cpu, cpu.Read8(zp(cpu)))
-}
-
-// C5
-func CMPzp(cpu *CPU) {
-	cmp_(cpu, cpu.Read8(zp(cpu)))
-}
-
-// C6
-func DECzp(cpu *CPU) {
-	oper := zp(cpu)
-	val := cpu.Read8(oper)
-	dec(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
-// C7
-func DCPzp(cpu *CPU) {
-	oper := zp(cpu)
-	val := cpu.Read8(oper)
-	dec(cpu, &val)
-	cpu.Write8(oper, val)
-	cmp_(cpu, val)
-}
-
 // C8
 func INY(cpu *CPU) {
 	inc(cpu, &cpu.Y)
 	cpu.P.checkNZ(cpu.Y)
-}
-
-// C9
-func CMPimm(cpu *CPU) {
-	cmp_(cpu, cpu.Read8(imm(cpu)))
 }
 
 // CA
@@ -650,69 +599,15 @@ func SBX(cpu *CPU) {
 	sbx(cpu, cpu.Read8(imm(cpu)))
 }
 
-// CC
-func CPYabs(cpu *CPU) {
-	cpy(cpu, cpu.Read8(abs(cpu)))
-}
-
-// CD
-func CMPabs(cpu *CPU) {
-	cmp_(cpu, cpu.Read8(abs(cpu)))
-}
-
-// CE
-func DECabs(cpu *CPU) {
-	oper := abs(cpu)
-	val := cpu.Read8(uint16(oper))
-	dec(cpu, &val)
-	cpu.Write8(uint16(oper), val)
-}
-
-// CF
-func DCPabs(cpu *CPU) {
-	oper := abs(cpu)
-	val := cpu.Read8(uint16(oper))
-	dec(cpu, &val)
-	cpu.Write8(uint16(oper), val)
-	cmp_(cpu, val)
-}
-
 // D0
 func BNE(cpu *CPU) {
 	branch(cpu, !cpu.P.Z())
 }
 
-// D1
-func CMPizy(cpu *CPU) {
-	cmp_(cpu, cpu.Read8(izy_xp(cpu)))
-}
-
-// D3
+// D3 - extra tick
 func DCPizy(cpu *CPU) {
 	oper := izy(cpu)
 	cpu.tick()
-	val := cpu.Read8(oper)
-	dec(cpu, &val)
-	cpu.Write8(oper, val)
-	cmp_(cpu, val)
-}
-
-// D5
-func CMPzpx(cpu *CPU) {
-	cmp_(cpu, cpu.Read8(zpx(cpu)))
-}
-
-// D6
-func DECzpx(cpu *CPU) {
-	oper := zpx(cpu)
-	val := cpu.Read8(oper)
-	dec(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
-// D7
-func DCPzpx(cpu *CPU) {
-	oper := zpx(cpu)
 	val := cpu.Read8(oper)
 	dec(cpu, &val)
 	cpu.Write8(oper, val)
@@ -723,42 +618,6 @@ func DCPzpx(cpu *CPU) {
 func CLD(cpu *CPU) {
 	cpu.P.clearBit(pbitD)
 	cpu.tick()
-}
-
-// D9
-func CMPaby(cpu *CPU) {
-	cmp_(cpu, cpu.Read8(aby_xp(cpu)))
-}
-
-// DB
-func DCPaby(cpu *CPU) {
-	oper := aby(cpu)
-	val := cpu.Read8(oper)
-	dec(cpu, &val)
-	cpu.Write8(oper, val)
-	cmp_(cpu, val)
-}
-
-// DD
-func CMPabx(cpu *CPU) {
-	cmp_(cpu, cpu.Read8(abx_xp(cpu)))
-}
-
-// DE
-func DECabx(cpu *CPU) {
-	oper := abx(cpu)
-	val := cpu.Read8(oper)
-	dec(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
-// DF
-func DCPabx(cpu *CPU) {
-	oper := abx(cpu)
-	val := cpu.Read8(oper)
-	dec(cpu, &val)
-	cpu.Write8(oper, val)
-	cmp_(cpu, val)
 }
 
 // E0
@@ -1089,6 +948,37 @@ func LDX(m addrmode) func(cpu *CPU) {
 func LAX(m addrmode) func(cpu *CPU) {
 	return func(cpu *CPU) {
 		lax(cpu, cpu.Read8(m(cpu)))
+	}
+}
+
+func CPY(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		cpy(cpu, cpu.Read8(m(cpu)))
+	}
+}
+
+func CMP(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		cmp_(cpu, cpu.Read8(m(cpu)))
+	}
+}
+
+func DCP(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		oper := m(cpu)
+		val := cpu.Read8(oper)
+		dec(cpu, &val)
+		cpu.Write8(oper, val)
+		cmp_(cpu, val)
+	}
+}
+
+func DEC(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		oper := m(cpu)
+		val := cpu.Read8(oper)
+		dec(cpu, &val)
+		cpu.Write8(oper, val)
 	}
 }
 
