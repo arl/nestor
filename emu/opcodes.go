@@ -39,17 +39,17 @@ var ops = [256]func(cpu *CPU){
 	0x21: AND(izx),
 	0x22: JAM,
 	0x23: RLA(izx),
-	0x24: BITzp,
+	0x24: BIT(zp),
 	0x25: AND(zp),
-	0x26: ROLzp,
+	0x26: ROL(zp),
 	0x27: RLA(zp),
 	0x28: PLP,
 	0x29: AND(imm),
 	0x2A: ROLacc,
 	0x2B: ANC,
-	0x2C: BITabs,
+	0x2C: BIT(abs),
 	0x2D: AND(abs),
-	0x2E: ROLabs,
+	0x2E: ROL(abs),
 	0x2F: RLA(abs),
 	0x30: BMI,
 	0x31: AND(izy_xp),
@@ -57,7 +57,7 @@ var ops = [256]func(cpu *CPU){
 	0x33: RLAizy,
 	0x34: NOP(zpx),
 	0x35: AND(zpx),
-	0x36: ROLzpx,
+	0x36: ROL(zpx),
 	0x37: RLA(zpx),
 	0x38: SEC,
 	0x39: AND(abypx),
@@ -65,7 +65,7 @@ var ops = [256]func(cpu *CPU){
 	0x3B: RLA(aby),
 	0x3C: NOP(abxpx),
 	0x3D: AND(abxpx),
-	0x3E: ROLabx,
+	0x3E: ROL(abx),
 	0x3F: RLA(abx),
 	0x40: RTI,
 	0x41: EORizx,
@@ -331,19 +331,6 @@ func JSR(cpu *CPU) {
 	cpu.PC = oper
 }
 
-// 24
-func BITzp(cpu *CPU) {
-	bit(cpu, cpu.Read8(zp(cpu)))
-}
-
-// 26
-func ROLzp(cpu *CPU) {
-	oper := zp(cpu)
-	val := cpu.Read8(oper)
-	rol(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 28
 func PLP(cpu *CPU) {
 	cpu.tick()
@@ -363,14 +350,6 @@ func BITabs(cpu *CPU) {
 	bit(cpu, cpu.Read8(abs(cpu)))
 }
 
-// 2E
-func ROLabs(cpu *CPU) {
-	oper := abs(cpu)
-	val := cpu.Read8(oper)
-	rol(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 30
 func BMI(cpu *CPU) {
 	branch(cpu, cpu.P.N())
@@ -385,26 +364,10 @@ func RLAizy(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// 36
-func ROLzpx(cpu *CPU) {
-	oper := zpx(cpu)
-	val := cpu.Read8(oper)
-	rol(cpu, &val)
-	cpu.Write8(oper, val)
-}
-
 // 38
 func SEC(cpu *CPU) {
 	cpu.P.setBit(pbitC)
 	cpu.tick()
-}
-
-// 3E
-func ROLabx(cpu *CPU) {
-	oper := abx(cpu)
-	val := cpu.Read8(oper)
-	rol(cpu, &val)
-	cpu.Write8(oper, val)
 }
 
 // 40
@@ -1450,6 +1413,21 @@ func RLA(m addrmode) func(cpu *CPU) {
 		oper := m(cpu)
 		val := cpu.Read8(oper)
 		rla(cpu, &val)
+		cpu.Write8(oper, val)
+	}
+}
+
+func BIT(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		bit(cpu, cpu.Read8(m(cpu)))
+	}
+}
+
+func ROL(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		oper := m(cpu)
+		val := cpu.Read8(oper)
+		rol(cpu, &val)
 		cpu.Write8(oper, val)
 	}
 }
