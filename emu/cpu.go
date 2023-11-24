@@ -187,6 +187,10 @@ func (p *P) ibit(i int) uint8 {
 	return (uint8(*p) & (1 << i)) >> i
 }
 
+func (p P) bit(i int) bool {
+	return p&(1<<i) != 0
+}
+
 func (p P) String() string {
 	const bits = "nvubdizcNVUBDIZC"
 

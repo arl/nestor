@@ -19,7 +19,7 @@ var ops = [256]func(cpu *CPU){
 	0x0D: ORA(abs),
 	0x0E: ASL(abs),
 	0x0F: SLO(abs),
-	0x10: BPL,
+	0x10: branch(pbitN, false),
 	0x11: ORA(izy_xp),
 	0x12: JAM,
 	0x13: SLO(izy_xt),
@@ -51,7 +51,7 @@ var ops = [256]func(cpu *CPU){
 	0x2D: AND(abs),
 	0x2E: ROL(abs),
 	0x2F: RLA(abs),
-	0x30: BMI,
+	0x30: branch(pbitN, true),
 	0x31: AND(izy_xp),
 	0x32: JAM,
 	0x33: RLA(izy_xt),
@@ -83,7 +83,7 @@ var ops = [256]func(cpu *CPU){
 	0x4D: EOR(abs),
 	0x4E: LSR(abs),
 	0x4F: SRE(abs),
-	0x50: BVC,
+	0x50: branch(pbitV, false),
 	0x51: EOR(izy_xp),
 	0x52: JAM,
 	0x53: SRE(izy_xt),
@@ -115,7 +115,7 @@ var ops = [256]func(cpu *CPU){
 	0x6D: ADC(abs),
 	0x6E: ROR(abs),
 	0x6F: RRA(abs),
-	0x70: BVS,
+	0x70: branch(pbitV, true),
 	0x71: ADC(izy_xp),
 	0x72: JAM,
 	0x73: RRA(izy_xt),
@@ -147,7 +147,7 @@ var ops = [256]func(cpu *CPU){
 	0x8D: STA(abs),
 	0x8E: STX(abs),
 	0x8F: SAX(abs),
-	0x90: BCC,
+	0x90: branch(pbitC, false),
 	0x91: STA(izy_xt),
 	0x92: JAM,
 	0x93: unsupported,
@@ -179,7 +179,7 @@ var ops = [256]func(cpu *CPU){
 	0xAD: LDA(abs),
 	0xAE: LDX(abs),
 	0xAF: LAX(abs),
-	0xB0: BCS,
+	0xB0: branch(pbitC, true),
 	0xB1: LDA(izy_xp),
 	0xB2: JAM,
 	0xB3: LAX(izy_xp),
@@ -211,7 +211,7 @@ var ops = [256]func(cpu *CPU){
 	0xCD: CMP(abs),
 	0xCE: DEC(abs),
 	0xCF: DCP(abs),
-	0xD0: BNE,
+	0xD0: branch(pbitZ, false),
 	0xD1: CMP(izy_xp),
 	0xD2: JAM,
 	0xD3: DCPizy,
@@ -243,7 +243,7 @@ var ops = [256]func(cpu *CPU){
 	0xED: SBC(abs),
 	0xEE: INC(abs),
 	0xEF: ISB(abs),
-	0xF0: BEQ,
+	0xF0: branch(pbitZ, true),
 	0xF1: SBC(izy_xp),
 	0xF2: JAM,
 	0xF3: ISB(izy_xt),
@@ -268,7 +268,7 @@ func BRK(cpu *CPU) {
 	p := cpu.P
 	p.setBit(pbitB)
 	push8(cpu, uint8(p))
-	cpu.P.writeBit(pbitI, true)
+	cpu.P.setBit(pbitI)
 	cpu.PC = cpu.Read16(IRQvector)
 }
 
@@ -291,22 +291,15 @@ func ANC(cpu *CPU) {
 	cpu.P.writeBit(pbitC, cpu.P.N())
 }
 
-// 10
-func BPL(cpu *CPU) {
-	branch(cpu, !cpu.P.N())
-}
-
 // 1A
 func NOPimp(cpu *CPU) {
-	_ = cpu.Read8(cpu.PC)
+	cpu.tick()
 }
 
 // 20
 func JSR(cpu *CPU) {
-	// Get jump address
 	oper := cpu.Read16(cpu.PC)
 	cpu.tick()
-	// Push return address on the stack
 	push16(cpu, cpu.PC+1)
 	cpu.PC = oper
 }
@@ -323,11 +316,6 @@ func PLP(cpu *CPU) {
 // 2A
 func ROLacc(cpu *CPU) {
 	rol(cpu, &cpu.A)
-}
-
-// 30
-func BMI(cpu *CPU) {
-	branch(cpu, cpu.P.N())
 }
 
 // 40
@@ -354,11 +342,6 @@ func ALR(cpu *CPU) {
 // 4C
 func JMPabs(cpu *CPU) {
 	cpu.PC = abs(cpu)
-}
-
-// 50
-func BVC(cpu *CPU) {
-	branch(cpu, !cpu.P.V())
 }
 
 // 60
@@ -393,11 +376,6 @@ func JMPind(cpu *CPU) {
 	cpu.PC = ind(cpu)
 }
 
-// 70
-func BVS(cpu *CPU) {
-	branch(cpu, cpu.P.V())
-}
-
 // 88
 func DEY(cpu *CPU) {
 	dec(cpu, &cpu.Y)
@@ -412,11 +390,6 @@ func TXA(cpu *CPU) {
 }
 
 // 8B - unsupported
-
-// 90
-func BCC(cpu *CPU) {
-	branch(cpu, !cpu.P.C())
-}
 
 // 93 - unsupported
 
@@ -463,11 +436,6 @@ func TAX(cpu *CPU) {
 
 // AB - unsupported
 
-// B0
-func BCS(cpu *CPU) {
-	branch(cpu, cpu.P.C())
-}
-
 // BA
 func TSX(cpu *CPU) {
 	cpu.X = cpu.SP
@@ -497,11 +465,6 @@ func SBX(cpu *CPU) {
 	sbx(cpu, cpu.Read8(imm(cpu)))
 }
 
-// D0
-func BNE(cpu *CPU) {
-	branch(cpu, !cpu.P.Z())
-}
-
 // D3 - extra tick
 func DCPizy(cpu *CPU) {
 	oper := izy(cpu)
@@ -516,11 +479,6 @@ func DCPizy(cpu *CPU) {
 func INX(cpu *CPU) {
 	inc(cpu, &cpu.X)
 	cpu.P.checkNZ(cpu.X)
-}
-
-// F0
-func BEQ(cpu *CPU) {
-	branch(cpu, cpu.P.Z())
 }
 
 /* common instruction implementation */
@@ -1056,17 +1014,19 @@ func reladdr(cpu *CPU) uint16 {
 	return uint16(reladdr)
 }
 
-func branch(cpu *CPU, cond bool) {
-	addr := reladdr(cpu)
-	if cond {
-		if pagecrossed(cpu.PC+1, addr) {
+func branch(ibit int, val bool) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		addr := reladdr(cpu)
+		if cpu.P.bit(ibit) == val {
+			if pagecrossed(cpu.PC+1, addr) {
+				cpu.tick()
+			}
 			cpu.tick()
+			cpu.PC = addr
+			return
 		}
-		cpu.tick()
-		cpu.PC = addr
-		return
+		cpu.PC++
 	}
-	cpu.PC++
 }
 
 // Copy bits from src to dst, using mask to select which bits to copy.
