@@ -4,11 +4,12 @@ import "fmt"
 
 var ops = [256]func(cpu *CPU){
 	0x00: BRK,
-	0x01: ORA(izx),
+	// 0x01: ORA(izx),
+	0x01: opcode_01,
 	0x02: JAM,
 	0x03: SLO(izx),
 	0x04: NOP(zp),
-	0x05: ORA(zp),
+	0x05: opcode_05,
 	0x06: ASL(zp),
 	0x07: SLO(zp),
 	0x08: PHP,
