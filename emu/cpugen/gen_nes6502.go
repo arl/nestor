@@ -95,7 +95,7 @@ var defs = [256]opdef{
 	0x49: {n: "EOR", rw: "r ", m: "imm", f: EOR},
 	0x4A: {n: "LSR", rw: "rw", m: "acc", f: LSR},
 	0x4B: {n: "ALR", rw: "r ", m: "imm", f: ALR},
-	0x4C: {n: "JMP", rw: " ", m: "abs", f: JMP},
+	0x4C: {n: "JMP", rw: "  ", m: "abs", f: JMP},
 	0x4D: {n: "EOR", rw: "r ", m: "abs", f: EOR},
 	0x4E: {n: "LSR", rw: "rw", m: "abs", f: LSR},
 	0x4F: {n: "SRE", rw: "rw", m: "abs", f: SRE},
@@ -118,35 +118,35 @@ var defs = [256]opdef{
 	0x60: {n: "RTS", rw: "  ", m: "imp", f: RTS},
 	0x61: {n: "ADC", rw: "r ", m: "izx", f: ADC},
 	0x62: {n: "JAM", rw: "  ", m: "imm", f: JAM},
-	0x63: {n: "RRA", rw: "  ", m: "izx"},
+	0x63: {n: "RRA", rw: "rw", m: "izx", f: RRA},
 	0x64: {n: "NOP", rw: "  ", m: "zpg", f: NOP},
 	0x65: {n: "ADC", rw: "r ", m: "zpg", f: ADC},
-	0x66: {n: "ROR", rw: "  ", m: "zpg"},
-	0x67: {n: "RRA", rw: "  ", m: "zpg"},
+	0x66: {n: "ROR", rw: "rw", m: "zpg", f: ROR},
+	0x67: {n: "RRA", rw: "rw", m: "zpg", f: RRA},
 	0x68: {n: "PLA", rw: "  ", m: "imp"},
 	0x69: {n: "ADC", rw: "r ", m: "imm", f: ADC},
-	0x6A: {n: "ROR", rw: "  ", m: "acc"},
+	0x6A: {n: "ROR", rw: "rw", m: "acc", f: ROR},
 	0x6B: {n: "ARR", rw: "  ", m: "imm"},
-	0x6C: {n: "JMP", rw: " ", m: "ind", f: JMP},
+	0x6C: {n: "JMP", rw: "  ", m: "ind", f: JMP},
 	0x6D: {n: "ADC", rw: "r ", m: "abs", f: ADC},
-	0x6E: {n: "ROR", rw: "  ", m: "abs"},
-	0x6F: {n: "RRA", rw: "  ", m: "abs"},
+	0x6E: {n: "ROR", rw: "rw", m: "abs", f: ROR},
+	0x6F: {n: "RRA", rw: "rw", m: "abs", f: RRA},
 	0x70: {n: "BVS", rw: "  ", m: "rel", f: branch(6, true)},
 	0x71: {n: "ADC", rw: "r ", m: "izy", f: ADC},
 	0x72: {n: "JAM", rw: "  ", m: "imm", f: JAM},
-	0x73: {n: "RRA", rw: "  ", m: "izy"},
+	0x73: {n: "RRA", rw: "rw", m: "izy", f: RRA},
 	0x74: {n: "NOP", rw: "  ", m: "zpx", f: NOP},
 	0x75: {n: "ADC", rw: "r ", m: "zpx", f: ADC},
-	0x76: {n: "ROR", rw: "  ", m: "zpx"},
-	0x77: {n: "RRA", rw: "  ", m: "zpx"},
+	0x76: {n: "ROR", rw: "rw", m: "zpx", f: ROR},
+	0x77: {n: "RRA", rw: "rw", m: "zpx", f: RRA},
 	0x78: {n: "SEI", rw: "  ", m: "imp", f: setFlag(2)},
 	0x79: {n: "ADC", rw: "r ", m: "aby", f: ADC},
 	0x7A: {n: "NOP", rw: "  ", m: "imp", f: NOP},
-	0x7B: {n: "RRA", rw: "  ", m: "aby"},
+	0x7B: {n: "RRA", rw: "rw", m: "aby", f: RRA},
 	0x7C: {n: "NOP", rw: "  ", m: "abx", f: NOP},
 	0x7D: {n: "ADC", rw: "r ", m: "abx", f: ADC},
-	0x7E: {n: "ROR", rw: "  ", m: "abx"},
-	0x7F: {n: "RRA", rw: "  ", m: "abx"},
+	0x7E: {n: "ROR", rw: "rw", m: "abx", f: ROR},
+	0x7F: {n: "RRA", rw: "rw", m: "abx", f: RRA},
 	0x80: {n: "NOP", rw: "  ", m: "imm", f: NOP},
 	0x81: {n: "STA", rw: "  ", m: "izx"},
 	0x82: {n: "NOP", rw: "  ", m: "imm", f: NOP},
@@ -682,13 +682,34 @@ func EOR(g *Generator) {
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
+func RRA(g *Generator) {
+	ROR(g)
+	ADC(g)
+}
+
+func ROR(g *Generator) {
+	g.printf(`{`)
+	g.printf(`carry := val & 0x01 // next carry is bit 0`)
+	g.printf(`val >>= 1`)
+	g.printf(`// bit 7 is set to prev carry`)
+	g.printf(`if cpu.P.C() {`)
+	g.printf(`	val |= 1 << 7`)
+	g.printf(`}`)
+	g.printf(`cpu.tick()`)
+	g.printf(`cpu.P.checkNZ(val)`)
+	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
+	g.printf(`}`)
+}
+
 func LSR(g *Generator) {
+	g.printf(`{`)
 	g.printf(`carry := val & 0x01 // carry is bit 0`)
 	g.printf(`val >>= 1`)
 	g.printf(`val &= 0x7f`)
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.P.checkNZ(val)`)
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
+	g.printf(`}`)
 }
 
 func ADC(g *Generator) {
