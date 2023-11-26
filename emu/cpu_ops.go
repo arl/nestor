@@ -83,6 +83,22 @@ func opcode_05(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+// ASL   06
+// zero page addressing.
+func opcode_06(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80 // carry is bit 7
+	val <<= 1
+	val &= 0xfe
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.Write8(oper, val)
+}
+
 // SLO   07
 // zero page addressing.
 func opcode_07(cpu *CPU) {
@@ -112,6 +128,19 @@ func opcode_09(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+// ASL   0A
+// adressing accumulator.
+func opcode_0A(cpu *CPU) {
+	val := cpu.A
+	carry := val & 0x80 // carry is bit 7
+	val <<= 1
+	val &= 0xfe
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.A = val
+}
+
 // NOP   0C
 // absolute addressing.
 func opcode_0C(cpu *CPU) {
@@ -130,6 +159,22 @@ func opcode_0D(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// ASL   0E
+// absolute addressing.
+func opcode_0E(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80 // carry is bit 7
+	val <<= 1
+	val &= 0xfe
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.Write8(oper, val)
 }
 
 // SLO   0F
@@ -248,6 +293,25 @@ func opcode_15(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+// ASL   16
+// indexed addressing: zeropage,X.
+func opcode_16(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80 // carry is bit 7
+	val <<= 1
+	val &= 0xfe
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.Write8(oper, val)
+}
+
 // SLO   17
 // indexed addressing: zeropage,X.
 func opcode_17(cpu *CPU) {
@@ -338,6 +402,24 @@ func opcode_1D(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// ASL   1E
+// absolute indexed X.
+func opcode_1E(cpu *CPU) {
+	cpu.tick()
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper += uint16(cpu.X)
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80 // carry is bit 7
+	val <<= 1
+	val &= 0xfe
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.Write8(oper, val)
 }
 
 // SLO   1F
@@ -807,10 +889,13 @@ var gdefs = [256]func(*CPU){
 	0x03: opcode_03,
 	0x04: opcode_04,
 	0x05: opcode_05,
+	0x06: opcode_06,
 	0x07: opcode_07,
 	0x09: opcode_09,
+	0x0A: opcode_0A,
 	0x0C: opcode_0C,
 	0x0D: opcode_0D,
+	0x0E: opcode_0E,
 	0x0F: opcode_0F,
 	0x10: opcode_10,
 	0x11: opcode_11,
@@ -818,12 +903,14 @@ var gdefs = [256]func(*CPU){
 	0x13: opcode_13,
 	0x14: opcode_14,
 	0x15: opcode_15,
+	0x16: opcode_16,
 	0x17: opcode_17,
 	0x19: opcode_19,
 	0x1A: opcode_1A,
 	0x1B: opcode_1B,
 	0x1C: opcode_1C,
 	0x1D: opcode_1D,
+	0x1E: opcode_1E,
 	0x1F: opcode_1F,
 	0x22: opcode_22,
 	0x30: opcode_30,

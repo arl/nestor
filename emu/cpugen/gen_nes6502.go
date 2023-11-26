@@ -24,15 +24,15 @@ var defs = [256]opdef{
 	0x03: {n: "SLO", rw: "w", m: "izx", f: SLO},
 	0x04: {n: "NOP", rw: " ", m: "zpg", f: NOP},
 	0x05: {n: "ORA", rw: " ", m: "zpg", f: ORA},
-	0x06: {n: "ASL", rw: " ", m: "zpg"},
+	0x06: {n: "ASL", rw: "w", m: "zpg", f: ASL},
 	0x07: {n: "SLO", rw: "w", m: "zpg", f: SLO},
 	0x08: {n: "PHP", rw: " ", m: "imp"},
 	0x09: {n: "ORA", rw: " ", m: "imm", f: ORA},
-	0x0A: {n: "ASL", rw: " ", m: "acc"},
+	0x0A: {n: "ASL", rw: "w", m: "acc", f: ASL},
 	0x0B: {n: "ANC", rw: " ", m: "imm"},
 	0x0C: {n: "NOP", rw: " ", m: "abs", f: NOP},
 	0x0D: {n: "ORA", rw: " ", m: "abs", f: ORA},
-	0x0E: {n: "ASL", rw: " ", m: "abs"},
+	0x0E: {n: "ASL", rw: "w", m: "abs", f: ASL},
 	0x0F: {n: "SLO", rw: "w", m: "abs", f: SLO},
 	0x10: {n: "BPL", rw: " ", m: "rel", f: branch(7, false)},
 	0x11: {n: "ORA", rw: " ", m: "izy", f: ORA},
@@ -40,7 +40,7 @@ var defs = [256]opdef{
 	0x13: {n: "SLO", rw: "w", m: "izy", f: SLO},
 	0x14: {n: "NOP", rw: " ", m: "zpx", f: NOP},
 	0x15: {n: "ORA", rw: " ", m: "zpx", f: ORA},
-	0x16: {n: "ASL", rw: " ", m: "zpx"},
+	0x16: {n: "ASL", rw: "w", m: "zpx", f: ASL},
 	0x17: {n: "SLO", rw: "w", m: "zpx", f: SLO},
 	0x18: {n: "CLC", rw: " ", m: "imp"},
 	0x19: {n: "ORA", rw: " ", m: "aby", f: ORA},
@@ -48,7 +48,7 @@ var defs = [256]opdef{
 	0x1B: {n: "SLO", rw: "w", m: "aby", f: SLO},
 	0x1C: {n: "NOP", rw: " ", m: "abx", f: NOP},
 	0x1D: {n: "ORA", rw: " ", m: "abx", f: ORA},
-	0x1E: {n: "ASL", rw: " ", m: "abx"},
+	0x1E: {n: "ASL", rw: "w", m: "abx", f: ASL},
 	0x1F: {n: "SLO", rw: "w", m: "abx", f: SLO},
 	0x20: {n: "JSR", rw: " ", m: "abs"},
 	0x21: {n: "AND", rw: " ", m: "izx"},
@@ -364,7 +364,7 @@ func (g *Generator) opcodeHeader(code int) {
 	case "w":
 		switch defs[code].m {
 		case "acc":
-			panic("not implemented")
+			g.printf(`val := cpu.A`)
 		default:
 			// Read the value
 			g.printf(`val := cpu.Read8(oper)`)
@@ -377,7 +377,7 @@ func (g *Generator) opcodeFooter(code int) {
 	case "w":
 		switch defs[code].m {
 		case "acc":
-			panic("not implemented")
+			g.printf(`cpu.A = val`)
 		default:
 			// Write the value
 			g.printf(`cpu.Write8(oper, val)`)
