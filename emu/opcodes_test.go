@@ -46,13 +46,11 @@ func TestOpcodes(t *testing.T) {
 	}
 
 	// Run tests for all implemented opcodes.
-	for opcode, op := range ops {
+	for opcode := range ops {
 		opstr := fmt.Sprintf("%02x", opcode)
 		switch {
 		case skipped[uint8(opcode)]:
 			t.Run(opstr, func(t *testing.T) { t.Skipf("skipping unsupported opcode") })
-		case op == nil:
-			t.Run(opstr, func(t *testing.T) { t.Skip("skipping unimplemented opcodes") })
 		default:
 			t.Run(opstr, testOpcodes(opstr))
 		}

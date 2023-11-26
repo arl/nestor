@@ -1652,6 +1652,19 @@ func opcode_67(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// PLA   68
+// implied addressing.
+func opcode_68(cpu *CPU) {
+	cpu.tick()
+	cpu.tick()
+	{
+		cpu.SP += 1
+		top := uint16(cpu.SP) + 0x0100
+		cpu.A = cpu.Read8(top)
+	}
+	cpu.P.checkNZ(cpu.A)
+}
+
 // ADC   69
 // immediate addressing.
 func opcode_69(cpu *CPU) {
@@ -2412,6 +2425,7 @@ var gdefs = [256]func(*CPU){
 	0x65: opcode_65,
 	0x66: opcode_66,
 	0x67: opcode_67,
+	0x68: opcode_68,
 	0x69: opcode_69,
 	0x6A: opcode_6A,
 	0x6C: opcode_6C,

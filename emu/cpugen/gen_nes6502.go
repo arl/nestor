@@ -123,7 +123,7 @@ var defs = [256]opdef{
 	0x65: {n: "ADC", rw: "r ", m: "zpg", f: ADC},
 	0x66: {n: "ROR", rw: "rw", m: "zpg", f: ROR},
 	0x67: {n: "RRA", rw: "rw", m: "zpg", f: RRA},
-	0x68: {n: "PLA", rw: "  ", m: "imp"},
+	0x68: {n: "PLA", rw: "  ", m: "imp", f: PLA},
 	0x69: {n: "ADC", rw: "r ", m: "imm", f: ADC},
 	0x6A: {n: "ROR", rw: "rw", m: "acc", f: ROR},
 	0x6B: {n: "ARR", rw: "  ", m: "imm"},
@@ -597,6 +597,13 @@ func RTS(g *Generator) {
 func PHA(g *Generator) {
 	g.printf(`cpu.tick()`)
 	push8(g, `cpu.A`)
+}
+
+func PLA(g *Generator) {
+	g.printf(`cpu.tick()`)
+	g.printf(`cpu.tick()`)
+	pull8(g, `cpu.A`)
+	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
 func PLP(g *Generator) {
