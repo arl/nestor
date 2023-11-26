@@ -97,6 +97,7 @@ func opcode_10(cpu *CPU) {
 // ORA   11
 // indexed addressing (abs),Y.
 func opcode_11(cpu *CPU) {
+	// extra cycle for page cross
 	oper := uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// read 16 bytes from the zero page, handling page wrap
@@ -141,10 +142,13 @@ func opcode_15(cpu *CPU) {
 // ORA   19
 // absolute indexed Y.
 func opcode_19(cpu *CPU) {
-	cpu.tick()
-	oper := cpu.Read16(cpu.PC)
+	// extra cycle for page cross
+	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	oper += uint16(cpu.Y)
+	oper := addr + uint16(cpu.Y)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
 	_ = oper
 	// ORA
 	val := cpu.Read8(oper)
@@ -158,7 +162,7 @@ func opcode_1D(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(addr, addr) {
+	if pagecrossed(oper, addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -382,4 +386,36 @@ func opcode_F2(cpu *CPU) {
 	cpu.PC++
 	_ = oper
 	panic("Halt and catch fire!")
+}
+
+var gdefs = [256]func(*CPU){
+	0x00: opcode_00,
+	0x01: opcode_01,
+	0x02: opcode_02,
+	0x05: opcode_05,
+	0x09: opcode_09,
+	0x0D: opcode_0D,
+	0x10: opcode_10,
+	0x11: opcode_11,
+	0x12: opcode_12,
+	0x15: opcode_15,
+	0x19: opcode_19,
+	0x1D: opcode_1D,
+	0x22: opcode_22,
+	0x30: opcode_30,
+	0x32: opcode_32,
+	0x42: opcode_42,
+	0x50: opcode_50,
+	0x52: opcode_52,
+	0x62: opcode_62,
+	0x70: opcode_70,
+	0x72: opcode_72,
+	0x90: opcode_90,
+	0x92: opcode_92,
+	0xB0: opcode_B0,
+	0xB2: opcode_B2,
+	0xD0: opcode_D0,
+	0xD2: opcode_D2,
+	0xF0: opcode_F0,
+	0xF2: opcode_F2,
 }
