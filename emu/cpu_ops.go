@@ -1168,6 +1168,15 @@ func opcode_4B(cpu *CPU) {
 	cpu.P.writeBit(pbitC, carry != 0)
 }
 
+// JMP   4C
+// absolute addressing.
+func opcode_4C(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	cpu.PC = oper
+}
+
 // EOR   4D
 // absolute addressing.
 func opcode_4D(cpu *CPU) {
@@ -1467,6 +1476,27 @@ func opcode_5F(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// RTS   60
+// implied addressing.
+func opcode_60(cpu *CPU) {
+	cpu.tick()
+	cpu.tick()
+	var lo, hi uint8
+	{
+		cpu.SP += 1
+		top := uint16(cpu.SP) + 0x0100
+		lo = cpu.Read8(top)
+	}
+	{
+		cpu.SP += 1
+		top := uint16(cpu.SP) + 0x0100
+		hi = cpu.Read8(top)
+	}
+	cpu.PC = uint16(hi)<<8 | uint16(lo)
+	cpu.PC++
+	cpu.tick()
+}
+
 // JAM   62
 // immediate addressing.
 func opcode_62(cpu *CPU) {
@@ -1483,6 +1513,18 @@ func opcode_64(cpu *CPU) {
 	cpu.PC++
 	_ = oper
 	cpu.tick()
+}
+
+// JMP   6C
+// indirect addressing.
+func opcode_6C(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	lo := cpu.Read8(oper)
+	// 2 bytes address wrap around
+	hi := cpu.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
+	oper = uint16(hi)<<8 | uint16(lo)
+	_ = oper
+	cpu.PC = oper
 }
 
 // BVS   70
@@ -1869,6 +1911,7 @@ var gdefs = [256]func(*CPU){
 	0x49: opcode_49,
 	0x4A: opcode_4A,
 	0x4B: opcode_4B,
+	0x4C: opcode_4C,
 	0x4D: opcode_4D,
 	0x4E: opcode_4E,
 	0x4F: opcode_4F,
@@ -1888,8 +1931,10 @@ var gdefs = [256]func(*CPU){
 	0x5D: opcode_5D,
 	0x5E: opcode_5E,
 	0x5F: opcode_5F,
+	0x60: opcode_60,
 	0x62: opcode_62,
 	0x64: opcode_64,
+	0x6C: opcode_6C,
 	0x70: opcode_70,
 	0x72: opcode_72,
 	0x74: opcode_74,

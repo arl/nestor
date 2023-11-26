@@ -95,7 +95,7 @@ var defs = [256]opdef{
 	0x49: {n: "EOR", rw: "r ", m: "imm", f: EOR},
 	0x4A: {n: "LSR", rw: "rw", m: "acc", f: LSR},
 	0x4B: {n: "ALR", rw: "r ", m: "imm", f: ALR},
-	0x4C: {n: "JMP", rw: "  ", m: "abs"},
+	0x4C: {n: "JMP", rw: " ", m: "abs", f: JMP},
 	0x4D: {n: "EOR", rw: "r ", m: "abs", f: EOR},
 	0x4E: {n: "LSR", rw: "rw", m: "abs", f: LSR},
 	0x4F: {n: "SRE", rw: "rw", m: "abs", f: SRE},
@@ -115,7 +115,7 @@ var defs = [256]opdef{
 	0x5D: {n: "EOR", rw: "r ", m: "abx", f: EOR},
 	0x5E: {n: "LSR", rw: "rw", m: "abx", f: LSR},
 	0x5F: {n: "SRE", rw: "rw", m: "abx", f: SRE},
-	0x60: {n: "RTS", rw: "  ", m: "imp"},
+	0x60: {n: "RTS", rw: "  ", m: "imp", f: RTS},
 	0x61: {n: "ADC", rw: "  ", m: "izx"},
 	0x62: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0x63: {n: "RRA", rw: "  ", m: "izx"},
@@ -127,7 +127,7 @@ var defs = [256]opdef{
 	0x69: {n: "ADC", rw: "  ", m: "imm"},
 	0x6A: {n: "ROR", rw: "  ", m: "acc"},
 	0x6B: {n: "ARR", rw: "  ", m: "imm"},
-	0x6C: {n: "JMP", rw: "  ", m: "ind"},
+	0x6C: {n: "JMP", rw: " ", m: "ind", f: JMP},
 	0x6D: {n: "ADC", rw: "  ", m: "abs"},
 	0x6E: {n: "ROR", rw: "  ", m: "abs"},
 	0x6F: {n: "RRA", rw: "  ", m: "abs"},
@@ -403,7 +403,6 @@ func push16(g *Generator, val string) {
 }
 
 func pull8(g *Generator, ret string) {
-	g.printf(`var %s uint8`, ret)
 	g.printf(`{`)
 	g.printf(`cpu.SP += 1`)
 	g.printf(`top := uint16(cpu.SP) + 0x0100`)
@@ -412,9 +411,10 @@ func pull8(g *Generator, ret string) {
 }
 
 func pull16(g *Generator, ret string) {
+	g.printf(` var lo, hi uint8`)
 	pull8(g, `lo`)
 	pull8(g, `hi`)
-	g.printf(`%s := uint16(hi)<<8 | uint16(lo)`, ret)
+	g.printf(`%s = uint16(hi)<<8 | uint16(lo)`, ret)
 }
 
 // read 16 bytes from the zero page, handling page wrap.
@@ -586,6 +586,14 @@ func PHP(g *Generator) {
 	push8(g, `uint8(p)`)
 }
 
+func RTS(g *Generator) {
+	g.printf(`cpu.tick()`)
+	g.printf(`cpu.tick()`)
+	pull16(g, `cpu.PC`)
+	g.printf(`cpu.PC++`)
+	g.printf(`cpu.tick()`)
+}
+
 func PHA(g *Generator) {
 	g.printf(`cpu.tick()`)
 	push8(g, `cpu.A`)
@@ -594,6 +602,7 @@ func PHA(g *Generator) {
 func PLP(g *Generator) {
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.tick()`)
+	g.printf(`var p uint8`)
 	pull8(g, `p`)
 	g.printf(`const mask = 0b11001111 // ignore B and U bits`)
 	g.printf(`cpu.P = P(copybits(uint8(cpu.P), p, mask))`)
@@ -602,6 +611,7 @@ func PLP(g *Generator) {
 func RTI(g *Generator) {
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.tick()`)
+	g.printf(`var p uint8`)
 	pull8(g, `p`)
 	g.printf(`const mask = 0b11001111 // ignore B and U bits`)
 	g.printf(`cpu.P = P(copybits(uint8(cpu.P), p, mask))`)
@@ -703,6 +713,10 @@ func NOP(g *Generator) {
 
 func JAM(g *Generator) {
 	g.printf(`panic("Halt and catch fire!")`)
+}
+
+func JMP(g *Generator) {
+	g.printf(`cpu.PC = oper`)
 }
 
 func (g *Generator) generate() {
