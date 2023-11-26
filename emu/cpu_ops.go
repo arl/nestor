@@ -5,10 +5,23 @@ package emu
 // implied addressing.
 func opcode_00(cpu *CPU) {
 	cpu.tick()
-	push16(cpu, cpu.PC+1)
+	{
+		top := uint16(cpu.SP) + 0x0100
+		cpu.Write8(top, (uint8((cpu.PC + 1) >> 8)))
+		cpu.SP -= 1
+	}
+	{
+		top := uint16(cpu.SP) + 0x0100
+		cpu.Write8(top, (uint8((cpu.PC + 1) & 0xFF)))
+		cpu.SP -= 1
+	}
 	p := cpu.P
 	p.setBit(pbitB)
-	push8(cpu, uint8(p))
+	{
+		top := uint16(cpu.SP) + 0x0100
+		cpu.Write8(top, (uint8(p)))
+		cpu.SP -= 1
+	}
 	cpu.P.setBit(pbitI)
 	cpu.PC = cpu.Read16(IRQvector)
 }
@@ -117,6 +130,19 @@ func opcode_07(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// PHP   08
+// implied addressing.
+func opcode_08(cpu *CPU) {
+	cpu.tick()
+	p := cpu.P
+	p |= (1 << pbitB) | (1 << pbitU)
+	{
+		top := uint16(cpu.SP) + 0x0100
+		cpu.Write8(top, (uint8(p)))
+		cpu.SP -= 1
+	}
+}
+
 // ORA   09
 // immediate addressing.
 func opcode_09(cpu *CPU) {
@@ -139,6 +165,18 @@ func opcode_0A(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
 	cpu.A = val
+}
+
+// ANC   0B
+// immediate addressing.
+func opcode_0B(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A &= val
+	cpu.P.checkNZ(cpu.A)
+	cpu.P.writeBit(pbitC, cpu.P.N())
 }
 
 // NOP   0C
@@ -891,8 +929,10 @@ var gdefs = [256]func(*CPU){
 	0x05: opcode_05,
 	0x06: opcode_06,
 	0x07: opcode_07,
+	0x08: opcode_08,
 	0x09: opcode_09,
 	0x0A: opcode_0A,
+	0x0B: opcode_0B,
 	0x0C: opcode_0C,
 	0x0D: opcode_0D,
 	0x0E: opcode_0E,
