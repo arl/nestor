@@ -54,11 +54,11 @@ var defs = [256]opdef{
 	0x20: {n: "JSR", rw: "  ", m: "   ", f: JSR},
 	0x21: {n: "AND", rw: "r ", m: "izx", f: AND},
 	0x22: {n: "JAM", rw: "  ", m: "imm", f: JAM},
-	0x23: {n: "RLA", rw: "  ", m: "izx"},
+	0x23: {n: "RLA", rw: "rw", m: "izx", f: RLA},
 	0x24: {n: "BIT", rw: "  ", m: "zpg"},
 	0x25: {n: "AND", rw: "r ", m: "zpg", f: AND},
 	0x26: {n: "ROL", rw: "rw", m: "zpg", f: ROL},
-	0x27: {n: "RLA", rw: "  ", m: "zpg"},
+	0x27: {n: "RLA", rw: "rw", m: "zpg", f: RLA},
 	0x28: {n: "PLP", rw: "  ", m: "imp"},
 	0x29: {n: "AND", rw: "r ", m: "imm", f: AND},
 	0x2A: {n: "ROL", rw: "rw", m: "acc", f: ROL},
@@ -66,23 +66,23 @@ var defs = [256]opdef{
 	0x2C: {n: "BIT", rw: "  ", m: "abs"},
 	0x2D: {n: "AND", rw: "r ", m: "abs", f: AND},
 	0x2E: {n: "ROL", rw: "rw", m: "abs", f: ROL},
-	0x2F: {n: "RLA", rw: "  ", m: "abs"},
+	0x2F: {n: "RLA", rw: "rw", m: "abs", f: RLA},
 	0x30: {n: "BMI", rw: "  ", m: "rel", f: branch(7, true)},
 	0x31: {n: "AND", rw: "r ", m: "izy", f: AND},
 	0x32: {n: "JAM", rw: "  ", m: "imm", f: JAM},
-	0x33: {n: "RLA", rw: "  ", m: "izy"},
+	0x33: {n: "RLA", rw: "rw", m: "izy", f: RLA},
 	0x34: {n: "NOP", rw: "  ", m: "zpx", f: NOP},
 	0x35: {n: "AND", rw: "r ", m: "zpx", f: AND},
 	0x36: {n: "ROL", rw: "rw", m: "zpx", f: ROL},
-	0x37: {n: "RLA", rw: "  ", m: "zpx"},
+	0x37: {n: "RLA", rw: "rw", m: "zpx", f: RLA},
 	0x38: {n: "SEC", rw: "  ", m: "imp"},
 	0x39: {n: "AND", rw: "r ", m: "aby", f: AND},
 	0x3A: {n: "NOP", rw: "  ", m: "imp", f: NOP},
-	0x3B: {n: "RLA", rw: "  ", m: "aby"},
+	0x3B: {n: "RLA", rw: "rw", m: "aby", f: RLA},
 	0x3C: {n: "NOP", rw: "  ", m: "abx", f: NOP},
 	0x3D: {n: "AND", rw: "r ", m: "abx", f: AND},
 	0x3E: {n: "ROL", rw: "rw", m: "abx", f: ROL},
-	0x3F: {n: "RLA", rw: "  ", m: "abx"},
+	0x3F: {n: "RLA", rw: "rw", m: "abx", f: RLA},
 	0x40: {n: "RTI", rw: "  ", m: "imp"},
 	0x41: {n: "EOR", rw: "  ", m: "izx"},
 	0x42: {n: "JAM", rw: "  ", m: "imm", f: JAM},
@@ -606,6 +606,11 @@ func ROL(g *Generator) {
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.P.checkNZ(val)`)
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
+}
+
+func RLA(g *Generator) {
+	ROL(g)
+	AND(g)
 }
 
 func AND(g *Generator) {
