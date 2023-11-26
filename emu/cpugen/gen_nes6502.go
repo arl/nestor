@@ -84,37 +84,37 @@ var defs = [256]opdef{
 	0x3E: {n: "ROL", rw: "rw", m: "abx", f: ROL},
 	0x3F: {n: "RLA", rw: "rw", m: "abx", f: RLA},
 	0x40: {n: "RTI", rw: "  ", m: "imp", f: RTI},
-	0x41: {n: "EOR", rw: "  ", m: "izx"},
+	0x41: {n: "EOR", rw: "r ", m: "izx", f: EOR},
 	0x42: {n: "JAM", rw: "  ", m: "imm", f: JAM},
-	0x43: {n: "SRE", rw: "  ", m: "izx"},
+	0x43: {n: "SRE", rw: "rw", m: "izx", f: SRE},
 	0x44: {n: "NOP", rw: "  ", m: "zpg", f: NOP},
-	0x45: {n: "EOR", rw: "  ", m: "zpg"},
-	0x46: {n: "LSR", rw: "  ", m: "zpg"},
-	0x47: {n: "SRE", rw: "  ", m: "zpg"},
-	0x48: {n: "PHA", rw: "  ", m: "imp"},
-	0x49: {n: "EOR", rw: "  ", m: "imm"},
-	0x4A: {n: "LSR", rw: "  ", m: "acc"},
+	0x45: {n: "EOR", rw: "r ", m: "zpg", f: EOR},
+	0x46: {n: "LSR", rw: "rw", m: "zpg", f: LSR},
+	0x47: {n: "SRE", rw: "rw", m: "zpg", f: SRE},
+	0x48: {n: "PHA", rw: "  ", m: "imp", f: PHA},
+	0x49: {n: "EOR", rw: "r ", m: "imm", f: EOR},
+	0x4A: {n: "LSR", rw: "rw", m: "acc", f: LSR},
 	0x4B: {n: "ALR", rw: "  ", m: "imm"},
 	0x4C: {n: "JMP", rw: "  ", m: "abs"},
-	0x4D: {n: "EOR", rw: "  ", m: "abs"},
-	0x4E: {n: "LSR", rw: "  ", m: "abs"},
-	0x4F: {n: "SRE", rw: "  ", m: "abs"},
+	0x4D: {n: "EOR", rw: "r ", m: "abs", f: EOR},
+	0x4E: {n: "LSR", rw: "rw", m: "abs", f: LSR},
+	0x4F: {n: "SRE", rw: "rw", m: "abs", f: SRE},
 	0x50: {n: "BVC", rw: "  ", m: "rel", f: branch(6, false)},
-	0x51: {n: "EOR", rw: "  ", m: "izy"},
+	0x51: {n: "EOR", rw: "r ", m: "izy", f: EOR},
 	0x52: {n: "JAM", rw: "  ", m: "imm", f: JAM},
-	0x53: {n: "SRE", rw: "  ", m: "izy"},
+	0x53: {n: "SRE", rw: "rw", m: "izy", f: SRE},
 	0x54: {n: "NOP", rw: "  ", m: "zpx", f: NOP},
-	0x55: {n: "EOR", rw: "  ", m: "zpx"},
-	0x56: {n: "LSR", rw: "  ", m: "zpx"},
-	0x57: {n: "SRE", rw: "  ", m: "zpx"},
+	0x55: {n: "EOR", rw: "r ", m: "zpx", f: EOR},
+	0x56: {n: "LSR", rw: "rw", m: "zpx", f: LSR},
+	0x57: {n: "SRE", rw: "rw", m: "zpx", f: SRE},
 	0x58: {n: "CLI", rw: "  ", m: "imp", f: clearFlag(2)},
-	0x59: {n: "EOR", rw: "  ", m: "aby"},
+	0x59: {n: "EOR", rw: "r ", m: "aby", f: EOR},
 	0x5A: {n: "NOP", rw: "  ", m: "imp", f: NOP},
-	0x5B: {n: "SRE", rw: "  ", m: "aby"},
+	0x5B: {n: "SRE", rw: "rw", m: "aby", f: SRE},
 	0x5C: {n: "NOP", rw: "  ", m: "abx", f: NOP},
-	0x5D: {n: "EOR", rw: "  ", m: "abx"},
-	0x5E: {n: "LSR", rw: "  ", m: "abx"},
-	0x5F: {n: "SRE", rw: "  ", m: "abx"},
+	0x5D: {n: "EOR", rw: "r ", m: "abx", f: EOR},
+	0x5E: {n: "LSR", rw: "rw", m: "abx", f: LSR},
+	0x5F: {n: "SRE", rw: "rw", m: "abx", f: SRE},
 	0x60: {n: "RTS", rw: "  ", m: "imp"},
 	0x61: {n: "ADC", rw: "  ", m: "izx"},
 	0x62: {n: "JAM", rw: "  ", m: "imm", f: JAM},
@@ -586,6 +586,11 @@ func PHP(g *Generator) {
 	push8(g, `uint8(p)`)
 }
 
+func PHA(g *Generator) {
+	g.printf(`cpu.tick()`)
+	push8(g, `cpu.A`)
+}
+
 func PLP(g *Generator) {
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.tick()`)
@@ -661,6 +666,25 @@ func RLA(g *Generator) {
 func AND(g *Generator) {
 	g.printf(`cpu.A &= val`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
+}
+
+func EOR(g *Generator) {
+	g.printf(`cpu.A ^= val`)
+	g.printf(`cpu.P.checkNZ(cpu.A)`)
+}
+
+func LSR(g *Generator) {
+	g.printf(`carry := val & 0x01 // carry is bit 0`)
+	g.printf(`val >>= 1`)
+	g.printf(`val &= 0x7f`)
+	g.printf(`cpu.tick()`)
+	g.printf(`cpu.P.checkNZ(val)`)
+	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
+}
+
+func SRE(g *Generator) {
+	LSR(g)
+	EOR(g)
 }
 
 func NOP(g *Generator) {
