@@ -541,6 +541,24 @@ func opcode_25(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+// ROL   26
+// zero page addressing.
+func opcode_26(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80
+	val <<= 1
+	if cpu.P.C() {
+		val |= 1 << 0
+	}
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.Write8(oper, val)
+}
+
 // AND   29
 // immediate addressing.
 func opcode_29(cpu *CPU) {
@@ -552,6 +570,21 @@ func opcode_29(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+// ROL   2A
+// adressing accumulator.
+func opcode_2A(cpu *CPU) {
+	val := cpu.A
+	carry := val & 0x80
+	val <<= 1
+	if cpu.P.C() {
+		val |= 1 << 0
+	}
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.A = val
+}
+
 // AND   2D
 // absolute addressing.
 func opcode_2D(cpu *CPU) {
@@ -561,6 +594,24 @@ func opcode_2D(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// ROL   2E
+// absolute addressing.
+func opcode_2E(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80
+	val <<= 1
+	if cpu.P.C() {
+		val |= 1 << 0
+	}
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.Write8(oper, val)
 }
 
 // BMI   30
@@ -636,6 +687,27 @@ func opcode_35(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+// ROL   36
+// indexed addressing: zeropage,X.
+func opcode_36(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80
+	val <<= 1
+	if cpu.P.C() {
+		val |= 1 << 0
+	}
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.Write8(oper, val)
+}
+
 // AND   39
 // absolute indexed Y.
 func opcode_39(cpu *CPU) {
@@ -684,6 +756,26 @@ func opcode_3D(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// ROL   3E
+// absolute indexed X.
+func opcode_3E(cpu *CPU) {
+	cpu.tick()
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper += uint16(cpu.X)
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80
+	val <<= 1
+	if cpu.P.C() {
+		val |= 1 << 0
+	}
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.Write8(oper, val)
 }
 
 // JAM   42
@@ -1117,17 +1209,22 @@ var gdefs = [256]func(*CPU){
 	0x21: opcode_21,
 	0x22: opcode_22,
 	0x25: opcode_25,
+	0x26: opcode_26,
 	0x29: opcode_29,
+	0x2A: opcode_2A,
 	0x2D: opcode_2D,
+	0x2E: opcode_2E,
 	0x30: opcode_30,
 	0x31: opcode_31,
 	0x32: opcode_32,
 	0x34: opcode_34,
 	0x35: opcode_35,
+	0x36: opcode_36,
 	0x39: opcode_39,
 	0x3A: opcode_3A,
 	0x3C: opcode_3C,
 	0x3D: opcode_3D,
+	0x3E: opcode_3E,
 	0x42: opcode_42,
 	0x44: opcode_44,
 	0x50: opcode_50,
