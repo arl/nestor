@@ -94,7 +94,7 @@ var defs = [256]opdef{
 	0x48: {n: "PHA", rw: "  ", m: "imp", f: PHA},
 	0x49: {n: "EOR", rw: "r ", m: "imm", f: EOR},
 	0x4A: {n: "LSR", rw: "rw", m: "acc", f: LSR},
-	0x4B: {n: "ALR", rw: "  ", m: "imm"},
+	0x4B: {n: "ALR", rw: "r ", m: "imm", f: ALR},
 	0x4C: {n: "JMP", rw: "  ", m: "abs"},
 	0x4D: {n: "EOR", rw: "r ", m: "abs", f: EOR},
 	0x4E: {n: "LSR", rw: "rw", m: "abs", f: LSR},
@@ -679,6 +679,16 @@ func LSR(g *Generator) {
 	g.printf(`val &= 0x7f`)
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.P.checkNZ(val)`)
+	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
+}
+
+func ALR(g *Generator) {
+	g.printf(`// like and + lsr but saves one tick`)
+	g.printf(`cpu.A &= val`)
+	g.printf(`carry := cpu.A & 0x01 // carry is bit 0`)
+	g.printf(`cpu.A >>= 1`)
+	g.printf(`cpu.A &= 0x7f`)
+	g.printf(`cpu.P.checkNZ(cpu.A)`)
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
 }
 

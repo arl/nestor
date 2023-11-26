@@ -1152,6 +1152,22 @@ func opcode_4A(cpu *CPU) {
 	cpu.A = val
 }
 
+// ALR   4B
+// immediate addressing.
+func opcode_4B(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	// like and + lsr but saves one tick
+	cpu.A &= val
+	carry := cpu.A & 0x01 // carry is bit 0
+	cpu.A >>= 1
+	cpu.A &= 0x7f
+	cpu.P.checkNZ(cpu.A)
+	cpu.P.writeBit(pbitC, carry != 0)
+}
+
 // EOR   4D
 // absolute addressing.
 func opcode_4D(cpu *CPU) {
@@ -1852,6 +1868,7 @@ var gdefs = [256]func(*CPU){
 	0x48: opcode_48,
 	0x49: opcode_49,
 	0x4A: opcode_4A,
+	0x4B: opcode_4B,
 	0x4D: opcode_4D,
 	0x4E: opcode_4E,
 	0x4F: opcode_4F,
