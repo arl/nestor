@@ -371,6 +371,13 @@ func opcode_17(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// CLC   18
+// implied addressing.
+func opcode_18(cpu *CPU) {
+	cpu.P.clearBit(0)
+	cpu.tick()
+}
+
 // ORA   19
 // absolute indexed Y.
 func opcode_19(cpu *CPU) {
@@ -604,6 +611,13 @@ func opcode_54(cpu *CPU) {
 	cpu.tick()
 }
 
+// CLI   58
+// implied addressing.
+func opcode_58(cpu *CPU) {
+	cpu.P.clearBit(2)
+	cpu.tick()
+}
+
 // NOP   5A
 // implied addressing.
 func opcode_5A(cpu *CPU) {
@@ -780,6 +794,13 @@ func opcode_B2(cpu *CPU) {
 	panic("Halt and catch fire!")
 }
 
+// CLV   B8
+// implied addressing.
+func opcode_B8(cpu *CPU) {
+	cpu.P.clearBit(6)
+	cpu.tick()
+}
+
 // NOP   C2
 // immediate addressing.
 func opcode_C2(cpu *CPU) {
@@ -825,6 +846,13 @@ func opcode_D4(cpu *CPU) {
 	oper := uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
 	_ = oper
+	cpu.tick()
+}
+
+// CLD   D8
+// implied addressing.
+func opcode_D8(cpu *CPU) {
+	cpu.P.clearBit(3)
 	cpu.tick()
 }
 
@@ -945,6 +973,7 @@ var gdefs = [256]func(*CPU){
 	0x15: opcode_15,
 	0x16: opcode_16,
 	0x17: opcode_17,
+	0x18: opcode_18,
 	0x19: opcode_19,
 	0x1A: opcode_1A,
 	0x1B: opcode_1B,
@@ -963,6 +992,7 @@ var gdefs = [256]func(*CPU){
 	0x50: opcode_50,
 	0x52: opcode_52,
 	0x54: opcode_54,
+	0x58: opcode_58,
 	0x5A: opcode_5A,
 	0x5C: opcode_5C,
 	0x62: opcode_62,
@@ -979,10 +1009,12 @@ var gdefs = [256]func(*CPU){
 	0x92: opcode_92,
 	0xB0: opcode_B0,
 	0xB2: opcode_B2,
+	0xB8: opcode_B8,
 	0xC2: opcode_C2,
 	0xD0: opcode_D0,
 	0xD2: opcode_D2,
 	0xD4: opcode_D4,
+	0xD8: opcode_D8,
 	0xDA: opcode_DA,
 	0xDC: opcode_DC,
 	0xE2: opcode_E2,

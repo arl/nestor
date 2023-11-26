@@ -43,7 +43,7 @@ var defs = [256]opdef{
 	0x15: {n: "ORA", rw: "  ", m: "zpx", f: ORA},
 	0x16: {n: "ASL", rw: "rw", m: "zpx", f: ASL},
 	0x17: {n: "SLO", rw: "rw", m: "zpx", f: SLO},
-	0x18: {n: "CLC", rw: "  ", m: "imp"},
+	0x18: {n: "CLC", rw: "  ", m: "imp", f: clearFlag(0)},
 	0x19: {n: "ORA", rw: "  ", m: "aby", f: ORA},
 	0x1A: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0x1B: {n: "SLO", rw: "rw", m: "aby", f: SLO},
@@ -107,7 +107,7 @@ var defs = [256]opdef{
 	0x55: {n: "EOR", rw: "  ", m: "zpx"},
 	0x56: {n: "LSR", rw: "  ", m: "zpx"},
 	0x57: {n: "SRE", rw: "  ", m: "zpx"},
-	0x58: {n: "CLI", rw: "  ", m: "imp"},
+	0x58: {n: "CLI", rw: "  ", m: "imp", f: clearFlag(2)},
 	0x59: {n: "EOR", rw: "  ", m: "aby"},
 	0x5A: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0x5B: {n: "SRE", rw: "  ", m: "aby"},
@@ -203,7 +203,7 @@ var defs = [256]opdef{
 	0xB5: {n: "LDA", rw: "  ", m: "zpx"},
 	0xB6: {n: "LDX", rw: "  ", m: "zpy"},
 	0xB7: {n: "LAX", rw: "  ", m: "zpy"},
-	0xB8: {n: "CLV", rw: "  ", m: "imp"},
+	0xB8: {n: "CLV", rw: "  ", m: "imp", f: clearFlag(6)},
 	0xB9: {n: "LDA", rw: "  ", m: "aby"},
 	0xBA: {n: "TSX", rw: "  ", m: "imp"},
 	0xBB: {n: "LAS", rw: "  ", m: "aby"},
@@ -235,7 +235,7 @@ var defs = [256]opdef{
 	0xD5: {n: "CMP", rw: "  ", m: "zpx"},
 	0xD6: {n: "DEC", rw: "  ", m: "zpx"},
 	0xD7: {n: "DCP", rw: "  ", m: "zpx"},
-	0xD8: {n: "CLD", rw: "  ", m: "imp"},
+	0xD8: {n: "CLD", rw: "  ", m: "imp", f: clearFlag(3)},
 	0xD9: {n: "CMP", rw: "  ", m: "aby"},
 	0xDA: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0xDB: {n: "DCP", rw: "  ", m: "aby"},
@@ -408,6 +408,13 @@ func r16zpwrap(g *Generator) {
 	g.printf(`lo := cpu.Read8(oper)`)
 	g.printf(`hi := cpu.Read8(uint16(uint8(oper) + 1))`)
 	g.printf(`oper = uint16(hi)<<8 | uint16(lo)`)
+}
+
+func clearFlag(ibit uint) func(g *Generator) {
+	return func(g *Generator) {
+		g.printf(`cpu.P.clearBit(%d)`, ibit)
+		g.printf(`cpu.tick()`)
+	}
 }
 
 func branch(ibit int, val bool) func(g *Generator) {
