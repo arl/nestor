@@ -1497,6 +1497,26 @@ func opcode_60(cpu *CPU) {
 	cpu.tick()
 }
 
+// ADC   61
+// indexed addressing (abs, X).
+func opcode_61(cpu *CPU) {
+	cpu.tick()
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	oper = uint16(uint8(oper) + cpu.X)
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+}
+
 // JAM   62
 // immediate addressing.
 func opcode_62(cpu *CPU) {
@@ -1515,6 +1535,34 @@ func opcode_64(cpu *CPU) {
 	cpu.tick()
 }
 
+// ADC   65
+// zero page addressing.
+func opcode_65(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+}
+
+// ADC   69
+// immediate addressing.
+func opcode_69(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+}
+
 // JMP   6C
 // indirect addressing.
 func opcode_6C(cpu *CPU) {
@@ -1525,6 +1573,20 @@ func opcode_6C(cpu *CPU) {
 	oper = uint16(hi)<<8 | uint16(lo)
 	_ = oper
 	cpu.PC = oper
+}
+
+// ADC   6D
+// absolute addressing.
+func opcode_6D(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
 }
 
 // BVS   70
@@ -1543,6 +1605,29 @@ func opcode_70(cpu *CPU) {
 		return
 	}
 	cpu.PC++
+}
+
+// ADC   71
+// indexed addressing (abs),Y.
+func opcode_71(cpu *CPU) {
+	// extra cycle for page cross
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+		cpu.tick()
+	}
+	oper += uint16(cpu.Y)
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
 }
 
 // JAM   72
@@ -1566,11 +1651,47 @@ func opcode_74(cpu *CPU) {
 	cpu.tick()
 }
 
+// ADC   75
+// indexed addressing: zeropage,X.
+func opcode_75(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+}
+
 // SEI   78
 // implied addressing.
 func opcode_78(cpu *CPU) {
 	cpu.P.setBit(2)
 	cpu.tick()
+}
+
+// ADC   79
+// absolute indexed Y.
+func opcode_79(cpu *CPU) {
+	// extra cycle for page cross
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.Y)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
 }
 
 // NOP   7A
@@ -1590,6 +1711,24 @@ func opcode_7C(cpu *CPU) {
 	}
 	_ = oper
 	cpu.tick()
+}
+
+// ADC   7D
+// absolute indexed X.
+func opcode_7D(cpu *CPU) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.X)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
 }
 
 // NOP   80
@@ -1932,15 +2071,23 @@ var gdefs = [256]func(*CPU){
 	0x5E: opcode_5E,
 	0x5F: opcode_5F,
 	0x60: opcode_60,
+	0x61: opcode_61,
 	0x62: opcode_62,
 	0x64: opcode_64,
+	0x65: opcode_65,
+	0x69: opcode_69,
 	0x6C: opcode_6C,
+	0x6D: opcode_6D,
 	0x70: opcode_70,
+	0x71: opcode_71,
 	0x72: opcode_72,
 	0x74: opcode_74,
+	0x75: opcode_75,
 	0x78: opcode_78,
+	0x79: opcode_79,
 	0x7A: opcode_7A,
 	0x7C: opcode_7C,
+	0x7D: opcode_7D,
 	0x80: opcode_80,
 	0x82: opcode_82,
 	0x89: opcode_89,

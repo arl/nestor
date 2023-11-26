@@ -20,35 +20,35 @@ type opdef struct {
 
 var defs = [256]opdef{
 	0x00: {n: "BRK", rw: "  ", m: "imp", f: BRK},
-	0x01: {n: "ORA", rw: "  ", m: "izx", f: ORA},
+	0x01: {n: "ORA", rw: "r ", m: "izx", f: ORA},
 	0x02: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0x03: {n: "SLO", rw: "rw", m: "izx", f: SLO},
 	0x04: {n: "NOP", rw: "  ", m: "zpg", f: NOP},
-	0x05: {n: "ORA", rw: "  ", m: "zpg", f: ORA},
+	0x05: {n: "ORA", rw: "r ", m: "zpg", f: ORA},
 	0x06: {n: "ASL", rw: "rw", m: "zpg", f: ASL},
 	0x07: {n: "SLO", rw: "rw", m: "zpg", f: SLO},
 	0x08: {n: "PHP", rw: "  ", m: "imp", f: PHP},
-	0x09: {n: "ORA", rw: "  ", m: "imm", f: ORA},
+	0x09: {n: "ORA", rw: "r ", m: "imm", f: ORA},
 	0x0A: {n: "ASL", rw: "rw", m: "acc", f: ASL},
 	0x0B: {n: "ANC", rw: "r ", m: "imm", f: ANC},
 	0x0C: {n: "NOP", rw: "  ", m: "abs", f: NOP},
-	0x0D: {n: "ORA", rw: "  ", m: "abs", f: ORA},
+	0x0D: {n: "ORA", rw: "r ", m: "abs", f: ORA},
 	0x0E: {n: "ASL", rw: "rw", m: "abs", f: ASL},
 	0x0F: {n: "SLO", rw: "rw", m: "abs", f: SLO},
 	0x10: {n: "BPL", rw: "  ", m: "rel", f: branch(7, false)},
-	0x11: {n: "ORA", rw: "  ", m: "izy", f: ORA},
+	0x11: {n: "ORA", rw: "r ", m: "izy", f: ORA},
 	0x12: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0x13: {n: "SLO", rw: "rw", m: "izy", f: SLO},
 	0x14: {n: "NOP", rw: "  ", m: "zpx", f: NOP},
-	0x15: {n: "ORA", rw: "  ", m: "zpx", f: ORA},
+	0x15: {n: "ORA", rw: "r ", m: "zpx", f: ORA},
 	0x16: {n: "ASL", rw: "rw", m: "zpx", f: ASL},
 	0x17: {n: "SLO", rw: "rw", m: "zpx", f: SLO},
 	0x18: {n: "CLC", rw: "  ", m: "imp", f: clearFlag(0)},
-	0x19: {n: "ORA", rw: "  ", m: "aby", f: ORA},
+	0x19: {n: "ORA", rw: "r ", m: "aby", f: ORA},
 	0x1A: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0x1B: {n: "SLO", rw: "rw", m: "aby", f: SLO},
 	0x1C: {n: "NOP", rw: "  ", m: "abx", f: NOP},
-	0x1D: {n: "ORA", rw: "  ", m: "abx", f: ORA},
+	0x1D: {n: "ORA", rw: "r ", m: "abx", f: ORA},
 	0x1E: {n: "ASL", rw: "rw", m: "abx", f: ASL},
 	0x1F: {n: "SLO", rw: "rw", m: "abx", f: SLO},
 	0x20: {n: "JSR", rw: "  ", m: "   ", f: JSR},
@@ -116,35 +116,35 @@ var defs = [256]opdef{
 	0x5E: {n: "LSR", rw: "rw", m: "abx", f: LSR},
 	0x5F: {n: "SRE", rw: "rw", m: "abx", f: SRE},
 	0x60: {n: "RTS", rw: "  ", m: "imp", f: RTS},
-	0x61: {n: "ADC", rw: "  ", m: "izx"},
+	0x61: {n: "ADC", rw: "r ", m: "izx", f: ADC},
 	0x62: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0x63: {n: "RRA", rw: "  ", m: "izx"},
 	0x64: {n: "NOP", rw: "  ", m: "zpg", f: NOP},
-	0x65: {n: "ADC", rw: "  ", m: "zpg"},
+	0x65: {n: "ADC", rw: "r ", m: "zpg", f: ADC},
 	0x66: {n: "ROR", rw: "  ", m: "zpg"},
 	0x67: {n: "RRA", rw: "  ", m: "zpg"},
 	0x68: {n: "PLA", rw: "  ", m: "imp"},
-	0x69: {n: "ADC", rw: "  ", m: "imm"},
+	0x69: {n: "ADC", rw: "r ", m: "imm", f: ADC},
 	0x6A: {n: "ROR", rw: "  ", m: "acc"},
 	0x6B: {n: "ARR", rw: "  ", m: "imm"},
 	0x6C: {n: "JMP", rw: " ", m: "ind", f: JMP},
-	0x6D: {n: "ADC", rw: "  ", m: "abs"},
+	0x6D: {n: "ADC", rw: "r ", m: "abs", f: ADC},
 	0x6E: {n: "ROR", rw: "  ", m: "abs"},
 	0x6F: {n: "RRA", rw: "  ", m: "abs"},
 	0x70: {n: "BVS", rw: "  ", m: "rel", f: branch(6, true)},
-	0x71: {n: "ADC", rw: "  ", m: "izy"},
+	0x71: {n: "ADC", rw: "r ", m: "izy", f: ADC},
 	0x72: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0x73: {n: "RRA", rw: "  ", m: "izy"},
 	0x74: {n: "NOP", rw: "  ", m: "zpx", f: NOP},
-	0x75: {n: "ADC", rw: "  ", m: "zpx"},
+	0x75: {n: "ADC", rw: "r ", m: "zpx", f: ADC},
 	0x76: {n: "ROR", rw: "  ", m: "zpx"},
 	0x77: {n: "RRA", rw: "  ", m: "zpx"},
 	0x78: {n: "SEI", rw: "  ", m: "imp", f: setFlag(2)},
-	0x79: {n: "ADC", rw: "  ", m: "aby"},
+	0x79: {n: "ADC", rw: "r ", m: "aby", f: ADC},
 	0x7A: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0x7B: {n: "RRA", rw: "  ", m: "aby"},
 	0x7C: {n: "NOP", rw: "  ", m: "abx", f: NOP},
-	0x7D: {n: "ADC", rw: "  ", m: "abx"},
+	0x7D: {n: "ADC", rw: "r ", m: "abx", f: ADC},
 	0x7E: {n: "ROR", rw: "  ", m: "abx"},
 	0x7F: {n: "RRA", rw: "  ", m: "abx"},
 	0x80: {n: "NOP", rw: "  ", m: "imm", f: NOP},
@@ -626,7 +626,6 @@ func JSR(g *Generator) {
 }
 
 func ORA(g *Generator) {
-	g.printf(`val := cpu.Read8(oper)`)
 	g.printf(`cpu.A |= val`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
@@ -690,6 +689,14 @@ func LSR(g *Generator) {
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.P.checkNZ(val)`)
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
+}
+
+func ADC(g *Generator) {
+	g.printf(`carry := cpu.P.ibit(pbitC)`)
+	g.printf(`sum := uint16(cpu.A) + uint16(val) + uint16(carry)`)
+	g.printf(`cpu.P.checkCV(cpu.A, val, sum)`)
+	g.printf(`cpu.A = uint8(sum)`)
+	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
 func ALR(g *Generator) {
