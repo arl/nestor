@@ -19,7 +19,7 @@ type opdef struct {
 var defs = [256]opdef{
 	0x00: {n: "BRK", m: "imp", f: BRK},
 	0x01: {n: "ORA", m: "izx", f: ORA},
-	0x02: {n: "JAM", m: "imm"},
+	0x02: {n: "JAM", m: "imm", f: JAM},
 	0x03: {n: "SLO", m: "izx"},
 	0x04: {n: "NOP", m: "zpg"},
 	0x05: {n: "ORA", m: "zpg", f: ORA},
@@ -33,9 +33,9 @@ var defs = [256]opdef{
 	0x0D: {n: "ORA", m: "abs", f: ORA},
 	0x0E: {n: "ASL", m: "abs"},
 	0x0F: {n: "SLO", m: "abs"},
-	0x10: {n: "BPL", f: branch(7, false)},
+	0x10: {n: "BPL", m: "rel", f: branch(7, false)},
 	0x11: {n: "ORA", m: "izy", f: ORA},
-	0x12: {n: "JAM", m: "imm"},
+	0x12: {n: "JAM", m: "imm", f: JAM},
 	0x13: {n: "SLO", m: "izy"},
 	0x14: {n: "NOP", m: "zpx"},
 	0x15: {n: "ORA", m: "zpx", f: ORA},
@@ -51,7 +51,7 @@ var defs = [256]opdef{
 	0x1F: {n: "SLO", m: "abx"},
 	0x20: {n: "JSR", m: "abs"},
 	0x21: {n: "AND", m: "izx"},
-	0x22: {n: "JAM", m: "imm"},
+	0x22: {n: "JAM", m: "imm", f: JAM},
 	0x23: {n: "RLA", m: "izx"},
 	0x24: {n: "BIT", m: "zpg"},
 	0x25: {n: "AND", m: "zpg"},
@@ -65,9 +65,9 @@ var defs = [256]opdef{
 	0x2D: {n: "AND", m: "abs"},
 	0x2E: {n: "ROL", m: "abs"},
 	0x2F: {n: "RLA", m: "abs"},
-	0x30: {n: "BMI", f: branch(7, true)},
+	0x30: {n: "BMI", m: "rel", f: branch(7, true)},
 	0x31: {n: "AND", m: "izy"},
-	0x32: {n: "JAM", m: "imm"},
+	0x32: {n: "JAM", m: "imm", f: JAM},
 	0x33: {n: "RLA", m: "izy"},
 	0x34: {n: "NOP", m: "zpx"},
 	0x35: {n: "AND", m: "zpx"},
@@ -83,7 +83,7 @@ var defs = [256]opdef{
 	0x3F: {n: "RLA", m: "abx"},
 	0x40: {n: "RTI", m: "imp"},
 	0x41: {n: "EOR", m: "izx"},
-	0x42: {n: "JAM", m: "imm"},
+	0x42: {n: "JAM", m: "imm", f: JAM},
 	0x43: {n: "SRE", m: "izx"},
 	0x44: {n: "NOP", m: "zpg"},
 	0x45: {n: "EOR", m: "zpg"},
@@ -97,9 +97,9 @@ var defs = [256]opdef{
 	0x4D: {n: "EOR", m: "abs"},
 	0x4E: {n: "LSR", m: "abs"},
 	0x4F: {n: "SRE", m: "abs"},
-	0x50: {n: "BVC", f: branch(6, false)},
+	0x50: {n: "BVC", m: "rel", f: branch(6, false)},
 	0x51: {n: "EOR", m: "izy"},
-	0x52: {n: "JAM", m: "imm"},
+	0x52: {n: "JAM", m: "imm", f: JAM},
 	0x53: {n: "SRE", m: "izy"},
 	0x54: {n: "NOP", m: "zpx"},
 	0x55: {n: "EOR", m: "zpx"},
@@ -115,7 +115,7 @@ var defs = [256]opdef{
 	0x5F: {n: "SRE", m: "abx"},
 	0x60: {n: "RTS", m: "imp"},
 	0x61: {n: "ADC", m: "izx"},
-	0x62: {n: "JAM", m: "imm"},
+	0x62: {n: "JAM", m: "imm", f: JAM},
 	0x63: {n: "RRA", m: "izx"},
 	0x64: {n: "NOP", m: "zpg"},
 	0x65: {n: "ADC", m: "zpg"},
@@ -129,9 +129,9 @@ var defs = [256]opdef{
 	0x6D: {n: "ADC", m: "abs"},
 	0x6E: {n: "ROR", m: "abs"},
 	0x6F: {n: "RRA", m: "abs"},
-	0x70: {n: "BVS", f: branch(6, true)},
+	0x70: {n: "BVS", m: "rel", f: branch(6, true)},
 	0x71: {n: "ADC", m: "izy"},
-	0x72: {n: "JAM", m: "imm"},
+	0x72: {n: "JAM", m: "imm", f: JAM},
 	0x73: {n: "RRA", m: "izy"},
 	0x74: {n: "NOP", m: "zpx"},
 	0x75: {n: "ADC", m: "zpx"},
@@ -161,9 +161,9 @@ var defs = [256]opdef{
 	0x8D: {n: "STA", m: "abs"},
 	0x8E: {n: "STX", m: "abs"},
 	0x8F: {n: "SAX", m: "abs"},
-	0x90: {n: "BCC", f: branch(0, false)},
+	0x90: {n: "BCC", m: "rel", f: branch(0, false)},
 	0x91: {n: "STA", m: "izy"},
-	0x92: {n: "JAM", m: "imm"},
+	0x92: {n: "JAM", m: "imm", f: JAM},
 	0x93: {n: "SHA", m: "izy"},
 	0x94: {n: "STY", m: "zpx"},
 	0x95: {n: "STA", m: "zpx"},
@@ -193,9 +193,9 @@ var defs = [256]opdef{
 	0xAD: {n: "LDA", m: "abs"},
 	0xAE: {n: "LDX", m: "abs"},
 	0xAF: {n: "LAX", m: "abs"},
-	0xB0: {n: "BCS", f: branch(0, true)},
+	0xB0: {n: "BCS", m: "rel", f: branch(0, true)},
 	0xB1: {n: "LDA", m: "izy"},
-	0xB2: {n: "JAM", m: "imm"},
+	0xB2: {n: "JAM", m: "imm", f: JAM},
 	0xB3: {n: "LAX", m: "izy"},
 	0xB4: {n: "LDY", m: "zpx"},
 	0xB5: {n: "LDA", m: "zpx"},
@@ -225,9 +225,9 @@ var defs = [256]opdef{
 	0xCD: {n: "CMP", m: "abs"},
 	0xCE: {n: "DEC", m: "abs"},
 	0xCF: {n: "DCP", m: "abs"},
-	0xD0: {n: "BNE", f: branch(1, false)},
+	0xD0: {n: "BNE", m: "rel", f: branch(1, false)},
 	0xD1: {n: "CMP", m: "izy"},
-	0xD2: {n: "JAM", m: "imm"},
+	0xD2: {n: "JAM", m: "imm", f: JAM},
 	0xD3: {n: "DCP", m: "izy"},
 	0xD4: {n: "NOP", m: "zpx"},
 	0xD5: {n: "CMP", m: "zpx"},
@@ -257,9 +257,9 @@ var defs = [256]opdef{
 	0xED: {n: "SBC", m: "abs"},
 	0xEE: {n: "INC", m: "abs"},
 	0xEF: {n: "ISC", m: "abs"},
-	0xF0: {n: "BEQ", f: branch(1, true)},
+	0xF0: {n: "BEQ", m: "rel", f: branch(1, true)},
 	0xF1: {n: "SBC", m: "izy"},
-	0xF2: {n: "JAM", m: "imm"},
+	0xF2: {n: "JAM", m: "imm", f: JAM},
 	0xF3: {n: "ISC", m: "izy"},
 	0xF4: {n: "NOP", m: "zpx"},
 	0xF5: {n: "SBC", m: "zpx"},
@@ -309,11 +309,54 @@ type Generator struct {
 }
 
 func (g *Generator) opcodeHeader(code int) {
-	g.printf(`// %s`, defs[code].n)
-	g.setAddressingMode(code)
+	modestr := ""
+	g.mode = nil
+	switch defs[code].m {
+	case "imp":
+		modestr = `implied addressing.`
+	case "acc":
+		modestr = `adressing accumulator.`
+	case "rel":
+		modestr = `relative addressing.`
+		g.mode = rel
+	case "abs":
+		modestr = `absolute addressing.`
+		g.mode = abs
+	case "abx":
+		modestr = `absolute indexed X.`
+		g.mode = abx
+	case "aby":
+		modestr = `absolute indexed Y.`
+		g.mode = aby
+	case "imm":
+		modestr = `immediate addressing.`
+		g.mode = imm
+	case "ind":
+		modestr = `indirect addressing.`
+		g.mode = ind
+	case "izx":
+		modestr = `indexed addressing (abs, X).`
+		g.mode = izx
+	case "izy":
+		modestr = `indexed addressing (abs),Y.`
+		g.mode = izy
+	case "zpg":
+		modestr = `zero page addressing.`
+		g.mode = zpg
+	case "zpx":
+		modestr = `indexed addressing: zeropage,X.`
+		g.mode = zpx
+	case "zpy":
+		modestr = `indexed addressing: zeropage,Y.`
+		g.mode = zpy
+	}
+
+	g.printf(`// %s   %02X`, defs[code].n, code)
+	g.printf(`// %s`, modestr)
 	g.printf(`func opcode_%02X(cpu*CPU){`, code)
 	if g.mode != nil {
 		g.mode(g, details[code])
+		g.printf(`_ = oper`)
 	}
 }
 
@@ -325,10 +368,8 @@ func (g *Generator) printf(format string, args ...any) {
 	fmt.Fprintf(g, "%s\n", fmt.Sprintf(format, args...))
 }
 
-// helpers
-
 // read 16 bytes from the zero page, handling page wrap.
-func _zpr16(g *Generator) {
+func r16zpwrap(g *Generator) {
 	g.printf(`// read 16 bytes from the zero page, handling page wrap`)
 	g.printf(`lo := cpu.Read8(oper)`)
 	g.printf(`hi := cpu.Read8(uint16(uint8(oper) + 1))`)
@@ -337,31 +378,31 @@ func _zpr16(g *Generator) {
 
 func branch(ibit int, val bool) func(g *Generator) {
 	return func(g *Generator) {
-		g.printf(`off := int8(cpu.Read8(cpu.PC))`)
-		g.printf(`addr := uint16(int16(cpu.PC+1) + int16(off))`)
 		g.printf(`if cpu.P.bit(%d) == %t {`, ibit, val)
 		g.printf(`// branching`)
-		pagecrossed(g, "cpu.PC+1", "addr")
+		pagecrossed(g, "cpu.PC+1", "oper")
 		g.printf(`	cpu.tick()`)
-		g.printf(`	cpu.PC = addr`)
+		g.printf(`	cpu.PC = oper`)
 		g.printf(`	return`)
 		g.printf(`}`)
 		g.printf(`cpu.PC++`)
 	}
 }
 
-// extra tick if page crossed
 func pagecrossed(g *Generator, a, b string) {
 	g.printf(`	if pagecrossed(%s, %s) {`, a, b)
 	g.printf(`		cpu.tick()`)
 	g.printf(`	}`)
 }
 
-// Addressing mode generators
 type addrmode func(g *Generator, details uint8)
 
-func imp(g *Generator, _ uint8) {
-	g.printf(`panic("not implemented")`)
+func ind(g *Generator, _ uint8) {
+	g.printf(`oper := cpu.Read16(cpu.PC)`)
+	g.printf(`lo := cpu.Read8(oper)`)
+	g.printf(`// 2 bytes address wrap around`)
+	g.printf(`hi := cpu.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))`)
+	g.printf(`oper = uint16(hi)<<8 | uint16(lo)`)
 }
 
 func acc(g *Generator, _ uint8) {
@@ -373,13 +414,29 @@ func imm(g *Generator, _ uint8) {
 	g.printf(`cpu.PC++`)
 }
 
+func rel(g *Generator, _ uint8) {
+	g.printf(`off := int8(cpu.Read8(cpu.PC))`)
+	g.printf(`oper := uint16(int16(cpu.PC+1) + int16(off))`)
+}
+
 func abs(g *Generator, _ uint8) {
 	g.printf(`oper := cpu.Read16(cpu.PC)`)
 	g.printf(`cpu.PC += 2`)
 }
 
-func abx(g *Generator, _ uint8) {
-	g.printf(`panic("not implemented")`)
+func abx(g *Generator, info uint8) {
+	switch {
+	case info&xcpc != 0:
+		g.printf(`addr := cpu.Read16(cpu.PC)`)
+		g.printf(`cpu.PC += 2`)
+		g.printf(`oper := addr + uint16(cpu.X)`)
+		pagecrossed(g, "addr", "addr")
+	default:
+		g.printf(`cpu.tick()`)
+		g.printf(`oper := cpu.Read16(cpu.PC)`)
+		g.printf(`cpu.PC += 2`)
+		g.printf(`oper += uint16(cpu.X)`)
+	}
 }
 
 func aby(g *Generator, info uint8) {
@@ -388,7 +445,12 @@ func aby(g *Generator, info uint8) {
 		g.printf(`addr := cpu.Read16(cpu.PC)`)
 		g.printf(`cpu.PC += 2`)
 		g.printf(`oper := addr + uint16(cpu.Y)`)
-		pagecrossed(g, "oper", "dst")
+		pagecrossed(g, "oper", "addr")
+	default:
+		g.printf(`cpu.tick()`)
+		g.printf(`oper := cpu.Read16(cpu.PC)`)
+		g.printf(`cpu.PC += 2`)
+		g.printf(`oper += uint16(cpu.Y)`)
 	}
 }
 
@@ -405,21 +467,38 @@ func zpx(g *Generator, _ uint8) {
 	g.printf(`oper &= 0xff`)
 }
 
+func zpy(g *Generator, _ uint8) {
+	g.printf(`cpu.tick()`)
+	g.printf(`addr := cpu.Read8(cpu.PC)`)
+	g.printf(`cpu.PC++`)
+	g.printf(`oper := uint16(addr) + uint16(cpu.Y)`)
+	g.printf(`oper &= 0xff`)
+}
+
 func izx(g *Generator, info uint8) {
 	g.printf(`cpu.tick()`)
 	zpg(g, info)
 	g.printf(`oper = uint16(uint8(oper) + cpu.X)`)
-	_zpr16(g)
+	r16zpwrap(g)
 }
 
 func izy(g *Generator, info uint8) {
 	switch {
 	case info&xcpc != 0:
-		zpg(g, 0)
-		_zpr16(g)
+		zpg(g, info)
+		r16zpwrap(g)
 		pagecrossed(g, "oper", "oper+uint16(cpu.Y)")
+		g.printf(`oper += uint16(cpu.Y)`)
+	case info&xca != 0:
+		zpg(g, info)
+		r16zpwrap(g)
+		g.printf(`cpu.tick()`)
+		g.printf(`oper += uint16(cpu.Y)`)
+	default:
+		zpg(g, info)
+		r16zpwrap(g)
+		g.printf(`oper += uint16(cpu.Y)`)
 	}
-	g.printf(`oper += uint16(cpu.Y)`)
 }
 
 func BRK(g *Generator) {
@@ -443,41 +522,7 @@ func JAM(g *Generator) {
 	fmt.Fprintf(g, `panic("Halt and catch fire!")`)
 }
 
-func (g *Generator) setAddressingMode(opc int) {
-	g.mode = nil
-	switch defs[opc].m {
-	case "abs":
-		g.printf(`// absolute addressing.`)
-		g.mode = abs
-	case "abx":
-	case "aby":
-		g.printf(`// absolute indexed y.`)
-		g.mode = aby
-	case "acc":
-	case "imm":
-		g.printf(`// immediate addressing.`)
-		g.mode = imm
-	case "imp":
-	case "izx":
-		g.printf(`// indexed addressing (abs, X).`)
-		g.mode = izx
-	case "izy":
-		g.printf(`// indexed addressing (abs),Y.`)
-		g.mode = izy
-	case "rel":
-	case "zpg":
-		g.printf(`// zero page addressing.`)
-		g.mode = zpg
-	case "zpx":
-		g.printf(`// indexed addressing: zeropage,X.`)
-		g.mode = zpx
-	case "zpy":
-		g.printf(`// indexed addressing: zeropage,Y.`)
-		// panic("not implemented")
-	}
-}
-
-func (g *Generator) do() {
+func (g *Generator) generate() {
 	fmt.Fprintf(g, "// Code generated by cpugen/gen_nes6502.go. DO NOT EDIT.\n")
 	fmt.Fprintf(g, "package emu\n")
 	for opc, def := range defs {
@@ -498,11 +543,9 @@ func main() {
 	flag.Parse()
 
 	bb := &bytes.Buffer{}
-	gen := &Generator{
-		Writer: bb,
-	}
+	g := &Generator{Writer: bb}
 
-	gen.do()
+	g.generate()
 
 	buf, err := format.Source(bb.Bytes())
 	if err != nil {
