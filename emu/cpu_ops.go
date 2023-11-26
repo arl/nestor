@@ -12,30 +12,230 @@ func opcode_00(cpu *CPU) {
 	cpu.PC = cpu.Read16(IRQvector)
 }
 
-// func1
+// ORA
+// indexed addressing (abs, X).
 func opcode_01(cpu *CPU) {
-	// indexed addressing (abs, X)
 	cpu.tick()
-	op_ := cpu.Read8(cpu.PC)
+	oper := uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	addr := uint16(uint8(op_) + cpu.X)
-	lo := cpu.Read8(addr)
-	hi := cpu.Read8(uint16(uint8(addr) + 1))
-	oper := uint16(hi)<<8 | uint16(lo)
+	oper = uint16(uint8(oper) + cpu.X)
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
 	// ORA
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 }
 
-// func2
+// ORA
+// zero page addressing.
 func opcode_05(cpu *CPU) {
-	// zero page addressing
-	addr := cpu.Read8(cpu.PC)
+	oper := uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	oper := uint16(addr)
 	// ORA
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// ORA
+// immediate addressing.
+func opcode_09(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	// ORA
+	val := cpu.Read8(oper)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// ORA
+// absolute addressing.
+func opcode_0D(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	// ORA
+	val := cpu.Read8(oper)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// BPL
+func opcode_10(cpu *CPU) {
+	off := int8(cpu.Read8(cpu.PC))
+	addr := uint16(int16(cpu.PC+1) + int16(off))
+	if cpu.P.bit(7) == false {
+		// branching
+		if pagecrossed(cpu.PC+1, addr) {
+			cpu.tick()
+		}
+		cpu.tick()
+		cpu.PC = addr
+		return
+	}
+	cpu.PC++
+}
+
+// ORA
+// indexed addressing (abs),Y.
+func opcode_11(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+		cpu.tick()
+	}
+	oper += uint16(cpu.Y)
+	// ORA
+	val := cpu.Read8(oper)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// ORA
+// indexed addressing: zeropage,X.
+func opcode_15(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	// ORA
+	val := cpu.Read8(oper)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// ORA
+// absolute indexed y.
+func opcode_19(cpu *CPU) {
+	// ORA
+	val := cpu.Read8(oper)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// ORA
+func opcode_1D(cpu *CPU) {
+	// ORA
+	val := cpu.Read8(oper)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// BMI
+func opcode_30(cpu *CPU) {
+	off := int8(cpu.Read8(cpu.PC))
+	addr := uint16(int16(cpu.PC+1) + int16(off))
+	if cpu.P.bit(7) == true {
+		// branching
+		if pagecrossed(cpu.PC+1, addr) {
+			cpu.tick()
+		}
+		cpu.tick()
+		cpu.PC = addr
+		return
+	}
+	cpu.PC++
+}
+
+// BVC
+func opcode_50(cpu *CPU) {
+	off := int8(cpu.Read8(cpu.PC))
+	addr := uint16(int16(cpu.PC+1) + int16(off))
+	if cpu.P.bit(6) == false {
+		// branching
+		if pagecrossed(cpu.PC+1, addr) {
+			cpu.tick()
+		}
+		cpu.tick()
+		cpu.PC = addr
+		return
+	}
+	cpu.PC++
+}
+
+// BVS
+func opcode_70(cpu *CPU) {
+	off := int8(cpu.Read8(cpu.PC))
+	addr := uint16(int16(cpu.PC+1) + int16(off))
+	if cpu.P.bit(6) == true {
+		// branching
+		if pagecrossed(cpu.PC+1, addr) {
+			cpu.tick()
+		}
+		cpu.tick()
+		cpu.PC = addr
+		return
+	}
+	cpu.PC++
+}
+
+// BCC
+func opcode_90(cpu *CPU) {
+	off := int8(cpu.Read8(cpu.PC))
+	addr := uint16(int16(cpu.PC+1) + int16(off))
+	if cpu.P.bit(0) == false {
+		// branching
+		if pagecrossed(cpu.PC+1, addr) {
+			cpu.tick()
+		}
+		cpu.tick()
+		cpu.PC = addr
+		return
+	}
+	cpu.PC++
+}
+
+// BCS
+func opcode_B0(cpu *CPU) {
+	off := int8(cpu.Read8(cpu.PC))
+	addr := uint16(int16(cpu.PC+1) + int16(off))
+	if cpu.P.bit(0) == true {
+		// branching
+		if pagecrossed(cpu.PC+1, addr) {
+			cpu.tick()
+		}
+		cpu.tick()
+		cpu.PC = addr
+		return
+	}
+	cpu.PC++
+}
+
+// BNE
+func opcode_D0(cpu *CPU) {
+	off := int8(cpu.Read8(cpu.PC))
+	addr := uint16(int16(cpu.PC+1) + int16(off))
+	if cpu.P.bit(1) == false {
+		// branching
+		if pagecrossed(cpu.PC+1, addr) {
+			cpu.tick()
+		}
+		cpu.tick()
+		cpu.PC = addr
+		return
+	}
+	cpu.PC++
+}
+
+// BEQ
+func opcode_F0(cpu *CPU) {
+	off := int8(cpu.Read8(cpu.PC))
+	addr := uint16(int16(cpu.PC+1) + int16(off))
+	if cpu.P.bit(1) == true {
+		// branching
+		if pagecrossed(cpu.PC+1, addr) {
+			cpu.tick()
+		}
+		cpu.tick()
+		cpu.PC = addr
+		return
+	}
+	cpu.PC++
 }
