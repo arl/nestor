@@ -556,6 +556,18 @@ func opcode_23(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// BIT   24
+// zero page addressing.
+func opcode_24(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.P &= 0b00111111
+	cpu.P |= P(val & 0b11000000)
+	cpu.P.checkZ(cpu.A & val)
+}
+
 // AND   25
 // zero page addressing.
 func opcode_25(cpu *CPU) {
@@ -605,6 +617,21 @@ func opcode_27(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// PLP   28
+// implied addressing.
+func opcode_28(cpu *CPU) {
+	cpu.tick()
+	cpu.tick()
+	var p uint8
+	{
+		cpu.SP += 1
+		top := uint16(cpu.SP) + 0x0100
+		p = cpu.Read8(top)
+	}
+	const mask = 0b11001111 // ignore B and U bits
+	cpu.P = P(copybits(uint8(cpu.P), p, mask))
+}
+
 // AND   29
 // immediate addressing.
 func opcode_29(cpu *CPU) {
@@ -629,6 +656,30 @@ func opcode_2A(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
 	cpu.A = val
+}
+
+// ANC   2B
+// immediate addressing.
+func opcode_2B(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A &= val
+	cpu.P.checkNZ(cpu.A)
+	cpu.P.writeBit(pbitC, cpu.P.N())
+}
+
+// BIT   2C
+// absolute addressing.
+func opcode_2C(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.P &= 0b00111111
+	cpu.P |= P(val & 0b11000000)
+	cpu.P.checkZ(cpu.A & val)
 }
 
 // AND   2D
@@ -824,6 +875,13 @@ func opcode_37(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// SEC   38
+// implied addressing.
+func opcode_38(cpu *CPU) {
+	cpu.P.setBit(0)
+	cpu.tick()
+}
+
 // AND   39
 // absolute indexed Y.
 func opcode_39(cpu *CPU) {
@@ -937,6 +995,22 @@ func opcode_3F(cpu *CPU) {
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
+}
+
+// RTI   40
+// implied addressing.
+func opcode_40(cpu *CPU) {
+	cpu.tick()
+	cpu.tick()
+	var p uint8
+	{
+		cpu.SP += 1
+		top := uint16(cpu.SP) + 0x0100
+		p = cpu.Read8(top)
+	}
+	const mask = 0b11001111 // ignore B and U bits
+	cpu.P = P(copybits(uint8(cpu.P), p, mask))
+	cpu.PC = pull16(cpu)
 }
 
 // JAM   42
@@ -1076,6 +1150,13 @@ func opcode_74(cpu *CPU) {
 	oper := uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
 	_ = oper
+	cpu.tick()
+}
+
+// SEI   78
+// implied addressing.
+func opcode_78(cpu *CPU) {
+	cpu.P.setBit(2)
 	cpu.tick()
 }
 
@@ -1314,6 +1395,13 @@ func opcode_F4(cpu *CPU) {
 	cpu.tick()
 }
 
+// SED   F8
+// implied addressing.
+func opcode_F8(cpu *CPU) {
+	cpu.P.setBit(3)
+	cpu.tick()
+}
+
 // NOP   FA
 // implied addressing.
 func opcode_FA(cpu *CPU) {
@@ -1370,11 +1458,15 @@ var gdefs = [256]func(*CPU){
 	0x21: opcode_21,
 	0x22: opcode_22,
 	0x23: opcode_23,
+	0x24: opcode_24,
 	0x25: opcode_25,
 	0x26: opcode_26,
 	0x27: opcode_27,
+	0x28: opcode_28,
 	0x29: opcode_29,
 	0x2A: opcode_2A,
+	0x2B: opcode_2B,
+	0x2C: opcode_2C,
 	0x2D: opcode_2D,
 	0x2E: opcode_2E,
 	0x2F: opcode_2F,
@@ -1386,6 +1478,7 @@ var gdefs = [256]func(*CPU){
 	0x35: opcode_35,
 	0x36: opcode_36,
 	0x37: opcode_37,
+	0x38: opcode_38,
 	0x39: opcode_39,
 	0x3A: opcode_3A,
 	0x3B: opcode_3B,
@@ -1393,6 +1486,7 @@ var gdefs = [256]func(*CPU){
 	0x3D: opcode_3D,
 	0x3E: opcode_3E,
 	0x3F: opcode_3F,
+	0x40: opcode_40,
 	0x42: opcode_42,
 	0x44: opcode_44,
 	0x50: opcode_50,
@@ -1406,6 +1500,7 @@ var gdefs = [256]func(*CPU){
 	0x70: opcode_70,
 	0x72: opcode_72,
 	0x74: opcode_74,
+	0x78: opcode_78,
 	0x7A: opcode_7A,
 	0x7C: opcode_7C,
 	0x80: opcode_80,
@@ -1428,6 +1523,7 @@ var gdefs = [256]func(*CPU){
 	0xF0: opcode_F0,
 	0xF2: opcode_F2,
 	0xF4: opcode_F4,
+	0xF8: opcode_F8,
 	0xFA: opcode_FA,
 	0xFC: opcode_FC,
 }

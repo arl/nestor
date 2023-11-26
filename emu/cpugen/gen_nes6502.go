@@ -55,15 +55,15 @@ var defs = [256]opdef{
 	0x21: {n: "AND", rw: "r ", m: "izx", f: AND},
 	0x22: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0x23: {n: "RLA", rw: "rw", m: "izx", f: RLA},
-	0x24: {n: "BIT", rw: "  ", m: "zpg"},
+	0x24: {n: "BIT", rw: "r ", m: "zpg", f: BIT},
 	0x25: {n: "AND", rw: "r ", m: "zpg", f: AND},
 	0x26: {n: "ROL", rw: "rw", m: "zpg", f: ROL},
 	0x27: {n: "RLA", rw: "rw", m: "zpg", f: RLA},
-	0x28: {n: "PLP", rw: "  ", m: "imp"},
+	0x28: {n: "PLP", rw: "  ", m: "imp", f: PLP},
 	0x29: {n: "AND", rw: "r ", m: "imm", f: AND},
 	0x2A: {n: "ROL", rw: "rw", m: "acc", f: ROL},
-	0x2B: {n: "ANC", rw: "  ", m: "imm"},
-	0x2C: {n: "BIT", rw: "  ", m: "abs"},
+	0x2B: {n: "ANC", rw: "r ", m: "imm", f: ANC},
+	0x2C: {n: "BIT", rw: "r ", m: "abs", f: BIT},
 	0x2D: {n: "AND", rw: "r ", m: "abs", f: AND},
 	0x2E: {n: "ROL", rw: "rw", m: "abs", f: ROL},
 	0x2F: {n: "RLA", rw: "rw", m: "abs", f: RLA},
@@ -75,7 +75,7 @@ var defs = [256]opdef{
 	0x35: {n: "AND", rw: "r ", m: "zpx", f: AND},
 	0x36: {n: "ROL", rw: "rw", m: "zpx", f: ROL},
 	0x37: {n: "RLA", rw: "rw", m: "zpx", f: RLA},
-	0x38: {n: "SEC", rw: "  ", m: "imp"},
+	0x38: {n: "SEC", rw: "  ", m: "imp", f: setFlag(0)},
 	0x39: {n: "AND", rw: "r ", m: "aby", f: AND},
 	0x3A: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0x3B: {n: "RLA", rw: "rw", m: "aby", f: RLA},
@@ -83,7 +83,7 @@ var defs = [256]opdef{
 	0x3D: {n: "AND", rw: "r ", m: "abx", f: AND},
 	0x3E: {n: "ROL", rw: "rw", m: "abx", f: ROL},
 	0x3F: {n: "RLA", rw: "rw", m: "abx", f: RLA},
-	0x40: {n: "RTI", rw: "  ", m: "imp"},
+	0x40: {n: "RTI", rw: "  ", m: "imp", f: RTI},
 	0x41: {n: "EOR", rw: "  ", m: "izx"},
 	0x42: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0x43: {n: "SRE", rw: "  ", m: "izx"},
@@ -139,7 +139,7 @@ var defs = [256]opdef{
 	0x75: {n: "ADC", rw: "  ", m: "zpx"},
 	0x76: {n: "ROR", rw: "  ", m: "zpx"},
 	0x77: {n: "RRA", rw: "  ", m: "zpx"},
-	0x78: {n: "SEI", rw: "  ", m: "imp"},
+	0x78: {n: "SEI", rw: "  ", m: "imp", f: setFlag(2)},
 	0x79: {n: "ADC", rw: "  ", m: "aby"},
 	0x7A: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0x7B: {n: "RRA", rw: "  ", m: "aby"},
@@ -267,7 +267,7 @@ var defs = [256]opdef{
 	0xF5: {n: "SBC", rw: "  ", m: "zpx"},
 	0xF6: {n: "INC", rw: "  ", m: "zpx"},
 	0xF7: {n: "ISC", rw: "  ", m: "zpx"},
-	0xF8: {n: "SED", rw: "  ", m: "imp"},
+	0xF8: {n: "SED", rw: "  ", m: "imp", f: setFlag(3)},
 	0xF9: {n: "SBC", rw: "  ", m: "aby"},
 	0xFA: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0xFB: {n: "ISC", rw: "  ", m: "aby"},
@@ -402,6 +402,21 @@ func push16(g *Generator, val string) {
 	push8(g, fmt.Sprintf(`uint8((%s)&0xFF)`, val))
 }
 
+func pull8(g *Generator, ret string) {
+	g.printf(`var %s uint8`, ret)
+	g.printf(`{`)
+	g.printf(`cpu.SP += 1`)
+	g.printf(`top := uint16(cpu.SP) + 0x0100`)
+	g.printf(`%s = cpu.Read8(top)`, ret)
+	g.printf(`}`)
+}
+
+func pull16(g *Generator, ret string) {
+	pull8(g, `lo`)
+	pull8(g, `hi`)
+	g.printf(`%s := uint16(hi)<<8 | uint16(lo)`, ret)
+}
+
 // read 16 bytes from the zero page, handling page wrap.
 func r16zpwrap(g *Generator) {
 	g.printf(`// read 16 bytes from the zero page, handling page wrap`)
@@ -413,6 +428,13 @@ func r16zpwrap(g *Generator) {
 func clearFlag(ibit uint) func(g *Generator) {
 	return func(g *Generator) {
 		g.printf(`cpu.P.clearBit(%d)`, ibit)
+		g.printf(`cpu.tick()`)
+	}
+}
+
+func setFlag(ibit uint) func(g *Generator) {
+	return func(g *Generator) {
+		g.printf(`cpu.P.setBit(%d)`, ibit)
 		g.printf(`cpu.tick()`)
 	}
 }
@@ -564,6 +586,23 @@ func PHP(g *Generator) {
 	push8(g, `uint8(p)`)
 }
 
+func PLP(g *Generator) {
+	g.printf(`cpu.tick()`)
+	g.printf(`cpu.tick()`)
+	pull8(g, `p`)
+	g.printf(`const mask = 0b11001111 // ignore B and U bits`)
+	g.printf(`cpu.P = P(copybits(uint8(cpu.P), p, mask))`)
+}
+
+func RTI(g *Generator) {
+	g.printf(`cpu.tick()`)
+	g.printf(`cpu.tick()`)
+	pull8(g, `p`)
+	g.printf(`const mask = 0b11001111 // ignore B and U bits`)
+	g.printf(`cpu.P = P(copybits(uint8(cpu.P), p, mask))`)
+	g.printf(`cpu.PC = pull16(cpu)`)
+}
+
 func JSR(g *Generator) {
 	g.printf(`oper := cpu.Read16(cpu.PC)`)
 	g.printf(`cpu.tick()`)
@@ -606,6 +645,12 @@ func ROL(g *Generator) {
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.P.checkNZ(val)`)
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
+}
+
+func BIT(g *Generator) {
+	g.printf(`cpu.P &= 0b00111111`)
+	g.printf(`cpu.P |= P(val & 0b11000000)`)
+	g.printf(`cpu.P.checkZ(cpu.A & val)`)
 }
 
 func RLA(g *Generator) {
