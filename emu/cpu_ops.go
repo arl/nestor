@@ -25,7 +25,6 @@ func opcode_01(cpu *CPU) {
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
 	_ = oper
-	// ORA
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
@@ -40,16 +39,57 @@ func opcode_02(cpu *CPU) {
 	panic("Halt and catch fire!")
 }
 
+// SLO   03
+// indexed addressing (abs, X).
+func opcode_03(cpu *CPU) {
+	cpu.tick()
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	oper = uint16(uint8(oper) + cpu.X)
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80 // carry is bit 7
+	val <<= 1
+	val &= 0xfe
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+	cpu.Write8(oper, val)
+}
+
 // ORA   05
 // zero page addressing.
 func opcode_05(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	_ = oper
-	// ORA
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// SLO   07
+// zero page addressing.
+func opcode_07(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80 // carry is bit 7
+	val <<= 1
+	val &= 0xfe
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+	cpu.Write8(oper, val)
 }
 
 // ORA   09
@@ -58,7 +98,6 @@ func opcode_09(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	// ORA
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
@@ -70,10 +109,27 @@ func opcode_0D(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	_ = oper
-	// ORA
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// SLO   0F
+// absolute addressing.
+func opcode_0F(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80 // carry is bit 7
+	val <<= 1
+	val &= 0xfe
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+	cpu.Write8(oper, val)
 }
 
 // BPL   10
@@ -109,7 +165,6 @@ func opcode_11(cpu *CPU) {
 	}
 	oper += uint16(cpu.Y)
 	_ = oper
-	// ORA
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
@@ -124,6 +179,31 @@ func opcode_12(cpu *CPU) {
 	panic("Halt and catch fire!")
 }
 
+// SLO   13
+// indexed addressing (abs),Y.
+func opcode_13(cpu *CPU) {
+	// extra cycle always
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	cpu.tick()
+	oper += uint16(cpu.Y)
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80 // carry is bit 7
+	val <<= 1
+	val &= 0xfe
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+	cpu.Write8(oper, val)
+}
+
 // ORA   15
 // indexed addressing: zeropage,X.
 func opcode_15(cpu *CPU) {
@@ -133,10 +213,30 @@ func opcode_15(cpu *CPU) {
 	oper := uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
 	_ = oper
-	// ORA
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// SLO   17
+// indexed addressing: zeropage,X.
+func opcode_17(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80 // carry is bit 7
+	val <<= 1
+	val &= 0xfe
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+	cpu.Write8(oper, val)
 }
 
 // ORA   19
@@ -150,10 +250,30 @@ func opcode_19(cpu *CPU) {
 		cpu.tick()
 	}
 	_ = oper
-	// ORA
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// SLO   1B
+// absolute indexed Y.
+func opcode_1B(cpu *CPU) {
+	// default
+	cpu.tick()
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper += uint16(cpu.Y)
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80 // carry is bit 7
+	val <<= 1
+	val &= 0xfe
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+	cpu.Write8(oper, val)
 }
 
 // ORA   1D
@@ -166,10 +286,29 @@ func opcode_1D(cpu *CPU) {
 		cpu.tick()
 	}
 	_ = oper
-	// ORA
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// SLO   1F
+// absolute indexed X.
+func opcode_1F(cpu *CPU) {
+	cpu.tick()
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper += uint16(cpu.X)
+	_ = oper
+	val := cpu.Read8(oper)
+	carry := val & 0x80 // carry is bit 7
+	val <<= 1
+	val &= 0xfe
+	cpu.tick()
+	cpu.P.checkNZ(val)
+	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.A |= val
+	cpu.P.checkNZ(cpu.A)
+	cpu.Write8(oper, val)
 }
 
 // JAM   22
@@ -392,15 +531,22 @@ var gdefs = [256]func(*CPU){
 	0x00: opcode_00,
 	0x01: opcode_01,
 	0x02: opcode_02,
+	0x03: opcode_03,
 	0x05: opcode_05,
+	0x07: opcode_07,
 	0x09: opcode_09,
 	0x0D: opcode_0D,
+	0x0F: opcode_0F,
 	0x10: opcode_10,
 	0x11: opcode_11,
 	0x12: opcode_12,
+	0x13: opcode_13,
 	0x15: opcode_15,
+	0x17: opcode_17,
 	0x19: opcode_19,
+	0x1B: opcode_1B,
 	0x1D: opcode_1D,
+	0x1F: opcode_1F,
 	0x22: opcode_22,
 	0x30: opcode_30,
 	0x32: opcode_32,
