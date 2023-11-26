@@ -63,6 +63,15 @@ func opcode_03(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// NOP   04
+// zero page addressing.
+func opcode_04(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	cpu.tick()
+}
+
 // ORA   05
 // zero page addressing.
 func opcode_05(cpu *CPU) {
@@ -101,6 +110,15 @@ func opcode_09(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+// NOP   0C
+// absolute addressing.
+func opcode_0C(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	cpu.tick()
 }
 
 // ORA   0D
@@ -204,6 +222,18 @@ func opcode_13(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// NOP   14
+// indexed addressing: zeropage,X.
+func opcode_14(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	cpu.tick()
+}
+
 // ORA   15
 // indexed addressing: zeropage,X.
 func opcode_15(cpu *CPU) {
@@ -255,6 +285,12 @@ func opcode_19(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+// NOP   1A
+// implied addressing.
+func opcode_1A(cpu *CPU) {
+	cpu.tick()
+}
+
 // SLO   1B
 // absolute indexed Y.
 func opcode_1B(cpu *CPU) {
@@ -274,6 +310,19 @@ func opcode_1B(cpu *CPU) {
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
+}
+
+// NOP   1C
+// absolute indexed X.
+func opcode_1C(cpu *CPU) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.X)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	cpu.tick()
 }
 
 // ORA   1D
@@ -347,6 +396,37 @@ func opcode_32(cpu *CPU) {
 	panic("Halt and catch fire!")
 }
 
+// NOP   34
+// indexed addressing: zeropage,X.
+func opcode_34(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	cpu.tick()
+}
+
+// NOP   3A
+// implied addressing.
+func opcode_3A(cpu *CPU) {
+	cpu.tick()
+}
+
+// NOP   3C
+// absolute indexed X.
+func opcode_3C(cpu *CPU) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.X)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	cpu.tick()
+}
+
 // JAM   42
 // immediate addressing.
 func opcode_42(cpu *CPU) {
@@ -354,6 +434,15 @@ func opcode_42(cpu *CPU) {
 	cpu.PC++
 	_ = oper
 	panic("Halt and catch fire!")
+}
+
+// NOP   44
+// zero page addressing.
+func opcode_44(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	cpu.tick()
 }
 
 // BVC   50
@@ -383,6 +472,37 @@ func opcode_52(cpu *CPU) {
 	panic("Halt and catch fire!")
 }
 
+// NOP   54
+// indexed addressing: zeropage,X.
+func opcode_54(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	cpu.tick()
+}
+
+// NOP   5A
+// implied addressing.
+func opcode_5A(cpu *CPU) {
+	cpu.tick()
+}
+
+// NOP   5C
+// absolute indexed X.
+func opcode_5C(cpu *CPU) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.X)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	cpu.tick()
+}
+
 // JAM   62
 // immediate addressing.
 func opcode_62(cpu *CPU) {
@@ -390,6 +510,15 @@ func opcode_62(cpu *CPU) {
 	cpu.PC++
 	_ = oper
 	panic("Halt and catch fire!")
+}
+
+// NOP   64
+// zero page addressing.
+func opcode_64(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	cpu.tick()
 }
 
 // BVS   70
@@ -417,6 +546,64 @@ func opcode_72(cpu *CPU) {
 	cpu.PC++
 	_ = oper
 	panic("Halt and catch fire!")
+}
+
+// NOP   74
+// indexed addressing: zeropage,X.
+func opcode_74(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	cpu.tick()
+}
+
+// NOP   7A
+// implied addressing.
+func opcode_7A(cpu *CPU) {
+	cpu.tick()
+}
+
+// NOP   7C
+// absolute indexed X.
+func opcode_7C(cpu *CPU) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.X)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	cpu.tick()
+}
+
+// NOP   80
+// immediate addressing.
+func opcode_80(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	cpu.tick()
+}
+
+// NOP   82
+// immediate addressing.
+func opcode_82(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	cpu.tick()
+}
+
+// NOP   89
+// immediate addressing.
+func opcode_89(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	cpu.tick()
 }
 
 // BCC   90
@@ -473,6 +660,15 @@ func opcode_B2(cpu *CPU) {
 	panic("Halt and catch fire!")
 }
 
+// NOP   C2
+// immediate addressing.
+func opcode_C2(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	cpu.tick()
+}
+
 // BNE   D0
 // relative addressing.
 func opcode_D0(cpu *CPU) {
@@ -498,6 +694,52 @@ func opcode_D2(cpu *CPU) {
 	cpu.PC++
 	_ = oper
 	panic("Halt and catch fire!")
+}
+
+// NOP   D4
+// indexed addressing: zeropage,X.
+func opcode_D4(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	cpu.tick()
+}
+
+// NOP   DA
+// implied addressing.
+func opcode_DA(cpu *CPU) {
+	cpu.tick()
+}
+
+// NOP   DC
+// absolute indexed X.
+func opcode_DC(cpu *CPU) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.X)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	cpu.tick()
+}
+
+// NOP   E2
+// immediate addressing.
+func opcode_E2(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	cpu.tick()
+}
+
+// NOP   EA
+// implied addressing.
+func opcode_EA(cpu *CPU) {
+	cpu.tick()
 }
 
 // BEQ   F0
@@ -527,41 +769,100 @@ func opcode_F2(cpu *CPU) {
 	panic("Halt and catch fire!")
 }
 
+// NOP   F4
+// indexed addressing: zeropage,X.
+func opcode_F4(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	cpu.tick()
+}
+
+// NOP   FA
+// implied addressing.
+func opcode_FA(cpu *CPU) {
+	cpu.tick()
+}
+
+// NOP   FC
+// absolute indexed X.
+func opcode_FC(cpu *CPU) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.X)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	cpu.tick()
+}
+
 var gdefs = [256]func(*CPU){
 	0x00: opcode_00,
 	0x01: opcode_01,
 	0x02: opcode_02,
 	0x03: opcode_03,
+	0x04: opcode_04,
 	0x05: opcode_05,
 	0x07: opcode_07,
 	0x09: opcode_09,
+	0x0C: opcode_0C,
 	0x0D: opcode_0D,
 	0x0F: opcode_0F,
 	0x10: opcode_10,
 	0x11: opcode_11,
 	0x12: opcode_12,
 	0x13: opcode_13,
+	0x14: opcode_14,
 	0x15: opcode_15,
 	0x17: opcode_17,
 	0x19: opcode_19,
+	0x1A: opcode_1A,
 	0x1B: opcode_1B,
+	0x1C: opcode_1C,
 	0x1D: opcode_1D,
 	0x1F: opcode_1F,
 	0x22: opcode_22,
 	0x30: opcode_30,
 	0x32: opcode_32,
+	0x34: opcode_34,
+	0x3A: opcode_3A,
+	0x3C: opcode_3C,
 	0x42: opcode_42,
+	0x44: opcode_44,
 	0x50: opcode_50,
 	0x52: opcode_52,
+	0x54: opcode_54,
+	0x5A: opcode_5A,
+	0x5C: opcode_5C,
 	0x62: opcode_62,
+	0x64: opcode_64,
 	0x70: opcode_70,
 	0x72: opcode_72,
+	0x74: opcode_74,
+	0x7A: opcode_7A,
+	0x7C: opcode_7C,
+	0x80: opcode_80,
+	0x82: opcode_82,
+	0x89: opcode_89,
 	0x90: opcode_90,
 	0x92: opcode_92,
 	0xB0: opcode_B0,
 	0xB2: opcode_B2,
+	0xC2: opcode_C2,
 	0xD0: opcode_D0,
 	0xD2: opcode_D2,
+	0xD4: opcode_D4,
+	0xDA: opcode_DA,
+	0xDC: opcode_DC,
+	0xE2: opcode_E2,
+	0xEA: opcode_EA,
 	0xF0: opcode_F0,
 	0xF2: opcode_F2,
+	0xF4: opcode_F4,
+	0xFA: opcode_FA,
+	0xFC: opcode_FC,
 }
