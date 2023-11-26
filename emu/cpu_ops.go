@@ -487,6 +487,40 @@ func opcode_1F(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// JSR   20
+func opcode_20(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.tick()
+	{
+		top := uint16(cpu.SP) + 0x0100
+		cpu.Write8(top, (uint8((cpu.PC + 1) >> 8)))
+		cpu.SP -= 1
+	}
+	{
+		top := uint16(cpu.SP) + 0x0100
+		cpu.Write8(top, (uint8((cpu.PC + 1) & 0xFF)))
+		cpu.SP -= 1
+	}
+	cpu.PC = oper
+}
+
+// AND   21
+// indexed addressing (abs, X).
+func opcode_21(cpu *CPU) {
+	cpu.tick()
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	oper = uint16(uint8(oper) + cpu.X)
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A &= val
+	cpu.P.checkNZ(cpu.A)
+}
+
 // JAM   22
 // immediate addressing.
 func opcode_22(cpu *CPU) {
@@ -494,6 +528,39 @@ func opcode_22(cpu *CPU) {
 	cpu.PC++
 	_ = oper
 	panic("Halt and catch fire!")
+}
+
+// AND   25
+// zero page addressing.
+func opcode_25(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A &= val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// AND   29
+// immediate addressing.
+func opcode_29(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A &= val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// AND   2D
+// absolute addressing.
+func opcode_2D(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A &= val
+	cpu.P.checkNZ(cpu.A)
 }
 
 // BMI   30
@@ -512,6 +579,26 @@ func opcode_30(cpu *CPU) {
 		return
 	}
 	cpu.PC++
+}
+
+// AND   31
+// indexed addressing (abs),Y.
+func opcode_31(cpu *CPU) {
+	// extra cycle for page cross
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+		cpu.tick()
+	}
+	oper += uint16(cpu.Y)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A &= val
+	cpu.P.checkNZ(cpu.A)
 }
 
 // JAM   32
@@ -535,6 +622,36 @@ func opcode_34(cpu *CPU) {
 	cpu.tick()
 }
 
+// AND   35
+// indexed addressing: zeropage,X.
+func opcode_35(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A &= val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// AND   39
+// absolute indexed Y.
+func opcode_39(cpu *CPU) {
+	// extra cycle for page cross
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.Y)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A &= val
+	cpu.P.checkNZ(cpu.A)
+}
+
 // NOP   3A
 // implied addressing.
 func opcode_3A(cpu *CPU) {
@@ -552,6 +669,21 @@ func opcode_3C(cpu *CPU) {
 	}
 	_ = oper
 	cpu.tick()
+}
+
+// AND   3D
+// absolute indexed X.
+func opcode_3D(cpu *CPU) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.X)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A &= val
+	cpu.P.checkNZ(cpu.A)
 }
 
 // JAM   42
@@ -981,12 +1113,21 @@ var gdefs = [256]func(*CPU){
 	0x1D: opcode_1D,
 	0x1E: opcode_1E,
 	0x1F: opcode_1F,
+	0x20: opcode_20,
+	0x21: opcode_21,
 	0x22: opcode_22,
+	0x25: opcode_25,
+	0x29: opcode_29,
+	0x2D: opcode_2D,
 	0x30: opcode_30,
+	0x31: opcode_31,
 	0x32: opcode_32,
 	0x34: opcode_34,
+	0x35: opcode_35,
+	0x39: opcode_39,
 	0x3A: opcode_3A,
 	0x3C: opcode_3C,
+	0x3D: opcode_3D,
 	0x42: opcode_42,
 	0x44: opcode_44,
 	0x50: opcode_50,

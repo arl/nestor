@@ -51,36 +51,36 @@ var defs = [256]opdef{
 	0x1D: {n: "ORA", rw: "  ", m: "abx", f: ORA},
 	0x1E: {n: "ASL", rw: "rw", m: "abx", f: ASL},
 	0x1F: {n: "SLO", rw: "rw", m: "abx", f: SLO},
-	0x20: {n: "JSR", rw: "  ", m: "abs"},
-	0x21: {n: "AND", rw: "  ", m: "izx"},
+	0x20: {n: "JSR", rw: "  ", m: "   ", f: JSR},
+	0x21: {n: "AND", rw: "r ", m: "izx", f: AND},
 	0x22: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0x23: {n: "RLA", rw: "  ", m: "izx"},
 	0x24: {n: "BIT", rw: "  ", m: "zpg"},
-	0x25: {n: "AND", rw: "  ", m: "zpg"},
+	0x25: {n: "AND", rw: "r ", m: "zpg", f: AND},
 	0x26: {n: "ROL", rw: "  ", m: "zpg"},
 	0x27: {n: "RLA", rw: "  ", m: "zpg"},
 	0x28: {n: "PLP", rw: "  ", m: "imp"},
-	0x29: {n: "AND", rw: "  ", m: "imm"},
+	0x29: {n: "AND", rw: "r ", m: "imm", f: AND},
 	0x2A: {n: "ROL", rw: "  ", m: "acc"},
 	0x2B: {n: "ANC", rw: "  ", m: "imm"},
 	0x2C: {n: "BIT", rw: "  ", m: "abs"},
-	0x2D: {n: "AND", rw: "  ", m: "abs"},
+	0x2D: {n: "AND", rw: "r ", m: "abs", f: AND},
 	0x2E: {n: "ROL", rw: "  ", m: "abs"},
 	0x2F: {n: "RLA", rw: "  ", m: "abs"},
 	0x30: {n: "BMI", rw: "  ", m: "rel", f: branch(7, true)},
-	0x31: {n: "AND", rw: "  ", m: "izy"},
+	0x31: {n: "AND", rw: "r ", m: "izy", f: AND},
 	0x32: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0x33: {n: "RLA", rw: "  ", m: "izy"},
 	0x34: {n: "NOP", rw: "  ", m: "zpx", f: NOP},
-	0x35: {n: "AND", rw: "  ", m: "zpx"},
+	0x35: {n: "AND", rw: "r ", m: "zpx", f: AND},
 	0x36: {n: "ROL", rw: "  ", m: "zpx"},
 	0x37: {n: "RLA", rw: "  ", m: "zpx"},
 	0x38: {n: "SEC", rw: "  ", m: "imp"},
-	0x39: {n: "AND", rw: "  ", m: "aby"},
+	0x39: {n: "AND", rw: "r ", m: "aby", f: AND},
 	0x3A: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0x3B: {n: "RLA", rw: "  ", m: "aby"},
 	0x3C: {n: "NOP", rw: "  ", m: "abx", f: NOP},
-	0x3D: {n: "AND", rw: "  ", m: "abx"},
+	0x3D: {n: "AND", rw: "r ", m: "abx", f: AND},
 	0x3E: {n: "ROL", rw: "  ", m: "abx"},
 	0x3F: {n: "RLA", rw: "  ", m: "abx"},
 	0x40: {n: "RTI", rw: "  ", m: "imp"},
@@ -562,6 +562,13 @@ func PHP(g *Generator) {
 	g.printf(`p := cpu.P`)
 	g.printf(`p |= (1 << pbitB) | (1 << pbitU)`)
 	push8(g, `uint8(p)`)
+}
+
+func JSR(g *Generator) {
+	g.printf(`oper := cpu.Read16(cpu.PC)`)
+	g.printf(`cpu.tick()`)
+	push16(g, `cpu.PC+1`)
+	g.printf(`cpu.PC = oper`)
 }
 
 func ORA(g *Generator) {
