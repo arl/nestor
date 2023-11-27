@@ -14,12 +14,14 @@ import (
 type opdef struct {
 	n string // name
 	m string // addressing mode
-	f func(g *Generator)
+	f func(g *Generator, def opdef)
 
 	// " " -> do nothing
 	// "r" -> read 'val' from 'oper/accumulator'
 	// "w" -> write 'val' into 'oper/accumulator'
 	rw string
+
+	code uint8 // opcode value (set at runtime)
 }
 
 var defs = [256]opdef{
@@ -162,7 +164,7 @@ var defs = [256]opdef{
 	0x88: {n: "DEY", rw: "  ", m: "imp", f: DEY},
 	0x89: {n: "NOP", rw: "  ", m: "imm", f: NOP},
 	0x8A: {n: "TXA", rw: "  ", m: "imp", f: TXA},
-	0x8B: {n: "ANE", rw: "  ", m: "imm", f: unsupported(0x8B)},
+	0x8B: {n: "ANE", rw: "  ", m: "imm", f: unstable},
 	0x8C: {n: "STY", rw: "  ", m: "abs", f: STY},
 	0x8D: {n: "STA", rw: "  ", m: "abs", f: STA},
 	0x8E: {n: "STX", rw: "  ", m: "abs", f: STX},
@@ -170,7 +172,7 @@ var defs = [256]opdef{
 	0x90: {n: "BCC", rw: "  ", m: "rel", f: branch(0, false)},
 	0x91: {n: "STA", rw: "  ", m: "izy", f: STA},
 	0x92: {n: "JAM", rw: "  ", m: "imm", f: JAM},
-	0x93: {n: "SHA", rw: "  ", m: "izy", f: unsupported(0x93)},
+	0x93: {n: "SHA", rw: "  ", m: "izy", f: unstable},
 	0x94: {n: "STY", rw: "  ", m: "zpx", f: STY},
 	0x95: {n: "STA", rw: "  ", m: "zpx", f: STA},
 	0x96: {n: "STX", rw: "  ", m: "zpy", f: STX},
@@ -178,11 +180,11 @@ var defs = [256]opdef{
 	0x98: {n: "TYA", rw: "  ", m: "imp", f: TYA},
 	0x99: {n: "STA", rw: "  ", m: "aby", f: STA},
 	0x9A: {n: "TXS", rw: "  ", m: "imp", f: TXS},
-	0x9B: {n: "TAS", rw: "  ", m: "aby", f: unsupported(0x9B)},
-	0x9C: {n: "SHY", rw: "  ", m: "abx", f: unsupported(0x9C)},
+	0x9B: {n: "TAS", rw: "  ", m: "aby", f: unstable},
+	0x9C: {n: "SHY", rw: "  ", m: "abx", f: unstable},
 	0x9D: {n: "STA", rw: "  ", m: "abx", f: STA},
-	0x9E: {n: "SHX", rw: "  ", m: "aby", f: unsupported(0x9E)},
-	0x9F: {n: "SHA", rw: "  ", m: "aby", f: unsupported(0x9F)},
+	0x9E: {n: "SHX", rw: "  ", m: "aby", f: unstable},
+	0x9F: {n: "SHA", rw: "  ", m: "aby", f: unstable},
 	0xA0: {n: "LDY", rw: "  ", m: "imm"},
 	0xA1: {n: "LDA", rw: "  ", m: "izx"},
 	0xA2: {n: "LDX", rw: "  ", m: "imm"},
@@ -194,7 +196,7 @@ var defs = [256]opdef{
 	0xA8: {n: "TAY", rw: "  ", m: "imp"},
 	0xA9: {n: "LDA", rw: "  ", m: "imm"},
 	0xAA: {n: "TAX", rw: "  ", m: "imp"},
-	0xAB: {n: "LXA", rw: "  ", m: "imm"},
+	0xAB: {n: "LXA", rw: "  ", m: "imm", f: unstable},
 	0xAC: {n: "LDY", rw: "  ", m: "abs"},
 	0xAD: {n: "LDA", rw: "  ", m: "abs"},
 	0xAE: {n: "LDX", rw: "  ", m: "abs"},
@@ -306,93 +308,6 @@ var details = [256]uint8{
 	0xF0: 0, 0xF1: 1, 0xF2: 4, 0xF3: 6, 0xF4: 4, 0xF5: 0, 0xF6: 0, 0xF7: 4, 0xF8: 0, 0xF9: 1, 0xFA: 4, 0xFB: 4, 0xFC: 5, 0xFD: 1, 0xFE: 0, 0xFF: 4,
 }
 
-type Generator struct {
-	io.Writer
-	outbuf bytes.Buffer
-	out    io.Writer
-
-	mode addrmode
-}
-
-func (g *Generator) opcodeHeader(code int) {
-	modestr := ""
-	g.mode = nil
-	switch defs[code].m {
-	case "imp":
-		modestr = `implied addressing.`
-	case "acc":
-		modestr = `adressing accumulator.`
-	case "rel":
-		modestr = `relative addressing.`
-		g.mode = rel
-	case "abs":
-		modestr = `absolute addressing.`
-		g.mode = abs
-	case "abx":
-		modestr = `absolute indexed X.`
-		g.mode = abx
-	case "aby":
-		modestr = `absolute indexed Y.`
-		g.mode = aby
-	case "imm":
-		modestr = `immediate addressing.`
-		g.mode = imm
-	case "ind":
-		modestr = `indirect addressing.`
-		g.mode = ind
-	case "izx":
-		modestr = `indexed addressing (abs, X).`
-		g.mode = izx
-	case "izy":
-		modestr = `indexed addressing (abs),Y.`
-		g.mode = izy
-	case "zpg":
-		modestr = `zero page addressing.`
-		g.mode = zpg
-	case "zpx":
-		modestr = `indexed addressing: zeropage,X.`
-		g.mode = zpx
-	case "zpy":
-		modestr = `indexed addressing: zeropage,Y.`
-		g.mode = zpy
-	}
-
-	g.printf(`// %s   %02X`, defs[code].n, code)
-	g.printf(`// %s`, modestr)
-	g.printf(`func opcode_%02X(cpu*CPU){`, code)
-	if g.mode != nil {
-		g.mode(g, details[code])
-		g.printf(`_ = oper`)
-	}
-
-	switch {
-	case strings.Contains(defs[code].rw, "r"):
-		switch defs[code].m {
-		case "acc":
-			g.printf(`val := cpu.A`)
-		default:
-			g.printf(`val := cpu.Read8(oper)`)
-		}
-	}
-}
-
-func (g *Generator) opcodeFooter(code int) {
-	switch {
-	case strings.Contains(defs[code].rw, "w"):
-		switch defs[code].m {
-		case "acc":
-			g.printf(`cpu.A = val`)
-		default:
-			g.printf(`cpu.Write8(oper, val)`)
-		}
-	}
-	g.printf(`}`)
-}
-
-func (g *Generator) printf(format string, args ...any) {
-	fmt.Fprintf(g, "%s\n", fmt.Sprintf(format, args...))
-}
-
 // helpers
 
 func decrement(g *Generator, val string) {
@@ -437,22 +352,22 @@ func r16zpwrap(g *Generator) {
 	g.printf(`oper = uint16(hi)<<8 | uint16(lo)`)
 }
 
-func clearFlag(ibit uint) func(g *Generator) {
-	return func(g *Generator) {
+func clearFlag(ibit uint) func(g *Generator, _ opdef) {
+	return func(g *Generator, _ opdef) {
 		g.printf(`cpu.P.clearBit(%d)`, ibit)
 		g.printf(`cpu.tick()`)
 	}
 }
 
-func setFlag(ibit uint) func(g *Generator) {
-	return func(g *Generator) {
+func setFlag(ibit uint) func(g *Generator, _ opdef) {
+	return func(g *Generator, _ opdef) {
 		g.printf(`cpu.P.setBit(%d)`, ibit)
 		g.printf(`cpu.tick()`)
 	}
 }
 
-func branch(ibit int, val bool) func(g *Generator) {
-	return func(g *Generator) {
+func branch(ibit int, val bool) func(g *Generator, _ opdef) {
+	return func(g *Generator, _ opdef) {
 		g.printf(`if cpu.P.bit(%d) == %t {`, ibit, val)
 		g.printf(`// branching`)
 		pagecrossed(g, "cpu.PC+1", "oper")
@@ -581,7 +496,7 @@ func izy(g *Generator, info uint8) {
 	}
 }
 
-func BRK(g *Generator) {
+func BRK(g *Generator, _ opdef) {
 	g.printf(`cpu.tick()`)
 	push16(g, `cpu.PC+1`)
 	g.printf(`p := cpu.P`)
@@ -591,14 +506,14 @@ func BRK(g *Generator) {
 	g.printf(`cpu.PC = cpu.Read16(IRQvector)`)
 }
 
-func PHP(g *Generator) {
+func PHP(g *Generator, _ opdef) {
 	g.printf(`cpu.tick()`)
 	g.printf(`p := cpu.P`)
 	g.printf(`p |= (1 << pbitB) | (1 << pbitU)`)
 	push8(g, `uint8(p)`)
 }
 
-func RTS(g *Generator) {
+func RTS(g *Generator, _ opdef) {
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.tick()`)
 	pull16(g, `cpu.PC`)
@@ -606,19 +521,19 @@ func RTS(g *Generator) {
 	g.printf(`cpu.tick()`)
 }
 
-func PHA(g *Generator) {
+func PHA(g *Generator, _ opdef) {
 	g.printf(`cpu.tick()`)
 	push8(g, `cpu.A`)
 }
 
-func PLA(g *Generator) {
+func PLA(g *Generator, _ opdef) {
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.tick()`)
 	pull8(g, `cpu.A`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
-func PLP(g *Generator) {
+func PLP(g *Generator, _ opdef) {
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.tick()`)
 	g.printf(`var p uint8`)
@@ -627,7 +542,7 @@ func PLP(g *Generator) {
 	g.printf(`cpu.P = P(copybits(uint8(cpu.P), p, mask))`)
 }
 
-func RTI(g *Generator) {
+func RTI(g *Generator, _ opdef) {
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.tick()`)
 	g.printf(`var p uint8`)
@@ -637,25 +552,25 @@ func RTI(g *Generator) {
 	g.printf(`cpu.PC = pull16(cpu)`)
 }
 
-func JSR(g *Generator) {
+func JSR(g *Generator, _ opdef) {
 	g.printf(`oper := cpu.Read16(cpu.PC)`)
 	g.printf(`cpu.tick()`)
 	push16(g, `cpu.PC+1`)
 	g.printf(`cpu.PC = oper`)
 }
 
-func ORA(g *Generator) {
+func ORA(g *Generator, _ opdef) {
 	g.printf(`cpu.A |= val`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
-func SLO(g *Generator) {
-	ASL(g)
+func SLO(g *Generator, def opdef) {
+	ASL(g, def)
 	g.printf(`cpu.A |= val`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
-func ASL(g *Generator) {
+func ASL(g *Generator, _ opdef) {
 	g.printf(`carry := val & 0x80 // carry is bit 7`)
 	g.printf(`val <<= 1`)
 	g.printf(`val &= 0xfe`)
@@ -664,12 +579,12 @@ func ASL(g *Generator) {
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
 }
 
-func ANC(g *Generator) {
-	AND(g)
+func ANC(g *Generator, def opdef) {
+	AND(g, def)
 	g.printf(`cpu.P.writeBit(pbitC, cpu.P.N())`)
 }
 
-func ROL(g *Generator) {
+func ROL(g *Generator, _ opdef) {
 	g.printf(`carry := val & 0x80`)
 	g.printf(`val <<= 1`)
 	g.printf(`if cpu.P.C() {`)
@@ -680,76 +595,76 @@ func ROL(g *Generator) {
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
 }
 
-func BIT(g *Generator) {
+func BIT(g *Generator, _ opdef) {
 	g.printf(`cpu.P &= 0b00111111`)
 	g.printf(`cpu.P |= P(val & 0b11000000)`)
 	g.printf(`cpu.P.checkZ(cpu.A & val)`)
 }
 
-func RLA(g *Generator) {
-	ROL(g)
-	AND(g)
+func RLA(g *Generator, def opdef) {
+	ROL(g, def)
+	AND(g, def)
 }
 
-func AND(g *Generator) {
+func AND(g *Generator, _ opdef) {
 	g.printf(`cpu.A &= val`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
-func STA(g *Generator) {
+func STA(g *Generator, _ opdef) {
 	g.printf(`cpu.Write8(oper, cpu.A)`)
 }
 
-func TXA(g *Generator) {
+func TXA(g *Generator, _ opdef) {
 	g.printf(`cpu.A = cpu.X`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 	g.printf(`cpu.tick()`)
 }
 
-func TYA(g *Generator) {
+func TYA(g *Generator, _ opdef) {
 	g.printf(`cpu.A = cpu.Y`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 	g.printf(`cpu.tick()`)
 }
 
-func TXS(g *Generator) {
+func TXS(g *Generator, _ opdef) {
 	g.printf(`cpu.SP = cpu.X`)
 	g.printf(`cpu.tick()`)
 }
 
-func STX(g *Generator) {
+func STX(g *Generator, _ opdef) {
 	g.printf(`cpu.Write8(oper, cpu.X)`)
 }
 
-func STY(g *Generator) {
+func STY(g *Generator, _ opdef) {
 	g.printf(`cpu.Write8(oper, cpu.Y)`)
 }
 
-func SAX(g *Generator) {
+func SAX(g *Generator, _ opdef) {
 	g.printf(`cpu.Write8(oper, cpu.A&cpu.X)`)
 }
 
-func DEX(g *Generator) {
+func DEX(g *Generator, _ opdef) {
 	decrement(g, `cpu.X`)
 	// g.printf(`cpu.P.checkNZ(cpu.X)`)
 }
 
-func DEY(g *Generator) {
+func DEY(g *Generator, _ opdef) {
 	decrement(g, `cpu.Y`)
 	// g.printf(`cpu.P.checkNZ(cpu.Y)`)
 }
 
-func EOR(g *Generator) {
+func EOR(g *Generator, _ opdef) {
 	g.printf(`cpu.A ^= val`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
-func RRA(g *Generator) {
-	ROR(g)
-	ADC(g)
+func RRA(g *Generator, def opdef) {
+	ROR(g, def)
+	ADC(g, def)
 }
 
-func ROR(g *Generator) {
+func ROR(g *Generator, _ opdef) {
 	g.printf(`{`)
 	g.printf(`carry := val & 0x01 // next carry is bit 0`)
 	g.printf(`val >>= 1`)
@@ -763,7 +678,7 @@ func ROR(g *Generator) {
 	g.printf(`}`)
 }
 
-func ARR(g *Generator) {
+func ARR(g *Generator, _ opdef) {
 	g.printf(`cpu.A &= val`)
 	g.printf(`cpu.A >>= 1`)
 	g.printf(`cpu.P.writeBit(pbitV, (cpu.A>>6)^(cpu.A>>5)&0x01 != 0)`)
@@ -775,7 +690,7 @@ func ARR(g *Generator) {
 	g.printf(`cpu.P.writeBit(pbitC, cpu.A&(1<<6) != 0)`)
 }
 
-func LSR(g *Generator) {
+func LSR(g *Generator, _ opdef) {
 	g.printf(`{`)
 	g.printf(`carry := val & 0x01 // carry is bit 0`)
 	g.printf(`val >>= 1`)
@@ -786,7 +701,7 @@ func LSR(g *Generator) {
 	g.printf(`}`)
 }
 
-func ADC(g *Generator) {
+func ADC(g *Generator, _ opdef) {
 	g.printf(`carry := cpu.P.ibit(pbitC)`)
 	g.printf(`sum := uint16(cpu.A) + uint16(val) + uint16(carry)`)
 	g.printf(`cpu.P.checkCV(cpu.A, val, sum)`)
@@ -794,7 +709,7 @@ func ADC(g *Generator) {
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
-func ALR(g *Generator) {
+func ALR(g *Generator, _ opdef) {
 	g.printf(`// like and + lsr but saves one tick`)
 	g.printf(`cpu.A &= val`)
 	g.printf(`carry := cpu.A & 0x01 // carry is bit 0`)
@@ -804,32 +719,134 @@ func ALR(g *Generator) {
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
 }
 
-func SRE(g *Generator) {
-	LSR(g)
-	EOR(g)
+func SRE(g *Generator, def opdef) {
+	LSR(g, def)
+	EOR(g, def)
 }
 
-func NOP(g *Generator) {
+func NOP(g *Generator, _ opdef) {
 	g.printf(`cpu.tick()`)
 }
 
-func JMP(g *Generator) {
+func JMP(g *Generator, _ opdef) {
 	g.printf(`cpu.PC = oper`)
 }
 
-func JAM(g *Generator) {
+func JAM(g *Generator, def opdef) {
+	g.unstable = append(g.unstable, def.code)
 	insertPanic(g, `Halt and catch fire!\nJAM called`)
 }
 
-func unsupported(code int) func(g *Generator) {
-	return func(g *Generator) {
-		insertPanic(g, fmt.Sprintf("unsupported opcode 0x%02X", code))
-	}
+func unstable(g *Generator, def opdef) {
+	g.unstable = append(g.unstable, def.code)
+	insertPanic(g, fmt.Sprintf("unsupported unstable opcode 0x%02X (%s)", def.code, def.n))
+}
+
+func opname(code int) string {
+	return defs[code].n
 }
 
 func insertPanic(g *Generator, msg string) {
 	g.printf(`msg := fmt.Sprintf("%s\nPC:0x%%04X", cpu.PC)`, msg)
 	g.printf(`panic(msg)`)
+}
+
+type Generator struct {
+	io.Writer
+	outbuf bytes.Buffer
+	out    io.Writer
+
+	unstable []uint8
+
+	mode addrmode
+}
+
+func (g *Generator) opcodeHeader(code int) {
+	modestr := ""
+	g.mode = nil
+	switch defs[code].m {
+	case "imp":
+		modestr = `implied addressing.`
+	case "acc":
+		modestr = `adressing accumulator.`
+	case "rel":
+		modestr = `relative addressing.`
+		g.mode = rel
+	case "abs":
+		modestr = `absolute addressing.`
+		g.mode = abs
+	case "abx":
+		modestr = `absolute indexed X.`
+		g.mode = abx
+	case "aby":
+		modestr = `absolute indexed Y.`
+		g.mode = aby
+	case "imm":
+		modestr = `immediate addressing.`
+		g.mode = imm
+	case "ind":
+		modestr = `indirect addressing.`
+		g.mode = ind
+	case "izx":
+		modestr = `indexed addressing (abs, X).`
+		g.mode = izx
+	case "izy":
+		modestr = `indexed addressing (abs),Y.`
+		g.mode = izy
+	case "zpg":
+		modestr = `zero page addressing.`
+		g.mode = zpg
+	case "zpx":
+		modestr = `indexed addressing: zeropage,X.`
+		g.mode = zpx
+	case "zpy":
+		modestr = `indexed addressing: zeropage,Y.`
+		g.mode = zpy
+	}
+
+	g.printf(`// %s   %02X`, defs[code].n, code)
+	g.printf(`// %s`, modestr)
+	g.printf(`func opcode_%02X(cpu*CPU){`, code)
+	if g.mode != nil {
+		g.mode(g, details[code])
+		g.printf(`_ = oper`)
+	}
+
+	switch {
+	case strings.Contains(defs[code].rw, "r"):
+		switch defs[code].m {
+		case "acc":
+			g.printf(`val := cpu.A`)
+		default:
+			g.printf(`val := cpu.Read8(oper)`)
+		}
+	}
+}
+
+func (g *Generator) opcodeFooter(code int) {
+	switch {
+	case strings.Contains(defs[code].rw, "w"):
+		switch defs[code].m {
+		case "acc":
+			g.printf(`cpu.A = val`)
+		default:
+			g.printf(`cpu.Write8(oper, val)`)
+		}
+	}
+	g.printf(`}`)
+}
+
+func (g *Generator) printf(format string, args ...any) {
+	fmt.Fprintf(g, "%s\n", fmt.Sprintf(format, args...))
+}
+
+func (g *Generator) unstableOpcodes() {
+	g.printf(`// unstable opcodes (unsupported)`)
+	g.printf(`var unstableOps = [256]uint8{`)
+	for _, code := range g.unstable {
+		g.printf(`0x%02X: 1, // %s`, code, defs[code].n)
+	}
+	g.printf(`}`)
 }
 
 func (g *Generator) generate() {
@@ -843,13 +860,14 @@ func (g *Generator) generate() {
 	g.printf(`"fmt"`)
 	g.printf(`)`)
 	for code, def := range defs {
+		def.code = uint8(code)
 		if def.f == nil {
 			log.Printf("skipping 0x%02X opcode", code)
 			continue
 		}
 
 		g.opcodeHeader(code)
-		def.f(g)
+		def.f(g, def)
 		g.opcodeFooter(code)
 		generated[code] = true
 	}
@@ -864,6 +882,7 @@ func (g *Generator) generate() {
 	g.printf(`}`)
 	// TODO(arl) end
 
+	g.unstableOpcodes()
 }
 
 func main() {

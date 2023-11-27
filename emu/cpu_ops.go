@@ -2223,7 +2223,7 @@ func opcode_8B(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("unsupported opcode 0x8B\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("unsupported unstable opcode 0x8B (ANE)\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -2319,7 +2319,7 @@ func opcode_93(cpu *CPU) {
 	oper = uint16(hi)<<8 | uint16(lo)
 	oper += uint16(cpu.Y)
 	_ = oper
-	msg := fmt.Sprintf("unsupported opcode 0x93\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("unsupported unstable opcode 0x93 (SHA)\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -2407,7 +2407,7 @@ func opcode_9B(cpu *CPU) {
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	_ = oper
-	msg := fmt.Sprintf("unsupported opcode 0x9B\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("unsupported unstable opcode 0x9B (TAS)\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -2419,7 +2419,7 @@ func opcode_9C(cpu *CPU) {
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	_ = oper
-	msg := fmt.Sprintf("unsupported opcode 0x9C\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("unsupported unstable opcode 0x9C (SHY)\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -2443,7 +2443,7 @@ func opcode_9E(cpu *CPU) {
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	_ = oper
-	msg := fmt.Sprintf("unsupported opcode 0x9E\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("unsupported unstable opcode 0x9E (SHX)\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -2456,7 +2456,17 @@ func opcode_9F(cpu *CPU) {
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	_ = oper
-	msg := fmt.Sprintf("unsupported opcode 0x9F\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("unsupported unstable opcode 0x9F (SHA)\nPC:0x%04X", cpu.PC)
+	panic(msg)
+}
+
+// LXA   AB
+// immediate addressing.
+func opcode_AB(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	msg := fmt.Sprintf("unsupported unstable opcode 0xAB (LXA)\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -2820,6 +2830,7 @@ var gdefs = [256]func(*CPU){
 	0x9D: opcode_9D,
 	0x9E: opcode_9E,
 	0x9F: opcode_9F,
+	0xAB: opcode_AB,
 	0xB0: opcode_B0,
 	0xB2: opcode_B2,
 	0xB8: opcode_B8,
@@ -2839,4 +2850,27 @@ var gdefs = [256]func(*CPU){
 	0xF8: opcode_F8,
 	0xFA: opcode_FA,
 	0xFC: opcode_FC,
+}
+
+// unstable opcodes (unsupported)
+var unstableOps = [256]uint8{
+	0x02: 1, // JAM
+	0x12: 1, // JAM
+	0x22: 1, // JAM
+	0x32: 1, // JAM
+	0x42: 1, // JAM
+	0x52: 1, // JAM
+	0x62: 1, // JAM
+	0x72: 1, // JAM
+	0x8B: 1, // ANE
+	0x92: 1, // JAM
+	0x93: 1, // SHA
+	0x9B: 1, // TAS
+	0x9C: 1, // SHY
+	0x9E: 1, // SHX
+	0x9F: 1, // SHA
+	0xAB: 1, // LXA
+	0xB2: 1, // JAM
+	0xD2: 1, // JAM
+	0xF2: 1, // JAM
 }
