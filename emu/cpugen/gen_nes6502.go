@@ -628,18 +628,10 @@ func compare(v string) func(g *Generator, _ opdef) {
 	}
 }
 
-func transfer(src string, dst ...string) func(g *Generator, _ opdef) {
+func transfer(src, dst string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		// TODO(arl) we make this function accept multiple destination registers
-		// but not sure this is going to be used or not
-		checknz := true
-		for _, d := range dst {
-			g.printf(`cpu.%s = cpu.%s`, d, src)
-			if d == "SP" {
-				checknz = false
-			}
-		}
-		if checknz {
+		g.printf(`cpu.%s = cpu.%s`, dst, src)
+		if dst != "SP" {
 			g.printf(`cpu.P.checkNZ(cpu.%s)`, src)
 		}
 		g.printf(`cpu.tick()`)
