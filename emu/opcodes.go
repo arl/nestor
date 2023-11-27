@@ -85,9 +85,8 @@ func opcode03(cpu *CPU) {
 	oper = uint16(hi)<<8 | uint16(lo)
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := val & 0x80 // carry is bit 7
-	val <<= 1
-	val &= 0xfe
+	carry := val & 0x80
+	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -120,9 +119,8 @@ func opcode06(cpu *CPU) {
 	cpu.PC++
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := val & 0x80 // carry is bit 7
-	val <<= 1
-	val &= 0xfe
+	carry := val & 0x80
+	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -135,9 +133,8 @@ func opcode07(cpu *CPU) {
 	cpu.PC++
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := val & 0x80 // carry is bit 7
-	val <<= 1
-	val &= 0xfe
+	carry := val & 0x80
+	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -171,9 +168,8 @@ func opcode09(cpu *CPU) {
 // ASL - adressing accumulator.
 func opcode0A(cpu *CPU) {
 	val := cpu.A
-	carry := val & 0x80 // carry is bit 7
-	val <<= 1
-	val &= 0xfe
+	carry := val & 0x80
+	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -215,9 +211,8 @@ func opcode0E(cpu *CPU) {
 	cpu.PC += 2
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := val & 0x80 // carry is bit 7
-	val <<= 1
-	val &= 0xfe
+	carry := val & 0x80
+	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -230,9 +225,8 @@ func opcode0F(cpu *CPU) {
 	cpu.PC += 2
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := val & 0x80 // carry is bit 7
-	val <<= 1
-	val &= 0xfe
+	carry := val & 0x80
+	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -299,9 +293,8 @@ func opcode13(cpu *CPU) {
 	oper += uint16(cpu.Y)
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := val & 0x80 // carry is bit 7
-	val <<= 1
-	val &= 0xfe
+	carry := val & 0x80
+	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -343,9 +336,8 @@ func opcode16(cpu *CPU) {
 	oper &= 0xff
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := val & 0x80 // carry is bit 7
-	val <<= 1
-	val &= 0xfe
+	carry := val & 0x80
+	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -361,9 +353,8 @@ func opcode17(cpu *CPU) {
 	oper &= 0xff
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := val & 0x80 // carry is bit 7
-	val <<= 1
-	val &= 0xfe
+	carry := val & 0x80
+	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -407,9 +398,8 @@ func opcode1B(cpu *CPU) {
 	oper += uint16(cpu.Y)
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := val & 0x80 // carry is bit 7
-	val <<= 1
-	val &= 0xfe
+	carry := val & 0x80
+	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -452,9 +442,8 @@ func opcode1E(cpu *CPU) {
 	oper += uint16(cpu.X)
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := val & 0x80 // carry is bit 7
-	val <<= 1
-	val &= 0xfe
+	carry := val & 0x80
+	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -469,9 +458,8 @@ func opcode1F(cpu *CPU) {
 	oper += uint16(cpu.X)
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := val & 0x80 // carry is bit 7
-	val <<= 1
-	val &= 0xfe
+	carry := val & 0x80
+	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
@@ -1026,8 +1014,7 @@ func opcode43(cpu *CPU) {
 	val := cpu.Read8(oper)
 	{
 		carry := val & 0x01 // carry is bit 0
-		val >>= 1
-		val &= 0x7f
+		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
 		cpu.P.writeBit(pbitC, carry != 0)
@@ -1063,8 +1050,7 @@ func opcode46(cpu *CPU) {
 	val := cpu.Read8(oper)
 	{
 		carry := val & 0x01 // carry is bit 0
-		val >>= 1
-		val &= 0x7f
+		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
 		cpu.P.writeBit(pbitC, carry != 0)
@@ -1080,8 +1066,7 @@ func opcode47(cpu *CPU) {
 	val := cpu.Read8(oper)
 	{
 		carry := val & 0x01 // carry is bit 0
-		val >>= 1
-		val &= 0x7f
+		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
 		cpu.P.writeBit(pbitC, carry != 0)
@@ -1116,8 +1101,7 @@ func opcode4A(cpu *CPU) {
 	val := cpu.A
 	{
 		carry := val & 0x01 // carry is bit 0
-		val >>= 1
-		val &= 0x7f
+		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
 		cpu.P.writeBit(pbitC, carry != 0)
@@ -1134,8 +1118,7 @@ func opcode4B(cpu *CPU) {
 	// like and + lsr but saves one tick
 	cpu.A &= val
 	carry := cpu.A & 0x01 // carry is bit 0
-	cpu.A >>= 1
-	cpu.A &= 0x7f
+	cpu.A = (cpu.A >> 1) & 0x7f
 	cpu.P.checkNZ(cpu.A)
 	cpu.P.writeBit(pbitC, carry != 0)
 }
@@ -1166,8 +1149,7 @@ func opcode4E(cpu *CPU) {
 	val := cpu.Read8(oper)
 	{
 		carry := val & 0x01 // carry is bit 0
-		val >>= 1
-		val &= 0x7f
+		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
 		cpu.P.writeBit(pbitC, carry != 0)
@@ -1183,8 +1165,7 @@ func opcode4F(cpu *CPU) {
 	val := cpu.Read8(oper)
 	{
 		carry := val & 0x01 // carry is bit 0
-		val >>= 1
-		val &= 0x7f
+		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
 		cpu.P.writeBit(pbitC, carry != 0)
@@ -1254,8 +1235,7 @@ func opcode53(cpu *CPU) {
 	val := cpu.Read8(oper)
 	{
 		carry := val & 0x01 // carry is bit 0
-		val >>= 1
-		val &= 0x7f
+		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
 		cpu.P.writeBit(pbitC, carry != 0)
@@ -1300,8 +1280,7 @@ func opcode56(cpu *CPU) {
 	val := cpu.Read8(oper)
 	{
 		carry := val & 0x01 // carry is bit 0
-		val >>= 1
-		val &= 0x7f
+		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
 		cpu.P.writeBit(pbitC, carry != 0)
@@ -1320,8 +1299,7 @@ func opcode57(cpu *CPU) {
 	val := cpu.Read8(oper)
 	{
 		carry := val & 0x01 // carry is bit 0
-		val >>= 1
-		val &= 0x7f
+		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
 		cpu.P.writeBit(pbitC, carry != 0)
@@ -1368,8 +1346,7 @@ func opcode5B(cpu *CPU) {
 	val := cpu.Read8(oper)
 	{
 		carry := val & 0x01 // carry is bit 0
-		val >>= 1
-		val &= 0x7f
+		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
 		cpu.P.writeBit(pbitC, carry != 0)
@@ -1415,8 +1392,7 @@ func opcode5E(cpu *CPU) {
 	val := cpu.Read8(oper)
 	{
 		carry := val & 0x01 // carry is bit 0
-		val >>= 1
-		val &= 0x7f
+		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
 		cpu.P.writeBit(pbitC, carry != 0)
@@ -1434,8 +1410,7 @@ func opcode5F(cpu *CPU) {
 	val := cpu.Read8(oper)
 	{
 		carry := val & 0x01 // carry is bit 0
-		val >>= 1
-		val &= 0x7f
+		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
 		cpu.P.writeBit(pbitC, carry != 0)
@@ -1506,9 +1481,8 @@ func opcode63(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	{
-		carry := val & 0x01 // next carry is bit 0
+		carry := val & 0x01
 		val >>= 1
-		// bit 7 is set to prev carry
 		if cpu.P.C() {
 			val |= 1 << 7
 		}
@@ -1552,9 +1526,8 @@ func opcode66(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	{
-		carry := val & 0x01 // next carry is bit 0
+		carry := val & 0x01
 		val >>= 1
-		// bit 7 is set to prev carry
 		if cpu.P.C() {
 			val |= 1 << 7
 		}
@@ -1572,9 +1545,8 @@ func opcode67(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	{
-		carry := val & 0x01 // next carry is bit 0
+		carry := val & 0x01
 		val >>= 1
-		// bit 7 is set to prev carry
 		if cpu.P.C() {
 			val |= 1 << 7
 		}
@@ -1619,9 +1591,8 @@ func opcode69(cpu *CPU) {
 func opcode6A(cpu *CPU) {
 	val := cpu.A
 	{
-		carry := val & 0x01 // next carry is bit 0
+		carry := val & 0x01
 		val >>= 1
-		// bit 7 is set to prev carry
 		if cpu.P.C() {
 			val |= 1 << 7
 		}
@@ -1641,7 +1612,6 @@ func opcode6B(cpu *CPU) {
 	cpu.A &= val
 	cpu.A >>= 1
 	cpu.P.writeBit(pbitV, (cpu.A>>6)^(cpu.A>>5)&0x01 != 0)
-	// bit 7 is set to prev carry
 	if cpu.P.C() {
 		cpu.A |= 1 << 7
 	}
@@ -1680,9 +1650,8 @@ func opcode6E(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	{
-		carry := val & 0x01 // next carry is bit 0
+		carry := val & 0x01
 		val >>= 1
-		// bit 7 is set to prev carry
 		if cpu.P.C() {
 			val |= 1 << 7
 		}
@@ -1700,9 +1669,8 @@ func opcode6F(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	{
-		carry := val & 0x01 // next carry is bit 0
+		carry := val & 0x01
 		val >>= 1
-		// bit 7 is set to prev carry
 		if cpu.P.C() {
 			val |= 1 << 7
 		}
@@ -1780,9 +1748,8 @@ func opcode73(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	{
-		carry := val & 0x01 // next carry is bit 0
+		carry := val & 0x01
 		val >>= 1
-		// bit 7 is set to prev carry
 		if cpu.P.C() {
 			val |= 1 << 7
 		}
@@ -1835,9 +1802,8 @@ func opcode76(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	{
-		carry := val & 0x01 // next carry is bit 0
+		carry := val & 0x01
 		val >>= 1
-		// bit 7 is set to prev carry
 		if cpu.P.C() {
 			val |= 1 << 7
 		}
@@ -1858,9 +1824,8 @@ func opcode77(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	{
-		carry := val & 0x01 // next carry is bit 0
+		carry := val & 0x01
 		val >>= 1
-		// bit 7 is set to prev carry
 		if cpu.P.C() {
 			val |= 1 << 7
 		}
@@ -1915,9 +1880,8 @@ func opcode7B(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	{
-		carry := val & 0x01 // next carry is bit 0
+		carry := val & 0x01
 		val >>= 1
-		// bit 7 is set to prev carry
 		if cpu.P.C() {
 			val |= 1 << 7
 		}
@@ -1971,9 +1935,8 @@ func opcode7E(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	{
-		carry := val & 0x01 // next carry is bit 0
+		carry := val & 0x01
 		val >>= 1
-		// bit 7 is set to prev carry
 		if cpu.P.C() {
 			val |= 1 << 7
 		}
@@ -1993,9 +1956,8 @@ func opcode7F(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	{
-		carry := val & 0x01 // next carry is bit 0
+		carry := val & 0x01
 		val >>= 1
-		// bit 7 is set to prev carry
 		if cpu.P.C() {
 			val |= 1 << 7
 		}
