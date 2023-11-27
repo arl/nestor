@@ -12,10 +12,14 @@ import (
 )
 
 type opdef struct {
-	n  string // name
-	m  string // addressing mode
-	rw string // " " -> do nothing, "w" -> read/write memory/accumulator
-	f  func(g *Generator)
+	n string // name
+	m string // addressing mode
+	f func(g *Generator)
+
+	// " " -> do nothing
+	// "r" -> read 'val' from 'oper/accumulator'
+	// "w" -> write 'val' into 'oper/accumulator'
+	rw string
 }
 
 var defs = [256]opdef{
@@ -126,7 +130,7 @@ var defs = [256]opdef{
 	0x68: {n: "PLA", rw: "  ", m: "imp", f: PLA},
 	0x69: {n: "ADC", rw: "r ", m: "imm", f: ADC},
 	0x6A: {n: "ROR", rw: "rw", m: "acc", f: ROR},
-	0x6B: {n: "ARR", rw: "  ", m: "imm"},
+	0x6B: {n: "ARR", rw: "r ", m: "imm", f: ARR},
 	0x6C: {n: "JMP", rw: "  ", m: "ind", f: JMP},
 	0x6D: {n: "ADC", rw: "r ", m: "abs", f: ADC},
 	0x6E: {n: "ROR", rw: "rw", m: "abs", f: ROR},
@@ -148,37 +152,37 @@ var defs = [256]opdef{
 	0x7E: {n: "ROR", rw: "rw", m: "abx", f: ROR},
 	0x7F: {n: "RRA", rw: "rw", m: "abx", f: RRA},
 	0x80: {n: "NOP", rw: "  ", m: "imm", f: NOP},
-	0x81: {n: "STA", rw: "  ", m: "izx"},
+	0x81: {n: "STA", rw: "  ", m: "izx", f: STA},
 	0x82: {n: "NOP", rw: "  ", m: "imm", f: NOP},
-	0x83: {n: "SAX", rw: "  ", m: "izx"},
-	0x84: {n: "STY", rw: "  ", m: "zpg"},
-	0x85: {n: "STA", rw: "  ", m: "zpg"},
-	0x86: {n: "STX", rw: "  ", m: "zpg"},
-	0x87: {n: "SAX", rw: "  ", m: "zpg"},
-	0x88: {n: "DEY", rw: "  ", m: "imp"},
+	0x83: {n: "SAX", rw: "  ", m: "izx", f: SAX},
+	0x84: {n: "STY", rw: "  ", m: "zpg", f: STY},
+	0x85: {n: "STA", rw: "  ", m: "zpg", f: STA},
+	0x86: {n: "STX", rw: "  ", m: "zpg", f: STX},
+	0x87: {n: "SAX", rw: "  ", m: "zpg", f: SAX},
+	0x88: {n: "DEY", rw: "  ", m: "imp", f: DEY},
 	0x89: {n: "NOP", rw: "  ", m: "imm", f: NOP},
-	0x8A: {n: "TXA", rw: "  ", m: "imp"},
-	0x8B: {n: "ANE", rw: "  ", m: "imm"},
-	0x8C: {n: "STY", rw: "  ", m: "abs"},
-	0x8D: {n: "STA", rw: "  ", m: "abs"},
-	0x8E: {n: "STX", rw: "  ", m: "abs"},
-	0x8F: {n: "SAX", rw: "  ", m: "abs"},
+	0x8A: {n: "TXA", rw: "  ", m: "imp", f: TXA},
+	0x8B: {n: "ANE", rw: "  ", m: "imm", f: unsupported(0x8B)},
+	0x8C: {n: "STY", rw: "  ", m: "abs", f: STY},
+	0x8D: {n: "STA", rw: "  ", m: "abs", f: STA},
+	0x8E: {n: "STX", rw: "  ", m: "abs", f: STX},
+	0x8F: {n: "SAX", rw: "  ", m: "abs", f: SAX},
 	0x90: {n: "BCC", rw: "  ", m: "rel", f: branch(0, false)},
-	0x91: {n: "STA", rw: "  ", m: "izy"},
+	0x91: {n: "STA", rw: "  ", m: "izy", f: STA},
 	0x92: {n: "JAM", rw: "  ", m: "imm", f: JAM},
-	0x93: {n: "SHA", rw: "  ", m: "izy"},
-	0x94: {n: "STY", rw: "  ", m: "zpx"},
-	0x95: {n: "STA", rw: "  ", m: "zpx"},
-	0x96: {n: "STX", rw: "  ", m: "zpy"},
-	0x97: {n: "SAX", rw: "  ", m: "zpy"},
-	0x98: {n: "TYA", rw: "  ", m: "imp"},
-	0x99: {n: "STA", rw: "  ", m: "aby"},
-	0x9A: {n: "TXS", rw: "  ", m: "imp"},
-	0x9B: {n: "TAS", rw: "  ", m: "aby"},
-	0x9C: {n: "SHY", rw: "  ", m: "abx"},
-	0x9D: {n: "STA", rw: "  ", m: "abx"},
-	0x9E: {n: "SHX", rw: "  ", m: "aby"},
-	0x9F: {n: "SHA", rw: "  ", m: "aby"},
+	0x93: {n: "SHA", rw: "  ", m: "izy", f: unsupported(0x93)},
+	0x94: {n: "STY", rw: "  ", m: "zpx", f: STY},
+	0x95: {n: "STA", rw: "  ", m: "zpx", f: STA},
+	0x96: {n: "STX", rw: "  ", m: "zpy", f: STX},
+	0x97: {n: "SAX", rw: "  ", m: "zpy", f: SAX},
+	0x98: {n: "TYA", rw: "  ", m: "imp", f: TYA},
+	0x99: {n: "STA", rw: "  ", m: "aby", f: STA},
+	0x9A: {n: "TXS", rw: "  ", m: "imp", f: TXS},
+	0x9B: {n: "TAS", rw: "  ", m: "aby", f: unsupported(0x9B)},
+	0x9C: {n: "SHY", rw: "  ", m: "abx", f: unsupported(0x9C)},
+	0x9D: {n: "STA", rw: "  ", m: "abx", f: STA},
+	0x9E: {n: "SHX", rw: "  ", m: "aby", f: unsupported(0x9E)},
+	0x9F: {n: "SHA", rw: "  ", m: "aby", f: unsupported(0x9F)},
 	0xA0: {n: "LDY", rw: "  ", m: "imm"},
 	0xA1: {n: "LDA", rw: "  ", m: "izx"},
 	0xA2: {n: "LDX", rw: "  ", m: "imm"},
@@ -221,7 +225,7 @@ var defs = [256]opdef{
 	0xC7: {n: "DCP", rw: "  ", m: "zpg"},
 	0xC8: {n: "INY", rw: "  ", m: "imp"},
 	0xC9: {n: "CMP", rw: "  ", m: "imm"},
-	0xCA: {n: "DEX", rw: "  ", m: "imp"},
+	0xCA: {n: "DEX", rw: "  ", m: "imp", f: DEX},
 	0xCB: {n: "SBX", rw: "  ", m: "imm"},
 	0xCC: {n: "CPY", rw: "  ", m: "abs"},
 	0xCD: {n: "CMP", rw: "  ", m: "abs"},
@@ -387,6 +391,14 @@ func (g *Generator) opcodeFooter(code int) {
 
 func (g *Generator) printf(format string, args ...any) {
 	fmt.Fprintf(g, "%s\n", fmt.Sprintf(format, args...))
+}
+
+// helpers
+
+func decrement(g *Generator, val string) {
+	g.printf(`cpu.tick()`)
+	g.printf(`%s--`, val)
+	g.printf(`cpu.P.checkNZ(%s)`, val)
 }
 
 func push8(g *Generator, val string) {
@@ -684,6 +696,49 @@ func AND(g *Generator) {
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
+func STA(g *Generator) {
+	g.printf(`cpu.Write8(oper, cpu.A)`)
+}
+
+func TXA(g *Generator) {
+	g.printf(`cpu.A = cpu.X`)
+	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.printf(`cpu.tick()`)
+}
+
+func TYA(g *Generator) {
+	g.printf(`cpu.A = cpu.Y`)
+	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.printf(`cpu.tick()`)
+}
+
+func TXS(g *Generator) {
+	g.printf(`cpu.SP = cpu.X`)
+	g.printf(`cpu.tick()`)
+}
+
+func STX(g *Generator) {
+	g.printf(`cpu.Write8(oper, cpu.X)`)
+}
+
+func STY(g *Generator) {
+	g.printf(`cpu.Write8(oper, cpu.Y)`)
+}
+
+func SAX(g *Generator) {
+	g.printf(`cpu.Write8(oper, cpu.A&cpu.X)`)
+}
+
+func DEX(g *Generator) {
+	decrement(g, `cpu.X`)
+	// g.printf(`cpu.P.checkNZ(cpu.X)`)
+}
+
+func DEY(g *Generator) {
+	decrement(g, `cpu.Y`)
+	// g.printf(`cpu.P.checkNZ(cpu.Y)`)
+}
+
 func EOR(g *Generator) {
 	g.printf(`cpu.A ^= val`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
@@ -706,6 +761,18 @@ func ROR(g *Generator) {
 	g.printf(`cpu.P.checkNZ(val)`)
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
 	g.printf(`}`)
+}
+
+func ARR(g *Generator) {
+	g.printf(`cpu.A &= val`)
+	g.printf(`cpu.A >>= 1`)
+	g.printf(`cpu.P.writeBit(pbitV, (cpu.A>>6)^(cpu.A>>5)&0x01 != 0)`)
+	g.printf(`// bit 7 is set to prev carry`)
+	g.printf(`if cpu.P.C() {`)
+	g.printf(`	cpu.A |= 1 << 7`)
+	g.printf(`}`)
+	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.printf(`cpu.P.writeBit(pbitC, cpu.A&(1<<6) != 0)`)
 }
 
 func LSR(g *Generator) {
@@ -746,12 +813,23 @@ func NOP(g *Generator) {
 	g.printf(`cpu.tick()`)
 }
 
-func JAM(g *Generator) {
-	g.printf(`panic("Halt and catch fire!")`)
-}
-
 func JMP(g *Generator) {
 	g.printf(`cpu.PC = oper`)
+}
+
+func JAM(g *Generator) {
+	insertPanic(g, `Halt and catch fire!\nJAM called`)
+}
+
+func unsupported(code int) func(g *Generator) {
+	return func(g *Generator) {
+		insertPanic(g, fmt.Sprintf("unsupported opcode 0x%02X", code))
+	}
+}
+
+func insertPanic(g *Generator, msg string) {
+	g.printf(`msg := fmt.Sprintf("%s\nPC:0x%%04X", cpu.PC)`, msg)
+	g.printf(`panic(msg)`)
 }
 
 func (g *Generator) generate() {
@@ -761,6 +839,9 @@ func (g *Generator) generate() {
 
 	g.printf(`// Code generated by cpugen/gen_nes6502.go. DO NOT EDIT.`)
 	g.printf(`package emu`)
+	g.printf(`import (`)
+	g.printf(`"fmt"`)
+	g.printf(`)`)
 	for code, def := range defs {
 		if def.f == nil {
 			log.Printf("skipping 0x%02X opcode", code)
