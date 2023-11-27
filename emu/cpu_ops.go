@@ -246,7 +246,7 @@ func opcode_10(cpu *CPU) {
 	_ = oper
 	if cpu.P.bit(7) == false {
 		// branching
-		if pagecrossed(cpu.PC+1, oper) {
+		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
 		cpu.tick()
@@ -266,7 +266,7 @@ func opcode_11(cpu *CPU) {
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+	if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {
 		cpu.tick()
 	}
 	oper += uint16(cpu.Y)
@@ -391,7 +391,7 @@ func opcode_19(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.Y)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -433,7 +433,7 @@ func opcode_1C(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -446,7 +446,7 @@ func opcode_1D(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -746,7 +746,7 @@ func opcode_30(cpu *CPU) {
 	_ = oper
 	if cpu.P.bit(7) == true {
 		// branching
-		if pagecrossed(cpu.PC+1, oper) {
+		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
 		cpu.tick()
@@ -766,7 +766,7 @@ func opcode_31(cpu *CPU) {
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+	if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {
 		cpu.tick()
 	}
 	oper += uint16(cpu.Y)
@@ -897,7 +897,7 @@ func opcode_39(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.Y)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -941,7 +941,7 @@ func opcode_3C(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -954,7 +954,7 @@ func opcode_3D(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -1018,7 +1018,18 @@ func opcode_40(cpu *CPU) {
 	}
 	const mask = 0b11001111 // ignore B and U bits
 	cpu.P = P(copybits(uint8(cpu.P), p, mask))
-	cpu.PC = pull16(cpu)
+	var lo, hi uint8
+	{
+		cpu.SP += 1
+		top := uint16(cpu.SP) + 0x0100
+		lo = cpu.Read8(top)
+	}
+	{
+		cpu.SP += 1
+		top := uint16(cpu.SP) + 0x0100
+		hi = cpu.Read8(top)
+	}
+	cpu.PC = uint16(hi)<<8 | uint16(lo)
 }
 
 // EOR   41
@@ -1251,7 +1262,7 @@ func opcode_50(cpu *CPU) {
 	_ = oper
 	if cpu.P.bit(6) == false {
 		// branching
-		if pagecrossed(cpu.PC+1, oper) {
+		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
 		cpu.tick()
@@ -1271,7 +1282,7 @@ func opcode_51(cpu *CPU) {
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+	if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {
 		cpu.tick()
 	}
 	oper += uint16(cpu.Y)
@@ -1402,7 +1413,7 @@ func opcode_59(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.Y)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -1446,7 +1457,7 @@ func opcode_5C(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -1459,7 +1470,7 @@ func opcode_5D(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -1807,7 +1818,7 @@ func opcode_70(cpu *CPU) {
 	_ = oper
 	if cpu.P.bit(6) == true {
 		// branching
-		if pagecrossed(cpu.PC+1, oper) {
+		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
 		cpu.tick()
@@ -1827,7 +1838,7 @@ func opcode_71(cpu *CPU) {
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+	if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {
 		cpu.tick()
 	}
 	oper += uint16(cpu.Y)
@@ -1979,7 +1990,7 @@ func opcode_79(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.Y)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -2032,7 +2043,7 @@ func opcode_7C(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -2045,7 +2056,7 @@ func opcode_7D(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -2271,7 +2282,7 @@ func opcode_90(cpu *CPU) {
 	_ = oper
 	if cpu.P.bit(0) == false {
 		// branching
-		if pagecrossed(cpu.PC+1, oper) {
+		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
 		cpu.tick()
@@ -2652,7 +2663,7 @@ func opcode_B0(cpu *CPU) {
 	_ = oper
 	if cpu.P.bit(0) == true {
 		// branching
-		if pagecrossed(cpu.PC+1, oper) {
+		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
 		cpu.tick()
@@ -2672,7 +2683,7 @@ func opcode_B1(cpu *CPU) {
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+	if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {
 		cpu.tick()
 	}
 	oper += uint16(cpu.Y)
@@ -2702,7 +2713,7 @@ func opcode_B3(cpu *CPU) {
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+	if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {
 		cpu.tick()
 	}
 	oper += uint16(cpu.Y)
@@ -2784,7 +2795,7 @@ func opcode_B9(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.Y)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -2808,7 +2819,7 @@ func opcode_BB(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.Y)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -2825,7 +2836,7 @@ func opcode_BC(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -2840,7 +2851,7 @@ func opcode_BD(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -2856,7 +2867,7 @@ func opcode_BE(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.Y)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -2872,7 +2883,7 @@ func opcode_BF(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.Y)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -3088,7 +3099,7 @@ func opcode_D0(cpu *CPU) {
 	_ = oper
 	if cpu.P.bit(1) == false {
 		// branching
-		if pagecrossed(cpu.PC+1, oper) {
+		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
 		cpu.tick()
@@ -3108,7 +3119,7 @@ func opcode_D1(cpu *CPU) {
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+	if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {
 		cpu.tick()
 	}
 	oper += uint16(cpu.Y)
@@ -3224,7 +3235,7 @@ func opcode_D9(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.Y)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -3263,7 +3274,7 @@ func opcode_DC(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -3276,7 +3287,7 @@ func opcode_DD(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -3557,7 +3568,7 @@ func opcode_F0(cpu *CPU) {
 	_ = oper
 	if cpu.P.bit(1) == true {
 		// branching
-		if pagecrossed(cpu.PC+1, oper) {
+		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
 		cpu.tick()
@@ -3577,7 +3588,7 @@ func opcode_F1(cpu *CPU) {
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+	if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {
 		cpu.tick()
 	}
 	oper += uint16(cpu.Y)
@@ -3713,7 +3724,7 @@ func opcode_F9(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.Y)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -3762,7 +3773,7 @@ func opcode_FC(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -3775,7 +3786,7 @@ func opcode_FD(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper := addr + uint16(cpu.X)
-	if pagecrossed(oper, addr) {
+	if 0xFF00&(oper) != 0xFF00&(addr) {
 		cpu.tick()
 	}
 	_ = oper
@@ -3826,7 +3837,7 @@ func opcode_FF(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-var gdefs = [256]func(*CPU){
+var ops = [256]func(*CPU){
 	0x00: opcode_00,
 	0x01: opcode_01,
 	0x02: opcode_02,
@@ -4106,4 +4117,8 @@ var unstableOps = [256]uint8{
 	0xB2: 1, // JAM
 	0xD2: 1, // JAM
 	0xF2: 1, // JAM
+}
+
+func copybits(dst, src, mask uint8) uint8 {
+	return (dst & ^mask) | (src & mask)
 }

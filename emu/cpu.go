@@ -62,13 +62,7 @@ func (c *CPU) Run(until int64) {
 	for c.Clock < c.targetCycles {
 		opcode := c.Read8(uint16(c.PC))
 		c.PC++
-		op := gdefs[opcode]
-		// TODO(arl) temporary code
-		if op == nil {
-			op = ops[opcode]
-		}
-		// TODO(arl) end
-		op(c)
+		ops[opcode](c)
 	}
 }
 
@@ -79,16 +73,8 @@ func (c *CPU) RunDisasm(until int64) {
 		pc := c.PC
 		opcode := c.Read8(c.PC)
 		c.PC++
-
 		c.disasm.op(pc)
-
-		op := gdefs[opcode]
-		// TODO(arl) temporary code
-		if op == nil {
-			op = ops[opcode]
-		}
-		// TODO(arl) end
-		op(c)
+		ops[opcode](c)
 	}
 }
 

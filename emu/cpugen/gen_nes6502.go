@@ -364,7 +364,7 @@ func branch(ibit int, val bool) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		g.printf(`if cpu.P.bit(%d) == %t {`, ibit, val)
 		g.printf(`// branching`)
-		pagecrossed(g, "cpu.PC+1", "oper")
+		tickIfPageCrossed(g, "cpu.PC+1", "oper")
 		g.printf(`	cpu.tick()`)
 		g.printf(`	cpu.PC = oper`)
 		g.printf(`	return`)
@@ -373,10 +373,10 @@ func branch(ibit int, val bool) func(g *Generator, _ opdef) {
 	}
 }
 
-func pagecrossed(g *Generator, a, b string) {
-	g.printf(`	if pagecrossed(%s, %s) {`, a, b)
-	g.printf(`		cpu.tick()`)
-	g.printf(`	}`)
+func tickIfPageCrossed(g *Generator, a, b string) {
+	g.printf(`if 0xFF00&(%s) != 0xFF00&(%s) {`, a, b)
+	g.printf(`	cpu.tick()`)
+	g.printf(`}`)
 }
 
 type addrmode func(g *Generator, details uint8)
@@ -414,7 +414,7 @@ func abx(g *Generator, info uint8) {
 		g.printf(`addr := cpu.Read16(cpu.PC)`)
 		g.printf(`cpu.PC += 2`)
 		g.printf(`oper := addr + uint16(cpu.X)`)
-		pagecrossed(g, "oper", "addr")
+		tickIfPageCrossed(g, "oper", "addr")
 	default:
 		g.printf(`cpu.tick()`)
 		g.printf(`oper := cpu.Read16(cpu.PC)`)
@@ -430,7 +430,7 @@ func aby(g *Generator, info uint8) {
 		g.printf(`addr := cpu.Read16(cpu.PC)`)
 		g.printf(`cpu.PC += 2`)
 		g.printf(`oper := addr + uint16(cpu.Y)`)
-		pagecrossed(g, "oper", "addr")
+		tickIfPageCrossed(g, "oper", "addr")
 	default:
 		g.printf(`// default`)
 		g.printf(`cpu.tick()`)
@@ -474,7 +474,7 @@ func izy(g *Generator, info uint8) {
 		g.printf(`// extra cycle for page cross`)
 		zpg(g, info)
 		r16zpwrap(g)
-		pagecrossed(g, "oper", "oper+uint16(cpu.Y)")
+		tickIfPageCrossed(g, "oper", "oper+uint16(cpu.Y)")
 		g.printf(`oper += uint16(cpu.Y)`)
 	case info&xca != 0:
 		g.printf(`// extra cycle always`)
@@ -507,6 +507,16 @@ func PHP(g *Generator, _ opdef) {
 	push8(g, `uint8(p)`)
 }
 
+func RTI(g *Generator, _ opdef) {
+	g.printf(`cpu.tick()`)
+	g.printf(`cpu.tick()`)
+	g.printf(`var p uint8`)
+	pull8(g, `p`)
+	g.printf(`const mask = 0b11001111 // ignore B and U bits`)
+	g.printf(`cpu.P = P(copybits(uint8(cpu.P), p, mask))`)
+	pull16(g, `cpu.PC`)
+}
+
 func RTS(g *Generator, _ opdef) {
 	g.printf(`cpu.tick()`)
 	g.printf(`cpu.tick()`)
@@ -534,16 +544,6 @@ func PLP(g *Generator, _ opdef) {
 	pull8(g, `p`)
 	g.printf(`const mask = 0b11001111 // ignore B and U bits`)
 	g.printf(`cpu.P = P(copybits(uint8(cpu.P), p, mask))`)
-}
-
-func RTI(g *Generator, _ opdef) {
-	g.printf(`cpu.tick()`)
-	g.printf(`cpu.tick()`)
-	g.printf(`var p uint8`)
-	pull8(g, `p`)
-	g.printf(`const mask = 0b11001111 // ignore B and U bits`)
-	g.printf(`cpu.P = P(copybits(uint8(cpu.P), p, mask))`)
-	g.printf(`cpu.PC = pull16(cpu)`)
 }
 
 func JSR(g *Generator, _ opdef) {
@@ -900,6 +900,12 @@ func (g *Generator) unstableOpcodes() {
 	g.printf(`}`)
 }
 
+func (g *Generator) helpers() {
+	g.printf(`func copybits(dst, src, mask uint8) uint8 {`)
+	g.printf(`return (dst & ^mask) | (src & mask)`)
+	g.printf(`}`)
+}
+
 func (g *Generator) generate() {
 	// TODO(arl) temporary code
 	var generated [256]bool
@@ -924,7 +930,7 @@ func (g *Generator) generate() {
 	}
 
 	// TODO(arl) temporary code
-	g.printf(`var gdefs = [256]func(*CPU){`)
+	g.printf(`var ops = [256]func(*CPU){`)
 	for code := range generated {
 		if generated[code] {
 			g.printf(`0x%02X: opcode_%02X,`, code, code)
@@ -934,6 +940,7 @@ func (g *Generator) generate() {
 	// TODO(arl) end
 
 	g.unstableOpcodes()
+	g.helpers()
 }
 
 func main() {

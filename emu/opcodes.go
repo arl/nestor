@@ -1,5 +1,6 @@
 package emu
 
+/*
 import "fmt"
 
 var ops = [256]func(cpu *CPU){
@@ -481,7 +482,7 @@ func INX(cpu *CPU) {
 	cpu.P.checkNZ(cpu.X)
 }
 
-/* common instruction implementation */
+// common instruction implementation
 
 func NOP(m addrmode) func(cpu *CPU) {
 	return func(cpu *CPU) {
@@ -869,7 +870,7 @@ func ldy(cpu *CPU, val uint8) {
 	cpu.P.checkNZ(cpu.Y)
 }
 
-/* unofficial instructions */
+// unofficial instructions
 
 func lax(cpu *CPU, val uint8) {
 	lda(cpu, val)
@@ -972,7 +973,7 @@ func JAM(cpu *CPU) {
 	panic("Halt and catch fire!")
 }
 
-/* helpers */
+// helpers
 
 func pagecrossed(a, b uint16) bool {
 	return 0xFF00&a != 0xFF00&b
@@ -1142,3 +1143,4 @@ func ind(cpu *CPU) uint16 {
 	hi := cpu.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
 	return uint16(hi)<<8 | uint16(lo)
 }
+*/
