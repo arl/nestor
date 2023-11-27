@@ -220,11 +220,11 @@ var defs = [256]opdef{
 	0xC0: {n: "CPY", rw: "r ", m: "imm", f: compare("Y")},
 	0xC1: {n: "CMP", rw: "r ", m: "izx", f: compare("A")},
 	0xC2: {n: "NOP", rw: "  ", m: "imm", f: NOP},
-	0xC3: {n: "DCP", rw: "  ", m: "izx"},
+	0xC3: {n: "DCP", rw: "rw", m: "izx", f: DCP},
 	0xC4: {n: "CPY", rw: "r ", m: "zpg", f: compare("Y")},
 	0xC5: {n: "CMP", rw: "r ", m: "zpg", f: compare("A")},
 	0xC6: {n: "DEC", rw: "rw", m: "zpg", f: decrement("mem")},
-	0xC7: {n: "DCP", rw: "  ", m: "zpg"},
+	0xC7: {n: "DCP", rw: "rw", m: "zpg", f: DCP},
 	0xC8: {n: "INY", rw: "  ", m: "imp", f: increment("Y")},
 	0xC9: {n: "CMP", rw: "r ", m: "imm", f: compare("A")},
 	0xCA: {n: "DEX", rw: "  ", m: "imp", f: decrement("X")},
@@ -232,23 +232,23 @@ var defs = [256]opdef{
 	0xCC: {n: "CPY", rw: "r ", m: "abs", f: compare("Y")},
 	0xCD: {n: "CMP", rw: "r ", m: "abs", f: compare("A")},
 	0xCE: {n: "DEC", rw: "rw", m: "abs", f: decrement("mem")},
-	0xCF: {n: "DCP", rw: "  ", m: "abs"},
+	0xCF: {n: "DCP", rw: "rw", m: "abs", f: DCP},
 	0xD0: {n: "BNE", rw: "  ", m: "rel", f: branch(1, false)},
 	0xD1: {n: "CMP", rw: "r ", m: "izy", f: compare("A")},
 	0xD2: {n: "JAM", rw: "  ", m: "imm", f: JAM},
-	0xD3: {n: "DCP", rw: "  ", m: "izy"},
+	0xD3: {n: "DCP", rw: "rw", m: "izy", f: DCP},
 	0xD4: {n: "NOP", rw: "  ", m: "zpx", f: NOP},
 	0xD5: {n: "CMP", rw: "r ", m: "zpx", f: compare("A")},
 	0xD6: {n: "DEC", rw: "rw", m: "zpx", f: decrement("mem")},
-	0xD7: {n: "DCP", rw: "  ", m: "zpx"},
+	0xD7: {n: "DCP", rw: "rw", m: "zpx", f: DCP},
 	0xD8: {n: "CLD", rw: "  ", m: "imp", f: clearFlag(3)},
 	0xD9: {n: "CMP", rw: "r ", m: "aby", f: compare("A")},
 	0xDA: {n: "NOP", rw: "  ", m: "imp", f: NOP},
-	0xDB: {n: "DCP", rw: "  ", m: "aby"},
+	0xDB: {n: "DCP", rw: "rw", m: "aby", f: DCP},
 	0xDC: {n: "NOP", rw: "  ", m: "abx", f: NOP},
 	0xDD: {n: "CMP", rw: "r ", m: "abx", f: compare("A")},
 	0xDE: {n: "DEC", rw: "rw", m: "abx", f: decrement("mem")},
-	0xDF: {n: "DCP", rw: "  ", m: "abx"},
+	0xDF: {n: "DCP", rw: "rw", m: "abx", f: DCP},
 	0xE0: {n: "CPX", rw: "r ", m: "imm", f: compare("X")},
 	0xE1: {n: "SBC", rw: "  ", m: "izx"},
 	0xE2: {n: "NOP", rw: "  ", m: "imm", f: NOP},
@@ -303,7 +303,7 @@ var details = [256]uint8{
 	0xA0: 0, 0xA1: 0, 0xA2: 0, 0xA3: 4, 0xA4: 0, 0xA5: 0, 0xA6: 0, 0xA7: 4, 0xA8: 0, 0xA9: 0, 0xAA: 0, 0xAB: 4, 0xAC: 0, 0xAD: 0, 0xAE: 0, 0xAF: 4,
 	0xB0: 0, 0xB1: 1, 0xB2: 4, 0xB3: 5, 0xB4: 0, 0xB5: 0, 0xB6: 0, 0xB7: 4, 0xB8: 0, 0xB9: 1, 0xBA: 0, 0xBB: 5, 0xBC: 1, 0xBD: 1, 0xBE: 1, 0xBF: 5,
 	0xC0: 0, 0xC1: 0, 0xC2: 4, 0xC3: 4, 0xC4: 0, 0xC5: 0, 0xC6: 0, 0xC7: 4, 0xC8: 0, 0xC9: 0, 0xCA: 0, 0xCB: 4, 0xCC: 0, 0xCD: 0, 0xCE: 0, 0xCF: 4,
-	0xD0: 0, 0xD1: 1, 0xD2: 4, 0xD3: 4, 0xD4: 4, 0xD5: 0, 0xD6: 0, 0xD7: 4, 0xD8: 0, 0xD9: 1, 0xDA: 4, 0xDB: 4, 0xDC: 5, 0xDD: 1, 0xDE: 0, 0xDF: 4,
+	0xD0: 0, 0xD1: 1, 0xD2: 4, 0xD3: 6, 0xD4: 4, 0xD5: 0, 0xD6: 0, 0xD7: 4, 0xD8: 0, 0xD9: 1, 0xDA: 4, 0xDB: 4, 0xDC: 5, 0xDD: 1, 0xDE: 0, 0xDF: 4,
 	0xE0: 0, 0xE1: 0, 0xE2: 4, 0xE3: 4, 0xE4: 0, 0xE5: 0, 0xE6: 0, 0xE7: 4, 0xE8: 0, 0xE9: 0, 0xEA: 0, 0xEB: 4, 0xEC: 0, 0xED: 0, 0xEE: 0, 0xEF: 4,
 	0xF0: 0, 0xF1: 1, 0xF2: 4, 0xF3: 6, 0xF4: 4, 0xF5: 0, 0xF6: 0, 0xF7: 4, 0xF8: 0, 0xF9: 1, 0xFA: 4, 0xFB: 4, 0xFC: 5, 0xFD: 1, 0xFE: 0, 0xFF: 4,
 }
@@ -693,6 +693,11 @@ func EOR(g *Generator, _ opdef) {
 func RRA(g *Generator, def opdef) {
 	ROR(g, def)
 	ADC(g, def)
+}
+
+func DCP(g *Generator, def opdef) {
+	decrement("mem")(g, def)
+	compare("A")(g, def)
 }
 
 func ROR(g *Generator, _ opdef) {

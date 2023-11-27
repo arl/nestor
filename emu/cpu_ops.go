@@ -2919,6 +2919,27 @@ func opcode_C2(cpu *CPU) {
 	cpu.tick()
 }
 
+// DCP   C3
+// indexed addressing (abs, X).
+func opcode_C3(cpu *CPU) {
+	cpu.tick()
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	oper = uint16(uint8(oper) + cpu.X)
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val--
+	cpu.P.checkNZ(val)
+	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.Write8(oper, val)
+}
+
 // CPY   C4
 // zero page addressing.
 func opcode_C4(cpu *CPU) {
@@ -2951,6 +2972,21 @@ func opcode_C6(cpu *CPU) {
 	cpu.tick()
 	val--
 	cpu.P.checkNZ(val)
+	cpu.Write8(oper, val)
+}
+
+// DCP   C7
+// zero page addressing.
+func opcode_C7(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val--
+	cpu.P.checkNZ(val)
+	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.writeBit(pbitC, val <= cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -3016,6 +3052,21 @@ func opcode_CE(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// DCP   CF
+// absolute addressing.
+func opcode_CF(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val--
+	cpu.P.checkNZ(val)
+	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.Write8(oper, val)
+}
+
 // BNE   D0
 // relative addressing.
 func opcode_D0(cpu *CPU) {
@@ -3064,6 +3115,28 @@ func opcode_D2(cpu *CPU) {
 	panic(msg)
 }
 
+// DCP   D3
+// indexed addressing (abs),Y.
+func opcode_D3(cpu *CPU) {
+	// extra cycle always
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	cpu.tick()
+	oper += uint16(cpu.Y)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val--
+	cpu.P.checkNZ(val)
+	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.Write8(oper, val)
+}
+
 // NOP   D4
 // indexed addressing: zeropage,X.
 func opcode_D4(cpu *CPU) {
@@ -3106,6 +3179,24 @@ func opcode_D6(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// DCP   D7
+// indexed addressing: zeropage,X.
+func opcode_D7(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val--
+	cpu.P.checkNZ(val)
+	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.Write8(oper, val)
+}
+
 // CLD   D8
 // implied addressing.
 func opcode_D8(cpu *CPU) {
@@ -3133,6 +3224,24 @@ func opcode_D9(cpu *CPU) {
 // implied addressing.
 func opcode_DA(cpu *CPU) {
 	cpu.tick()
+}
+
+// DCP   DB
+// absolute indexed Y.
+func opcode_DB(cpu *CPU) {
+	// default
+	cpu.tick()
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper += uint16(cpu.Y)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val--
+	cpu.P.checkNZ(val)
+	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.Write8(oper, val)
 }
 
 // NOP   DC
@@ -3175,6 +3284,23 @@ func opcode_DE(cpu *CPU) {
 	cpu.tick()
 	val--
 	cpu.P.checkNZ(val)
+	cpu.Write8(oper, val)
+}
+
+// DCP   DF
+// absolute indexed X.
+func opcode_DF(cpu *CPU) {
+	cpu.tick()
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper += uint16(cpu.X)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val--
+	cpu.P.checkNZ(val)
+	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.writeBit(pbitC, val <= cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -3553,27 +3679,34 @@ var gdefs = [256]func(*CPU){
 	0xC0: opcode_C0,
 	0xC1: opcode_C1,
 	0xC2: opcode_C2,
+	0xC3: opcode_C3,
 	0xC4: opcode_C4,
 	0xC5: opcode_C5,
 	0xC6: opcode_C6,
+	0xC7: opcode_C7,
 	0xC8: opcode_C8,
 	0xC9: opcode_C9,
 	0xCA: opcode_CA,
 	0xCC: opcode_CC,
 	0xCD: opcode_CD,
 	0xCE: opcode_CE,
+	0xCF: opcode_CF,
 	0xD0: opcode_D0,
 	0xD1: opcode_D1,
 	0xD2: opcode_D2,
+	0xD3: opcode_D3,
 	0xD4: opcode_D4,
 	0xD5: opcode_D5,
 	0xD6: opcode_D6,
+	0xD7: opcode_D7,
 	0xD8: opcode_D8,
 	0xD9: opcode_D9,
 	0xDA: opcode_DA,
+	0xDB: opcode_DB,
 	0xDC: opcode_DC,
 	0xDD: opcode_DD,
 	0xDE: opcode_DE,
+	0xDF: opcode_DF,
 	0xE0: opcode_E0,
 	0xE2: opcode_E2,
 	0xE4: opcode_E4,
