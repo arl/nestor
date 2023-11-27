@@ -223,15 +223,15 @@ var defs = [256]opdef{
 	0xC3: {n: "DCP", rw: "  ", m: "izx"},
 	0xC4: {n: "CPY", rw: "  ", m: "zpg"},
 	0xC5: {n: "CMP", rw: "  ", m: "zpg"},
-	0xC6: {n: "DEC", rw: "  ", m: "zpg"},
+	0xC6: {n: "DEC", rw: "rw", m: "zpg", f: decrement("mem")},
 	0xC7: {n: "DCP", rw: "  ", m: "zpg"},
-	0xC8: {n: "INY", rw: "  ", m: "imp"},
+	0xC8: {n: "INY", rw: "  ", m: "imp", f: increment("Y")},
 	0xC9: {n: "CMP", rw: "  ", m: "imm"},
 	0xCA: {n: "DEX", rw: "  ", m: "imp", f: decrement("X")},
 	0xCB: {n: "SBX", rw: "  ", m: "imm"},
 	0xCC: {n: "CPY", rw: "  ", m: "abs"},
 	0xCD: {n: "CMP", rw: "  ", m: "abs"},
-	0xCE: {n: "DEC", rw: "  ", m: "abs"},
+	0xCE: {n: "DEC", rw: "rw", m: "abs", f: decrement("mem")},
 	0xCF: {n: "DCP", rw: "  ", m: "abs"},
 	0xD0: {n: "BNE", rw: "  ", m: "rel", f: branch(1, false)},
 	0xD1: {n: "CMP", rw: "  ", m: "izy"},
@@ -239,7 +239,7 @@ var defs = [256]opdef{
 	0xD3: {n: "DCP", rw: "  ", m: "izy"},
 	0xD4: {n: "NOP", rw: "  ", m: "zpx", f: NOP},
 	0xD5: {n: "CMP", rw: "  ", m: "zpx"},
-	0xD6: {n: "DEC", rw: "  ", m: "zpx"},
+	0xD6: {n: "DEC", rw: "rw", m: "zpx", f: decrement("mem")},
 	0xD7: {n: "DCP", rw: "  ", m: "zpx"},
 	0xD8: {n: "CLD", rw: "  ", m: "imp", f: clearFlag(3)},
 	0xD9: {n: "CMP", rw: "  ", m: "aby"},
@@ -247,7 +247,7 @@ var defs = [256]opdef{
 	0xDB: {n: "DCP", rw: "  ", m: "aby"},
 	0xDC: {n: "NOP", rw: "  ", m: "abx", f: NOP},
 	0xDD: {n: "CMP", rw: "  ", m: "abx"},
-	0xDE: {n: "DEC", rw: "  ", m: "abx"},
+	0xDE: {n: "DEC", rw: "rw", m: "abx", f: decrement("mem")},
 	0xDF: {n: "DCP", rw: "  ", m: "abx"},
 	0xE0: {n: "CPX", rw: "  ", m: "imm"},
 	0xE1: {n: "SBC", rw: "  ", m: "izx"},
@@ -255,15 +255,15 @@ var defs = [256]opdef{
 	0xE3: {n: "ISC", rw: "  ", m: "izx"},
 	0xE4: {n: "CPX", rw: "  ", m: "zpg"},
 	0xE5: {n: "SBC", rw: "  ", m: "zpg"},
-	0xE6: {n: "INC", rw: "  ", m: "zpg"},
+	0xE6: {n: "INC", rw: "rw", m: "zpg", f: increment("mem")},
 	0xE7: {n: "ISC", rw: "  ", m: "zpg"},
-	0xE8: {n: "INX", rw: "  ", m: "imp"},
+	0xE8: {n: "INX", rw: "  ", m: "imp", f: increment("X")},
 	0xE9: {n: "SBC", rw: "  ", m: "imm"},
 	0xEA: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0xEB: {n: "SBC", rw: "  ", m: "imm"},
 	0xEC: {n: "CPX", rw: "  ", m: "abs"},
 	0xED: {n: "SBC", rw: "  ", m: "abs"},
-	0xEE: {n: "INC", rw: "  ", m: "abs"},
+	0xEE: {n: "INC", rw: "rw", m: "abs", f: increment("mem")},
 	0xEF: {n: "ISC", rw: "  ", m: "abs"},
 	0xF0: {n: "BEQ", rw: "  ", m: "rel", f: branch(1, true)},
 	0xF1: {n: "SBC", rw: "  ", m: "izy"},
@@ -271,7 +271,7 @@ var defs = [256]opdef{
 	0xF3: {n: "ISC", rw: "  ", m: "izy"},
 	0xF4: {n: "NOP", rw: "  ", m: "zpx", f: NOP},
 	0xF5: {n: "SBC", rw: "  ", m: "zpx"},
-	0xF6: {n: "INC", rw: "  ", m: "zpx"},
+	0xF6: {n: "INC", rw: "rw", m: "zpx", f: increment("mem")},
 	0xF7: {n: "ISC", rw: "  ", m: "zpx"},
 	0xF8: {n: "SED", rw: "  ", m: "imp", f: setFlag(3)},
 	0xF9: {n: "SBC", rw: "  ", m: "aby"},
@@ -279,7 +279,7 @@ var defs = [256]opdef{
 	0xFB: {n: "ISC", rw: "  ", m: "aby"},
 	0xFC: {n: "NOP", rw: "  ", m: "abx", f: NOP},
 	0xFD: {n: "SBC", rw: "  ", m: "abx"},
-	0xFE: {n: "INC", rw: "  ", m: "abx"},
+	0xFE: {n: "INC", rw: "rw", m: "abx", f: increment("mem")},
 	0xFF: {n: "ISC", rw: "  ", m: "abx"},
 }
 
@@ -638,11 +638,31 @@ func transfer(src string, dst ...string) func(g *Generator, _ opdef) {
 	}
 }
 
-func decrement(reg string) func(g *Generator, _ opdef) {
+func increment(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		g.printf(`cpu.tick()`)
-		g.printf(`cpu.%s--`, reg)
-		g.printf(`cpu.P.checkNZ(cpu.%s)`, reg)
+		switch v {
+		case "X", "Y": // registers
+			v = `cpu.` + v
+		case "mem":
+			v = `val`
+		}
+		g.printf(`%s++`, v)
+		g.printf(`cpu.P.checkNZ(%s)`, v)
+	}
+}
+
+func decrement(v string) func(g *Generator, _ opdef) {
+	return func(g *Generator, _ opdef) {
+		g.printf(`cpu.tick()`)
+		switch v {
+		case "X", "Y": // registers
+			v = `cpu.` + v
+		case "mem":
+			v = `val`
+		}
+		g.printf(`%s--`, v)
+		g.printf(`cpu.P.checkNZ(%s)`, v)
 	}
 }
 

@@ -2891,12 +2891,46 @@ func opcode_C2(cpu *CPU) {
 	cpu.tick()
 }
 
+// DEC   C6
+// zero page addressing.
+func opcode_C6(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val--
+	cpu.P.checkNZ(val)
+	cpu.Write8(oper, val)
+}
+
+// INY   C8
+// implied addressing.
+func opcode_C8(cpu *CPU) {
+	cpu.tick()
+	cpu.Y++
+	cpu.P.checkNZ(cpu.Y)
+}
+
 // DEX   CA
 // implied addressing.
 func opcode_CA(cpu *CPU) {
 	cpu.tick()
 	cpu.X--
 	cpu.P.checkNZ(cpu.X)
+}
+
+// DEC   CE
+// absolute addressing.
+func opcode_CE(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val--
+	cpu.P.checkNZ(val)
+	cpu.Write8(oper, val)
 }
 
 // BNE   D0
@@ -2939,6 +2973,22 @@ func opcode_D4(cpu *CPU) {
 	cpu.tick()
 }
 
+// DEC   D6
+// indexed addressing: zeropage,X.
+func opcode_D6(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val--
+	cpu.P.checkNZ(val)
+	cpu.Write8(oper, val)
+}
+
 // CLD   D8
 // implied addressing.
 func opcode_D8(cpu *CPU) {
@@ -2965,6 +3015,21 @@ func opcode_DC(cpu *CPU) {
 	cpu.tick()
 }
 
+// DEC   DE
+// absolute indexed X.
+func opcode_DE(cpu *CPU) {
+	cpu.tick()
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper += uint16(cpu.X)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val--
+	cpu.P.checkNZ(val)
+	cpu.Write8(oper, val)
+}
+
 // NOP   E2
 // immediate addressing.
 func opcode_E2(cpu *CPU) {
@@ -2974,10 +3039,44 @@ func opcode_E2(cpu *CPU) {
 	cpu.tick()
 }
 
+// INC   E6
+// zero page addressing.
+func opcode_E6(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val++
+	cpu.P.checkNZ(val)
+	cpu.Write8(oper, val)
+}
+
+// INX   E8
+// implied addressing.
+func opcode_E8(cpu *CPU) {
+	cpu.tick()
+	cpu.X++
+	cpu.P.checkNZ(cpu.X)
+}
+
 // NOP   EA
 // implied addressing.
 func opcode_EA(cpu *CPU) {
 	cpu.tick()
+}
+
+// INC   EE
+// absolute addressing.
+func opcode_EE(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val++
+	cpu.P.checkNZ(val)
+	cpu.Write8(oper, val)
 }
 
 // BEQ   F0
@@ -3020,6 +3119,22 @@ func opcode_F4(cpu *CPU) {
 	cpu.tick()
 }
 
+// INC   F6
+// indexed addressing: zeropage,X.
+func opcode_F6(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val++
+	cpu.P.checkNZ(val)
+	cpu.Write8(oper, val)
+}
+
 // SED   F8
 // implied addressing.
 func opcode_F8(cpu *CPU) {
@@ -3044,6 +3159,21 @@ func opcode_FC(cpu *CPU) {
 	}
 	_ = oper
 	cpu.tick()
+}
+
+// INC   FE
+// absolute indexed X.
+func opcode_FE(cpu *CPU) {
+	cpu.tick()
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper += uint16(cpu.X)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val++
+	cpu.P.checkNZ(val)
+	cpu.Write8(oper, val)
 }
 
 var gdefs = [256]func(*CPU){
@@ -3240,21 +3370,31 @@ var gdefs = [256]func(*CPU){
 	0xBE: opcode_BE,
 	0xBF: opcode_BF,
 	0xC2: opcode_C2,
+	0xC6: opcode_C6,
+	0xC8: opcode_C8,
 	0xCA: opcode_CA,
+	0xCE: opcode_CE,
 	0xD0: opcode_D0,
 	0xD2: opcode_D2,
 	0xD4: opcode_D4,
+	0xD6: opcode_D6,
 	0xD8: opcode_D8,
 	0xDA: opcode_DA,
 	0xDC: opcode_DC,
+	0xDE: opcode_DE,
 	0xE2: opcode_E2,
+	0xE6: opcode_E6,
+	0xE8: opcode_E8,
 	0xEA: opcode_EA,
+	0xEE: opcode_EE,
 	0xF0: opcode_F0,
 	0xF2: opcode_F2,
 	0xF4: opcode_F4,
+	0xF6: opcode_F6,
 	0xF8: opcode_F8,
 	0xFA: opcode_FA,
 	0xFC: opcode_FC,
+	0xFE: opcode_FE,
 }
 
 // unstable opcodes (unsupported)
