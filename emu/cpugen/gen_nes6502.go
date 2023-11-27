@@ -48,7 +48,7 @@ var defs = [256]opdef{
 	{i: 0x15, n: "ORA", rw: "r ", m: "zpx", f: ORA},
 	{i: 0x16, n: "ASL", rw: "rw", m: "zpx", f: ASL},
 	{i: 0x17, n: "SLO", rw: "rw", m: "zpx", f: SLO},
-	{i: 0x18, n: "CLC", rw: "  ", m: "imp", f: clearFlag(0)},
+	{i: 0x18, n: "CLC", rw: "  ", m: "imp", f: clear(0)},
 	{i: 0x19, n: "ORA", rw: "r ", m: "aby", f: ORA},
 	{i: 0x1A, n: "NOP", rw: "  ", m: "imp", f: NOP},
 	{i: 0x1B, n: "SLO", rw: "rw", m: "aby", f: SLO},
@@ -80,7 +80,7 @@ var defs = [256]opdef{
 	{i: 0x35, n: "AND", rw: "r ", m: "zpx", f: AND},
 	{i: 0x36, n: "ROL", rw: "rw", m: "zpx", f: ROL},
 	{i: 0x37, n: "RLA", rw: "rw", m: "zpx", f: RLA},
-	{i: 0x38, n: "SEC", rw: "  ", m: "imp", f: setFlag(0)},
+	{i: 0x38, n: "SEC", rw: "  ", m: "imp", f: set(0)},
 	{i: 0x39, n: "AND", rw: "r ", m: "aby", f: AND},
 	{i: 0x3A, n: "NOP", rw: "  ", m: "imp", f: NOP},
 	{i: 0x3B, n: "RLA", rw: "rw", m: "aby", f: RLA},
@@ -112,7 +112,7 @@ var defs = [256]opdef{
 	{i: 0x55, n: "EOR", rw: "r ", m: "zpx", f: EOR},
 	{i: 0x56, n: "LSR", rw: "rw", m: "zpx", f: LSR},
 	{i: 0x57, n: "SRE", rw: "rw", m: "zpx", f: SRE},
-	{i: 0x58, n: "CLI", rw: "  ", m: "imp", f: clearFlag(2)},
+	{i: 0x58, n: "CLI", rw: "  ", m: "imp", f: clear(2)},
 	{i: 0x59, n: "EOR", rw: "r ", m: "aby", f: EOR},
 	{i: 0x5A, n: "NOP", rw: "  ", m: "imp", f: NOP},
 	{i: 0x5B, n: "SRE", rw: "rw", m: "aby", f: SRE},
@@ -144,7 +144,7 @@ var defs = [256]opdef{
 	{i: 0x75, n: "ADC", rw: "r ", m: "zpx", f: ADC},
 	{i: 0x76, n: "ROR", rw: "rw", m: "zpx", f: ROR},
 	{i: 0x77, n: "RRA", rw: "rw", m: "zpx", f: RRA},
-	{i: 0x78, n: "SEI", rw: "  ", m: "imp", f: setFlag(2)},
+	{i: 0x78, n: "SEI", rw: "  ", m: "imp", f: set(2)},
 	{i: 0x79, n: "ADC", rw: "r ", m: "aby", f: ADC},
 	{i: 0x7A, n: "NOP", rw: "  ", m: "imp", f: NOP},
 	{i: 0x7B, n: "RRA", rw: "rw", m: "aby", f: RRA},
@@ -160,7 +160,7 @@ var defs = [256]opdef{
 	{i: 0x85, n: "STA", rw: "  ", m: "zpg", f: store("A")},
 	{i: 0x86, n: "STX", rw: "  ", m: "zpg", f: store("X")},
 	{i: 0x87, n: "SAX", rw: "  ", m: "zpg", f: SAX},
-	{i: 0x88, n: "DEY", rw: "  ", m: "imp", f: decrement("Y")},
+	{i: 0x88, n: "DEY", rw: "  ", m: "imp", f: dec("Y")},
 	{i: 0x89, n: "NOP", rw: "  ", m: "imm", f: NOP},
 	{i: 0x8A, n: "TXA", rw: "  ", m: "imp", f: transfer("X", "A")},
 	{i: 0x8B, n: "ANE", rw: "  ", m: "imm", f: unstable},
@@ -208,7 +208,7 @@ var defs = [256]opdef{
 	{i: 0xB5, n: "LDA", rw: "r ", m: "zpx", f: load("A")},
 	{i: 0xB6, n: "LDX", rw: "r ", m: "zpy", f: load("X")},
 	{i: 0xB7, n: "LAX", rw: "r ", m: "zpy", f: load("A", "X")},
-	{i: 0xB8, n: "CLV", rw: "  ", m: "imp", f: clearFlag(6)},
+	{i: 0xB8, n: "CLV", rw: "  ", m: "imp", f: clear(6)},
 	{i: 0xB9, n: "LDA", rw: "r ", m: "aby", f: load("A")},
 	{i: 0xBA, n: "TSX", rw: "  ", m: "imp", f: transfer("SP", "X")},
 	{i: 0xBB, n: "LAS", rw: "r ", m: "aby", f: LAS},
@@ -216,53 +216,53 @@ var defs = [256]opdef{
 	{i: 0xBD, n: "LDA", rw: "r ", m: "abx", f: load("A")},
 	{i: 0xBE, n: "LDX", rw: "r ", m: "aby", f: load("X")},
 	{i: 0xBF, n: "LAX", rw: "r ", m: "aby", f: load("A", "X")},
-	{i: 0xC0, n: "CPY", rw: "r ", m: "imm", f: compare("Y")},
-	{i: 0xC1, n: "CMP", rw: "r ", m: "izx", f: compare("A")},
+	{i: 0xC0, n: "CPY", rw: "r ", m: "imm", f: cmp("Y")},
+	{i: 0xC1, n: "CMP", rw: "r ", m: "izx", f: cmp("A")},
 	{i: 0xC2, n: "NOP", rw: "  ", m: "imm", f: NOP},
 	{i: 0xC3, n: "DCP", rw: "rw", m: "izx", f: DCP},
-	{i: 0xC4, n: "CPY", rw: "r ", m: "zpg", f: compare("Y")},
-	{i: 0xC5, n: "CMP", rw: "r ", m: "zpg", f: compare("A")},
-	{i: 0xC6, n: "DEC", rw: "rw", m: "zpg", f: decrement("mem")},
+	{i: 0xC4, n: "CPY", rw: "r ", m: "zpg", f: cmp("Y")},
+	{i: 0xC5, n: "CMP", rw: "r ", m: "zpg", f: cmp("A")},
+	{i: 0xC6, n: "DEC", rw: "rw", m: "zpg", f: dec("mem")},
 	{i: 0xC7, n: "DCP", rw: "rw", m: "zpg", f: DCP},
-	{i: 0xC8, n: "INY", rw: "  ", m: "imp", f: increment("Y")},
-	{i: 0xC9, n: "CMP", rw: "r ", m: "imm", f: compare("A")},
-	{i: 0xCA, n: "DEX", rw: "  ", m: "imp", f: decrement("X")},
+	{i: 0xC8, n: "INY", rw: "  ", m: "imp", f: inc("Y")},
+	{i: 0xC9, n: "CMP", rw: "r ", m: "imm", f: cmp("A")},
+	{i: 0xCA, n: "DEX", rw: "  ", m: "imp", f: dec("X")},
 	{i: 0xCB, n: "SBX", rw: "r ", m: "imm", f: SBX},
-	{i: 0xCC, n: "CPY", rw: "r ", m: "abs", f: compare("Y")},
-	{i: 0xCD, n: "CMP", rw: "r ", m: "abs", f: compare("A")},
-	{i: 0xCE, n: "DEC", rw: "rw", m: "abs", f: decrement("mem")},
+	{i: 0xCC, n: "CPY", rw: "r ", m: "abs", f: cmp("Y")},
+	{i: 0xCD, n: "CMP", rw: "r ", m: "abs", f: cmp("A")},
+	{i: 0xCE, n: "DEC", rw: "rw", m: "abs", f: dec("mem")},
 	{i: 0xCF, n: "DCP", rw: "rw", m: "abs", f: DCP},
 	{i: 0xD0, n: "BNE", rw: "  ", m: "rel", f: branch(1, false)},
-	{i: 0xD1, n: "CMP", rw: "r ", m: "izy", f: compare("A")},
+	{i: 0xD1, n: "CMP", rw: "r ", m: "izy", f: cmp("A")},
 	{i: 0xD2, n: "JAM", rw: "  ", m: "imm", f: JAM},
 	{i: 0xD3, n: "DCP", rw: "rw", m: "izy", f: DCP},
 	{i: 0xD4, n: "NOP", rw: "  ", m: "zpx", f: NOP},
-	{i: 0xD5, n: "CMP", rw: "r ", m: "zpx", f: compare("A")},
-	{i: 0xD6, n: "DEC", rw: "rw", m: "zpx", f: decrement("mem")},
+	{i: 0xD5, n: "CMP", rw: "r ", m: "zpx", f: cmp("A")},
+	{i: 0xD6, n: "DEC", rw: "rw", m: "zpx", f: dec("mem")},
 	{i: 0xD7, n: "DCP", rw: "rw", m: "zpx", f: DCP},
-	{i: 0xD8, n: "CLD", rw: "  ", m: "imp", f: clearFlag(3)},
-	{i: 0xD9, n: "CMP", rw: "r ", m: "aby", f: compare("A")},
+	{i: 0xD8, n: "CLD", rw: "  ", m: "imp", f: clear(3)},
+	{i: 0xD9, n: "CMP", rw: "r ", m: "aby", f: cmp("A")},
 	{i: 0xDA, n: "NOP", rw: "  ", m: "imp", f: NOP},
 	{i: 0xDB, n: "DCP", rw: "rw", m: "aby", f: DCP},
 	{i: 0xDC, n: "NOP", rw: "  ", m: "abx", f: NOP},
-	{i: 0xDD, n: "CMP", rw: "r ", m: "abx", f: compare("A")},
-	{i: 0xDE, n: "DEC", rw: "rw", m: "abx", f: decrement("mem")},
+	{i: 0xDD, n: "CMP", rw: "r ", m: "abx", f: cmp("A")},
+	{i: 0xDE, n: "DEC", rw: "rw", m: "abx", f: dec("mem")},
 	{i: 0xDF, n: "DCP", rw: "rw", m: "abx", f: DCP},
-	{i: 0xE0, n: "CPX", rw: "r ", m: "imm", f: compare("X")},
+	{i: 0xE0, n: "CPX", rw: "r ", m: "imm", f: cmp("X")},
 	{i: 0xE1, n: "SBC", rw: "r ", m: "izx", f: SBC},
 	{i: 0xE2, n: "NOP", rw: "  ", m: "imm", f: NOP},
 	{i: 0xE3, n: "ISB", rw: "rw", m: "izx", f: ISB},
-	{i: 0xE4, n: "CPX", rw: "r ", m: "zpg", f: compare("X")},
+	{i: 0xE4, n: "CPX", rw: "r ", m: "zpg", f: cmp("X")},
 	{i: 0xE5, n: "SBC", rw: "r ", m: "zpg", f: SBC},
-	{i: 0xE6, n: "INC", rw: "rw", m: "zpg", f: increment("mem")},
+	{i: 0xE6, n: "INC", rw: "rw", m: "zpg", f: inc("mem")},
 	{i: 0xE7, n: "ISB", rw: "rw", m: "zpg", f: ISB},
-	{i: 0xE8, n: "INX", rw: "  ", m: "imp", f: increment("X")},
+	{i: 0xE8, n: "INX", rw: "  ", m: "imp", f: inc("X")},
 	{i: 0xE9, n: "SBC", rw: "r ", m: "imm", f: SBC},
 	{i: 0xEA, n: "NOP", rw: "  ", m: "imp", f: NOP},
 	{i: 0xEB, n: "SBC", rw: "r ", m: "imm", f: SBC},
-	{i: 0xEC, n: "CPX", rw: "r ", m: "abs", f: compare("X")},
+	{i: 0xEC, n: "CPX", rw: "r ", m: "abs", f: cmp("X")},
 	{i: 0xED, n: "SBC", rw: "r ", m: "abs", f: SBC},
-	{i: 0xEE, n: "INC", rw: "rw", m: "abs", f: increment("mem")},
+	{i: 0xEE, n: "INC", rw: "rw", m: "abs", f: inc("mem")},
 	{i: 0xEF, n: "ISB", rw: "rw", m: "abs", f: ISB},
 	{i: 0xF0, n: "BEQ", rw: "  ", m: "rel", f: branch(1, true)},
 	{i: 0xF1, n: "SBC", rw: "r ", m: "izy", f: SBC},
@@ -270,15 +270,15 @@ var defs = [256]opdef{
 	{i: 0xF3, n: "ISB", rw: "rw", m: "izy", f: ISB},
 	{i: 0xF4, n: "NOP", rw: "  ", m: "zpx", f: NOP},
 	{i: 0xF5, n: "SBC", rw: "r ", m: "zpx", f: SBC},
-	{i: 0xF6, n: "INC", rw: "rw", m: "zpx", f: increment("mem")},
+	{i: 0xF6, n: "INC", rw: "rw", m: "zpx", f: inc("mem")},
 	{i: 0xF7, n: "ISB", rw: "rw", m: "zpx", f: ISB},
-	{i: 0xF8, n: "SED", rw: "  ", m: "imp", f: setFlag(3)},
+	{i: 0xF8, n: "SED", rw: "  ", m: "imp", f: set(3)},
 	{i: 0xF9, n: "SBC", rw: "r ", m: "aby", f: SBC},
 	{i: 0xFA, n: "NOP", rw: "  ", m: "imp", f: NOP},
 	{i: 0xFB, n: "ISB", rw: "rw", m: "aby", f: ISB},
 	{i: 0xFC, n: "NOP", rw: "  ", m: "abx", f: NOP},
 	{i: 0xFD, n: "SBC", rw: "r ", m: "abx", f: SBC},
-	{i: 0xFE, n: "INC", rw: "rw", m: "abx", f: increment("mem")},
+	{i: 0xFE, n: "INC", rw: "rw", m: "abx", f: inc("mem")},
 	{i: 0xFF, n: "ISB", rw: "rw", m: "abx", f: ISB},
 }
 
@@ -366,14 +366,14 @@ func r16zpwrap(g *Generator) {
 	g.printf(`oper = uint16(hi)<<8 | uint16(lo)`)
 }
 
-func clearFlag(ibit uint) func(g *Generator, _ opdef) {
+func clear(ibit uint) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		g.printf(`cpu.P.clearBit(%d)`, ibit)
 		g.printf(`cpu.tick()`)
 	}
 }
 
-func setFlag(ibit uint) func(g *Generator, _ opdef) {
+func set(ibit uint) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		g.printf(`cpu.P.setBit(%d)`, ibit)
 		g.printf(`cpu.tick()`)
@@ -637,7 +637,7 @@ func store(reg string) func(g *Generator, _ opdef) {
 	}
 }
 
-func compare(v string) func(g *Generator, _ opdef) {
+func cmp(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		v = regOrMem(v)
 		g.printf(`cpu.P.checkNZ(%s - val)`, v)
@@ -665,7 +665,7 @@ func regOrMem(v string) string {
 	panic("regOrMem " + v)
 }
 
-func increment(v string) func(g *Generator, _ opdef) {
+func inc(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		g.printf(`cpu.tick()`)
 		v = regOrMem(v)
@@ -674,7 +674,7 @@ func increment(v string) func(g *Generator, _ opdef) {
 	}
 }
 
-func decrement(v string) func(g *Generator, _ opdef) {
+func dec(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		g.printf(`cpu.tick()`)
 		v = regOrMem(v)
@@ -705,8 +705,8 @@ func RRA(g *Generator, def opdef) {
 }
 
 func DCP(g *Generator, def opdef) {
-	decrement("mem")(g, def)
-	compare("A")(g, def)
+	dec("mem")(g, def)
+	cmp("A")(g, def)
 }
 
 func SBX(g *Generator, def opdef) {
@@ -726,7 +726,7 @@ func SBC(g *Generator, def opdef) {
 }
 
 func ISB(g *Generator, def opdef) {
-	increment("mem")(g, def)
+	inc("mem")(g, def)
 	g.printf(`final := val`)
 	SBC(g, def)
 	g.printf(`val = final`)
