@@ -1,9 +1,8 @@
 package emu
 
-import (
-	"fmt"
-	"io"
-)
+//go:generate go run ./cpugen/gen_nes6502.go -out ./opcodes.go
+
+import "io"
 
 // Locations reserved for vector pointers.
 const (
@@ -63,11 +62,7 @@ func (c *CPU) Run(until int64) {
 	for c.Clock < c.targetCycles {
 		opcode := c.Read8(uint16(c.PC))
 		c.PC++
-		op := ops[opcode]
-		if op == nil {
-			panic(fmt.Sprintf("unsupported op code %02X (PC:$%04X)", opcode, c.PC))
-		}
-		op(c)
+		ops[opcode](c)
 	}
 }
 
@@ -75,15 +70,11 @@ func (c *CPU) RunDisasm(until int64) {
 	c.targetCycles = until
 	for c.Clock < c.targetCycles {
 		c.disasm.loopinit()
-		opcode := c.Read8(uint16(c.PC))
+		pc := c.PC
+		opcode := c.Read8(c.PC)
 		c.PC++
-		op := ops[opcode]
-		if op == nil {
-			panic(fmt.Sprintf("unsupported op code %02X (PC:$%04X)", opcode, c.PC))
-		}
-
-		c.disasm.op()
-		op(c)
+		c.disasm.op(pc)
+		ops[opcode](c)
 	}
 }
 
@@ -185,6 +176,10 @@ func (p *P) clearBit(i int) {
 
 func (p *P) ibit(i int) uint8 {
 	return (uint8(*p) & (1 << i)) >> i
+}
+
+func (p P) bit(i int) bool {
+	return p&(1<<i) != 0
 }
 
 func (p P) String() string {

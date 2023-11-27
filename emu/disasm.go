@@ -281,15 +281,15 @@ func (d *disasm) loopinit() {
 	d.prevClock = d.cpu.Clock
 }
 
-func (d *disasm) op() {
+func (d *disasm) op(pc uint16) {
 	d.bb.Reset()
 
-	opcode := d.cpu.bus.Read8(d.prevPC)
+	opcode := d.cpu.bus.Read8(pc)
 	opstr, nbytes := opsDisasm[opcode](d)
 
 	var tmp []byte
 	for i := uint16(0); i < uint16(nbytes); i++ {
-		b := d.cpu.bus.Read8(d.prevPC + i)
+		b := d.cpu.bus.Read8(pc + i)
 		tmp = append(tmp, fmt.Sprintf("%02X ", b)...)
 	}
 
@@ -299,12 +299,12 @@ func (d *disasm) op() {
 		// 	d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, 0, 0, d.cpu.Clock)
 		// fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d",
 		// 	d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.cpu.Clock)
-		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d\n", d.prevPC, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.prevClock)
+		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d\n", pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.prevClock)
 	} else {
 		// TODO: re-add PPU when we'll have anything else than 0,0
 		// fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%s SP:%02X PPU:%3X,%3X CYC:%d",
 		// 	d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, 0, 0, d.cpu.Clock)
-		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%s SP:%02X CYC:%d\n", d.prevPC, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, d.prevClock)
+		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%s SP:%02X CYC:%d\n", pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, d.prevClock)
 	}
 	d.w.Write(d.bb.Bytes())
 }

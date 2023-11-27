@@ -25,34 +25,16 @@ func funcname(temp interface{}) string {
 }
 
 func TestOpcodes(t *testing.T) {
-	skipped := map[uint8]bool{
-		0x02: true, // JAM
-		0x12: true, // JAM
-		0x22: true, // JAM
-		0x32: true, // JAM
-		0x42: true, // JAM
-		0x52: true, // JAM
-		0x62: true, // JAM
-		0x72: true, // JAM
-		0x92: true, // JAM
-		0xB2: true, // JAM
-		0xD2: true, // JAM
-		0xF2: true, // JAM
-		0x8B: true, // ANE
-		0x93: true, // SHA
-		0x9B: true, // TAS
-		0x9F: true, // SHA
-		0xAB: true, // LXA
+	if !testing.Short() {
+		t.Skip("skipping long test")
 	}
 
 	// Run tests for all implemented opcodes.
-	for opcode, op := range ops {
+	for opcode := range ops {
 		opstr := fmt.Sprintf("%02x", opcode)
 		switch {
-		case skipped[uint8(opcode)]:
+		case unstableOps[uint8(opcode)] == 1:
 			t.Run(opstr, func(t *testing.T) { t.Skipf("skipping unsupported opcode") })
-		case op == nil:
-			t.Run(opstr, func(t *testing.T) { t.Skip("skipping unimplemented opcodes") })
 		default:
 			t.Run(opstr, testOpcodes(opstr))
 		}
