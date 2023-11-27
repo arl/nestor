@@ -3358,6 +3358,33 @@ func opcode_E2(cpu *CPU) {
 	cpu.tick()
 }
 
+// ISB   E3
+// indexed addressing (abs, X).
+func opcode_E3(cpu *CPU) {
+	cpu.tick()
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	oper = uint16(uint8(oper) + cpu.X)
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val++
+	cpu.P.checkNZ(val)
+	final := val
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+	val = final
+	cpu.Write8(oper, val)
+}
+
 // CPX   E4
 // zero page addressing.
 func opcode_E4(cpu *CPU) {
@@ -3394,6 +3421,27 @@ func opcode_E6(cpu *CPU) {
 	cpu.tick()
 	val++
 	cpu.P.checkNZ(val)
+	cpu.Write8(oper, val)
+}
+
+// ISB   E7
+// zero page addressing.
+func opcode_E7(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val++
+	cpu.P.checkNZ(val)
+	final := val
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+	val = final
 	cpu.Write8(oper, val)
 }
 
@@ -3480,6 +3528,27 @@ func opcode_EE(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// ISB   EF
+// absolute addressing.
+func opcode_EF(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val++
+	cpu.P.checkNZ(val)
+	final := val
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+	val = final
+	cpu.Write8(oper, val)
+}
+
 // BEQ   F0
 // relative addressing.
 func opcode_F0(cpu *CPU) {
@@ -3532,6 +3601,34 @@ func opcode_F2(cpu *CPU) {
 	panic(msg)
 }
 
+// ISB   F3
+// indexed addressing (abs),Y.
+func opcode_F3(cpu *CPU) {
+	// extra cycle always
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	cpu.tick()
+	oper += uint16(cpu.Y)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val++
+	cpu.P.checkNZ(val)
+	final := val
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+	val = final
+	cpu.Write8(oper, val)
+}
+
 // NOP   F4
 // indexed addressing: zeropage,X.
 func opcode_F4(cpu *CPU) {
@@ -3578,6 +3675,30 @@ func opcode_F6(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+// ISB   F7
+// indexed addressing: zeropage,X.
+func opcode_F7(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val++
+	cpu.P.checkNZ(val)
+	final := val
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+	val = final
+	cpu.Write8(oper, val)
+}
+
 // SED   F8
 // implied addressing.
 func opcode_F8(cpu *CPU) {
@@ -3609,6 +3730,30 @@ func opcode_F9(cpu *CPU) {
 // implied addressing.
 func opcode_FA(cpu *CPU) {
 	cpu.tick()
+}
+
+// ISB   FB
+// absolute indexed Y.
+func opcode_FB(cpu *CPU) {
+	// default
+	cpu.tick()
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper += uint16(cpu.Y)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val++
+	cpu.P.checkNZ(val)
+	final := val
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+	val = final
+	cpu.Write8(oper, val)
 }
 
 // NOP   FC
@@ -3655,6 +3800,29 @@ func opcode_FE(cpu *CPU) {
 	cpu.tick()
 	val++
 	cpu.P.checkNZ(val)
+	cpu.Write8(oper, val)
+}
+
+// ISB   FF
+// absolute indexed X.
+func opcode_FF(cpu *CPU) {
+	cpu.tick()
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper += uint16(cpu.X)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.tick()
+	val++
+	cpu.P.checkNZ(val)
+	final := val
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+	val = final
 	cpu.Write8(oper, val)
 }
 
@@ -3886,9 +4054,11 @@ var gdefs = [256]func(*CPU){
 	0xE0: opcode_E0,
 	0xE1: opcode_E1,
 	0xE2: opcode_E2,
+	0xE3: opcode_E3,
 	0xE4: opcode_E4,
 	0xE5: opcode_E5,
 	0xE6: opcode_E6,
+	0xE7: opcode_E7,
 	0xE8: opcode_E8,
 	0xE9: opcode_E9,
 	0xEA: opcode_EA,
@@ -3896,18 +4066,23 @@ var gdefs = [256]func(*CPU){
 	0xEC: opcode_EC,
 	0xED: opcode_ED,
 	0xEE: opcode_EE,
+	0xEF: opcode_EF,
 	0xF0: opcode_F0,
 	0xF1: opcode_F1,
 	0xF2: opcode_F2,
+	0xF3: opcode_F3,
 	0xF4: opcode_F4,
 	0xF5: opcode_F5,
 	0xF6: opcode_F6,
+	0xF7: opcode_F7,
 	0xF8: opcode_F8,
 	0xF9: opcode_F9,
 	0xFA: opcode_FA,
+	0xFB: opcode_FB,
 	0xFC: opcode_FC,
 	0xFD: opcode_FD,
 	0xFE: opcode_FE,
+	0xFF: opcode_FF,
 }
 
 // unstable opcodes (unsupported)

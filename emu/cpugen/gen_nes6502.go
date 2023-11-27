@@ -252,11 +252,11 @@ var defs = [256]opdef{
 	0xE0: {n: "CPX", rw: "r ", m: "imm", f: compare("X")},
 	0xE1: {n: "SBC", rw: "r ", m: "izx", f: SBC},
 	0xE2: {n: "NOP", rw: "  ", m: "imm", f: NOP},
-	0xE3: {n: "ISC", rw: "  ", m: "izx"},
+	0xE3: {n: "ISB", rw: "rw", m: "izx", f: ISB},
 	0xE4: {n: "CPX", rw: "r ", m: "zpg", f: compare("X")},
 	0xE5: {n: "SBC", rw: "r ", m: "zpg", f: SBC},
 	0xE6: {n: "INC", rw: "rw", m: "zpg", f: increment("mem")},
-	0xE7: {n: "ISC", rw: "  ", m: "zpg"},
+	0xE7: {n: "ISB", rw: "rw", m: "zpg", f: ISB},
 	0xE8: {n: "INX", rw: "  ", m: "imp", f: increment("X")},
 	0xE9: {n: "SBC", rw: "r ", m: "imm", f: SBC},
 	0xEA: {n: "NOP", rw: "  ", m: "imp", f: NOP},
@@ -264,23 +264,23 @@ var defs = [256]opdef{
 	0xEC: {n: "CPX", rw: "r ", m: "abs", f: compare("X")},
 	0xED: {n: "SBC", rw: "r ", m: "abs", f: SBC},
 	0xEE: {n: "INC", rw: "rw", m: "abs", f: increment("mem")},
-	0xEF: {n: "ISC", rw: "  ", m: "abs"},
+	0xEF: {n: "ISB", rw: "rw", m: "abs", f: ISB},
 	0xF0: {n: "BEQ", rw: "  ", m: "rel", f: branch(1, true)},
 	0xF1: {n: "SBC", rw: "r ", m: "izy", f: SBC},
 	0xF2: {n: "JAM", rw: "  ", m: "imm", f: JAM},
-	0xF3: {n: "ISC", rw: "  ", m: "izy"},
+	0xF3: {n: "ISB", rw: "rw", m: "izy", f: ISB},
 	0xF4: {n: "NOP", rw: "  ", m: "zpx", f: NOP},
 	0xF5: {n: "SBC", rw: "r ", m: "zpx", f: SBC},
 	0xF6: {n: "INC", rw: "rw", m: "zpx", f: increment("mem")},
-	0xF7: {n: "ISC", rw: "  ", m: "zpx"},
+	0xF7: {n: "ISB", rw: "rw", m: "zpx", f: ISB},
 	0xF8: {n: "SED", rw: "  ", m: "imp", f: setFlag(3)},
 	0xF9: {n: "SBC", rw: "r ", m: "aby", f: SBC},
 	0xFA: {n: "NOP", rw: "  ", m: "imp", f: NOP},
-	0xFB: {n: "ISC", rw: "  ", m: "aby"},
+	0xFB: {n: "ISB", rw: "rw", m: "aby", f: ISB},
 	0xFC: {n: "NOP", rw: "  ", m: "abx", f: NOP},
 	0xFD: {n: "SBC", rw: "r ", m: "abx", f: SBC},
 	0xFE: {n: "INC", rw: "rw", m: "abx", f: increment("mem")},
-	0xFF: {n: "ISC", rw: "  ", m: "abx"},
+	0xFF: {n: "ISB", rw: "rw", m: "abx", f: ISB},
 }
 
 const (
@@ -714,6 +714,13 @@ func SBC(g *Generator, def opdef) {
 	g.printf(`cpu.P.checkCV(cpu.A, val, sum)`)
 	g.printf(`cpu.A = uint8(sum)`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
+}
+
+func ISB(g *Generator, def opdef) {
+	increment("mem")(g, def)
+	g.printf(`final := val`)
+	SBC(g, def)
+	g.printf(`val = final`)
 }
 
 func ROR(g *Generator, _ opdef) {
