@@ -228,7 +228,7 @@ var defs = [256]opdef{
 	0xC8: {n: "INY", rw: "  ", m: "imp", f: increment("Y")},
 	0xC9: {n: "CMP", rw: "r ", m: "imm", f: compare("A")},
 	0xCA: {n: "DEX", rw: "  ", m: "imp", f: decrement("X")},
-	0xCB: {n: "SBX", rw: "  ", m: "imm"},
+	0xCB: {n: "SBX", rw: "r ", m: "imm", f: SBX},
 	0xCC: {n: "CPY", rw: "r ", m: "abs", f: compare("Y")},
 	0xCD: {n: "CMP", rw: "r ", m: "abs", f: compare("A")},
 	0xCE: {n: "DEC", rw: "rw", m: "abs", f: decrement("mem")},
@@ -250,35 +250,35 @@ var defs = [256]opdef{
 	0xDE: {n: "DEC", rw: "rw", m: "abx", f: decrement("mem")},
 	0xDF: {n: "DCP", rw: "rw", m: "abx", f: DCP},
 	0xE0: {n: "CPX", rw: "r ", m: "imm", f: compare("X")},
-	0xE1: {n: "SBC", rw: "  ", m: "izx"},
+	0xE1: {n: "SBC", rw: "r ", m: "izx", f: SBC},
 	0xE2: {n: "NOP", rw: "  ", m: "imm", f: NOP},
 	0xE3: {n: "ISC", rw: "  ", m: "izx"},
 	0xE4: {n: "CPX", rw: "r ", m: "zpg", f: compare("X")},
-	0xE5: {n: "SBC", rw: "  ", m: "zpg"},
+	0xE5: {n: "SBC", rw: "r ", m: "zpg", f: SBC},
 	0xE6: {n: "INC", rw: "rw", m: "zpg", f: increment("mem")},
 	0xE7: {n: "ISC", rw: "  ", m: "zpg"},
 	0xE8: {n: "INX", rw: "  ", m: "imp", f: increment("X")},
-	0xE9: {n: "SBC", rw: "  ", m: "imm"},
+	0xE9: {n: "SBC", rw: "r ", m: "imm", f: SBC},
 	0xEA: {n: "NOP", rw: "  ", m: "imp", f: NOP},
-	0xEB: {n: "SBC", rw: "  ", m: "imm"},
+	0xEB: {n: "SBC", rw: "r ", m: "imm", f: SBC},
 	0xEC: {n: "CPX", rw: "r ", m: "abs", f: compare("X")},
-	0xED: {n: "SBC", rw: "  ", m: "abs"},
+	0xED: {n: "SBC", rw: "r ", m: "abs", f: SBC},
 	0xEE: {n: "INC", rw: "rw", m: "abs", f: increment("mem")},
 	0xEF: {n: "ISC", rw: "  ", m: "abs"},
 	0xF0: {n: "BEQ", rw: "  ", m: "rel", f: branch(1, true)},
-	0xF1: {n: "SBC", rw: "  ", m: "izy"},
+	0xF1: {n: "SBC", rw: "r ", m: "izy", f: SBC},
 	0xF2: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0xF3: {n: "ISC", rw: "  ", m: "izy"},
 	0xF4: {n: "NOP", rw: "  ", m: "zpx", f: NOP},
-	0xF5: {n: "SBC", rw: "  ", m: "zpx"},
+	0xF5: {n: "SBC", rw: "r ", m: "zpx", f: SBC},
 	0xF6: {n: "INC", rw: "rw", m: "zpx", f: increment("mem")},
 	0xF7: {n: "ISC", rw: "  ", m: "zpx"},
 	0xF8: {n: "SED", rw: "  ", m: "imp", f: setFlag(3)},
-	0xF9: {n: "SBC", rw: "  ", m: "aby"},
+	0xF9: {n: "SBC", rw: "r ", m: "aby", f: SBC},
 	0xFA: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0xFB: {n: "ISC", rw: "  ", m: "aby"},
 	0xFC: {n: "NOP", rw: "  ", m: "abx", f: NOP},
-	0xFD: {n: "SBC", rw: "  ", m: "abx"},
+	0xFD: {n: "SBC", rw: "r ", m: "abx", f: SBC},
 	0xFE: {n: "INC", rw: "rw", m: "abx", f: increment("mem")},
 	0xFF: {n: "ISC", rw: "  ", m: "abx"},
 }
@@ -698,6 +698,22 @@ func RRA(g *Generator, def opdef) {
 func DCP(g *Generator, def opdef) {
 	decrement("mem")(g, def)
 	compare("A")(g, def)
+}
+
+func SBX(g *Generator, def opdef) {
+	g.printf(`ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)`)
+	g.printf(`cpu.X = uint8(ival)`)
+	g.printf(`cpu.P.checkNZ(uint8(ival))`)
+	g.printf(`cpu.P.writeBit(pbitC, ival >= 0)`)
+}
+
+func SBC(g *Generator, def opdef) {
+	g.printf(`val ^= 0xff`)
+	g.printf(`carry := cpu.P.ibit(pbitC)`)
+	g.printf(`sum := uint16(cpu.A) + uint16(val) + uint16(carry)`)
+	g.printf(`cpu.P.checkCV(cpu.A, val, sum)`)
+	g.printf(`cpu.A = uint8(sum)`)
+	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
 func ROR(g *Generator, _ opdef) {

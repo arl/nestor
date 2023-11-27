@@ -3017,6 +3017,19 @@ func opcode_CA(cpu *CPU) {
 	cpu.P.checkNZ(cpu.X)
 }
 
+// SBX   CB
+// immediate addressing.
+func opcode_CB(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)
+	cpu.X = uint8(ival)
+	cpu.P.checkNZ(uint8(ival))
+	cpu.P.writeBit(pbitC, ival >= 0)
+}
+
 // CPY   CC
 // absolute addressing.
 func opcode_CC(cpu *CPU) {
@@ -3315,6 +3328,27 @@ func opcode_E0(cpu *CPU) {
 	cpu.P.writeBit(pbitC, val <= cpu.X)
 }
 
+// SBC   E1
+// indexed addressing (abs, X).
+func opcode_E1(cpu *CPU) {
+	cpu.tick()
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	oper = uint16(uint8(oper) + cpu.X)
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	_ = oper
+	val := cpu.Read8(oper)
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+}
+
 // NOP   E2
 // immediate addressing.
 func opcode_E2(cpu *CPU) {
@@ -3333,6 +3367,21 @@ func opcode_E4(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
 	cpu.P.writeBit(pbitC, val <= cpu.X)
+}
+
+// SBC   E5
+// zero page addressing.
+func opcode_E5(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
 }
 
 // INC   E6
@@ -3356,10 +3405,40 @@ func opcode_E8(cpu *CPU) {
 	cpu.P.checkNZ(cpu.X)
 }
 
+// SBC   E9
+// immediate addressing.
+func opcode_E9(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+}
+
 // NOP   EA
 // implied addressing.
 func opcode_EA(cpu *CPU) {
 	cpu.tick()
+}
+
+// SBC   EB
+// immediate addressing.
+func opcode_EB(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
 }
 
 // CPX   EC
@@ -3371,6 +3450,21 @@ func opcode_EC(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
 	cpu.P.writeBit(pbitC, val <= cpu.X)
+}
+
+// SBC   ED
+// absolute addressing.
+func opcode_ED(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
 }
 
 // INC   EE
@@ -3404,6 +3498,30 @@ func opcode_F0(cpu *CPU) {
 	cpu.PC++
 }
 
+// SBC   F1
+// indexed addressing (abs),Y.
+func opcode_F1(cpu *CPU) {
+	// extra cycle for page cross
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+		cpu.tick()
+	}
+	oper += uint16(cpu.Y)
+	_ = oper
+	val := cpu.Read8(oper)
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+}
+
 // JAM   F2
 // immediate addressing.
 func opcode_F2(cpu *CPU) {
@@ -3424,6 +3542,24 @@ func opcode_F4(cpu *CPU) {
 	oper &= 0xff
 	_ = oper
 	cpu.tick()
+}
+
+// SBC   F5
+// indexed addressing: zeropage,X.
+func opcode_F5(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
 }
 
 // INC   F6
@@ -3449,6 +3585,26 @@ func opcode_F8(cpu *CPU) {
 	cpu.tick()
 }
 
+// SBC   F9
+// absolute indexed Y.
+func opcode_F9(cpu *CPU) {
+	// extra cycle for page cross
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.Y)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	val := cpu.Read8(oper)
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
+}
+
 // NOP   FA
 // implied addressing.
 func opcode_FA(cpu *CPU) {
@@ -3466,6 +3622,25 @@ func opcode_FC(cpu *CPU) {
 	}
 	_ = oper
 	cpu.tick()
+}
+
+// SBC   FD
+// absolute indexed X.
+func opcode_FD(cpu *CPU) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.X)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	val := cpu.Read8(oper)
+	val ^= 0xff
+	carry := cpu.P.ibit(pbitC)
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.checkCV(cpu.A, val, sum)
+	cpu.A = uint8(sum)
+	cpu.P.checkNZ(cpu.A)
 }
 
 // INC   FE
@@ -3687,6 +3862,7 @@ var gdefs = [256]func(*CPU){
 	0xC8: opcode_C8,
 	0xC9: opcode_C9,
 	0xCA: opcode_CA,
+	0xCB: opcode_CB,
 	0xCC: opcode_CC,
 	0xCD: opcode_CD,
 	0xCE: opcode_CE,
@@ -3708,20 +3884,29 @@ var gdefs = [256]func(*CPU){
 	0xDE: opcode_DE,
 	0xDF: opcode_DF,
 	0xE0: opcode_E0,
+	0xE1: opcode_E1,
 	0xE2: opcode_E2,
 	0xE4: opcode_E4,
+	0xE5: opcode_E5,
 	0xE6: opcode_E6,
 	0xE8: opcode_E8,
+	0xE9: opcode_E9,
 	0xEA: opcode_EA,
+	0xEB: opcode_EB,
 	0xEC: opcode_EC,
+	0xED: opcode_ED,
 	0xEE: opcode_EE,
 	0xF0: opcode_F0,
+	0xF1: opcode_F1,
 	0xF2: opcode_F2,
 	0xF4: opcode_F4,
+	0xF5: opcode_F5,
 	0xF6: opcode_F6,
 	0xF8: opcode_F8,
+	0xF9: opcode_F9,
 	0xFA: opcode_FA,
 	0xFC: opcode_FC,
+	0xFD: opcode_FD,
 	0xFE: opcode_FE,
 }
 
