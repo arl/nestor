@@ -134,38 +134,38 @@ var ops = [256]func(cpu *CPU){
 	// 0x80: NOP(imm),
 	// 0x81: STA(izx),
 	// 0x82: NOP(imm),
-	0x83: SAX(izx),
-	0x84: STY(zp),
-	0x85: STA(zp),
-	0x86: STX(zp),
-	0x87: SAX(zp),
-	0x88: DEY,
-	0x89: NOP(imm),
-	0x8A: TXA,
-	0x8B: unsupported,
-	0x8C: STY(abs),
-	0x8D: STA(abs),
-	0x8E: STX(abs),
-	0x8F: SAX(abs),
-	0x90: branch(pbitC, false),
-	0x91: STA(izy_xt),
-	0x92: JAM,
-	0x93: unsupported,
-	0x94: STY(zpx),
-	0x95: STA(zpx),
-	0x96: STX(zpy),
-	0x97: SAX(zpy),
-	0x98: TYA,
-	0x99: STA(aby),
-	0x9A: TXS,
-	0x9B: unsupported,
-	0x9C: SHY,
-	0x9D: STA(abx),
-	0x9E: SHX,
-	0x9F: unsupported,
-	0xA0: LDY(imm),
-	0xA1: LDA(izx),
-	0xA2: LDX(imm),
+	// 0x83: SAX(izx),
+	// 0x84: STY(zp),
+	// 0x85: STA(zp),
+	// 0x86: STX(zp),
+	// 0x87: SAX(zp),
+	// 0x88: DEY,
+	// 0x89: NOP(imm),
+	// 0x8A: TXA,
+	// 0x8B: unsupported,
+	// 0x8C: STY(abs),
+	// 0x8D: STA(abs),
+	// 0x8E: STX(abs),
+	// 0x8F: SAX(abs),
+	// 0x90: branch(pbitC, false),
+	// 0x91: STA(izy_xt),
+	// 0x92: JAM,
+	// 0x93: unsupported,
+	// 0x94: STY(zpx),
+	// 0x95: STA(zpx),
+	// 0x96: STX(zpy),
+	// 0x97: SAX(zpy),
+	// 0x98: TYA,
+	// 0x99: STA(aby),
+	// 0x9A: TXS,
+	// 0x9B: unsupported,
+	// 0x9C: SHY,
+	// 0x9D: STA(abx),
+	// 0x9E: SHX,
+	// 0x9F: unsupported,
+	// 0xA0: LDY(imm),
+	// 0xA1: LDA(izx),
+	// 0xA2: LDX(imm),
 	0xA3: LAX(izx),
 	0xA4: LDY(zp),
 	0xA5: LDA(zp),
@@ -645,12 +645,6 @@ func STY(m addrmode) func(cpu *CPU) {
 	}
 }
 
-func LDY(m addrmode) func(cpu *CPU) {
-	return func(cpu *CPU) {
-		ldy(cpu, cpu.Read8(m(cpu)))
-	}
-}
-
 func LDA(m addrmode) func(cpu *CPU) {
 	return func(cpu *CPU) {
 		lda(cpu, cpu.Read8(m(cpu)))
@@ -660,6 +654,12 @@ func LDA(m addrmode) func(cpu *CPU) {
 func LDX(m addrmode) func(cpu *CPU) {
 	return func(cpu *CPU) {
 		ldx(cpu, cpu.Read8(m(cpu)))
+	}
+}
+
+func LDY(m addrmode) func(cpu *CPU) {
+	return func(cpu *CPU) {
+		ldy(cpu, cpu.Read8(m(cpu)))
 	}
 }
 

@@ -2460,6 +2460,89 @@ func opcode_9F(cpu *CPU) {
 	panic(msg)
 }
 
+// LDY   A0
+// immediate addressing.
+func opcode_A0(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.Y = val
+	cpu.P.checkNZ(cpu.Y)
+}
+
+// LDA   A1
+// indexed addressing (abs, X).
+func opcode_A1(cpu *CPU) {
+	cpu.tick()
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	oper = uint16(uint8(oper) + cpu.X)
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A = val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// LDX   A2
+// immediate addressing.
+func opcode_A2(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.X = val
+	cpu.P.checkNZ(cpu.X)
+}
+
+// LDY   A4
+// zero page addressing.
+func opcode_A4(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.Y = val
+	cpu.P.checkNZ(cpu.Y)
+}
+
+// LDA   A5
+// zero page addressing.
+func opcode_A5(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A = val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// LDX   A6
+// zero page addressing.
+func opcode_A6(cpu *CPU) {
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.X = val
+	cpu.P.checkNZ(cpu.X)
+}
+
+// LDA   A9
+// immediate addressing.
+func opcode_A9(cpu *CPU) {
+	oper := cpu.PC
+	cpu.PC++
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A = val
+	cpu.P.checkNZ(cpu.A)
+}
+
 // LXA   AB
 // immediate addressing.
 func opcode_AB(cpu *CPU) {
@@ -2468,6 +2551,39 @@ func opcode_AB(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("unsupported unstable opcode 0xAB (LXA)\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+// LDY   AC
+// absolute addressing.
+func opcode_AC(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.Y = val
+	cpu.P.checkNZ(cpu.Y)
+}
+
+// LDA   AD
+// absolute addressing.
+func opcode_AD(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A = val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// LDX   AE
+// absolute addressing.
+func opcode_AE(cpu *CPU) {
+	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.X = val
+	cpu.P.checkNZ(cpu.X)
 }
 
 // BCS   B0
@@ -2488,6 +2604,26 @@ func opcode_B0(cpu *CPU) {
 	cpu.PC++
 }
 
+// LDA   B1
+// indexed addressing (abs),Y.
+func opcode_B1(cpu *CPU) {
+	// extra cycle for page cross
+	oper := uint16(cpu.Read8(cpu.PC))
+	cpu.PC++
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(oper)
+	hi := cpu.Read8(uint16(uint8(oper) + 1))
+	oper = uint16(hi)<<8 | uint16(lo)
+	if pagecrossed(oper, oper+uint16(cpu.Y)) {
+		cpu.tick()
+	}
+	oper += uint16(cpu.Y)
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A = val
+	cpu.P.checkNZ(cpu.A)
+}
+
 // JAM   B2
 // immediate addressing.
 func opcode_B2(cpu *CPU) {
@@ -2498,11 +2634,115 @@ func opcode_B2(cpu *CPU) {
 	panic(msg)
 }
 
+// LDY   B4
+// indexed addressing: zeropage,X.
+func opcode_B4(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.Y = val
+	cpu.P.checkNZ(cpu.Y)
+}
+
+// LDA   B5
+// indexed addressing: zeropage,X.
+func opcode_B5(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.X)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A = val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// LDX   B6
+// indexed addressing: zeropage,Y.
+func opcode_B6(cpu *CPU) {
+	cpu.tick()
+	addr := cpu.Read8(cpu.PC)
+	cpu.PC++
+	oper := uint16(addr) + uint16(cpu.Y)
+	oper &= 0xff
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.X = val
+	cpu.P.checkNZ(cpu.X)
+}
+
 // CLV   B8
 // implied addressing.
 func opcode_B8(cpu *CPU) {
 	cpu.P.clearBit(6)
 	cpu.tick()
+}
+
+// LDA   B9
+// absolute indexed Y.
+func opcode_B9(cpu *CPU) {
+	// extra cycle for page cross
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.Y)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A = val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// LDY   BC
+// absolute indexed X.
+func opcode_BC(cpu *CPU) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.X)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.Y = val
+	cpu.P.checkNZ(cpu.Y)
+}
+
+// LDA   BD
+// absolute indexed X.
+func opcode_BD(cpu *CPU) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.X)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.A = val
+	cpu.P.checkNZ(cpu.A)
+}
+
+// LDX   BE
+// absolute indexed Y.
+func opcode_BE(cpu *CPU) {
+	// extra cycle for page cross
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	oper := addr + uint16(cpu.Y)
+	if pagecrossed(oper, addr) {
+		cpu.tick()
+	}
+	_ = oper
+	val := cpu.Read8(oper)
+	cpu.X = val
+	cpu.P.checkNZ(cpu.X)
 }
 
 // NOP   C2
@@ -2830,10 +3070,28 @@ var gdefs = [256]func(*CPU){
 	0x9D: opcode_9D,
 	0x9E: opcode_9E,
 	0x9F: opcode_9F,
+	0xA0: opcode_A0,
+	0xA1: opcode_A1,
+	0xA2: opcode_A2,
+	0xA4: opcode_A4,
+	0xA5: opcode_A5,
+	0xA6: opcode_A6,
+	0xA9: opcode_A9,
 	0xAB: opcode_AB,
+	0xAC: opcode_AC,
+	0xAD: opcode_AD,
+	0xAE: opcode_AE,
 	0xB0: opcode_B0,
+	0xB1: opcode_B1,
 	0xB2: opcode_B2,
+	0xB4: opcode_B4,
+	0xB5: opcode_B5,
+	0xB6: opcode_B6,
 	0xB8: opcode_B8,
+	0xB9: opcode_B9,
+	0xBC: opcode_BC,
+	0xBD: opcode_BD,
+	0xBE: opcode_BE,
 	0xC2: opcode_C2,
 	0xCA: opcode_CA,
 	0xD0: opcode_D0,

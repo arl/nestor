@@ -154,68 +154,68 @@ var defs = [256]opdef{
 	0x7E: {n: "ROR", rw: "rw", m: "abx", f: ROR},
 	0x7F: {n: "RRA", rw: "rw", m: "abx", f: RRA},
 	0x80: {n: "NOP", rw: "  ", m: "imm", f: NOP},
-	0x81: {n: "STA", rw: "  ", m: "izx", f: STA},
+	0x81: {n: "STA", rw: "  ", m: "izx", f: store("A")},
 	0x82: {n: "NOP", rw: "  ", m: "imm", f: NOP},
 	0x83: {n: "SAX", rw: "  ", m: "izx", f: SAX},
-	0x84: {n: "STY", rw: "  ", m: "zpg", f: STY},
-	0x85: {n: "STA", rw: "  ", m: "zpg", f: STA},
-	0x86: {n: "STX", rw: "  ", m: "zpg", f: STX},
+	0x84: {n: "STY", rw: "  ", m: "zpg", f: store("Y")},
+	0x85: {n: "STA", rw: "  ", m: "zpg", f: store("A")},
+	0x86: {n: "STX", rw: "  ", m: "zpg", f: store("X")},
 	0x87: {n: "SAX", rw: "  ", m: "zpg", f: SAX},
 	0x88: {n: "DEY", rw: "  ", m: "imp", f: DEY},
 	0x89: {n: "NOP", rw: "  ", m: "imm", f: NOP},
 	0x8A: {n: "TXA", rw: "  ", m: "imp", f: TXA},
 	0x8B: {n: "ANE", rw: "  ", m: "imm", f: unstable},
-	0x8C: {n: "STY", rw: "  ", m: "abs", f: STY},
-	0x8D: {n: "STA", rw: "  ", m: "abs", f: STA},
-	0x8E: {n: "STX", rw: "  ", m: "abs", f: STX},
+	0x8C: {n: "STY", rw: "  ", m: "abs", f: store("Y")},
+	0x8D: {n: "STA", rw: "  ", m: "abs", f: store("A")},
+	0x8E: {n: "STX", rw: "  ", m: "abs", f: store("X")},
 	0x8F: {n: "SAX", rw: "  ", m: "abs", f: SAX},
 	0x90: {n: "BCC", rw: "  ", m: "rel", f: branch(0, false)},
-	0x91: {n: "STA", rw: "  ", m: "izy", f: STA},
+	0x91: {n: "STA", rw: "  ", m: "izy", f: store("A")},
 	0x92: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0x93: {n: "SHA", rw: "  ", m: "izy", f: unstable},
-	0x94: {n: "STY", rw: "  ", m: "zpx", f: STY},
-	0x95: {n: "STA", rw: "  ", m: "zpx", f: STA},
-	0x96: {n: "STX", rw: "  ", m: "zpy", f: STX},
+	0x94: {n: "STY", rw: "  ", m: "zpx", f: store("Y")},
+	0x95: {n: "STA", rw: "  ", m: "zpx", f: store("A")},
+	0x96: {n: "STX", rw: "  ", m: "zpy", f: store("X")},
 	0x97: {n: "SAX", rw: "  ", m: "zpy", f: SAX},
 	0x98: {n: "TYA", rw: "  ", m: "imp", f: TYA},
-	0x99: {n: "STA", rw: "  ", m: "aby", f: STA},
+	0x99: {n: "STA", rw: "  ", m: "aby", f: store("A")},
 	0x9A: {n: "TXS", rw: "  ", m: "imp", f: TXS},
 	0x9B: {n: "TAS", rw: "  ", m: "aby", f: unstable},
 	0x9C: {n: "SHY", rw: "  ", m: "abx", f: unstable},
-	0x9D: {n: "STA", rw: "  ", m: "abx", f: STA},
+	0x9D: {n: "STA", rw: "  ", m: "abx", f: store("A")},
 	0x9E: {n: "SHX", rw: "  ", m: "aby", f: unstable},
 	0x9F: {n: "SHA", rw: "  ", m: "aby", f: unstable},
-	0xA0: {n: "LDY", rw: "  ", m: "imm"},
-	0xA1: {n: "LDA", rw: "  ", m: "izx"},
-	0xA2: {n: "LDX", rw: "  ", m: "imm"},
+	0xA0: {n: "LDY", rw: "r ", m: "imm", f: load("Y")},
+	0xA1: {n: "LDA", rw: "r ", m: "izx", f: load("A")},
+	0xA2: {n: "LDX", rw: "r ", m: "imm", f: load("X")},
 	0xA3: {n: "LAX", rw: "  ", m: "izx"},
-	0xA4: {n: "LDY", rw: "  ", m: "zpg"},
-	0xA5: {n: "LDA", rw: "  ", m: "zpg"},
-	0xA6: {n: "LDX", rw: "  ", m: "zpg"},
+	0xA4: {n: "LDY", rw: "r ", m: "zpg", f: load("Y")},
+	0xA5: {n: "LDA", rw: "r ", m: "zpg", f: load("A")},
+	0xA6: {n: "LDX", rw: "r ", m: "zpg", f: load("X")},
 	0xA7: {n: "LAX", rw: "  ", m: "zpg"},
 	0xA8: {n: "TAY", rw: "  ", m: "imp"},
-	0xA9: {n: "LDA", rw: "  ", m: "imm"},
+	0xA9: {n: "LDA", rw: "r ", m: "imm", f: load("A")},
 	0xAA: {n: "TAX", rw: "  ", m: "imp"},
 	0xAB: {n: "LXA", rw: "  ", m: "imm", f: unstable},
-	0xAC: {n: "LDY", rw: "  ", m: "abs"},
-	0xAD: {n: "LDA", rw: "  ", m: "abs"},
-	0xAE: {n: "LDX", rw: "  ", m: "abs"},
+	0xAC: {n: "LDY", rw: "r ", m: "abs", f: load("Y")},
+	0xAD: {n: "LDA", rw: "r ", m: "abs", f: load("A")},
+	0xAE: {n: "LDX", rw: "r ", m: "abs", f: load("X")},
 	0xAF: {n: "LAX", rw: "  ", m: "abs"},
 	0xB0: {n: "BCS", rw: "  ", m: "rel", f: branch(0, true)},
-	0xB1: {n: "LDA", rw: "  ", m: "izy"},
+	0xB1: {n: "LDA", rw: "r ", m: "izy", f: load("A")},
 	0xB2: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0xB3: {n: "LAX", rw: "  ", m: "izy"},
-	0xB4: {n: "LDY", rw: "  ", m: "zpx"},
-	0xB5: {n: "LDA", rw: "  ", m: "zpx"},
-	0xB6: {n: "LDX", rw: "  ", m: "zpy"},
+	0xB4: {n: "LDY", rw: "r ", m: "zpx", f: load("Y")},
+	0xB5: {n: "LDA", rw: "r ", m: "zpx", f: load("A")},
+	0xB6: {n: "LDX", rw: "r ", m: "zpy", f: load("X")},
 	0xB7: {n: "LAX", rw: "  ", m: "zpy"},
 	0xB8: {n: "CLV", rw: "  ", m: "imp", f: clearFlag(6)},
-	0xB9: {n: "LDA", rw: "  ", m: "aby"},
+	0xB9: {n: "LDA", rw: "r ", m: "aby", f: load("A")},
 	0xBA: {n: "TSX", rw: "  ", m: "imp"},
 	0xBB: {n: "LAS", rw: "  ", m: "aby"},
-	0xBC: {n: "LDY", rw: "  ", m: "abx"},
-	0xBD: {n: "LDA", rw: "  ", m: "abx"},
-	0xBE: {n: "LDX", rw: "  ", m: "aby"},
+	0xBC: {n: "LDY", rw: "r ", m: "abx", f: load("Y")},
+	0xBD: {n: "LDA", rw: "r ", m: "abx", f: load("A")},
+	0xBE: {n: "LDX", rw: "r ", m: "aby", f: load("X")},
 	0xBF: {n: "LAX", rw: "  ", m: "aby"},
 	0xC0: {n: "CPY", rw: "  ", m: "imm"},
 	0xC1: {n: "CMP", rw: "  ", m: "izx"},
@@ -611,8 +611,17 @@ func AND(g *Generator, _ opdef) {
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
-func STA(g *Generator, _ opdef) {
-	g.printf(`cpu.Write8(oper, cpu.A)`)
+func load(reg string) func(g *Generator, _ opdef) {
+	return func(g *Generator, _ opdef) {
+		g.printf(`cpu.%s = val`, reg)
+		g.printf(`cpu.P.checkNZ(cpu.%s)`, reg)
+	}
+}
+
+func store(reg string) func(g *Generator, _ opdef) {
+	return func(g *Generator, _ opdef) {
+		g.printf(`cpu.Write8(oper, cpu.%s)`, reg)
+	}
 }
 
 func TXA(g *Generator, _ opdef) {
@@ -630,14 +639,6 @@ func TYA(g *Generator, _ opdef) {
 func TXS(g *Generator, _ opdef) {
 	g.printf(`cpu.SP = cpu.X`)
 	g.printf(`cpu.tick()`)
-}
-
-func STX(g *Generator, _ opdef) {
-	g.printf(`cpu.Write8(oper, cpu.X)`)
-}
-
-func STY(g *Generator, _ opdef) {
-	g.printf(`cpu.Write8(oper, cpu.Y)`)
 }
 
 func SAX(g *Generator, _ opdef) {
