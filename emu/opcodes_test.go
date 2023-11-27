@@ -25,6 +25,10 @@ func funcname(temp interface{}) string {
 }
 
 func TestOpcodes(t *testing.T) {
+	if !testing.Short() {
+		t.Skip("skipping long test")
+	}
+
 	// Run tests for all implemented opcodes.
 	for opcode := range ops {
 		opstr := fmt.Sprintf("%02x", opcode)
