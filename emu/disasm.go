@@ -7,266 +7,265 @@ import (
 )
 
 var opsDisasm = [256]disasmFunc{
-	0x00: imp("BRK"),
-	0x01: izx("ORA"),
-	0x02: jam(),
-	0x03: izx("*SLO"),
-	0x04: zp("*NOP"),
-	0x05: zp("ORA"),
-	0x06: zp("ASL"),
-	0x07: zp("*SLO"),
-	0x08: imp("PHP"),
-	0x09: imm("ORA"),
-	0x0A: acc("ASL"),
-	0x0B: imm("*ANC"),
-	0x0C: abs("*NOP"),
-	0x0D: abs("ORA"),
-	0x0E: abs("ASL"),
-	0x0F: abs("*SLO"),
-	0x10: rel("BPL"),
-	0x11: izy("ORA"),
-	0x12: jam(),
-	0x13: izy("*SLO"),
-	0x14: zpx("*NOP"),
-	0x15: zpx("ORA"),
-	0x16: zpx("ASL"),
-	0x17: zpx("*SLO"),
-	0x18: imp("CLC"),
-	0x19: aby("ORA"),
-	0x1A: imp("*NOP"),
-	0x1B: aby("*SLO"),
-	0x1C: abx("*NOP"),
-	0x1D: abx("ORA"),
-	0x1E: abx("ASL"),
-	0x1F: abx("*SLO"),
-	0x20: abs("JSR"),
-	0x21: izx("AND"),
-	0x22: jam(),
-	0x23: izx("*RLA"),
-	0x24: zp("BIT"),
-	0x25: zp("AND"),
-	0x26: zp("ROL"),
-	0x27: zp("*RLA"),
-	0x28: imp("PLP"),
-	0x29: imm("AND"),
-	0x2A: acc("ROL"),
-	0x2C: abs("BIT"),
-	0x2D: abs("AND"),
-	0x2E: abs("ROL"),
-	0x2F: abs("*RLA"),
-	0x30: rel("BMI"),
-	0x31: izy("AND"),
-	0x32: jam(),
-	0x33: izy("*RLA"),
-	0x34: zpx("*NOP"),
-	0x35: zpx("AND"),
-	0x36: zpx("ROL"),
-	0x37: zpx("*RLA"),
-	0x38: imp("SEC"),
-	0x39: aby("AND"),
-	0x3A: imp("*NOP"),
-	0x3B: aby("*RLA"),
-	0x3C: abx("*NOP"),
-	0x3D: abx("AND"),
-	0x3E: abx("ROL"),
-	0x3F: abx("*RLA"),
-	0x40: imp("RTI"),
-	0x41: izx("EOR"),
-	0x42: jam(),
-	0x43: izx("*SRE"),
-	0x44: zp("*NOP"),
-	0x45: zp("EOR"),
-	0x46: zp("LSR"),
-	0x47: zp("*SRE"),
-	0x48: imp("PHA"),
-	0x49: imm("EOR"),
-	0x4A: acc("LSR"),
-	0x4B: imm("*ALR"),
-	0x4C: abs("JMP"),
-	0x4D: abs("EOR"),
-	0x4E: abs("LSR"),
-	0x4F: abs("*SRE"),
-	0x50: rel("BVC"),
-	0x51: izy("EOR"),
-	0x52: jam(),
-	0x53: izy("*SRE"),
-	0x54: zpx("*NOP"),
-	0x55: zpx("EOR"),
-	0x56: zpx("LSR"),
-	0x57: zpx("*SRE"),
-	0x58: imp("CLI"),
-	0x59: aby("EOR"),
-	0x5A: imp("*NOP"),
-	0x5B: aby("*SRE"),
-	0x5C: abx("*NOP"),
-	0x5D: abx("EOR"),
-	0x5E: abx("LSR"),
-	0x5F: abx("*SRE"),
-	0x60: imp("RTS"),
-	0x61: izx("ADC"),
-	0x62: jam(),
-	0x63: izx("*RRA"),
-	0x64: zp("*NOP"),
-	0x65: zp("ADC"),
-	0x66: zp("ROR"),
-	0x67: zp("*RRA"),
-	0x68: imp("PLA"),
-	0x69: imm("ADC"),
-	0x6A: acc("ROR"),
-	0x6B: imm("*ARR"),
-	0x6C: ind("JMP"),
-	0x6D: abs("ADC"),
-	0x6E: abs("ROR"),
-	0x6F: abs("*RRA"),
-	0x70: rel("BVS"),
-	0x71: izy("ADC"),
-	0x72: jam(),
-	0x73: izy("*RRA"),
-	0x74: zpx("*NOP"),
-	0x75: zpx("ADC"),
-	0x76: zpx("ROR"),
-	0x77: zpx("*RRA"),
-	0x78: imp("SEI"),
-	0x79: aby("ADC"),
-	0x7A: imp("*NOP"),
-	0x7B: aby("*RRA"),
-	0x7C: abx("*NOP"),
-	0x7D: abx("ADC"),
-	0x7E: abx("ROR"),
-	0x7F: abx("*RRA"),
-	0x80: imm("*NOP"),
-	0x81: izx("STA"),
-	0x82: imp("*NOP"),
-	0x83: izx("*SAX"),
-	0x84: zp("STY"),
-	0x85: zp("STA"),
-	0x86: zp("STX"),
-	0x87: zp("*SAX"),
-	0x88: imp("DEY"),
-	0x89: imm("*NOP"),
-	0x8A: imp("TXA"),
-	0x8B: imm("*ANE"),
-	0x8C: abs("STY"),
-	0x8D: abs("STA"),
-	0x8E: abs("STX"),
-	0x8F: abs("*SAX"),
-	0x90: rel("BCC"),
-	0x91: izy("STA"),
-	0x92: jam(),
-	0x93: izy("*SHA"),
-	0x94: zpx("STY"),
-	0x95: zpx("STA"),
-	0x96: zpy("STX"),
-	0x97: zpy("*SAX"),
-	0x98: imp("TYA"),
-	0x99: aby("STA"),
-	0x9A: imp("TXS"),
-	0x9B: abs("*TAS"),
-	0x9C: abx("*SHY"),
-	0x9D: abx("STA"),
-	0x9E: aby("*SHX"),
-	0x9F: aby("*SHA"),
-	0xA0: imm("LDY"),
-	0xA1: izx("LDA"),
-	0xA2: imm("LDX"),
-	0xA3: izx("*LAX"),
-	0xA4: zp("LDY"),
-	0xA5: zp("LDA"),
-	0xA6: zp("LDX"),
-	0xA7: zp("*LAX"),
-	0xA8: imp("TAY"),
-	0xA9: imm("LDA"),
-	0xAA: imp("TAX"),
-	0xAB: imm("*LXA"),
-	0xAC: abs("LDY"),
-	0xAD: abs("LDA"),
-	0xAE: abs("LDX"),
-	0xAF: abs("*LAX"),
-	0xB0: rel("BCS"),
-	0xB1: izy("LDA"),
-	0xB2: jam(),
-	0xB3: izy("*LAX"),
-	0xB4: zpx("LDY"),
-	0xB5: zpx("LDA"),
-	0xB6: zpy("LDX"),
-	0xB7: zpy("*LAX"),
-	0xB8: imp("CLV"),
-	0xB9: aby("LDA"),
-	0xBA: imp("TSX"),
-	0xBB: aby("*LAS"),
-	0xBC: abx("LDY"),
-	0xBD: abx("LDA"),
-	0xBE: aby("LDX"),
-	0xBF: aby("*LAX"),
-	0xC0: imm("CPY"),
-	0xC1: izx("CMP"),
-	0xC2: imm("*NOP"),
-	0xC3: izx("*DCP"),
-	0xC4: zp("CPY"),
-	0xC5: zp("CMP"),
-	0xC6: zp("DEC"),
-	0xC7: zp("*DCP"),
-	0xC8: imp("INY"),
-	0xC9: imm("CMP"),
-	0xCA: imp("DEX"),
-	0xCB: imm("*SBX"),
-	0xCC: abs("CPY"),
-	0xCD: abs("CMP"),
-	0xCE: abs("DEC"),
-	0xCF: abs("*DCP"),
-	0xD0: rel("BNE"),
-	0xD1: izy("CMP"),
-	0xD2: jam(),
-	0xD3: izy("*DCP"),
-	0xD4: zpx("*NOP"),
-	0xD5: zpx("CMP"),
-	0xD6: zpx("DEC"),
-	0xD7: zpx("*DCP"),
-	0xD8: imp("CLD"),
-	0xD9: aby("CMP"),
-	0xDA: imp("*NOP"),
-	0xDB: aby("*DCP"),
-	0xDC: abx("*NOP"),
-	0xDD: abx("CMP"),
-	0xDE: abx("DEC"),
-	0xDF: abx("*DCP"),
-	0xE0: imm("CPX"),
-	0xE1: izx("SBC"),
-	0xE2: imm("*NOP"),
-	0xE3: izx("*ISB"),
-	0xE4: zp("CPX"),
-	0xE5: zp("SBC"),
-	0xE6: zp("INC"),
-	0xE7: zp("*ISB"),
-	0xE8: imp("INX"),
-	0xE9: imm("SBC"),
-	0xEA: imp("NOP"),
-	0xEB: imm("*SBC"),
-	0xEC: abs("CPX"),
-	0xED: abs("SBC"),
-	0xEE: abs("INC"),
-	0xEF: abs("*ISB"),
-	0xF0: rel("BEQ"),
-	0xF1: izy("SBC"),
-	0xF2: jam(),
-	0xF3: izy("*ISB"),
-	0xF4: zpx("*NOP"),
-	0xF5: zpx("SBC"),
-	0xF6: zpx("INC"),
-	0xF7: zpx("*ISB"),
-	0xF8: imp("SED"),
-	0xF9: aby("SBC"),
-	0xFA: imp("*NOP"),
-	0xFB: aby("*ISB"),
-	0xFC: abx("*NOP"),
-	0xFD: abx("SBC"),
-	0xFE: abx("INC"),
-	0xFF: abx("*ISB"),
+	0x00: disasm_imp("BRK"),
+	0x01: disasm_izx("ORA"),
+	0x02: disasm_jam(),
+	0x03: disasm_izx("*SLO"),
+	0x04: disasm_zp("*NOP"),
+	0x05: disasm_zp("ORA"),
+	0x06: disasm_zp("ASL"),
+	0x07: disasm_zp("*SLO"),
+	0x08: disasm_imp("PHP"),
+	0x09: disasm_imm("ORA"),
+	0x0A: disasm_acc("ASL"),
+	0x0B: disasm_imm("*ANC"),
+	0x0C: disasm_abs("*NOP"),
+	0x0D: disasm_abs("ORA"),
+	0x0E: disasm_abs("ASL"),
+	0x0F: disasm_abs("*SLO"),
+	0x10: disasm_rel("BPL"),
+	0x11: disasm_izy("ORA"),
+	0x12: disasm_jam(),
+	0x13: disasm_izy("*SLO"),
+	0x14: disasm_zpx("*NOP"),
+	0x15: disasm_zpx("ORA"),
+	0x16: disasm_zpx("ASL"),
+	0x17: disasm_zpx("*SLO"),
+	0x18: disasm_imp("CLC"),
+	0x19: disasm_aby("ORA"),
+	0x1A: disasm_imp("*NOP"),
+	0x1B: disasm_aby("*SLO"),
+	0x1C: disasm_abx("*NOP"),
+	0x1D: disasm_abx("ORA"),
+	0x1E: disasm_abx("ASL"),
+	0x1F: disasm_abx("*SLO"),
+	0x20: disasm_abs("JSR"),
+	0x21: disasm_izx("AND"),
+	0x22: disasm_jam(),
+	0x23: disasm_izx("*RLA"),
+	0x24: disasm_zp("BIT"),
+	0x25: disasm_zp("AND"),
+	0x26: disasm_zp("ROL"),
+	0x27: disasm_zp("*RLA"),
+	0x28: disasm_imp("PLP"),
+	0x29: disasm_imm("AND"),
+	0x2A: disasm_acc("ROL"),
+	0x2C: disasm_abs("BIT"),
+	0x2D: disasm_abs("AND"),
+	0x2E: disasm_abs("ROL"),
+	0x2F: disasm_abs("*RLA"),
+	0x30: disasm_rel("BMI"),
+	0x31: disasm_izy("AND"),
+	0x32: disasm_jam(),
+	0x33: disasm_izy("*RLA"),
+	0x34: disasm_zpx("*NOP"),
+	0x35: disasm_zpx("AND"),
+	0x36: disasm_zpx("ROL"),
+	0x37: disasm_zpx("*RLA"),
+	0x38: disasm_imp("SEC"),
+	0x39: disasm_aby("AND"),
+	0x3A: disasm_imp("*NOP"),
+	0x3B: disasm_aby("*RLA"),
+	0x3C: disasm_abx("*NOP"),
+	0x3D: disasm_abx("AND"),
+	0x3E: disasm_abx("ROL"),
+	0x3F: disasm_abx("*RLA"),
+	0x40: disasm_imp("RTI"),
+	0x41: disasm_izx("EOR"),
+	0x42: disasm_jam(),
+	0x43: disasm_izx("*SRE"),
+	0x44: disasm_zp("*NOP"),
+	0x45: disasm_zp("EOR"),
+	0x46: disasm_zp("LSR"),
+	0x47: disasm_zp("*SRE"),
+	0x48: disasm_imp("PHA"),
+	0x49: disasm_imm("EOR"),
+	0x4A: disasm_acc("LSR"),
+	0x4B: disasm_imm("*ALR"),
+	0x4C: disasm_abs("JMP"),
+	0x4D: disasm_abs("EOR"),
+	0x4E: disasm_abs("LSR"),
+	0x4F: disasm_abs("*SRE"),
+	0x50: disasm_rel("BVC"),
+	0x51: disasm_izy("EOR"),
+	0x52: disasm_jam(),
+	0x53: disasm_izy("*SRE"),
+	0x54: disasm_zpx("*NOP"),
+	0x55: disasm_zpx("EOR"),
+	0x56: disasm_zpx("LSR"),
+	0x57: disasm_zpx("*SRE"),
+	0x58: disasm_imp("CLI"),
+	0x59: disasm_aby("EOR"),
+	0x5A: disasm_imp("*NOP"),
+	0x5B: disasm_aby("*SRE"),
+	0x5C: disasm_abx("*NOP"),
+	0x5D: disasm_abx("EOR"),
+	0x5E: disasm_abx("LSR"),
+	0x5F: disasm_abx("*SRE"),
+	0x60: disasm_imp("RTS"),
+	0x61: disasm_izx("ADC"),
+	0x62: disasm_jam(),
+	0x63: disasm_izx("*RRA"),
+	0x64: disasm_zp("*NOP"),
+	0x65: disasm_zp("ADC"),
+	0x66: disasm_zp("ROR"),
+	0x67: disasm_zp("*RRA"),
+	0x68: disasm_imp("PLA"),
+	0x69: disasm_imm("ADC"),
+	0x6A: disasm_acc("ROR"),
+	0x6B: disasm_imm("*ARR"),
+	0x6C: disasm_ind("JMP"),
+	0x6D: disasm_abs("ADC"),
+	0x6E: disasm_abs("ROR"),
+	0x6F: disasm_abs("*RRA"),
+	0x70: disasm_rel("BVS"),
+	0x71: disasm_izy("ADC"),
+	0x72: disasm_jam(),
+	0x73: disasm_izy("*RRA"),
+	0x74: disasm_zpx("*NOP"),
+	0x75: disasm_zpx("ADC"),
+	0x76: disasm_zpx("ROR"),
+	0x77: disasm_zpx("*RRA"),
+	0x78: disasm_imp("SEI"),
+	0x79: disasm_aby("ADC"),
+	0x7A: disasm_imp("*NOP"),
+	0x7B: disasm_aby("*RRA"),
+	0x7C: disasm_abx("*NOP"),
+	0x7D: disasm_abx("ADC"),
+	0x7E: disasm_abx("ROR"),
+	0x7F: disasm_abx("*RRA"),
+	0x80: disasm_imm("*NOP"),
+	0x81: disasm_izx("STA"),
+	0x82: disasm_imp("*NOP"),
+	0x83: disasm_izx("*SAX"),
+	0x84: disasm_zp("STY"),
+	0x85: disasm_zp("STA"),
+	0x86: disasm_zp("STX"),
+	0x87: disasm_zp("*SAX"),
+	0x88: disasm_imp("DEY"),
+	0x89: disasm_imm("*NOP"),
+	0x8A: disasm_imp("TXA"),
+	0x8B: disasm_imm("*ANE"),
+	0x8C: disasm_abs("STY"),
+	0x8D: disasm_abs("STA"),
+	0x8E: disasm_abs("STX"),
+	0x8F: disasm_abs("*SAX"),
+	0x90: disasm_rel("BCC"),
+	0x91: disasm_izy("STA"),
+	0x92: disasm_jam(),
+	0x93: disasm_izy("*SHA"),
+	0x94: disasm_zpx("STY"),
+	0x95: disasm_zpx("STA"),
+	0x96: disasm_zpy("STX"),
+	0x97: disasm_zpy("*SAX"),
+	0x98: disasm_imp("TYA"),
+	0x99: disasm_aby("STA"),
+	0x9A: disasm_imp("TXS"),
+	0x9B: disasm_abs("*TAS"),
+	0x9C: disasm_abx("*SHY"),
+	0x9D: disasm_abx("STA"),
+	0x9E: disasm_aby("*SHX"),
+	0x9F: disasm_aby("*SHA"),
+	0xA0: disasm_imm("LDY"),
+	0xA1: disasm_izx("LDA"),
+	0xA2: disasm_imm("LDX"),
+	0xA3: disasm_izx("*LAX"),
+	0xA4: disasm_zp("LDY"),
+	0xA5: disasm_zp("LDA"),
+	0xA6: disasm_zp("LDX"),
+	0xA7: disasm_zp("*LAX"),
+	0xA8: disasm_imp("TAY"),
+	0xA9: disasm_imm("LDA"),
+	0xAA: disasm_imp("TAX"),
+	0xAB: disasm_imm("*LXA"),
+	0xAC: disasm_abs("LDY"),
+	0xAD: disasm_abs("LDA"),
+	0xAE: disasm_abs("LDX"),
+	0xAF: disasm_abs("*LAX"),
+	0xB0: disasm_rel("BCS"),
+	0xB1: disasm_izy("LDA"),
+	0xB2: disasm_jam(),
+	0xB3: disasm_izy("*LAX"),
+	0xB4: disasm_zpx("LDY"),
+	0xB5: disasm_zpx("LDA"),
+	0xB6: disasm_zpy("LDX"),
+	0xB7: disasm_zpy("*LAX"),
+	0xB8: disasm_imp("CLV"),
+	0xB9: disasm_aby("LDA"),
+	0xBA: disasm_imp("TSX"),
+	0xBB: disasm_aby("*LAS"),
+	0xBC: disasm_abx("LDY"),
+	0xBD: disasm_abx("LDA"),
+	0xBE: disasm_aby("LDX"),
+	0xBF: disasm_aby("*LAX"),
+	0xC0: disasm_imm("CPY"),
+	0xC1: disasm_izx("CMP"),
+	0xC2: disasm_imm("*NOP"),
+	0xC3: disasm_izx("*DCP"),
+	0xC4: disasm_zp("CPY"),
+	0xC5: disasm_zp("CMP"),
+	0xC6: disasm_zp("DEC"),
+	0xC7: disasm_zp("*DCP"),
+	0xC8: disasm_imp("INY"),
+	0xC9: disasm_imm("CMP"),
+	0xCA: disasm_imp("DEX"),
+	0xCB: disasm_imm("*SBX"),
+	0xCC: disasm_abs("CPY"),
+	0xCD: disasm_abs("CMP"),
+	0xCE: disasm_abs("DEC"),
+	0xCF: disasm_abs("*DCP"),
+	0xD0: disasm_rel("BNE"),
+	0xD1: disasm_izy("CMP"),
+	0xD2: disasm_jam(),
+	0xD3: disasm_izy("*DCP"),
+	0xD4: disasm_zpx("*NOP"),
+	0xD5: disasm_zpx("CMP"),
+	0xD6: disasm_zpx("DEC"),
+	0xD7: disasm_zpx("*DCP"),
+	0xD8: disasm_imp("CLD"),
+	0xD9: disasm_aby("CMP"),
+	0xDA: disasm_imp("*NOP"),
+	0xDB: disasm_aby("*DCP"),
+	0xDC: disasm_abx("*NOP"),
+	0xDD: disasm_abx("CMP"),
+	0xDE: disasm_abx("DEC"),
+	0xDF: disasm_abx("*DCP"),
+	0xE0: disasm_imm("CPX"),
+	0xE1: disasm_izx("SBC"),
+	0xE2: disasm_imm("*NOP"),
+	0xE3: disasm_izx("*ISB"),
+	0xE4: disasm_zp("CPX"),
+	0xE5: disasm_zp("SBC"),
+	0xE6: disasm_zp("INC"),
+	0xE7: disasm_zp("*ISB"),
+	0xE8: disasm_imp("INX"),
+	0xE9: disasm_imm("SBC"),
+	0xEA: disasm_imp("NOP"),
+	0xEB: disasm_imm("*SBC"),
+	0xEC: disasm_abs("CPX"),
+	0xED: disasm_abs("SBC"),
+	0xEE: disasm_abs("INC"),
+	0xEF: disasm_abs("*ISB"),
+	0xF0: disasm_rel("BEQ"),
+	0xF1: disasm_izy("SBC"),
+	0xF2: disasm_jam(),
+	0xF3: disasm_izy("*ISB"),
+	0xF4: disasm_zpx("*NOP"),
+	0xF5: disasm_zpx("SBC"),
+	0xF6: disasm_zpx("INC"),
+	0xF7: disasm_zpx("*ISB"),
+	0xF8: disasm_imp("SED"),
+	0xF9: disasm_aby("SBC"),
+	0xFA: disasm_imp("*NOP"),
+	0xFB: disasm_aby("*ISB"),
+	0xFC: disasm_abx("*NOP"),
+	0xFD: disasm_abx("SBC"),
+	0xFE: disasm_abx("INC"),
+	0xFF: disasm_abx("*ISB"),
 }
 
 type disasm struct {
 	cpu       *CPU
-	prevP     P
 	prevPC    uint16
 	prevClock int64
 	bb        bytes.Buffer
@@ -278,26 +277,19 @@ type disasm struct {
 }
 
 func (d *disasm) loopinit() {
-	if d == nil {
-		return
-	}
-	d.prevP = d.cpu.P
 	d.prevPC = d.cpu.PC
 	d.prevClock = d.cpu.Clock
 }
 
 func (d *disasm) op() {
-	if d == nil {
-		return
-	}
 	d.bb.Reset()
 
-	opcode := d.cpu.bus.Read8(d.cpu.PC)
+	opcode := d.cpu.bus.Read8(d.prevPC)
 	opstr, nbytes := opsDisasm[opcode](d)
 
 	var tmp []byte
 	for i := uint16(0); i < uint16(nbytes); i++ {
-		b := d.cpu.bus.Read8(d.cpu.PC + i)
+		b := d.cpu.bus.Read8(d.prevPC + i)
 		tmp = append(tmp, fmt.Sprintf("%02X ", b)...)
 	}
 
@@ -307,14 +299,58 @@ func (d *disasm) op() {
 		// 	d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, 0, 0, d.cpu.Clock)
 		// fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d",
 		// 	d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.cpu.Clock)
-		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d\n", d.cpu.PC, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.cpu.Clock)
+		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d\n", d.prevPC, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.prevClock)
 	} else {
 		// TODO: re-add PPU when we'll have anything else than 0,0
 		// fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%s SP:%02X PPU:%3X,%3X CYC:%d",
 		// 	d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, 0, 0, d.cpu.Clock)
-		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%s SP:%02X CYC:%d\n", d.cpu.PC, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, d.cpu.Clock)
+		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%s SP:%02X CYC:%d\n", d.prevPC, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, d.prevClock)
 	}
 	d.w.Write(d.bb.Bytes())
+}
+
+// addressing modes
+//
+// For the disassembler, addressing modes use cpu.bus.Read rather than cpu.Read,
+// because we don't want to tick the clock.
+
+func (d *disasm) imm() uint8  { return d.cpu.bus.Read8(d.prevPC + 1) }
+func (d *disasm) abs() uint16 { return Read16(d.cpu.bus, d.prevPC+1) }
+func (d *disasm) zp() uint8   { return d.cpu.bus.Read8(d.prevPC + 1) }
+func (d *disasm) zpx() uint8  { return d.zp() + d.cpu.X }
+func (d *disasm) zpy() uint8  { return d.zp() + d.cpu.Y }
+
+func (d *disasm) rel() uint16 {
+	off := int16(int8(d.cpu.bus.Read8(d.prevPC + 1)))
+	return uint16(int16(d.prevPC+2) + off)
+}
+
+func (d *disasm) izx() uint16 {
+	oper := uint8(d.zp())
+	oper += d.cpu.X
+	return d.zpr16(uint16(oper))
+}
+
+func (d *disasm) zpr16(addr uint16) uint16 {
+	lo := d.cpu.bus.Read8(addr)
+	hi := d.cpu.bus.Read8(uint16(uint8(addr) + 1))
+	return uint16(hi)<<8 | uint16(lo)
+}
+
+func (d *disasm) ind() uint16 {
+	oper := Read16(d.cpu.bus, d.prevPC+1)
+	lo := d.cpu.bus.Read8(oper)
+	hi := d.cpu.bus.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
+	return uint16(hi)<<8 | uint16(lo)
+}
+
+func (d *disasm) aby() uint16 {
+	return d.abs() + uint16(d.cpu.Y)
+}
+
+func (d *disasm) abx() uint16 {
+	addr := d.abs()
+	return addr + uint16(d.cpu.X)
 }
 
 // dissasembly helpers
@@ -323,113 +359,112 @@ func (d *disasm) op() {
 // an opcode in its context.
 type disasmFunc func(*disasm) (string, int)
 
-func imp(op string) disasmFunc {
+func disasm_imp(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		return fmt.Sprintf("% 4s", op), 1
 	}
 }
 
-func acc(op string) disasmFunc {
+func disasm_acc(op string) disasmFunc {
 	return func(*disasm) (string, int) {
 		return fmt.Sprintf("% 4s A", op), 1
 	}
 }
 
-func imm(op string) disasmFunc {
+func disasm_imm(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		return fmt.Sprintf("% 4s #$%02X", op, d.cpu.imm()), 2
+		return fmt.Sprintf("% 4s #$%02X", op, d.imm()), 2
 	}
 }
 
-func jam() disasmFunc {
+func disasm_jam() disasmFunc {
 	return func(d *disasm) (string, int) {
 		return "*JAM", 2
 	}
 }
 
-func abs(op string) disasmFunc {
+func disasm_abs(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.abs()
+		addr := d.abs()
 		switch op {
 		case "JMP", "JSR":
 			return fmt.Sprintf("% 4s $%04X", op, addr), 3
 		default:
-			return fmt.Sprintf("% 4s $%04X = %02X", op, addr, d.cpu.Read8(addr)), 3
+			return fmt.Sprintf("% 4s $%04X = %02X", op, addr, d.cpu.bus.Read8(addr)), 3
 		}
 	}
 }
 
-func abx(op string) disasmFunc {
+func disasm_abx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		oper := d.cpu.abs()
-		addr, _ := d.cpu.abx()
-		return fmt.Sprintf("% 4s $%04X,X @ %04X = %02X", op, oper, addr, d.cpu.Read8(addr)), 3
+		oper := d.abs()
+		addr := d.abx()
+		return fmt.Sprintf("% 4s $%04X,X @ %04X = %02X", op, oper, addr, d.cpu.bus.Read8(addr)), 3
 	}
 }
 
-func aby(op string) disasmFunc {
+func disasm_aby(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		oper := d.cpu.abs()
-		addr, _ := d.cpu.aby()
-		return fmt.Sprintf("% 4s $%04X,Y @ %04X = %02X", op, oper, addr, d.cpu.Read8(addr)), 3
+		oper := d.abs()
+		addr := d.aby()
+		return fmt.Sprintf("% 4s $%04X,Y @ %04X = %02X", op, oper, addr, d.cpu.bus.Read8(addr)), 3
 	}
 }
 
-func zp(op string) disasmFunc {
+func disasm_zp(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.zp()
-		value := d.cpu.Read8(uint16(addr))
+		addr := d.zp()
+		value := d.cpu.bus.Read8(uint16(addr))
 		return fmt.Sprintf("% 4s $%02X = %02X", op, addr, value), 2
 	}
 }
 
-func zpx(op string) disasmFunc {
+func disasm_zpx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.zp()
-		addr2 := d.cpu.zpx()
-		return fmt.Sprintf("% 4s $%02X,X @ %02X = %02X", op, addr, addr2, d.cpu.Read8(uint16(addr2))), 2
+		addr := d.zp()
+		addr2 := d.zpx()
+		return fmt.Sprintf("% 4s $%02X,X @ %02X = %02X", op, addr, addr2, d.cpu.bus.Read8(uint16(addr2))), 2
 	}
 }
 
-func zpy(op string) disasmFunc {
+func disasm_zpy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.zp()
-		addr2 := d.cpu.zpy()
-		return fmt.Sprintf("% 4s $%02X,Y @ %02X = %02X", op, addr, addr2, d.cpu.Read8(uint16(addr2))), 2
+		addr := d.zp()
+		addr2 := d.zpy()
+		return fmt.Sprintf("% 4s $%02X,Y @ %02X = %02X", op, addr, addr2, d.cpu.bus.Read8(uint16(addr2))), 2
 	}
 }
 
-func rel(op string) disasmFunc {
+func disasm_rel(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		addr := reladdr(d.cpu)
-		return fmt.Sprintf("% 4s $%04X", op, addr), 2
+		return fmt.Sprintf("% 4s $%04X", op, d.rel()), 2
 	}
 }
 
 // indirect (JMP-only)
-func ind(op string) disasmFunc {
+func disasm_ind(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		oper := d.cpu.Read16(d.cpu.PC + 1)
-		dst := d.cpu.ind()
+		oper := Read16(d.cpu.bus, d.prevPC+1)
+		dst := d.ind()
 		return fmt.Sprintf("% 4s ($%04X) = %04X", op, oper, dst), 3
 	}
 }
 
-func izx(op string) disasmFunc {
+func disasm_izx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.Read8(d.cpu.PC + 1)
-		zp := d.cpu.zp() + d.cpu.X
-		addr2 := d.cpu.izx()
-		return fmt.Sprintf("% 4s ($%02X,X) @ %02X = %04X = %02X", op, addr, zp, addr2, d.cpu.Read8(addr2)), 2
+		addr := d.cpu.bus.Read8(d.prevPC + 1)
+		zp := d.zp() + d.cpu.X
+		addr2 := d.izx()
+		return fmt.Sprintf("% 4s ($%02X,X) @ %02X = %04X = %02X", op, addr, zp, addr2, d.cpu.bus.Read8(addr2)), 2
 	}
 }
 
-func izy(op string) disasmFunc {
+func disasm_izy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.Read8(d.cpu.PC + 1)
-		oper := d.cpu.zp()
-		addr2 := d.cpu.zpr16(uint16(oper))
+		addr := d.cpu.bus.Read8(d.prevPC + 1)
+		oper := d.zp()
+		addr2 := d.zpr16(uint16(oper))
 		dst := addr2 + uint16(d.cpu.Y)
-		return fmt.Sprintf("% 4s ($%02X),Y = %04X @ %04X = %02X", op, addr, addr2, dst, d.cpu.Read8(dst)), 2
+		return fmt.Sprintf("% 4s ($%02X),Y = %04X @ %04X = %02X", op, addr, addr2, dst, d.cpu.bus.Read8(dst)), 2
 	}
 }

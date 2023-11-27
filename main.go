@@ -17,7 +17,7 @@ func main() {
 	disasmLog := new(outfile)
 
 	flag.Var(&hexbyte, "P", "P register after first cpu reset (hex)")
-	flag.Var(disasmLog, "dlog", "write execution log to [file/stdout/stderr] (test/debug)")
+	flag.Var(disasmLog, "dbglog", "write execution log to [file|stdout|stderr] (for testing/debugging")
 	flag.Parse()
 
 	if len(flag.Args()) < 1 {
@@ -34,13 +34,15 @@ func main() {
 
 	nes := new(NES)
 	checkf(nes.PowerUp(rom), "error during power up")
+
 	nes.Reset()
 	nes.CPU.P = emu.P(hexbyte)
 	if disasmLog.w != nil {
 		defer disasmLog.Close()
 		nes.CPU.SetDisasm(disasmLog, false)
 	}
-	nes.Run()
+
+	checkf(startScreen(nes), "can't start screen")
 }
 
 func check(err error) {

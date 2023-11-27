@@ -101,7 +101,7 @@ func testOpcodes(op string) func(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.Name, func(t *testing.T) {
 				mem := &mapbus{m: make(map[uint16]uint8), t: t}
-				cpu := NewCPU(mem)
+				cpu := NewCPU(mem, &ticker{})
 				cpu.A = uint8(tt.Initial.A)
 				cpu.X = uint8(tt.Initial.X)
 				cpu.Y = uint8(tt.Initial.Y)
@@ -109,8 +109,9 @@ func testOpcodes(op string) func(t *testing.T) {
 				cpu.SP = uint8(tt.Initial.SP)
 				cpu.PC = uint16(tt.Initial.PC)
 
+				// preload RAM
 				for _, row := range tt.Initial.RAM {
-					mem.Write8(uint16(row[0]), uint8(row[1]))
+					mem.m[uint16(row[0])] = uint8(row[1])
 				}
 
 				if testing.Verbose() {
@@ -122,15 +123,13 @@ func testOpcodes(op string) func(t *testing.T) {
 				cpu.Run(int64(len(tt.Cycles)) - 1)
 
 				if testing.Verbose() {
+					t.Logf("expecting cycles:\n%s\n\n", strings.Join(prettyCycles(tt.Cycles), "\n"))
 					t.Log("test output:")
 				}
 
-				if testing.Verbose() {
-					for i, row := range tt.Cycles {
-						addr := int(row[0].(float64))
-						val := int(row[1].(float64))
-						t.Logf("cycle %d: %s 0x%04x = 0x%02x\n", i, row[2], addr, val)
-					}
+				// check cycles
+				if len(tt.Cycles) != int(cpu.Clock) {
+					t.Errorf("cycles count mismatch: got %d want %d\ndebug:\n%s", cpu.Clock, len(tt.Cycles), strings.Join(prettyCycles(tt.Cycles), "\n"))
 				}
 
 				// check ram
@@ -157,46 +156,80 @@ func testOpcodes(op string) func(t *testing.T) {
 	}
 }
 
+func prettyCycles(cycles [][]any) []string {
+	strs := make([]string, len(cycles))
+	for i, row := range cycles {
+		addr := int(row[0].(float64))
+		val := int(row[1].(float64))
+		strs[i] = fmt.Sprintf("%s 0x%04x = 0x%02x", row[2], addr, val)
+	}
+	return strs
+}
+
 func TestCPx(t *testing.T) {
 	t.Run("40 - 41", func(t *testing.T) {
 		// LDX #$40
 		// CPX #$41
 		cpu := loadCPUWith(t, `0600: a2 40 e0 41`)
+		cpu.Clock = 0
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		cpu.Run(4)
 
-		wantCPUState(t, cpu, "A", 0x00, "X", 0x40, "Y", 0x00, "P", 0b10110000)
+		wantCPUState(t, cpu,
+			"A", 0x00,
+			"X", 0x40,
+			"Y", 0x00,
+			"P", 0b10110000,
+		)
 	})
 	t.Run("40 - 40", func(t *testing.T) {
 		// LDX #$40
 		// CPX #$40
 		cpu := loadCPUWith(t, `0600: a2 40 e0 40`)
+		cpu.Clock = 0
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		cpu.Run(4)
 
-		wantCPUState(t, cpu, "A", 0x00, "X", 0x40, "Y", 0x00, "P", 0b00110011)
+		wantCPUState(t, cpu,
+			"A", 0x00,
+			"X", 0x40,
+			"Y", 0x00,
+			"P", 0b00110011,
+		)
 	})
 	t.Run("40 - 39", func(t *testing.T) {
 		// LDX #$40
 		// CPX #$39
 		cpu := loadCPUWith(t, `0600: a2 40 e0 39`)
+		cpu.Clock = 0
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		cpu.Run(4)
 
-		wantCPUState(t, cpu, "A", 0x00, "X", 0x40, "Y", 0x00, "P", 0b00110001)
+		wantCPUState(t, cpu,
+			"A", 0x00,
+			"X", 0x40,
+			"Y", 0x00,
+			"P", 0b00110001,
+		)
 	})
 }
 
 func TestLDA_STA(t *testing.T) {
 	dump := `0600: a9 01 8d 00 02 a9 05 8d 01 02 a9 08 8d 02 02`
 	cpu := loadCPUWith(t, dump)
+	cpu.Clock = 0
 	cpu.PC = 0x0600
 	cpu.Run(6 * 3)
 
-	wantCPUState(t, cpu, "A", 0x08, "Pb", 1, "PC", 0x060F, "SP", 0xfd)
+	wantCPUState(t, cpu,
+		"A", 0x08,
+		"Pb", 1,
+		"PC", 0x060F,
+		"SP", 0xfd,
+	)
 }
 
 func TestEOR(t *testing.T) {
@@ -205,11 +238,16 @@ func TestEOR(t *testing.T) {
 0000: 06
 0100: 45 00`
 		cpu := loadCPUWith(t, dump)
+		cpu.Clock = 0
 		cpu.PC = 0x0100
 		cpu.A = 0x80
 		cpu.Run(3)
 
-		wantCPUState(t, cpu, "A", 0x86, "Pn", 1, "Pz", 0)
+		wantCPUState(t, cpu,
+			"A", 0x86,
+			"Pn", 1,
+			"Pz", 0,
+		)
 	})
 }
 
@@ -217,16 +255,21 @@ func TestROR(t *testing.T) {
 	t.Run("zeropage", func(t *testing.T) {
 		dump := `
 0000: 55
-0100: 66 00`
+0100: 66 00
+# reset vector
+FFFC: 00 01`
 		cpu := loadCPUWith(t, dump)
-		cpu.PC = 0x0100
 		cpu.A = 0x80
 		cpu.P.writeBit(pbitC, true)
 
 		cpu.Run(5)
 
 		wantMem8(t, cpu, 0x0000, 0xAA)
-		wantCPUState(t, cpu, "Pn", 1, "Pc", 1, "Pz", 0)
+		wantCPUState(t, cpu,
+			"Pn", 1,
+			"Pc", 1,
+			"Pz", 0,
+		)
 	})
 }
 
@@ -240,9 +283,12 @@ func TestStack(t *testing.T) {
 0210: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 # instructions
 0600: a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68
-0610: 99 00 02 c8 c0 20 d0 f7`
+0610: 99 00 02 c8 c0 20 d0 f7
+# reset vector
+FFFC: 00 06
+`
 	cpu := loadCPUWith(t, dump)
-	cpu.PC = 0x0600
+	cpu.Clock = 0
 	cpu.P = 0x30
 	cpu.SP = 0xFF
 	cpu.SetDisasm(os.Stdout, false)
@@ -270,14 +316,19 @@ func TestStackSmall(t *testing.T) {
 # instructions
 0600: a9 aa 48 a9 11 68`
 	cpu := loadCPUWith(t, dump)
+	cpu.Clock = 0
 	cpu.PC = 0x0600
 	cpu.P = 0x30
 	cpu.SP = 0xFF
-	cpu.SetDisasm(os.Stdout, false)
+	cpu.SetDisasm(os.Stdout, true)
+	cpu.RunDisasm(8)
 
-	cpu.Run(8)
-
-	wantCPUState(t, cpu, "PC", 0x0606, "A", 0xAA, "SP", 0xFF, "Pn", 1)
+	wantCPUState(t, cpu,
+		"PC", 0x0606,
+		"A", 0xAA,
+		"SP", 0xFF,
+		"Pn", 1,
+	)
 }
 
 func TestJSR_RTS(t *testing.T) {
@@ -291,6 +342,7 @@ func TestJSR_RTS(t *testing.T) {
 # RTS
 0620: A9 88 60`
 	cpu := loadCPUWith(t, dump)
+	cpu.Clock = 0
 	cpu.PC = 0x0600
 	cpu.P = 0x30
 	cpu.SetDisasm(os.Stdout, false)
