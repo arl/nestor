@@ -217,43 +217,43 @@ var defs = [256]opdef{
 	0xBD: {n: "LDA", rw: "r ", m: "abx", f: load("A")},
 	0xBE: {n: "LDX", rw: "r ", m: "aby", f: load("X")},
 	0xBF: {n: "LAX", rw: "r ", m: "aby", f: load("A", "X")},
-	0xC0: {n: "CPY", rw: "  ", m: "imm"},
-	0xC1: {n: "CMP", rw: "  ", m: "izx"},
+	0xC0: {n: "CPY", rw: "r ", m: "imm", f: compare("Y")},
+	0xC1: {n: "CMP", rw: "r ", m: "izx", f: compare("A")},
 	0xC2: {n: "NOP", rw: "  ", m: "imm", f: NOP},
 	0xC3: {n: "DCP", rw: "  ", m: "izx"},
-	0xC4: {n: "CPY", rw: "  ", m: "zpg"},
-	0xC5: {n: "CMP", rw: "  ", m: "zpg"},
+	0xC4: {n: "CPY", rw: "r ", m: "zpg", f: compare("Y")},
+	0xC5: {n: "CMP", rw: "r ", m: "zpg", f: compare("A")},
 	0xC6: {n: "DEC", rw: "rw", m: "zpg", f: decrement("mem")},
 	0xC7: {n: "DCP", rw: "  ", m: "zpg"},
 	0xC8: {n: "INY", rw: "  ", m: "imp", f: increment("Y")},
-	0xC9: {n: "CMP", rw: "  ", m: "imm"},
+	0xC9: {n: "CMP", rw: "r ", m: "imm", f: compare("A")},
 	0xCA: {n: "DEX", rw: "  ", m: "imp", f: decrement("X")},
 	0xCB: {n: "SBX", rw: "  ", m: "imm"},
-	0xCC: {n: "CPY", rw: "  ", m: "abs"},
-	0xCD: {n: "CMP", rw: "  ", m: "abs"},
+	0xCC: {n: "CPY", rw: "r ", m: "abs", f: compare("Y")},
+	0xCD: {n: "CMP", rw: "r ", m: "abs", f: compare("A")},
 	0xCE: {n: "DEC", rw: "rw", m: "abs", f: decrement("mem")},
 	0xCF: {n: "DCP", rw: "  ", m: "abs"},
 	0xD0: {n: "BNE", rw: "  ", m: "rel", f: branch(1, false)},
-	0xD1: {n: "CMP", rw: "  ", m: "izy"},
+	0xD1: {n: "CMP", rw: "r ", m: "izy", f: compare("A")},
 	0xD2: {n: "JAM", rw: "  ", m: "imm", f: JAM},
 	0xD3: {n: "DCP", rw: "  ", m: "izy"},
 	0xD4: {n: "NOP", rw: "  ", m: "zpx", f: NOP},
-	0xD5: {n: "CMP", rw: "  ", m: "zpx"},
+	0xD5: {n: "CMP", rw: "r ", m: "zpx", f: compare("A")},
 	0xD6: {n: "DEC", rw: "rw", m: "zpx", f: decrement("mem")},
 	0xD7: {n: "DCP", rw: "  ", m: "zpx"},
 	0xD8: {n: "CLD", rw: "  ", m: "imp", f: clearFlag(3)},
-	0xD9: {n: "CMP", rw: "  ", m: "aby"},
+	0xD9: {n: "CMP", rw: "r ", m: "aby", f: compare("A")},
 	0xDA: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0xDB: {n: "DCP", rw: "  ", m: "aby"},
 	0xDC: {n: "NOP", rw: "  ", m: "abx", f: NOP},
-	0xDD: {n: "CMP", rw: "  ", m: "abx"},
+	0xDD: {n: "CMP", rw: "r ", m: "abx", f: compare("A")},
 	0xDE: {n: "DEC", rw: "rw", m: "abx", f: decrement("mem")},
 	0xDF: {n: "DCP", rw: "  ", m: "abx"},
-	0xE0: {n: "CPX", rw: "  ", m: "imm"},
+	0xE0: {n: "CPX", rw: "r ", m: "imm", f: compare("X")},
 	0xE1: {n: "SBC", rw: "  ", m: "izx"},
 	0xE2: {n: "NOP", rw: "  ", m: "imm", f: NOP},
 	0xE3: {n: "ISC", rw: "  ", m: "izx"},
-	0xE4: {n: "CPX", rw: "  ", m: "zpg"},
+	0xE4: {n: "CPX", rw: "r ", m: "zpg", f: compare("X")},
 	0xE5: {n: "SBC", rw: "  ", m: "zpg"},
 	0xE6: {n: "INC", rw: "rw", m: "zpg", f: increment("mem")},
 	0xE7: {n: "ISC", rw: "  ", m: "zpg"},
@@ -261,7 +261,7 @@ var defs = [256]opdef{
 	0xE9: {n: "SBC", rw: "  ", m: "imm"},
 	0xEA: {n: "NOP", rw: "  ", m: "imp", f: NOP},
 	0xEB: {n: "SBC", rw: "  ", m: "imm"},
-	0xEC: {n: "CPX", rw: "  ", m: "abs"},
+	0xEC: {n: "CPX", rw: "r ", m: "abs", f: compare("X")},
 	0xED: {n: "SBC", rw: "  ", m: "abs"},
 	0xEE: {n: "INC", rw: "rw", m: "abs", f: increment("mem")},
 	0xEF: {n: "ISC", rw: "  ", m: "abs"},
@@ -620,6 +620,14 @@ func store(reg string) func(g *Generator, _ opdef) {
 	}
 }
 
+func compare(v string) func(g *Generator, _ opdef) {
+	return func(g *Generator, _ opdef) {
+		v = regOrMem(v)
+		g.printf(`cpu.P.checkNZ(%s - val)`, v)
+		g.printf(`cpu.P.writeBit(pbitC, val <= %s)`, v)
+	}
+}
+
 func transfer(src string, dst ...string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		// TODO(arl) we make this function accept multiple destination registers
@@ -638,15 +646,20 @@ func transfer(src string, dst ...string) func(g *Generator, _ opdef) {
 	}
 }
 
+func regOrMem(v string) string {
+	switch v {
+	case "A", "X", "Y", "SP":
+		return `cpu.` + v
+	case "mem":
+		return `val`
+	}
+	panic("regOrMem " + v)
+}
+
 func increment(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		g.printf(`cpu.tick()`)
-		switch v {
-		case "X", "Y": // registers
-			v = `cpu.` + v
-		case "mem":
-			v = `val`
-		}
+		v = regOrMem(v)
 		g.printf(`%s++`, v)
 		g.printf(`cpu.P.checkNZ(%s)`, v)
 	}
@@ -655,12 +668,7 @@ func increment(v string) func(g *Generator, _ opdef) {
 func decrement(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		g.printf(`cpu.tick()`)
-		switch v {
-		case "X", "Y": // registers
-			v = `cpu.` + v
-		case "mem":
-			v = `val`
-		}
+		v = regOrMem(v)
 		g.printf(`%s--`, v)
 		g.printf(`cpu.P.checkNZ(%s)`, v)
 	}
