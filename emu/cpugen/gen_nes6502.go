@@ -161,9 +161,9 @@ var defs = [256]opdef{
 	0x85: {n: "STA", rw: "  ", m: "zpg", f: store("A")},
 	0x86: {n: "STX", rw: "  ", m: "zpg", f: store("X")},
 	0x87: {n: "SAX", rw: "  ", m: "zpg", f: SAX},
-	0x88: {n: "DEY", rw: "  ", m: "imp", f: DEY},
+	0x88: {n: "DEY", rw: "  ", m: "imp", f: decrement("Y")},
 	0x89: {n: "NOP", rw: "  ", m: "imm", f: NOP},
-	0x8A: {n: "TXA", rw: "  ", m: "imp", f: TXA},
+	0x8A: {n: "TXA", rw: "  ", m: "imp", f: transfer("X", "A")},
 	0x8B: {n: "ANE", rw: "  ", m: "imm", f: unstable},
 	0x8C: {n: "STY", rw: "  ", m: "abs", f: store("Y")},
 	0x8D: {n: "STA", rw: "  ", m: "abs", f: store("A")},
@@ -177,9 +177,9 @@ var defs = [256]opdef{
 	0x95: {n: "STA", rw: "  ", m: "zpx", f: store("A")},
 	0x96: {n: "STX", rw: "  ", m: "zpy", f: store("X")},
 	0x97: {n: "SAX", rw: "  ", m: "zpy", f: SAX},
-	0x98: {n: "TYA", rw: "  ", m: "imp", f: TYA},
+	0x98: {n: "TYA", rw: "  ", m: "imp", f: transfer("Y", "A")},
 	0x99: {n: "STA", rw: "  ", m: "aby", f: store("A")},
-	0x9A: {n: "TXS", rw: "  ", m: "imp", f: TXS},
+	0x9A: {n: "TXS", rw: "  ", m: "imp", f: transfer("X", "SP")},
 	0x9B: {n: "TAS", rw: "  ", m: "aby", f: unstable},
 	0x9C: {n: "SHY", rw: "  ", m: "abx", f: unstable},
 	0x9D: {n: "STA", rw: "  ", m: "abx", f: store("A")},
@@ -188,35 +188,35 @@ var defs = [256]opdef{
 	0xA0: {n: "LDY", rw: "r ", m: "imm", f: load("Y")},
 	0xA1: {n: "LDA", rw: "r ", m: "izx", f: load("A")},
 	0xA2: {n: "LDX", rw: "r ", m: "imm", f: load("X")},
-	0xA3: {n: "LAX", rw: "  ", m: "izx"},
+	0xA3: {n: "LAX", rw: "r ", m: "izx", f: load("A", "X")},
 	0xA4: {n: "LDY", rw: "r ", m: "zpg", f: load("Y")},
 	0xA5: {n: "LDA", rw: "r ", m: "zpg", f: load("A")},
 	0xA6: {n: "LDX", rw: "r ", m: "zpg", f: load("X")},
-	0xA7: {n: "LAX", rw: "  ", m: "zpg"},
-	0xA8: {n: "TAY", rw: "  ", m: "imp"},
+	0xA7: {n: "LAX", rw: "r ", m: "zpg", f: load("A", "X")},
+	0xA8: {n: "TAY", rw: "  ", m: "imp", f: transfer("A", "Y")},
 	0xA9: {n: "LDA", rw: "r ", m: "imm", f: load("A")},
-	0xAA: {n: "TAX", rw: "  ", m: "imp"},
+	0xAA: {n: "TAX", rw: "  ", m: "imp", f: transfer("A", "X")},
 	0xAB: {n: "LXA", rw: "  ", m: "imm", f: unstable},
 	0xAC: {n: "LDY", rw: "r ", m: "abs", f: load("Y")},
 	0xAD: {n: "LDA", rw: "r ", m: "abs", f: load("A")},
 	0xAE: {n: "LDX", rw: "r ", m: "abs", f: load("X")},
-	0xAF: {n: "LAX", rw: "  ", m: "abs"},
+	0xAF: {n: "LAX", rw: "r ", m: "abs", f: load("A", "X")},
 	0xB0: {n: "BCS", rw: "  ", m: "rel", f: branch(0, true)},
 	0xB1: {n: "LDA", rw: "r ", m: "izy", f: load("A")},
 	0xB2: {n: "JAM", rw: "  ", m: "imm", f: JAM},
-	0xB3: {n: "LAX", rw: "  ", m: "izy"},
+	0xB3: {n: "LAX", rw: "r ", m: "izy", f: load("A", "X")},
 	0xB4: {n: "LDY", rw: "r ", m: "zpx", f: load("Y")},
 	0xB5: {n: "LDA", rw: "r ", m: "zpx", f: load("A")},
 	0xB6: {n: "LDX", rw: "r ", m: "zpy", f: load("X")},
-	0xB7: {n: "LAX", rw: "  ", m: "zpy"},
+	0xB7: {n: "LAX", rw: "r ", m: "zpy", f: load("A", "X")},
 	0xB8: {n: "CLV", rw: "  ", m: "imp", f: clearFlag(6)},
 	0xB9: {n: "LDA", rw: "r ", m: "aby", f: load("A")},
-	0xBA: {n: "TSX", rw: "  ", m: "imp"},
-	0xBB: {n: "LAS", rw: "  ", m: "aby"},
+	0xBA: {n: "TSX", rw: "  ", m: "imp", f: transfer("SP", "X")},
+	0xBB: {n: "LAS", rw: "r ", m: "aby", f: LAS},
 	0xBC: {n: "LDY", rw: "r ", m: "abx", f: load("Y")},
 	0xBD: {n: "LDA", rw: "r ", m: "abx", f: load("A")},
 	0xBE: {n: "LDX", rw: "r ", m: "aby", f: load("X")},
-	0xBF: {n: "LAX", rw: "  ", m: "aby"},
+	0xBF: {n: "LAX", rw: "r ", m: "aby", f: load("A", "X")},
 	0xC0: {n: "CPY", rw: "  ", m: "imm"},
 	0xC1: {n: "CMP", rw: "  ", m: "izx"},
 	0xC2: {n: "NOP", rw: "  ", m: "imm", f: NOP},
@@ -227,7 +227,7 @@ var defs = [256]opdef{
 	0xC7: {n: "DCP", rw: "  ", m: "zpg"},
 	0xC8: {n: "INY", rw: "  ", m: "imp"},
 	0xC9: {n: "CMP", rw: "  ", m: "imm"},
-	0xCA: {n: "DEX", rw: "  ", m: "imp", f: DEX},
+	0xCA: {n: "DEX", rw: "  ", m: "imp", f: decrement("X")},
 	0xCB: {n: "SBX", rw: "  ", m: "imm"},
 	0xCC: {n: "CPY", rw: "  ", m: "abs"},
 	0xCD: {n: "CMP", rw: "  ", m: "abs"},
@@ -301,7 +301,7 @@ var details = [256]uint8{
 	0x80: 4, 0x81: 0, 0x82: 4, 0x83: 4, 0x84: 0, 0x85: 0, 0x86: 0, 0x87: 4, 0x88: 0, 0x89: 4, 0x8A: 0, 0x8B: 4, 0x8C: 0, 0x8D: 0, 0x8E: 0, 0x8F: 4,
 	0x90: 0, 0x91: 2, 0x92: 4, 0x93: 4, 0x94: 0, 0x95: 0, 0x96: 0, 0x97: 4, 0x98: 0, 0x99: 0, 0x9A: 0, 0x9B: 4, 0x9C: 4, 0x9D: 0, 0x9E: 4, 0x9F: 4,
 	0xA0: 0, 0xA1: 0, 0xA2: 0, 0xA3: 4, 0xA4: 0, 0xA5: 0, 0xA6: 0, 0xA7: 4, 0xA8: 0, 0xA9: 0, 0xAA: 0, 0xAB: 4, 0xAC: 0, 0xAD: 0, 0xAE: 0, 0xAF: 4,
-	0xB0: 0, 0xB1: 1, 0xB2: 4, 0xB3: 5, 0xB4: 0, 0xB5: 0, 0xB6: 0, 0xB7: 4, 0xB8: 0, 0xB9: 1, 0xBA: 0, 0xBB: 4, 0xBC: 1, 0xBD: 1, 0xBE: 1, 0xBF: 5,
+	0xB0: 0, 0xB1: 1, 0xB2: 4, 0xB3: 5, 0xB4: 0, 0xB5: 0, 0xB6: 0, 0xB7: 4, 0xB8: 0, 0xB9: 1, 0xBA: 0, 0xBB: 5, 0xBC: 1, 0xBD: 1, 0xBE: 1, 0xBF: 5,
 	0xC0: 0, 0xC1: 0, 0xC2: 4, 0xC3: 4, 0xC4: 0, 0xC5: 0, 0xC6: 0, 0xC7: 4, 0xC8: 0, 0xC9: 0, 0xCA: 0, 0xCB: 4, 0xCC: 0, 0xCD: 0, 0xCE: 0, 0xCF: 4,
 	0xD0: 0, 0xD1: 1, 0xD2: 4, 0xD3: 4, 0xD4: 4, 0xD5: 0, 0xD6: 0, 0xD7: 4, 0xD8: 0, 0xD9: 1, 0xDA: 4, 0xDB: 4, 0xDC: 5, 0xDD: 1, 0xDE: 0, 0xDF: 4,
 	0xE0: 0, 0xE1: 0, 0xE2: 4, 0xE3: 4, 0xE4: 0, 0xE5: 0, 0xE6: 0, 0xE7: 4, 0xE8: 0, 0xE9: 0, 0xEA: 0, 0xEB: 4, 0xEC: 0, 0xED: 0, 0xEE: 0, 0xEF: 4,
@@ -309,12 +309,6 @@ var details = [256]uint8{
 }
 
 // helpers
-
-func decrement(g *Generator, val string) {
-	g.printf(`cpu.tick()`)
-	g.printf(`%s--`, val)
-	g.printf(`cpu.P.checkNZ(%s)`, val)
-}
 
 func push8(g *Generator, val string) {
 	g.printf(`{`)
@@ -611,10 +605,12 @@ func AND(g *Generator, _ opdef) {
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
-func load(reg string) func(g *Generator, _ opdef) {
+func load(reg ...string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.%s = val`, reg)
-		g.printf(`cpu.P.checkNZ(cpu.%s)`, reg)
+		for _, r := range reg {
+			g.printf(`cpu.%s = val`, r)
+		}
+		g.printf(`cpu.P.checkNZ(val)`)
 	}
 }
 
@@ -624,35 +620,41 @@ func store(reg string) func(g *Generator, _ opdef) {
 	}
 }
 
-func TXA(g *Generator, _ opdef) {
-	g.printf(`cpu.A = cpu.X`)
-	g.printf(`cpu.P.checkNZ(cpu.A)`)
-	g.printf(`cpu.tick()`)
+func transfer(src string, dst ...string) func(g *Generator, _ opdef) {
+	return func(g *Generator, _ opdef) {
+		// TODO(arl) we make this function accept multiple destination registers
+		// but not sure this is going to be used or not
+		checknz := true
+		for _, d := range dst {
+			g.printf(`cpu.%s = cpu.%s`, d, src)
+			if d == "SP" {
+				checknz = false
+			}
+		}
+		if checknz {
+			g.printf(`cpu.P.checkNZ(cpu.%s)`, src)
+		}
+		g.printf(`cpu.tick()`)
+	}
 }
 
-func TYA(g *Generator, _ opdef) {
-	g.printf(`cpu.A = cpu.Y`)
-	g.printf(`cpu.P.checkNZ(cpu.A)`)
-	g.printf(`cpu.tick()`)
+func decrement(reg string) func(g *Generator, _ opdef) {
+	return func(g *Generator, _ opdef) {
+		g.printf(`cpu.tick()`)
+		g.printf(`cpu.%s--`, reg)
+		g.printf(`cpu.P.checkNZ(cpu.%s)`, reg)
+	}
 }
 
-func TXS(g *Generator, _ opdef) {
-	g.printf(`cpu.SP = cpu.X`)
-	g.printf(`cpu.tick()`)
+func LAS(g *Generator, def opdef) {
+	g.printf(`cpu.A = cpu.SP & val`)
+	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.printf(`cpu.X = cpu.A`)
+	g.printf(`cpu.SP = cpu.A`)
 }
 
 func SAX(g *Generator, _ opdef) {
 	g.printf(`cpu.Write8(oper, cpu.A&cpu.X)`)
-}
-
-func DEX(g *Generator, _ opdef) {
-	decrement(g, `cpu.X`)
-	// g.printf(`cpu.P.checkNZ(cpu.X)`)
-}
-
-func DEY(g *Generator, _ opdef) {
-	decrement(g, `cpu.Y`)
-	// g.printf(`cpu.P.checkNZ(cpu.Y)`)
 }
 
 func EOR(g *Generator, _ opdef) {

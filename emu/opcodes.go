@@ -166,30 +166,30 @@ var ops = [256]func(cpu *CPU){
 	// 0xA0: LDY(imm),
 	// 0xA1: LDA(izx),
 	// 0xA2: LDX(imm),
-	0xA3: LAX(izx),
-	0xA4: LDY(zp),
-	0xA5: LDA(zp),
-	0xA6: LDX(zp),
-	0xA7: LAX(zp),
-	0xA8: TAY,
-	0xA9: LDA(imm),
-	0xAA: TAX,
-	0xAB: unsupported,
-	0xAC: LDY(abs),
-	0xAD: LDA(abs),
-	0xAE: LDX(abs),
-	0xAF: LAX(abs),
-	0xB0: branch(pbitC, true),
-	0xB1: LDA(izy_xp),
-	0xB2: JAM,
-	0xB3: LAX(izy_xp),
-	0xB4: LDY(zpx),
-	0xB5: LDA(zpx),
-	0xB6: LDX(zpy),
-	0xB7: LAX(zpy),
-	0xB8: CL(pbitV),
-	0xB9: LDA(aby_xp),
-	0xBA: TSX,
+	// 0xA3: LAX(izx),
+	// 0xA4: LDY(zp),
+	// 0xA5: LDA(zp),
+	// 0xA6: LDX(zp),
+	// 0xA7: LAX(zp),
+	// 0xA8: TAY,
+	// 0xA9: LDA(imm),
+	// 0xAA: TAX,
+	// 0xAB: unsupported,
+	// 0xAC: LDY(abs),
+	// 0xAD: LDA(abs),
+	// 0xAE: LDX(abs),
+	// 0xAF: LAX(abs),
+	// 0xB0: branch(pbitC, true),
+	// 0xB1: LDA(izy_xp),
+	// 0xB2: JAM,
+	// 0xB3: LAX(izy_xp),
+	// 0xB4: LDY(zpx),
+	// 0xB5: LDA(zpx),
+	// 0xB6: LDX(zpy),
+	// 0xB7: LAX(zpy),
+	// 0xB8: CL(pbitV),
+	// 0xB9: LDA(aby_xp),
+	// 0xBA: TSX,
 	0xBB: LAS,
 	0xBC: LDY(abx_xp),
 	0xBD: LDA(abx_xp),
@@ -669,6 +669,13 @@ func LAX(m addrmode) func(cpu *CPU) {
 	}
 }
 
+func las(cpu *CPU, val uint8) {
+	cpu.A = cpu.SP & val
+	cpu.X = cpu.A
+	cpu.SP = cpu.A
+	cpu.P.checkNZ(cpu.A)
+}
+
 func CPY(m addrmode) func(cpu *CPU) {
 	return func(cpu *CPU) {
 		cpy(cpu, cpu.Read8(m(cpu)))
@@ -902,13 +909,6 @@ func alr(cpu *CPU, val uint8) {
 	cpu.A &= 0x7f
 	cpu.P.checkNZ(cpu.A)
 	cpu.P.writeBit(pbitC, carry != 0)
-}
-
-func las(cpu *CPU, val uint8) {
-	cpu.A = cpu.SP & val
-	cpu.X = cpu.A
-	cpu.SP = cpu.A
-	cpu.P.checkNZ(cpu.A)
 }
 
 func arr(cpu *CPU, val uint8) {
