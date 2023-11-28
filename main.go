@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"nestor/emu"
+	"nestor/cpu"
 	"nestor/ines"
 )
 
@@ -36,13 +36,13 @@ func main() {
 	checkf(nes.PowerUp(rom), "error during power up")
 
 	nes.Reset()
-	nes.CPU.P = emu.P(hexbyte)
+	nes.CPU.P = cpu.P(hexbyte)
 	if disasmLog.w != nil {
 		defer disasmLog.Close()
 		nes.CPU.SetDisasm(disasmLog, false)
 	}
 
-	checkf(startScreen(nes), "can't start screen")
+	startScreen(nes)
 }
 
 func check(err error) {

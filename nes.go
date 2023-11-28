@@ -3,19 +3,19 @@ package main
 import (
 	"fmt"
 
-	"nestor/emu"
+	"nestor/cpu"
 	"nestor/ines"
 )
 
 type NES struct {
-	CPU *emu.CPU
+	CPU *cpu.CPU
 }
 
 func (nes *NES) PowerUp(rom *ines.Rom) error {
 	cpubus := newCpuBus("cpu")
 	cpubus.MapMemory()
 
-	nes.CPU = emu.NewCPU(cpubus, &ticker{})
+	nes.CPU = cpu.NewCPU(cpubus, &ticker{})
 	if rom.Mapper() != 0 {
 		// Only handle mapper 000 (NROM) for now.
 		return fmt.Errorf("unsupported mapper: %d", rom.Mapper())

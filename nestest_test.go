@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"nestor/emu"
+	"nestor/cpu"
 	"nestor/ines"
 )
 
@@ -49,7 +49,7 @@ func TestNestest(t *testing.T) {
 	// cycles. The manual mode starting at the reset vector requires the screen.
 	nes.CPU.PC = 0xC000
 	nes.CPU.Clock = 7
-	nes.CPU.P = emu.P(0b00100100)
+	nes.CPU.P = cpu.P(0b00100100)
 
 	nes.CPU.RunDisasm(26560)
 }

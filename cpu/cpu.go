@@ -1,8 +1,11 @@
-package emu
+package cpu
 
 //go:generate go run ./cpugen/gen_nes6502.go -out ./opcodes.go
 
-import "io"
+import (
+	"io"
+	"nestor/emu"
+)
 
 // Locations reserved for vector pointers.
 const (
@@ -12,7 +15,7 @@ const (
 )
 
 type CPU struct {
-	bus Bus
+	bus emu.Bus
 	A   uint8
 	X   uint8
 	Y   uint8
@@ -33,7 +36,7 @@ type Ticker interface {
 }
 
 // NewCPU creates a new CPU at power-up state.
-func NewCPU(bus Bus, ticker Ticker) *CPU {
+func NewCPU(bus emu.Bus, ticker Ticker) *CPU {
 	cpu := &CPU{
 		bus: bus,
 		A:   0x00,

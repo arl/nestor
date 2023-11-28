@@ -1,9 +1,10 @@
-package emu
+package cpu
 
 import (
 	"bytes"
 	"fmt"
 	"io"
+	"nestor/emu"
 )
 
 var opsDisasm = [256]disasmFunc{
@@ -315,7 +316,7 @@ func (d *disasm) op(pc uint16) {
 // because we don't want to tick the clock.
 
 func (d *disasm) imm() uint8  { return d.cpu.bus.Read8(d.prevPC + 1) }
-func (d *disasm) abs() uint16 { return Read16(d.cpu.bus, d.prevPC+1) }
+func (d *disasm) abs() uint16 { return emu.Read16(d.cpu.bus, d.prevPC+1) }
 func (d *disasm) zp() uint8   { return d.cpu.bus.Read8(d.prevPC + 1) }
 func (d *disasm) zpx() uint8  { return d.zp() + d.cpu.X }
 func (d *disasm) zpy() uint8  { return d.zp() + d.cpu.Y }
@@ -338,7 +339,7 @@ func (d *disasm) zpr16(addr uint16) uint16 {
 }
 
 func (d *disasm) ind() uint16 {
-	oper := Read16(d.cpu.bus, d.prevPC+1)
+	oper := emu.Read16(d.cpu.bus, d.prevPC+1)
 	lo := d.cpu.bus.Read8(oper)
 	hi := d.cpu.bus.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
 	return uint16(hi)<<8 | uint16(lo)
@@ -444,7 +445,7 @@ func disasm_rel(op string) disasmFunc {
 // indirect (JMP-only)
 func disasm_ind(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		oper := Read16(d.cpu.bus, d.prevPC+1)
+		oper := emu.Read16(d.cpu.bus, d.prevPC+1)
 		dst := d.ind()
 		return fmt.Sprintf("% 4s ($%04X) = %04X", op, oper, dst), 3
 	}

@@ -1,9 +1,10 @@
-package emu
+package cpu
 
 import (
 	"bufio"
 	"bytes"
 	"encoding/hex"
+	"nestor/emu"
 	"strconv"
 	"strings"
 	"testing"
@@ -24,10 +25,10 @@ func hasPanicked(f func()) (yes bool, msg any) {
 
 /* cpu specific testing helpers */
 
-func wantMem8(t *testing.T, cpu *CPU, addr uint16, want uint8) {
+func wantMem8(t *testing.T, cp *CPU, addr uint16, want uint8) {
 	t.Helper()
 
-	if got := cpu.Read8(addr); got != want {
+	if got := cp.Read8(addr); got != want {
 		t.Errorf("$%04X = %02X want %02X", addr, got, want)
 	}
 }
@@ -193,7 +194,7 @@ func (tt *ticker) Tick() {}
 
 // loadCPUWith loads a CPU with a memory dump.
 func loadCPUWith(tb testing.TB, dump string) *CPU {
-	mem := new(MemMap)
+	mem := new(emu.MemMap)
 	lines := loadDump(tb, dump)
 	for _, line := range lines {
 		hd := hex.Dump(line.bytes)
