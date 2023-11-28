@@ -42,6 +42,7 @@ func main() {
 		nes.CPU.SetDisasm(disasmLog, false)
 	}
 
+	nes.Run()
 	startScreen(nes)
 }
 
