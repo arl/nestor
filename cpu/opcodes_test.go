@@ -25,7 +25,7 @@ func funcname(temp interface{}) string {
 }
 
 func TestOpcodes(t *testing.T) {
-	if !testing.Short() {
+	if testing.Short() {
 		t.Skip("skipping long test")
 	}
 
