@@ -25,10 +25,11 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 	cpubus.MapSlice(0x1000, 0x17FF, ram)
 	cpubus.MapSlice(0x1800, 0x1FFF, ram)
 
-	// PPU registers
-	cpubus.MapReg8(0x2000, &ppu.PPUCTRL)
-	cpubus.MapReg8(0x2001, &ppu.PPUMASK)
-	cpubus.MapReg8(0x2002, &ppu.PPUSTATUS)
+	// Map PPU registers and their mirrors
+	for i := 0x2000; i < 0x4000; i += 8 {
+		cpubus.MapBank(uint16(i), ppu, 0)
+	}
+	cpubus.Write8(0x2006, 0x23)
 
 	nes.CPU = cpu.NewCPU(cpubus, ppu)
 	if rom.Mapper() != 0 {
