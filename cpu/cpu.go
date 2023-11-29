@@ -15,7 +15,7 @@ const (
 )
 
 type CPU struct {
-	bus emu.Bus
+	Bus emu.Bus
 	A   uint8
 	X   uint8
 	Y   uint8
@@ -38,7 +38,7 @@ type Ticker interface {
 // NewCPU creates a new CPU at power-up state.
 func NewCPU(bus emu.Bus, ticker Ticker) *CPU {
 	cpu := &CPU{
-		bus: bus,
+		Bus: bus,
 		A:   0x00,
 		X:   0x00,
 		Y:   0x00,
@@ -88,12 +88,12 @@ func (c *CPU) tick() {
 
 func (c *CPU) Read8(addr uint16) uint8 {
 	c.tick()
-	return c.bus.Read8(addr)
+	return c.Bus.Read8(addr)
 }
 
 func (c *CPU) Write8(addr uint16, val uint8) {
 	c.tick()
-	c.bus.Write8(addr, val)
+	c.Bus.Write8(addr, val)
 }
 
 func (c *CPU) Read16(addr uint16) uint16 {

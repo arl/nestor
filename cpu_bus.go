@@ -1,6 +1,9 @@
 package main
 
-import "nestor/emu"
+import (
+	"nestor/emu"
+	"nestor/emu/hwio"
+)
 
 type cpuBus struct {
 	mmap emu.MemMap
@@ -11,15 +14,6 @@ func newCpuBus(name string) *cpuBus {
 	bus := &cpuBus{name: name}
 	bus.Reset()
 	return bus
-}
-
-func (b *cpuBus) MapMemory() {
-	// RAM is 0x800 bytes, mirrored.
-	ram := make([]byte, 0x0800)
-	b.MapSlice(0x0000, 0x07FF, ram)
-	b.MapSlice(0x0800, 0x0FFF, ram)
-	b.MapSlice(0x1000, 0x17FF, ram)
-	b.MapSlice(0x1800, 0x1FFF, ram)
 }
 
 func (b *cpuBus) Reset() {
@@ -36,4 +30,8 @@ func (b *cpuBus) Write8(addr uint16, val uint8) {
 
 func (b *cpuBus) MapSlice(addr, end uint16, buf []byte) {
 	b.mmap.MapSlice(addr, end, buf)
+}
+
+func (b *cpuBus) MapReg8(addr uint16, reg *hwio.Reg8) {
+	b.mmap.MapReg8(addr, reg)
 }

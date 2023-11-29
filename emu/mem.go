@@ -1,6 +1,9 @@
 package emu
 
-import "log"
+import (
+	"log"
+	"nestor/emu/hwio"
+)
 
 type Region8 interface {
 	Read8(addr uint16) uint8
@@ -43,6 +46,18 @@ func (mmap *MemMap) MapSlice(addr, end uint16, buf []byte) {
 		mask:  uint16(len(buf) - 1),
 		VSize: int(end - addr + 1),
 	}); err != nil {
+		panic(err)
+	}
+}
+
+// MapReg8 maps an 8-bit register at a given address.
+func (mmap *MemMap) MapReg8(addr uint16, r8 *hwio.Reg8) {
+	mmap.mapBus8(addr, 1, r8)
+}
+
+func (mmap *MemMap) mapBus8(addr uint16, size uint16, r8 Region8) {
+	err := mmap.addrs.InsertRange(addr, addr+size-1, r8)
+	if err != nil {
 		panic(err)
 	}
 }

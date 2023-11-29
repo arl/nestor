@@ -5,6 +5,7 @@ import (
 
 	"nestor/cpu"
 	"nestor/ines"
+	"nestor/ppu"
 )
 
 type NES struct {
@@ -12,10 +13,20 @@ type NES struct {
 }
 
 func (nes *NES) PowerUp(rom *ines.Rom) error {
+	ppu := ppu.New()
 	cpubus := newCpuBus("cpu")
-	cpubus.MapMemory()
 
-	nes.CPU = cpu.NewCPU(cpubus, &ticker{})
+	// RAM is 0x800 bytes, mirrored.
+	ram := make([]byte, 0x0800)
+	cpubus.MapSlice(0x0000, 0x07FF, ram)
+	cpubus.MapSlice(0x0800, 0x0FFF, ram)
+	cpubus.MapSlice(0x1000, 0x17FF, ram)
+	cpubus.MapSlice(0x1800, 0x1FFF, ram)
+
+	// PPU registers
+	cpubus.MapReg8(0x2000, &ppu.PPUCTRL)
+
+	nes.CPU = cpu.NewCPU(cpubus, ppu)
 	if rom.Mapper() != 0 {
 		// Only handle mapper 000 (NROM) for now.
 		return fmt.Errorf("unsupported mapper: %d", rom.Mapper())

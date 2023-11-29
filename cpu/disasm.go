@@ -285,12 +285,12 @@ func (d *disasm) loopinit() {
 func (d *disasm) op(pc uint16) {
 	d.bb.Reset()
 
-	opcode := d.cpu.bus.Read8(pc)
+	opcode := d.cpu.Bus.Read8(pc)
 	opstr, nbytes := opsDisasm[opcode](d)
 
 	var tmp []byte
 	for i := uint16(0); i < uint16(nbytes); i++ {
-		b := d.cpu.bus.Read8(pc + i)
+		b := d.cpu.Bus.Read8(pc + i)
 		tmp = append(tmp, fmt.Sprintf("%02X ", b)...)
 	}
 
@@ -315,14 +315,14 @@ func (d *disasm) op(pc uint16) {
 // For the disassembler, addressing modes use cpu.bus.Read rather than cpu.Read,
 // because we don't want to tick the clock.
 
-func (d *disasm) imm() uint8  { return d.cpu.bus.Read8(d.prevPC + 1) }
-func (d *disasm) abs() uint16 { return emu.Read16(d.cpu.bus, d.prevPC+1) }
-func (d *disasm) zp() uint8   { return d.cpu.bus.Read8(d.prevPC + 1) }
+func (d *disasm) imm() uint8  { return d.cpu.Bus.Read8(d.prevPC + 1) }
+func (d *disasm) abs() uint16 { return emu.Read16(d.cpu.Bus, d.prevPC+1) }
+func (d *disasm) zp() uint8   { return d.cpu.Bus.Read8(d.prevPC + 1) }
 func (d *disasm) zpx() uint8  { return d.zp() + d.cpu.X }
 func (d *disasm) zpy() uint8  { return d.zp() + d.cpu.Y }
 
 func (d *disasm) rel() uint16 {
-	off := int16(int8(d.cpu.bus.Read8(d.prevPC + 1)))
+	off := int16(int8(d.cpu.Bus.Read8(d.prevPC + 1)))
 	return uint16(int16(d.prevPC+2) + off)
 }
 
@@ -333,15 +333,15 @@ func (d *disasm) izx() uint16 {
 }
 
 func (d *disasm) zpr16(addr uint16) uint16 {
-	lo := d.cpu.bus.Read8(addr)
-	hi := d.cpu.bus.Read8(uint16(uint8(addr) + 1))
+	lo := d.cpu.Bus.Read8(addr)
+	hi := d.cpu.Bus.Read8(uint16(uint8(addr) + 1))
 	return uint16(hi)<<8 | uint16(lo)
 }
 
 func (d *disasm) ind() uint16 {
-	oper := emu.Read16(d.cpu.bus, d.prevPC+1)
-	lo := d.cpu.bus.Read8(oper)
-	hi := d.cpu.bus.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
+	oper := emu.Read16(d.cpu.Bus, d.prevPC+1)
+	lo := d.cpu.Bus.Read8(oper)
+	hi := d.cpu.Bus.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
 	return uint16(hi)<<8 | uint16(lo)
 }
 
@@ -391,7 +391,7 @@ func disasm_abs(op string) disasmFunc {
 		case "JMP", "JSR":
 			return fmt.Sprintf("% 4s $%04X", op, addr), 3
 		default:
-			return fmt.Sprintf("% 4s $%04X = %02X", op, addr, d.cpu.bus.Read8(addr)), 3
+			return fmt.Sprintf("% 4s $%04X = %02X", op, addr, d.cpu.Bus.Read8(addr)), 3
 		}
 	}
 }
@@ -400,7 +400,7 @@ func disasm_abx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		oper := d.abs()
 		addr := d.abx()
-		return fmt.Sprintf("% 4s $%04X,X @ %04X = %02X", op, oper, addr, d.cpu.bus.Read8(addr)), 3
+		return fmt.Sprintf("% 4s $%04X,X @ %04X = %02X", op, oper, addr, d.cpu.Bus.Read8(addr)), 3
 	}
 }
 
@@ -408,14 +408,14 @@ func disasm_aby(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		oper := d.abs()
 		addr := d.aby()
-		return fmt.Sprintf("% 4s $%04X,Y @ %04X = %02X", op, oper, addr, d.cpu.bus.Read8(addr)), 3
+		return fmt.Sprintf("% 4s $%04X,Y @ %04X = %02X", op, oper, addr, d.cpu.Bus.Read8(addr)), 3
 	}
 }
 
 func disasm_zp(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.zp()
-		value := d.cpu.bus.Read8(uint16(addr))
+		value := d.cpu.Bus.Read8(uint16(addr))
 		return fmt.Sprintf("% 4s $%02X = %02X", op, addr, value), 2
 	}
 }
@@ -424,7 +424,7 @@ func disasm_zpx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.zp()
 		addr2 := d.zpx()
-		return fmt.Sprintf("% 4s $%02X,X @ %02X = %02X", op, addr, addr2, d.cpu.bus.Read8(uint16(addr2))), 2
+		return fmt.Sprintf("% 4s $%02X,X @ %02X = %02X", op, addr, addr2, d.cpu.Bus.Read8(uint16(addr2))), 2
 	}
 }
 
@@ -432,7 +432,7 @@ func disasm_zpy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.zp()
 		addr2 := d.zpy()
-		return fmt.Sprintf("% 4s $%02X,Y @ %02X = %02X", op, addr, addr2, d.cpu.bus.Read8(uint16(addr2))), 2
+		return fmt.Sprintf("% 4s $%02X,Y @ %02X = %02X", op, addr, addr2, d.cpu.Bus.Read8(uint16(addr2))), 2
 	}
 }
 
@@ -445,7 +445,7 @@ func disasm_rel(op string) disasmFunc {
 // indirect (JMP-only)
 func disasm_ind(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		oper := emu.Read16(d.cpu.bus, d.prevPC+1)
+		oper := emu.Read16(d.cpu.Bus, d.prevPC+1)
 		dst := d.ind()
 		return fmt.Sprintf("% 4s ($%04X) = %04X", op, oper, dst), 3
 	}
@@ -453,19 +453,19 @@ func disasm_ind(op string) disasmFunc {
 
 func disasm_izx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.bus.Read8(d.prevPC + 1)
+		addr := d.cpu.Bus.Read8(d.prevPC + 1)
 		zp := d.zp() + d.cpu.X
 		addr2 := d.izx()
-		return fmt.Sprintf("% 4s ($%02X,X) @ %02X = %04X = %02X", op, addr, zp, addr2, d.cpu.bus.Read8(addr2)), 2
+		return fmt.Sprintf("% 4s ($%02X,X) @ %02X = %04X = %02X", op, addr, zp, addr2, d.cpu.Bus.Read8(addr2)), 2
 	}
 }
 
 func disasm_izy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.bus.Read8(d.prevPC + 1)
+		addr := d.cpu.Bus.Read8(d.prevPC + 1)
 		oper := d.zp()
 		addr2 := d.zpr16(uint16(oper))
 		dst := addr2 + uint16(d.cpu.Y)
-		return fmt.Sprintf("% 4s ($%02X),Y = %04X @ %04X = %02X", op, addr, addr2, dst, d.cpu.bus.Read8(dst)), 2
+		return fmt.Sprintf("% 4s ($%02X),Y = %04X @ %04X = %02X", op, addr, addr2, dst, d.cpu.Bus.Read8(dst)), 2
 	}
 }
