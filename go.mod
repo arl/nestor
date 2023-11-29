@@ -5,6 +5,7 @@ go 1.21
 require (
 	fyne.io/fyne/v2 v2.4.2
 	github.com/google/go-cmp v0.6.0
+	gopkg.in/Sirupsen/logrus.v0 v0.11.5
 )
 
 require (

@@ -1,6 +1,10 @@
 package hwio
 
-import "fmt"
+import (
+	"fmt"
+
+	log "nestor/emu/logger"
+)
 
 type RegFlags uint8
 
@@ -45,24 +49,20 @@ func hex16(val uint16) string {
 
 func (reg *Reg8) Write8(addr uint16, val uint8) {
 	if reg.Flags&RegFlagReadOnly != 0 {
-		// log.ModHwIo.WithFields(log.Fields{
-		// 	"name": reg.Name,
-		// 	"addr": hex16(addr),
-		// }).Error("invalid Write16 to readonly reg")
-		// return
-		panic("invalid Write8 to readonly reg")
+		log.ModHwIo.ErrorZ("invalid Write8 from readonly reg").
+			String("name", reg.Name).
+			Hex16("addr", addr)
+		return
 	}
 	reg.write(val, 0)
 }
 
 func (reg *Reg8) Read8(addr uint16) uint8 {
 	if reg.Flags&RegFlagWriteOnly != 0 {
-		// log.ModHwIo.WithFields(log.Fields{
-		// 	"name": reg.Name,
-		// 	"addr": emu.Hex32(addr),
-		// }).Error("invalid Read16 from writeonly reg")
-		// return 0
-		panic("invalid Read8 to readonly reg")
+		log.ModHwIo.ErrorZ("invalid Read8 from writeonly reg").
+			String("name", reg.Name).
+			Hex16("addr", addr)
+		return 0
 	}
 	if reg.ReadCb != nil {
 		return reg.ReadCb(reg.Value)

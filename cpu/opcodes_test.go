@@ -19,7 +19,7 @@ func TestAllOpcodesAreImplemented(t *testing.T) {
 	}
 }
 
-func funcname(temp interface{}) string {
+func funcname(temp any) string {
 	strs := strings.Split((runtime.FuncForPC(reflect.ValueOf(temp).Pointer()).Name()), ".")
 	return strs[len(strs)-1]
 }
