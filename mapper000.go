@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 
+	"nestor/emu/hwio"
 	"nestor/ines"
 )
 
-func loadMapper000(cart *ines.Rom, cpubus *cpuBus) error {
+func loadMapper000(cart *ines.Rom, cpubus *hwio.MemMap) error {
 	// TODO: load PRGRAM if present in cartridge.
 
 	switch len(cart.PRGROM) {

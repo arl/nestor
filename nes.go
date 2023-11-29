@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"nestor/cpu"
+	"nestor/emu/hwio"
 	"nestor/ines"
 	"nestor/ppu"
 )
@@ -15,7 +16,7 @@ type NES struct {
 
 func (nes *NES) PowerUp(rom *ines.Rom) error {
 	ppu := ppu.New()
-	cpubus := newCpuBus("cpu")
+	cpubus := &hwio.MemMap{Name: "cpu"}
 
 	// RAM is 0x800 bytes, mirrored.
 	ram := make([]byte, 0x0800)

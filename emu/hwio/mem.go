@@ -1,7 +1,9 @@
 package hwio
 
 import (
-	"log"
+	"fmt"
+
+	log "nestor/emu/logger"
 )
 
 type Region8 interface {
@@ -10,13 +12,17 @@ type Region8 interface {
 }
 
 type MemMap struct {
+	Name  string
 	addrs radixTree
 }
 
 func (mmap *MemMap) Read8(addr uint16) uint8 {
 	r := mmap.addrs.Search(addr)
 	if r == nil {
-		log.Printf("read at unmapped address 0x%x", addr)
+		log.ModHwIo.ErrorZ("unmapped Read8").
+			String("name", mmap.Name).
+			Hex16("addr", addr).
+			End()
 		return 0
 	}
 	return r.(Region8).Read8(addr)
@@ -25,7 +31,11 @@ func (mmap *MemMap) Read8(addr uint16) uint8 {
 func (mmap *MemMap) Write8(addr uint16, val uint8) {
 	r := mmap.addrs.Search(addr)
 	if r == nil {
-		log.Printf("write at unmapped address 0x%x", addr)
+		log.ModHwIo.ErrorZ("unmapped Write8").
+			String("name", mmap.Name).
+			Hex16("addr", addr).
+			Hex8("val", val).
+			End()
 		return
 	}
 	r.(Region8).Write8(addr, val)
@@ -59,6 +69,46 @@ func (mmap *MemMap) mapBus8(addr uint16, size uint16, r8 Region8) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (mmap *MemMap) MapBank(addr uint16, bank any, bankNum int) {
+	regs, err := bankGetRegs(bank, bankNum)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, reg := range regs {
+		switch r := reg.regPtr.(type) {
+		case *MemRegion:
+			mmap.mapBus8(addr, uint16(r.VSize), r)
+		case *Reg8:
+			mmap.MapReg8(addr+uint16(reg.offset), r)
+		default:
+			panic(fmt.Errorf("invalid reg type: %T", r))
+		}
+	}
+}
+
+func (mmap *MemMap) UnmapBank(addr uint16, bank any, bankNum int) {
+	regs, err := bankGetRegs(bank, bankNum)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, reg := range regs {
+		switch r := reg.regPtr.(type) {
+		case *MemRegion:
+			mmap.Unmap(addr+uint16(reg.offset), addr+uint16(reg.offset)+uint16(r.VSize)-1)
+		case *Reg8:
+			mmap.Unmap(addr+uint16(reg.offset), addr+uint16(reg.offset)+0)
+		default:
+			panic(fmt.Errorf("invalid reg type: %T", r))
+		}
+	}
+}
+
+func (mmap *MemMap) Unmap(begin uint16, end uint16) {
+	mmap.addrs.RemoveRange(begin, end)
 }
 
 type MemFlags int

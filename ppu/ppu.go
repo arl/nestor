@@ -6,9 +6,9 @@ import (
 )
 
 type PPU struct {
-	PPUCTRL   hwio.Reg8 `hwio:"writeonly,wcb"`
-	PPUMASK   hwio.Reg8 `hwio:"writeonly,wcb"`
-	PPUSTATUS hwio.Reg8 `hwio:"readonly,rcb"`
+	PPUCTRL   hwio.Reg8 `hwio:"offset=0x0,writeonly,wcb"`
+	PPUMASK   hwio.Reg8 `hwio:"offset=0x1,writeonly,wcb"`
+	PPUSTATUS hwio.Reg8 `hwio:"offset=0x2,readonly,rcb"`
 }
 
 func New() *PPU {

@@ -61,8 +61,8 @@ func MustInitRegs(data any) {
 	}
 }
 
-// InitRegs initializes the IoRegs stored as fields in a data-structure, allowing
-// easy configuration of values and callbacks.
+// InitRegs initializes the IoRegs stored as fields in a data-structure,
+// allowing easy configuration of values and callbacks.
 //
 // It parses the special "hwio" struct tag, that describes how to configure a
 // register. The struct tag can have the following comma-separated options:
@@ -129,9 +129,9 @@ func InitRegs(data any) error {
 				}
 			}
 
-			// See there was a virtual size defined different from the physical
-			// size. This is useful to handle memory areas that have multiple
-			// mirrors.
+			// See if there was a virtual size defined different from the
+			// physical size. This is useful to handle memory areas that have
+			// multiple mirrors.
 			if ssize := tag.Get("vsize"); ssize != "" {
 				if size, err := strconv.ParseInt(ssize, 0, 30); err != nil {
 					return fmt.Errorf("invalid vsize: %q", ssize)
