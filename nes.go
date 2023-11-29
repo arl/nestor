@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 
 	"nestor/cpu"
 	"nestor/ines"
@@ -25,6 +26,8 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 
 	// PPU registers
 	cpubus.MapReg8(0x2000, &ppu.PPUCTRL)
+	cpubus.MapReg8(0x2001, &ppu.PPUMASK)
+	cpubus.MapReg8(0x2002, &ppu.PPUSTATUS)
 
 	nes.CPU = cpu.NewCPU(cpubus, ppu)
 	if rom.Mapper() != 0 {
@@ -44,7 +47,16 @@ func (nes *NES) Reset() {
 }
 
 func (nes *NES) Run() {
-	nes.CPU.Run(29692) // random
+	for {
+		nes.CPU.Run(29692) // random
+	}
+}
+
+func (nes *NES) RunDisasm(out io.Writer, nestest bool) {
+	d := cpu.NewDisasm(nes.CPU, out, nestest)
+	for {
+		d.Run(29692) // random
+	}
 }
 
 type ticker struct{}

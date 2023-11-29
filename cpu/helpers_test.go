@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/hex"
-	"nestor/emu"
+	"nestor/emu/hwio"
 	"strconv"
 	"strings"
 	"testing"
@@ -50,7 +50,11 @@ func wantMem(t *testing.T, cpu *CPU, dl dumpline) {
 	}
 }
 
-func wantCPUState(t *testing.T, cpu *CPU, states ...any) {
+type runner interface {
+	Run(int64)
+}
+
+func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 	t.Helper()
 
 	if len(states)%2 != 0 {
@@ -75,6 +79,13 @@ func wantCPUState(t *testing.T, cpu *CPU, states ...any) {
 			t.Errorf("got %s=$%04X, want $%04X", name, got, want)
 		}
 	}
+
+	var r runner = cpu
+	if testing.Verbose() {
+		r = NewDisasm(cpu, tbwriter{t}, false)
+	}
+
+	r.Run(ncycles)
 
 	for i := 0; i < len(states); i += 2 {
 		s := states[i].(string)
@@ -194,7 +205,7 @@ func (tt *ticker) Tick() {}
 
 // loadCPUWith loads a CPU with a memory dump.
 func loadCPUWith(tb testing.TB, dump string) *CPU {
-	mem := new(emu.MemMap)
+	mem := new(hwio.MemMap)
 	lines := loadDump(tb, dump)
 	for _, line := range lines {
 		hd := hex.Dump(line.bytes)
@@ -204,9 +215,6 @@ func loadCPUWith(tb testing.TB, dump string) *CPU {
 
 	cpu := NewCPU(mem, &ticker{})
 	cpu.Reset()
-	if testing.Verbose() {
-		cpu.SetDisasm(tbwriter{tb}, false)
-	}
 	return cpu
 }
 

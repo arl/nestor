@@ -3,8 +3,7 @@ package cpu
 //go:generate go run ./cpugen/gen_nes6502.go -out ./opcodes.go
 
 import (
-	"io"
-	"nestor/emu"
+	"nestor/emu/hwio"
 )
 
 // Locations reserved for vector pointers.
@@ -15,7 +14,7 @@ const (
 )
 
 type CPU struct {
-	Bus emu.Bus
+	Bus hwio.Bus
 	A   uint8
 	X   uint8
 	Y   uint8
@@ -36,7 +35,7 @@ type Ticker interface {
 }
 
 // NewCPU creates a new CPU at power-up state.
-func NewCPU(bus emu.Bus, ticker Ticker) *CPU {
+func NewCPU(bus hwio.Bus, ticker Ticker) *CPU {
 	cpu := &CPU{
 		Bus: bus,
 		A:   0x00,
@@ -50,10 +49,6 @@ func NewCPU(bus emu.Bus, ticker Ticker) *CPU {
 	return cpu
 }
 
-func (c *CPU) SetDisasm(w io.Writer, nestest bool) {
-	c.disasm = &disasm{cpu: c, w: w, isNestest: nestest}
-}
-
 func (c *CPU) Reset() {
 	c.PC = c.Read16(ResetVector)
 	c.SP = 0xFD
@@ -65,18 +60,6 @@ func (c *CPU) Run(until int64) {
 	for c.Clock < c.targetCycles {
 		opcode := c.Read8(uint16(c.PC))
 		c.PC++
-		ops[opcode](c)
-	}
-}
-
-func (c *CPU) RunDisasm(until int64) {
-	c.targetCycles = until
-	for c.Clock < c.targetCycles {
-		c.disasm.loopinit()
-		pc := c.PC
-		opcode := c.Read8(c.PC)
-		c.PC++
-		c.disasm.op(pc)
 		ops[opcode](c)
 	}
 }

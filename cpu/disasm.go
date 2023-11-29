@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"nestor/emu"
+	"nestor/emu/hwio"
 )
 
 var opsDisasm = [256]disasmFunc{
@@ -277,9 +277,26 @@ type disasm struct {
 	w io.Writer
 }
 
-func (d *disasm) loopinit() {
-	d.prevPC = d.cpu.PC
-	d.prevClock = d.cpu.Clock
+func NewDisasm(cpu *CPU, w io.Writer, nestest bool) *disasm {
+	return &disasm{
+		cpu:       cpu,
+		w:         w,
+		isNestest: nestest,
+	}
+}
+
+func (d *disasm) Run(until int64) {
+	d.cpu.targetCycles = until
+	for d.cpu.Clock < d.cpu.targetCycles {
+		d.prevPC = d.cpu.PC
+		d.prevClock = d.cpu.Clock
+
+		pc := d.cpu.PC
+		opcode := d.cpu.Read8(d.cpu.PC)
+		d.cpu.PC++
+		d.op(pc)
+		ops[opcode](d.cpu)
+	}
 }
 
 func (d *disasm) op(pc uint16) {
@@ -316,7 +333,7 @@ func (d *disasm) op(pc uint16) {
 // because we don't want to tick the clock.
 
 func (d *disasm) imm() uint8  { return d.cpu.Bus.Read8(d.prevPC + 1) }
-func (d *disasm) abs() uint16 { return emu.Read16(d.cpu.Bus, d.prevPC+1) }
+func (d *disasm) abs() uint16 { return hwio.Read16(d.cpu.Bus, d.prevPC+1) }
 func (d *disasm) zp() uint8   { return d.cpu.Bus.Read8(d.prevPC + 1) }
 func (d *disasm) zpx() uint8  { return d.zp() + d.cpu.X }
 func (d *disasm) zpy() uint8  { return d.zp() + d.cpu.Y }
@@ -339,7 +356,7 @@ func (d *disasm) zpr16(addr uint16) uint16 {
 }
 
 func (d *disasm) ind() uint16 {
-	oper := emu.Read16(d.cpu.Bus, d.prevPC+1)
+	oper := hwio.Read16(d.cpu.Bus, d.prevPC+1)
 	lo := d.cpu.Bus.Read8(oper)
 	hi := d.cpu.Bus.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
 	return uint16(hi)<<8 | uint16(lo)
@@ -445,7 +462,7 @@ func disasm_rel(op string) disasmFunc {
 // indirect (JMP-only)
 func disasm_ind(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		oper := emu.Read16(d.cpu.Bus, d.prevPC+1)
+		oper := hwio.Read16(d.cpu.Bus, d.prevPC+1)
 		dst := d.ind()
 		return fmt.Sprintf("% 4s ($%04X) = %04X", op, oper, dst), 3
 	}

@@ -43,13 +43,12 @@ func TestNestest(t *testing.T) {
 		}
 	})
 
-	nes.CPU.SetDisasm(flog, true)
-
 	// nestest.nes has an automated test mode that starts at 0xC000, with 7
 	// cycles. The manual mode starting at the reset vector requires the screen.
 	nes.CPU.PC = 0xC000
 	nes.CPU.Clock = 7
 	nes.CPU.P = cpu.P(0b00100100)
 
-	nes.CPU.RunDisasm(26560)
+	disasm := cpu.NewDisasm(nes.CPU, flog, true)
+	disasm.Run(26560)
 }

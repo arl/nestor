@@ -14,7 +14,7 @@ import (
 
 func main() {
 	hexbyte := hexbyte(0x34)
-	disasmLog := new(outfile)
+	disasmLog := &outfile{}
 
 	flag.Var(&hexbyte, "P", "P register after first cpu reset (hex)")
 	flag.Var(disasmLog, "dbglog", "write execution log to [file|stdout|stderr] (for testing/debugging")
@@ -27,22 +27,25 @@ func main() {
 
 	path := flag.Arg(0)
 	rom, err := ines.ReadRom(path)
+	checkf(err, "failed to open rom")
 	if rom.IsNES20() {
 		fatalf("nes 2.0 roms are not supported yet")
 	}
-	checkf(err, "failed to open rom %s", path)
 
-	nes := new(NES)
+	nes := &NES{}
 	checkf(nes.PowerUp(rom), "error during power up")
-
 	nes.Reset()
 	nes.CPU.P = cpu.P(hexbyte)
-	if disasmLog.w != nil {
-		defer disasmLog.Close()
-		nes.CPU.SetDisasm(disasmLog, false)
-	}
 
-	nes.Run()
+	go func() {
+		if disasmLog.w != nil {
+			defer disasmLog.Close()
+			nes.RunDisasm(disasmLog, false)
+		} else {
+			nes.Run()
+		}
+	}()
+
 	startScreen(nes)
 }
 

@@ -102,12 +102,22 @@ func testOpcodes(op string) func(t *testing.T) {
 					t.Log("run:")
 				}
 
-				cpu.Run(int64(len(tt.Cycles)) - 1)
+				// cpu.Run(int64(len(tt.Cycles)) - 1)
 
 				if testing.Verbose() {
 					t.Logf("expecting cycles:\n%s\n\n", strings.Join(prettyCycles(tt.Cycles), "\n"))
 					t.Log("test output:")
 				}
+
+				// check cpu state
+				runAndCheckState(t, cpu, int64(len(tt.Cycles))-1,
+					"PC", tt.Final.PC,
+					"SP", tt.Final.SP,
+					"A", tt.Final.A,
+					"X", tt.Final.X,
+					"Y", tt.Final.Y,
+					"P", tt.Final.P,
+				)
 
 				// check cycles
 				if len(tt.Cycles) != int(cpu.Clock) {
@@ -124,15 +134,6 @@ func testOpcodes(op string) func(t *testing.T) {
 					}
 				}
 
-				// check cpu state
-				wantCPUState(t, cpu,
-					"PC", tt.Final.PC,
-					"SP", tt.Final.SP,
-					"A", tt.Final.A,
-					"X", tt.Final.X,
-					"Y", tt.Final.Y,
-					"P", tt.Final.P,
-				)
 			})
 		}
 	}
@@ -156,9 +157,7 @@ func TestCPx(t *testing.T) {
 		cpu.Clock = 0
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
-		cpu.Run(4)
-
-		wantCPUState(t, cpu,
+		runAndCheckState(t, cpu, 4,
 			"A", 0x00,
 			"X", 0x40,
 			"Y", 0x00,
@@ -172,9 +171,7 @@ func TestCPx(t *testing.T) {
 		cpu.Clock = 0
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
-		cpu.Run(4)
-
-		wantCPUState(t, cpu,
+		runAndCheckState(t, cpu, 4,
 			"A", 0x00,
 			"X", 0x40,
 			"Y", 0x00,
@@ -188,9 +185,7 @@ func TestCPx(t *testing.T) {
 		cpu.Clock = 0
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
-		cpu.Run(4)
-
-		wantCPUState(t, cpu,
+		runAndCheckState(t, cpu, 4,
 			"A", 0x00,
 			"X", 0x40,
 			"Y", 0x00,
@@ -204,9 +199,7 @@ func TestLDA_STA(t *testing.T) {
 	cpu := loadCPUWith(t, dump)
 	cpu.Clock = 0
 	cpu.PC = 0x0600
-	cpu.Run(6 * 3)
-
-	wantCPUState(t, cpu,
+	runAndCheckState(t, cpu, 6*3,
 		"A", 0x08,
 		"Pb", 1,
 		"PC", 0x060F,
@@ -223,9 +216,7 @@ func TestEOR(t *testing.T) {
 		cpu.Clock = 0
 		cpu.PC = 0x0100
 		cpu.A = 0x80
-		cpu.Run(3)
-
-		wantCPUState(t, cpu,
+		runAndCheckState(t, cpu, 3,
 			"A", 0x86,
 			"Pn", 1,
 			"Pz", 0,
@@ -243,15 +234,12 @@ FFFC: 00 01`
 		cpu := loadCPUWith(t, dump)
 		cpu.A = 0x80
 		cpu.P.writeBit(pbitC, true)
-
-		cpu.Run(5)
-
-		wantMem8(t, cpu, 0x0000, 0xAA)
-		wantCPUState(t, cpu,
+		runAndCheckState(t, cpu, 5,
 			"Pn", 1,
 			"Pc", 1,
 			"Pz", 0,
 		)
+		wantMem8(t, cpu, 0x0000, 0xAA)
 	})
 }
 
@@ -273,11 +261,7 @@ FFFC: 00 06
 	cpu.Clock = 0
 	cpu.P = 0x30
 	cpu.SP = 0xFF
-	cpu.SetDisasm(os.Stdout, false)
-
-	cpu.Run(562)
-
-	wantCPUState(t, cpu,
+	runAndCheckState(t, cpu, 562,
 		"PC", 0x0618,
 		"A", 0x00,
 		"X", 0x10,
@@ -302,10 +286,7 @@ func TestStackSmall(t *testing.T) {
 	cpu.PC = 0x0600
 	cpu.P = 0x30
 	cpu.SP = 0xFF
-	cpu.SetDisasm(os.Stdout, true)
-	cpu.RunDisasm(8)
-
-	wantCPUState(t, cpu,
+	runAndCheckState(t, cpu, 8,
 		"PC", 0x0606,
 		"A", 0xAA,
 		"SP", 0xFF,
@@ -327,16 +308,10 @@ func TestJSR_RTS(t *testing.T) {
 	cpu.Clock = 0
 	cpu.PC = 0x0600
 	cpu.P = 0x30
-	cpu.SetDisasm(os.Stdout, false)
-
-	cpu.Run(6)
-	wantCPUState(t, cpu, "PC", 0x0620)
-	cpu.Run(6 + 2)
-	wantCPUState(t, cpu, "A", 0x88)
-	cpu.Run(6 + 2 + 6)
-	wantCPUState(t, cpu, "PC", 0x0603)
-	cpu.Run(6 + 2 + 6 + 2)
-	wantCPUState(t, cpu, "A", 0xFF)
+	runAndCheckState(t, cpu, 6, "PC", 0x0620)
+	runAndCheckState(t, cpu, 6+2, "A", 0x88)
+	runAndCheckState(t, cpu, 6+2+6, "PC", 0x0603)
+	runAndCheckState(t, cpu, 6+2+6+2, "A", 0xFF)
 }
 
 type mapbus struct {

@@ -1,12 +1,11 @@
 package main
 
 import (
-	"nestor/emu"
 	"nestor/emu/hwio"
 )
 
 type cpuBus struct {
-	mmap emu.MemMap
+	mmap hwio.MemMap
 	name string
 }
 

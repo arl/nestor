@@ -1,8 +1,7 @@
-package emu
+package hwio
 
 import (
 	"log"
-	"nestor/emu/hwio"
 )
 
 type Region8 interface {
@@ -51,7 +50,7 @@ func (mmap *MemMap) MapSlice(addr, end uint16, buf []byte) {
 }
 
 // MapReg8 maps an 8-bit register at a given address.
-func (mmap *MemMap) MapReg8(addr uint16, r8 *hwio.Reg8) {
+func (mmap *MemMap) MapReg8(addr uint16, r8 *Reg8) {
 	mmap.mapBus8(addr, 1, r8)
 }
 
@@ -61,6 +60,24 @@ func (mmap *MemMap) mapBus8(addr uint16, size uint16, r8 Region8) {
 		panic(err)
 	}
 }
+
+type MemFlags int
+
+const (
+	MemFlag8             MemFlags = (1 << iota) // 8-bit access is allowed
+	MemFlag16Unaligned                          // 16-bit access is allowed, even if unaligned
+	MemFlag16ForceAlign                         // 16-bit access is allowed, and it is forcibly aligned to 16-bit boundary
+	MemFlag16Byteswapped                        // 16-bit access is allowed, and if not aligned the data is byteswapped
+	MemFlag32Unaligned                          // 32-bit access is allowed, even if unaligned
+	MemFlag32ForceAlign                         // 32-bit access is allowed, and it is forcibly aligned to 32-bit boundary
+	MemFlag32Byteswapped                        // 32-bit access is allowed, and if not aligned the data is byteswapped
+	MemFlag8ReadOnly                            // 8-bit accesses are read-only (requires MemFlag8)
+	MemFlag16ReadOnly                           // 16-bit accesses are read-only (requires one of MemFlag16*)
+	MemFlag32ReadOnly                           // 32-bit accesses are read-only (requires one of MemFlag32*)
+	MemFlagNoROLog                              // skip logging attempts to write when configured to readonly
+
+	MemFlagReadOnly = MemFlag8ReadOnly | MemFlag16ReadOnly | MemFlag32ReadOnly // all writes are forbidden
+)
 
 type MemRegion struct {
 	Buf   []byte // mapped buffer

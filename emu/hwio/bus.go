@@ -1,4 +1,4 @@
-package emu
+package hwio
 
 type Bus interface {
 	Reset()
