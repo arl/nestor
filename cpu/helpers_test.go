@@ -205,12 +205,12 @@ func (tt *ticker) Tick() {}
 
 // loadCPUWith loads a CPU with a memory dump.
 func loadCPUWith(tb testing.TB, dump string) *CPU {
-	mem := new(hwio.MemMap)
+	mem := hwio.NewTable("cpu")
 	lines := loadDump(tb, dump)
 	for _, line := range lines {
 		hd := hex.Dump(line.bytes)
 		tb.Logf("mapping $%04X: %s", line.off, hd[10:10+3*line.len])
-		mem.MapSlice(line.off, line.off+uint16(len(line.bytes))-1, line.bytes)
+		mem.MapMemorySlice(line.off, line.off+uint16(len(line.bytes))-1, line.bytes, false)
 	}
 
 	cpu := NewCPU(mem, &ticker{})

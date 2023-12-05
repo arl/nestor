@@ -14,7 +14,7 @@ const (
 )
 
 type CPU struct {
-	Bus hwio.Bus
+	Bus *hwio.Table
 	A   uint8
 	X   uint8
 	Y   uint8
@@ -35,7 +35,7 @@ type Ticker interface {
 }
 
 // NewCPU creates a new CPU at power-up state.
-func NewCPU(bus hwio.Bus, ticker Ticker) *CPU {
+func NewCPU(bus *hwio.Table, ticker Ticker) *CPU {
 	cpu := &CPU{
 		Bus: bus,
 		A:   0x00,

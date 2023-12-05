@@ -43,15 +43,12 @@ func (reg *Reg8) write(val uint8, romask uint8) {
 	}
 }
 
-func hex16(val uint16) string {
-	return fmt.Sprintf("%04x", val)
-}
-
 func (reg *Reg8) Write8(addr uint16, val uint8) {
 	if reg.Flags&RegFlagReadOnly != 0 {
-		log.ModHwIo.ErrorZ("invalid Write8 from readonly reg").
+		log.ModHwIo.ErrorZ("invalid Write8 to readonly reg").
 			String("name", reg.Name).
-			Hex16("addr", addr)
+			Hex16("addr", addr).
+			End()
 		return
 	}
 	reg.write(val, 0)
@@ -61,7 +58,8 @@ func (reg *Reg8) Read8(addr uint16) uint8 {
 	if reg.Flags&RegFlagWriteOnly != 0 {
 		log.ModHwIo.ErrorZ("invalid Read8 from writeonly reg").
 			String("name", reg.Name).
-			Hex16("addr", addr)
+			Hex16("addr", addr).
+			End()
 		return 0
 	}
 	if reg.ReadCb != nil {

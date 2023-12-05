@@ -115,7 +115,7 @@ func InitRegs(data any) error {
 		// Set the register name with its name in the structure
 		valueField.FieldByName("Name").SetString(varField.Name)
 
-		if _, ok := valueField.Interface().(MemRegion); ok {
+		if _, ok := valueField.Interface().(Mem); ok {
 
 			if ssize := tag.Get("size"); ssize != "" {
 				if size, err := strconv.ParseInt(ssize, 0, 30); err != nil {
@@ -124,14 +124,14 @@ func InitRegs(data any) error {
 					return fmt.Errorf("size not pow2: %q", ssize)
 				} else {
 					sl := reflect.MakeSlice(reflect.TypeOf(([]uint8)(nil)), int(size), int(size))
-					valueField.FieldByName("Buf").Set(sl)
+					valueField.FieldByName("Data").Set(sl)
 					valueField.FieldByName("VSize").SetInt(size)
 				}
 			}
 
-			// See if there was a virtual size defined different from the
-			// physical size. This is useful to handle memory areas that have
-			// multiple mirrors.
+			// See there was a virtual size defined different from the physical
+			// size. This is useful to handle memory areas that have multiple
+			// mirrors.
 			if ssize := tag.Get("vsize"); ssize != "" {
 				if size, err := strconv.ParseInt(ssize, 0, 30); err != nil {
 					return fmt.Errorf("invalid vsize: %q", ssize)
@@ -150,32 +150,8 @@ func InitRegs(data any) error {
 				return fmt.Errorf("invalid rw8: %q", tag.Get("rw8"))
 			}
 
-			// switch tag.Get("rw16") {
-			// case "unaligned", "true", "":
-			// 	flags |= MemFlag16Unaligned
-			// case "byteswapped":
-			// 	flags |= MemFlag16Byteswapped
-			// case "forcealign":
-			// 	flags |= MemFlag16ForceAlign
-			// case "off", "false":
-			// default:
-			// 	return fmt.Errorf("invalid rw16: %q", tag.Get("rw32"))
-			// }
-
-			// switch tag.Get("rw32") {
-			// case "unaligned", "true", "":
-			// 	flags |= MemFlag32Unaligned
-			// case "byteswapped":
-			// 	flags |= MemFlag32Byteswapped
-			// case "forcealign":
-			// 	flags |= MemFlag32ForceAlign
-			// case "off", "false":
-			// default:
-			// 	return fmt.Errorf("invalid rw32: %q", tag.Get("rw32"))
-			// }
-
 			if ro := tag.Get("readonly"); ro != "" {
-				flags |= MemFlagReadOnly
+				flags |= MemFlag8ReadOnly
 			}
 
 			if wcb := tag.Get("wcb"); wcb != "" {
@@ -197,12 +173,6 @@ func InitRegs(data any) error {
 		switch valueField.Interface().(type) {
 		case Reg8:
 			nbits = 8
-		// case Reg16:
-		// 	nbits = 16
-		// case Reg32:
-		// 	nbits = 32
-		// case Reg64:
-		// 	nbits = 64
 		default:
 			return fmt.Errorf("unsupported regtype: %T", valueField.Interface())
 		}
@@ -265,7 +235,7 @@ func InitRegs(data any) error {
 
 type bankRegInfo struct {
 	regPtr any
-	offset uint32
+	offset uint16
 }
 
 // Given a structure, parse the hwid to extract the description of a bank
@@ -305,7 +275,7 @@ func bankGetRegs(data any, bankNum int) ([]bankRegInfo, error) {
 
 				regs = append(regs, bankRegInfo{
 					regPtr: valueField.Addr().Interface(),
-					offset: uint32(offset),
+					offset: uint16(offset),
 				})
 			}
 		}

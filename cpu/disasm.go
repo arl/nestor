@@ -332,8 +332,14 @@ func (d *disasm) op(pc uint16) {
 // For the disassembler, addressing modes use cpu.bus.Read rather than cpu.Read,
 // because we don't want to tick the clock.
 
+func read16(b hwio.BankIO8, addr uint16) uint16 {
+	lo := b.Read8(addr)
+	hi := b.Read8(addr + 1)
+	return uint16(hi)<<8 | uint16(lo)
+}
+
 func (d *disasm) imm() uint8  { return d.cpu.Bus.Read8(d.prevPC + 1) }
-func (d *disasm) abs() uint16 { return hwio.Read16(d.cpu.Bus, d.prevPC+1) }
+func (d *disasm) abs() uint16 { return read16(d.cpu.Bus, d.prevPC+1) }
 func (d *disasm) zp() uint8   { return d.cpu.Bus.Read8(d.prevPC + 1) }
 func (d *disasm) zpx() uint8  { return d.zp() + d.cpu.X }
 func (d *disasm) zpy() uint8  { return d.zp() + d.cpu.Y }
@@ -356,7 +362,7 @@ func (d *disasm) zpr16(addr uint16) uint16 {
 }
 
 func (d *disasm) ind() uint16 {
-	oper := hwio.Read16(d.cpu.Bus, d.prevPC+1)
+	oper := read16(d.cpu.Bus, d.prevPC+1)
 	lo := d.cpu.Bus.Read8(oper)
 	hi := d.cpu.Bus.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
 	return uint16(hi)<<8 | uint16(lo)
@@ -462,7 +468,7 @@ func disasm_rel(op string) disasmFunc {
 // indirect (JMP-only)
 func disasm_ind(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		oper := hwio.Read16(d.cpu.Bus, d.prevPC+1)
+		oper := read16(d.cpu.Bus, d.prevPC+1)
 		dst := d.ind()
 		return fmt.Sprintf("% 4s ($%04X) = %04X", op, oper, dst), 3
 	}

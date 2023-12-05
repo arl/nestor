@@ -3,6 +3,7 @@ package cpu
 import (
 	"encoding/json"
 	"fmt"
+	"nestor/emu/hwio"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -82,7 +83,15 @@ func testOpcodes(op string) func(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.Name, func(t *testing.T) {
-				mem := &mapbus{m: make(map[uint16]uint8), t: t}
+				mem := hwio.NewTable("cputest")
+				mem.MapMem(0x0000, &hwio.Mem{
+					Data:  make([]uint8, 0x10000),
+					Flags: hwio.MemFlag8,
+					VSize: int(0x10000),
+					// WriteCb: func(uint16, int) {},
+				})
+
+				// mem := &mapbus{m: make(map[uint16]uint8), t: t}
 				cpu := NewCPU(mem, &ticker{})
 				cpu.A = uint8(tt.Initial.A)
 				cpu.X = uint8(tt.Initial.X)
@@ -93,7 +102,7 @@ func testOpcodes(op string) func(t *testing.T) {
 
 				// preload RAM
 				for _, row := range tt.Initial.RAM {
-					mem.m[uint16(row[0])] = uint8(row[1])
+					mem.Write8(uint16(row[0]), uint8(row[1]))
 				}
 
 				if testing.Verbose() {
@@ -133,7 +142,6 @@ func testOpcodes(op string) func(t *testing.T) {
 						t.Errorf("ram[0x%x] = 0x%x, want 0x%x", addr, got, val)
 					}
 				}
-
 			})
 		}
 	}
