@@ -4,6 +4,7 @@ package ines
 
 import (
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -12,6 +13,14 @@ type Rom struct {
 	Trainer []uint8 // Trainer, 512 bytes if present, or empty.
 	PRGROM  []uint8 // PRG is PRG ROM data (size is a multiple of 16k)
 	CHRROM  []uint8 // CHR is PRG ROM data (size is a multiple of 8k)
+}
+
+func (rom *Rom) PrintInfos(w io.Writer) {
+	fmt.Fprintf(w, "PRG ROM: 0x%x bytes\n", len(rom.PRGROM))
+	fmt.Fprintf(w, "CHR ROM: 0x%x bytes\n", len(rom.CHRROM))
+	fmt.Fprintf(w, "Mapper: %d\n", rom.Mapper())
+	fmt.Fprintf(w, "Trainer: %t\n", rom.HasTrainer())
+	fmt.Fprintf(w, "Persistent: %t\n", rom.HasPersistent())
 }
 
 // ReadRom loads a rom from an iNES file.

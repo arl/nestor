@@ -15,9 +15,11 @@ import (
 func main() {
 	hexbyte := hexbyte(0x34)
 	disasmLog := &outfile{}
+	infosFlag := false
 
 	flag.Var(&hexbyte, "P", "P register after first cpu reset (hex)")
 	flag.Var(disasmLog, "dbglog", "write execution log to [file|stdout|stderr] (for testing/debugging")
+	flag.BoolVar(&infosFlag, "infos", false, "print infos about the rom and exit")
 	flag.Parse()
 
 	if len(flag.Args()) < 1 {
@@ -30,6 +32,11 @@ func main() {
 	checkf(err, "failed to open rom")
 	if rom.IsNES20() {
 		fatalf("nes 2.0 roms are not supported yet")
+	}
+
+	if infosFlag {
+		rom.PrintInfos(os.Stdout)
+		return
 	}
 
 	nes := &NES{}
