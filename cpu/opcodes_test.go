@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -40,6 +41,22 @@ func TestOpcodes(t *testing.T) {
 			t.Run(opstr, testOpcodes(opstr))
 		}
 	}
+}
+
+var slicePool = sync.Pool{
+	New: func() any {
+		s := make([]uint8, 0x10000)
+		return &s
+	},
+}
+
+func newSlice() *[]uint8 {
+	return slicePool.Get().(*[]uint8)
+}
+
+func putSlice(s *[]uint8) {
+	clear(*s)
+	slicePool.Put(s)
 }
 
 // testOpcodes runs the opcode tests in testdata/<op>.json
@@ -84,14 +101,15 @@ func testOpcodes(op string) func(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.Name, func(t *testing.T) {
 				mem := hwio.NewTable("cputest")
+				slice := newSlice()
+				defer putSlice(slice)
+
 				mem.MapMem(0x0000, &hwio.Mem{
-					Data:  make([]uint8, 0x10000),
+					Data:  *slice,
 					Flags: hwio.MemFlag8,
 					VSize: int(0x10000),
-					// WriteCb: func(uint16, int) {},
 				})
 
-				// mem := &mapbus{m: make(map[uint16]uint8), t: t}
 				cpu := NewCPU(mem, &ticker{})
 				cpu.A = uint8(tt.Initial.A)
 				cpu.X = uint8(tt.Initial.X)
@@ -110,8 +128,6 @@ func testOpcodes(op string) func(t *testing.T) {
 						cpu.A, cpu.X, cpu.Y, uint8(cpu.P), cpu.P.String(), cpu.SP, cpu.PC)
 					t.Log("run:")
 				}
-
-				// cpu.Run(int64(len(tt.Cycles)) - 1)
 
 				if testing.Verbose() {
 					t.Logf("expecting cycles:\n%s\n\n", strings.Join(prettyCycles(tt.Cycles), "\n"))
