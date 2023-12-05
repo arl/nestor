@@ -6,13 +6,17 @@ import (
 )
 
 type PPU struct {
+	Bus hwio.Bus
+
 	PPUCTRL   hwio.Reg8 `hwio:"offset=0x0,writeonly,wcb"`
 	PPUMASK   hwio.Reg8 `hwio:"offset=0x1,writeonly,wcb"`
 	PPUSTATUS hwio.Reg8 `hwio:"offset=0x2,readonly,rcb"`
 }
 
 func New() *PPU {
-	ppu := &PPU{}
+	ppu := &PPU{
+		Bus: &hwio.MemMap{Name: "ppu"},
+	}
 	hwio.MustInitRegs(ppu)
 	ppu.Reset()
 	return ppu

@@ -12,11 +12,14 @@ import (
 
 type NES struct {
 	CPU *cpu.CPU
+	PPU *ppu.PPU
 }
 
 func (nes *NES) PowerUp(rom *ines.Rom) error {
-	ppu := ppu.New()
+	nes.PPU = ppu.New()
+
 	cpubus := &hwio.MemMap{Name: "cpu"}
+	nes.CPU = cpu.NewCPU(cpubus, nes.PPU)
 
 	// RAM is 0x800 bytes, mirrored.
 	ram := make([]byte, 0x0800)
@@ -25,19 +28,18 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 	cpubus.MapSlice(0x1000, 0x17FF, ram)
 	cpubus.MapSlice(0x1800, 0x1FFF, ram)
 
-	// Map PPU registers and their mirrors
-	for i := 0x2000; i < 0x4000; i += 8 {
-		cpubus.MapBank(uint16(i), ppu, 0)
+	// Map PPU registers and their mirrors.
+	for i := uint16(0x2000); i < 0x4000; i += 8 {
+		cpubus.MapBank(i, nes.PPU, 0)
 	}
 	cpubus.Write8(0x2006, 0x23)
 
-	nes.CPU = cpu.NewCPU(cpubus, ppu)
 	if rom.Mapper() != 0 {
 		// Only handle mapper 000 (NROM) for now.
 		return fmt.Errorf("unsupported mapper: %d", rom.Mapper())
 	}
 
-	if err := loadMapper000(rom, cpubus); err != nil {
+	if err := loadMapper000(rom, nes); err != nil {
 		return fmt.Errorf("failed to load mapper %03d: %s", rom.Mapper(), err)
 	}
 	return nil
@@ -46,6 +48,7 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 // Reset forwards the reset signal to all hardware.
 func (nes *NES) Reset() {
 	nes.CPU.Reset()
+	nes.PPU.Reset()
 }
 
 func (nes *NES) Run() {
