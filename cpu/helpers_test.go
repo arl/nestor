@@ -91,17 +91,17 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 		s := states[i].(string)
 		switch {
 		case s == "A":
-			checkuint8("A", cpu.A, uint8(states[i+1].(int)))
+			checkuint8("A", cpu.A, states[i+1].(uint8))
 		case s == "X":
-			checkuint8("X", cpu.X, uint8(states[i+1].(int)))
+			checkuint8("X", cpu.X, states[i+1].(uint8))
 		case s == "Y":
-			checkuint8("Y", cpu.Y, uint8(states[i+1].(int)))
+			checkuint8("Y", cpu.Y, states[i+1].(uint8))
 		case s == "PC":
-			checkuint16("PC", cpu.PC, uint16(states[i+1].(int)))
+			checkuint16("PC", cpu.PC, states[i+1].(uint16))
 		case s == "SP":
-			checkuint8("SP", uint8(cpu.SP), uint8(states[i+1].(int)))
+			checkuint8("SP", uint8(cpu.SP), states[i+1].(uint8))
 		case s == "P":
-			if got, want := uint8(cpu.P), uint8(states[i+1].(int)); got != want {
+			if got, want := uint8(cpu.P), states[i+1].(uint8); got != want {
 				t.Errorf("got P=$%02X(%s), want $%02X(%s)", got, P(got), want, P(want))
 			}
 		case len(s) > 1 && s[0] == 'P':

@@ -74,22 +74,22 @@ func testOpcodes(op string) func(t *testing.T) {
 		var tests []struct {
 			Name    string `json:"name"`
 			Initial struct {
-				PC  int     `json:"pc"`
-				SP  int     `json:"s"`
-				A   int     `json:"a"`
-				X   int     `json:"x"`
-				Y   int     `json:"y"`
-				P   int     `json:"p"`
-				RAM [][]int `json:"ram"`
+				PC  uint16     `json:"pc"`
+				SP  uint8      `json:"s"`
+				A   uint8      `json:"a"`
+				X   uint8      `json:"x"`
+				Y   uint8      `json:"y"`
+				P   uint8      `json:"p"`
+				RAM [][]uint16 `json:"ram"`
 			} `json:"initial"`
 			Final struct {
-				PC  int     `json:"pc"`
-				SP  int     `json:"s"`
-				A   int     `json:"a"`
-				X   int     `json:"x"`
-				Y   int     `json:"y"`
-				P   int     `json:"p"`
-				RAM [][]int `json:"ram"`
+				PC  uint16     `json:"pc"`
+				SP  uint8      `json:"s"`
+				A   uint8      `json:"a"`
+				X   uint8      `json:"x"`
+				Y   uint8      `json:"y"`
+				P   uint8      `json:"p"`
+				RAM [][]uint16 `json:"ram"`
 			} `json:"final"`
 			Cycles [][]any `json:"cycles"`
 		}
@@ -111,16 +111,16 @@ func testOpcodes(op string) func(t *testing.T) {
 				})
 
 				cpu := NewCPU(mem, &ticker{})
-				cpu.A = uint8(tt.Initial.A)
-				cpu.X = uint8(tt.Initial.X)
-				cpu.Y = uint8(tt.Initial.Y)
+				cpu.A = tt.Initial.A
+				cpu.X = tt.Initial.X
+				cpu.Y = tt.Initial.Y
 				cpu.P = P(tt.Initial.P)
-				cpu.SP = uint8(tt.Initial.SP)
-				cpu.PC = uint16(tt.Initial.PC)
+				cpu.SP = tt.Initial.SP
+				cpu.PC = tt.Initial.PC
 
 				// preload RAM
 				for _, row := range tt.Initial.RAM {
-					mem.Write8(uint16(row[0]), uint8(row[1]))
+					mem.Write8(row[0], uint8(row[1]))
 				}
 
 				if testing.Verbose() {
@@ -151,7 +151,7 @@ func testOpcodes(op string) func(t *testing.T) {
 
 				// check ram
 				for _, row := range tt.Final.RAM {
-					addr := uint16(row[0])
+					addr := row[0]
 					val := uint8(row[1])
 					got := mem.Read8(addr)
 					if got != val {
