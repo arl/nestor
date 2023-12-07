@@ -8,11 +8,11 @@ type test1 struct {
 	called bool
 }
 
-func (t *test1) WriteREG1(old uint16, val uint16) {
+func (t *test1) WriteREG1(old, val uint8) {
 	t.called = true
 }
 
-func (t *test1) ReadREG2(val uint32) uint32 {
+func (t *test1) ReadREG2(val uint8) uint8 {
 	return val | 1
 }
 
@@ -25,7 +25,6 @@ func TestReflect(t *testing.T) {
 	}
 
 	t.Log(ts)
-
 	if ts.Reg1.Name != "Reg1" || ts.Reg2.Name != "Reg2" {
 		t.Error("invalid names:", ts.Reg1, ts.Reg2)
 	}
@@ -36,7 +35,7 @@ func TestReflect(t *testing.T) {
 
 	val := ts.Reg1.Read8(0)
 	if val != 0x23 {
-		t.Error("invalid read16", val)
+		t.Error("invalid read8", val)
 	}
 
 	ts.Reg1.Write8(0, 0)

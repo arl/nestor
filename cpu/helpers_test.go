@@ -106,7 +106,7 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 			}
 		case len(s) > 1 && s[0] == 'P':
 			for j := 1; j < len(s); j++ {
-				bit := uint8(states[i+1].(int))
+				bit := states[i+1].(uint8)
 				switch s[j] {
 				case 'n':
 					checkbool("Pn", b2i(cpu.P.N()), bit)

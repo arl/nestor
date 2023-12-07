@@ -182,10 +182,10 @@ func TestCPx(t *testing.T) {
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		runAndCheckState(t, cpu, 4,
-			"A", 0x00,
-			"X", 0x40,
-			"Y", 0x00,
-			"P", 0b10110000,
+			"A", uint8(0x00),
+			"X", uint8(0x40),
+			"Y", uint8(0x00),
+			"P", uint8(0b10110000),
 		)
 	})
 	t.Run("40 - 40", func(t *testing.T) {
@@ -196,10 +196,10 @@ func TestCPx(t *testing.T) {
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		runAndCheckState(t, cpu, 4,
-			"A", 0x00,
-			"X", 0x40,
-			"Y", 0x00,
-			"P", 0b00110011,
+			"A", uint8(0x00),
+			"X", uint8(0x40),
+			"Y", uint8(0x00),
+			"P", uint8(0b00110011),
 		)
 	})
 	t.Run("40 - 39", func(t *testing.T) {
@@ -210,10 +210,10 @@ func TestCPx(t *testing.T) {
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		runAndCheckState(t, cpu, 4,
-			"A", 0x00,
-			"X", 0x40,
-			"Y", 0x00,
-			"P", 0b00110001,
+			"A", uint8(0x00),
+			"X", uint8(0x40),
+			"Y", uint8(0x00),
+			"P", uint8(0b00110001),
 		)
 	})
 }
@@ -224,10 +224,10 @@ func TestLDA_STA(t *testing.T) {
 	cpu.Clock = 0
 	cpu.PC = 0x0600
 	runAndCheckState(t, cpu, 6*3,
-		"A", 0x08,
-		"Pb", 1,
-		"PC", 0x060F,
-		"SP", 0xfd,
+		"A", uint8(0x08),
+		"Pb", uint8(1),
+		"PC", uint16(0x060F),
+		"SP", uint8(0xfd),
 	)
 }
 
@@ -241,9 +241,9 @@ func TestEOR(t *testing.T) {
 		cpu.PC = 0x0100
 		cpu.A = 0x80
 		runAndCheckState(t, cpu, 3,
-			"A", 0x86,
-			"Pn", 1,
-			"Pz", 0,
+			"A", uint8(0x86),
+			"Pn", uint8(1),
+			"Pz", uint8(0),
 		)
 	})
 }
@@ -259,9 +259,9 @@ FFFC: 00 01`
 		cpu.A = 0x80
 		cpu.P.writeBit(pbitC, true)
 		runAndCheckState(t, cpu, 5,
-			"Pn", 1,
-			"Pc", 1,
-			"Pz", 0,
+			"Pn", uint8(1),
+			"Pc", uint8(1),
+			"Pz", uint8(0),
 		)
 		wantMem8(t, cpu, 0x0000, 0xAA)
 	})
@@ -286,11 +286,11 @@ FFFC: 00 06
 	cpu.P = 0x30
 	cpu.SP = 0xFF
 	runAndCheckState(t, cpu, 562,
-		"PC", 0x0618,
-		"A", 0x00,
-		"X", 0x10,
-		"Y", 0x20,
-		"SP", 0xFF,
+		"PC", uint16(0x0618),
+		"A", uint8(0x00),
+		"X", uint8(0x10),
+		"Y", uint8(0x20),
+		"SP", uint8(0xFF),
 		"mem", `
 01f0: 0f 0e 0d 0c 0b 0a 09 08 07 06 05 04 03 02 01 00
 0200: 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
@@ -311,10 +311,10 @@ func TestStackSmall(t *testing.T) {
 	cpu.P = 0x30
 	cpu.SP = 0xFF
 	runAndCheckState(t, cpu, 8,
-		"PC", 0x0606,
-		"A", 0xAA,
-		"SP", 0xFF,
-		"Pn", 1,
+		"PC", uint16(0x0606),
+		"A", uint8(0xAA),
+		"SP", uint8(0xFF),
+		"Pn", uint8(1),
 	)
 }
 
@@ -332,10 +332,10 @@ func TestJSR_RTS(t *testing.T) {
 	cpu.Clock = 0
 	cpu.PC = 0x0600
 	cpu.P = 0x30
-	runAndCheckState(t, cpu, 6, "PC", 0x0620)
-	runAndCheckState(t, cpu, 6+2, "A", 0x88)
-	runAndCheckState(t, cpu, 6+2+6, "PC", 0x0603)
-	runAndCheckState(t, cpu, 6+2+6+2, "A", 0xFF)
+	runAndCheckState(t, cpu, 6, "PC", uint16(0x0620))
+	runAndCheckState(t, cpu, 6+2, "A", uint8(0x88))
+	runAndCheckState(t, cpu, 6+2+6, "PC", uint16(0x0603))
+	runAndCheckState(t, cpu, 6+2+6+2, "A", uint8(0xFF))
 }
 
 type mapbus struct {
