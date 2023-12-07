@@ -4,6 +4,7 @@ package cpu
 
 import (
 	"nestor/emu/hwio"
+	"nestor/ppu"
 )
 
 // Locations reserved for vector pointers.
@@ -21,6 +22,8 @@ type CPU struct {
 	SP  uint8
 	PC  uint16
 	P   P
+
+	PPURegs *ppu.Regs
 
 	Clock        int64 // cycles
 	targetCycles int64
