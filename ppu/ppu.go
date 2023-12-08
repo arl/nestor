@@ -18,8 +18,9 @@ The timing below is for NTSC PPUs. PPUs for 50 Hz TV systems differ:
 type PPU struct {
 	Bus *hwio.Table
 
-	PatternTables hwio.Mem `hwio:"bank=0,offset=0x0000,size=0x1000,vsize=0x2000,wcb"`
-	NameTables    hwio.Mem `hwio:"bank=0,offset=0x2000,size=0x1000,vsize=0x1F00,wcb"`
+	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x1000,vsize=0x2000,wcb"`
+	NameTables    hwio.Mem `hwio:"offset=0x2000,size=0x1000,vsize=0x1F00,wcb"`
+	Palettes      hwio.Mem `hwio:"offset=0x3F00,size=0x20,vsize=0xE0,wcb"`
 }
 
 func New(bus *hwio.Table) *PPU {
@@ -44,4 +45,9 @@ func (p *PPU) WriteNAMETABLES(addr uint16, n int) {
 func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
 	memaddr := addr & 0x0FFF
 	fmt.Printf("PATTERNTABLES writes %d bytes at 0x%04x -> 0x%02X\n", n, addr, p.PatternTables.Data[memaddr])
+}
+
+func (p *PPU) WritePALETTES(addr uint16, n int) {
+	memaddr := addr & 0x01F
+	fmt.Printf("PALLETTES writes %d bytes at 0x%04x -> 0x%02X\n", n, addr, p.Palettes.Data[memaddr])
 }
