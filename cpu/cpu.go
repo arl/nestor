@@ -16,12 +16,12 @@ const (
 
 type CPU struct {
 	Bus *hwio.Table
-	A   uint8
-	X   uint8
-	Y   uint8
-	SP  uint8
-	PC  uint16
-	P   P
+	Ram [0x800]byte // Internal RAM
+
+	// cpu registers
+	A, X, Y, SP uint8
+	PC          uint16
+	P           P
 
 	PPURegs *ppu.Regs
 
@@ -29,8 +29,6 @@ type CPU struct {
 	targetCycles int64
 
 	t Ticker // tick callback
-
-	disasm *disasm
 }
 
 type Ticker interface {
@@ -50,6 +48,28 @@ func NewCPU(bus *hwio.Table, ticker Ticker) *CPU {
 		t:   ticker,
 	}
 	return cpu
+}
+
+func (c *CPU) InitBus() {
+	// 0x0000-0x1FFF -> RAM, mirrored.
+	c.Bus.MapMemorySlice(0x0000, 0x07FF, c.Ram[:], false)
+	c.Bus.MapMemorySlice(0x0800, 0x0FFF, c.Ram[:], false)
+	c.Bus.MapMemorySlice(0x1000, 0x17FF, c.Ram[:], false)
+	c.Bus.MapMemorySlice(0x1800, 0x1FFF, c.Ram[:], false)
+
+	// 0x2000-0x3FFF -> PPU registers, mirrored.
+	c.PPURegs = ppu.NewRegs()
+	for i := uint16(0x2000); i < 0x4000; i += 8 {
+		c.Bus.MapBank(i, c.PPURegs, 0)
+	}
+
+	// 0x4000-0x4017 -> APU and IO registers.
+	// TODO
+	// 0x4018-0x401F -> APU and IO registers (test mode).
+	// unused
+
+	// 0x4020-0xFFFF -> Cartridge space (PRG-ROM, PRG-RAM, mapper registers).
+	// performed by the mapper.
 }
 
 func (c *CPU) Reset() {
