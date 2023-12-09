@@ -5,19 +5,14 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
-	"strings"
 
-	"nestor/cpu"
 	"nestor/ines"
 )
 
 func main() {
-	hexbyte := hexbyte(0x34)
 	disasmLog := &outfile{}
 	infosFlag := false
 
-	flag.Var(&hexbyte, "P", "P register after first cpu reset (hex)")
 	flag.Var(disasmLog, "dbglog", "write execution log to [file|stdout|stderr] (for testing/debugging")
 	flag.BoolVar(&infosFlag, "infos", false, "print infos about the rom and exit")
 	flag.Parse()
@@ -42,7 +37,6 @@ func main() {
 	nes := &NES{}
 	checkf(nes.PowerUp(rom), "error during power up")
 	nes.Reset()
-	nes.CPU.P = cpu.P(hexbyte)
 
 	go func() {
 		if disasmLog.w != nil {
@@ -80,20 +74,6 @@ func fatalf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "\n\t%s\n", fmt.Sprintf(format, args...))
 	os.Exit(1)
 }
-
-type hexbyte byte
-
-func (b *hexbyte) Set(s string) error {
-	str := strings.TrimPrefix(s, "0x")
-	v, err := strconv.ParseUint(str, 16, 8)
-	if err != nil {
-		return fmt.Errorf("hexbyte: can't parse %v: %s", v, err)
-	}
-	*b = hexbyte(v)
-	return nil
-}
-
-func (b *hexbyte) String() string { return fmt.Sprintf("0x%02X", *b) }
 
 type outfile struct {
 	w    io.Writer
