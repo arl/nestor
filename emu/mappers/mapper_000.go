@@ -13,6 +13,8 @@ var NROM = emu.MapperDesc{
 }
 
 func loadMapper000(rom *ines.Rom, hw *emu.Hardware) error {
+	// CPU memory space mapping.
+	//
 	switch len(rom.PRGROM) {
 	case 0x4000:
 		hw.CPU.Bus.MapMemorySlice(0x8000, 0xBFFF, rom.PRGROM, true)
@@ -23,10 +25,14 @@ func loadMapper000(rom *ines.Rom, hw *emu.Hardware) error {
 		return fmt.Errorf("unexpected CHRROM size: 0x%x", len(rom.CHRROM))
 	}
 
+	// PPU memory space mapping.
+	//
+
+	// Copy CHRROM to Pattern Tables.
+	copy(hw.PPU.PatternTables.Data, rom.CHRROM)
 	if len(rom.CHRROM) != 0x2000 {
-		return fmt.Errorf("not implemented CHRROM size: 0x%x", len(rom.CHRROM))
+		return fmt.Errorf("unimplemented CHRROM size: 0x%x", len(rom.CHRROM))
 	}
-	hw.PPU.Bus.MapMemorySlice(0x0000, 0x1FFF, rom.CHRROM, true)
 
 	// TODO: load and map PRG-RAM if present in cartridge.
 	// TODO: load and map CHR-RAM if present in cartridge.

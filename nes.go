@@ -19,14 +19,11 @@ type NES struct {
 func (nes *NES) PowerUp(rom *ines.Rom) error {
 	ppubus := hwio.NewTable("ppu")
 	nes.Hw.PPU = ppu.New(ppubus)
+	nes.Hw.PPU.InitBus()
 
 	cpubus := hwio.NewTable("cpu")
 	nes.Hw.CPU = cpu.NewCPU(cpubus, nes.Hw.PPU)
 	nes.Hw.CPU.InitBus()
-
-	// PPU VRAM (name tables) and mirror.
-	vram := make([]byte, 0x1000)
-	ppubus.MapMemorySlice(0x2000, 0x2FFF, vram, false)
 
 	// Map cartridge memory and hardware based on mapper.
 	return mapCartridge(rom, &nes.Hw)
