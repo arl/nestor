@@ -6,14 +6,10 @@ import (
 	"nestor/emu/hwio"
 )
 
-/*
-The PPU renders 262 scanlines per frame. Each scanline lasts for 341 PPU clock cycles (113.667 CPU clock cycles; 1 CPU cycle = 3 PPU cycles), with each clock cycle producing one pixel. The line numbers given here correspond to how the internal PPU frame counters count lines.
-
-The information in this section is summarized in the diagram in the next section.
-
-The timing below is for NTSC PPUs. PPUs for 50 Hz TV systems differ:
-
-*/
+const (
+	NumScanlines = 262 // Number of scanlines per frame.
+	NumCycles    = 341 // Number of PPU cycles per scanline.
+)
 
 type PPU struct {
 	Bus  *hwio.Table

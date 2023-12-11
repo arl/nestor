@@ -7,6 +7,10 @@ import (
 	"nestor/ppu"
 )
 
+type Ticker interface {
+	Tick()
+}
+
 // Locations reserved for vector pointers.
 const (
 	NMIvector   = 0xFFFA // Non-Maskable Interrupt
@@ -23,14 +27,9 @@ type CPU struct {
 	PC          uint16
 	P           P
 
-	Clock        int64 // cycles
-	targetCycles int64
+	Clock int64 // cycles
 
 	t Ticker // tick callback
-}
-
-type Ticker interface {
-	Tick()
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -76,12 +75,12 @@ func (c *CPU) Reset() {
 }
 
 func (c *CPU) Run(until int64) {
-	c.targetCycles = until
-	for c.Clock < c.targetCycles {
+	for c.Clock < until {
 		opcode := c.Read8(uint16(c.PC))
 		c.PC++
 		ops[opcode](c)
 	}
+	c.Clock -= until
 }
 
 func (c *CPU) tick() {

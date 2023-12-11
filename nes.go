@@ -48,14 +48,18 @@ func (nes *NES) Reset() {
 
 func (nes *NES) Run() {
 	for {
-		nes.Hw.CPU.Run(29692) // random
+		nes.RunOneFrame()
 	}
+}
+
+func (nes *NES) RunOneFrame() {
+	nes.Hw.CPU.Run(29781)
 }
 
 func (nes *NES) RunDisasm(out io.Writer, nestest bool) {
 	d := cpu.NewDisasm(nes.Hw.CPU, out, nestest)
 	for {
-		d.Run(29692) // random
+		d.Run(29781) // random
 	}
 }
 

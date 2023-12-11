@@ -286,8 +286,7 @@ func NewDisasm(cpu *CPU, w io.Writer, nestest bool) *disasm {
 }
 
 func (d *disasm) Run(until int64) {
-	d.cpu.targetCycles = until
-	for d.cpu.Clock < d.cpu.targetCycles {
+	for d.cpu.Clock < until {
 		d.prevPC = d.cpu.PC
 		d.prevClock = d.cpu.Clock
 
@@ -297,6 +296,7 @@ func (d *disasm) Run(until int64) {
 		d.op(pc)
 		ops[opcode](d.cpu)
 	}
+	d.cpu.Clock -= until
 }
 
 func (d *disasm) op(pc uint16) {
