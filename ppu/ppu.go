@@ -16,7 +16,8 @@ The timing below is for NTSC PPUs. PPUs for 50 Hz TV systems differ:
 */
 
 type PPU struct {
-	Bus *hwio.Table
+	Bus  *hwio.Table
+	Regs *Regs
 
 	//	$0000-$0FFF	$1000	Pattern table 0
 	//	$1000-$1FFF	$1000	Pattern table 1
@@ -35,7 +36,11 @@ type PPU struct {
 }
 
 func New(bus *hwio.Table) *PPU {
-	ppu := &PPU{Bus: bus}
+	ppu := &PPU{
+		Bus:  bus,
+		Regs: NewRegs(),
+	}
+
 	hwio.MustInitRegs(ppu)
 	ppu.Reset()
 	return ppu

@@ -2,6 +2,7 @@ package ppu
 
 import (
 	"fmt"
+
 	"nestor/emu/hwio"
 )
 

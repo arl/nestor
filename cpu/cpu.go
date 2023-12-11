@@ -23,8 +23,6 @@ type CPU struct {
 	PC          uint16
 	P           P
 
-	PPURegs *ppu.Regs
-
 	Clock        int64 // cycles
 	targetCycles int64
 
@@ -50,7 +48,7 @@ func NewCPU(bus *hwio.Table, ticker Ticker) *CPU {
 	return cpu
 }
 
-func (c *CPU) InitBus() {
+func (c *CPU) InitBus(ppuRegs *ppu.Regs) {
 	// 0x0000-0x1FFF -> RAM, mirrored.
 	c.Bus.MapMemorySlice(0x0000, 0x07FF, c.Ram[:], false)
 	c.Bus.MapMemorySlice(0x0800, 0x0FFF, c.Ram[:], false)
@@ -58,9 +56,8 @@ func (c *CPU) InitBus() {
 	c.Bus.MapMemorySlice(0x1800, 0x1FFF, c.Ram[:], false)
 
 	// 0x2000-0x3FFF -> PPU registers, mirrored.
-	c.PPURegs = ppu.NewRegs()
 	for i := uint16(0x2000); i < 0x4000; i += 8 {
-		c.Bus.MapBank(i, c.PPURegs, 0)
+		c.Bus.MapBank(i, ppuRegs, 0)
 	}
 
 	// 0x4000-0x4017 -> APU and IO registers.

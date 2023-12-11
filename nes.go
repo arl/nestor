@@ -23,7 +23,7 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 
 	cpubus := hwio.NewTable("cpu")
 	nes.Hw.CPU = cpu.NewCPU(cpubus, nes.Hw.PPU)
-	nes.Hw.CPU.InitBus()
+	nes.Hw.CPU.InitBus(nes.Hw.PPU.Regs)
 
 	// Map cartridge memory and hardware based on mapper.
 	return mapCartridge(rom, &nes.Hw)
