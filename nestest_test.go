@@ -48,6 +48,7 @@ func TestNestest(t *testing.T) {
 	nes.Hw.CPU.PC = 0xC000
 	nes.Hw.CPU.Clock = 7
 	nes.Hw.CPU.P = cpu.P(0b00100100)
+	nes.Hw.PPU.Cycle = 18
 
 	disasm := cpu.NewDisasm(nes.Hw.CPU, flog, true)
 	disasm.Run(26560)

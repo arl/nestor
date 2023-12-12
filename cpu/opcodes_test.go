@@ -110,7 +110,7 @@ func testOpcodes(op string) func(t *testing.T) {
 					VSize: int(0x10000),
 				})
 
-				cpu := NewCPU(mem, &ticker{})
+				cpu := NewCPU(mem, &dummyppu{})
 				cpu.A = tt.Initial.A
 				cpu.X = tt.Initial.X
 				cpu.Y = tt.Initial.Y

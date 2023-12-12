@@ -29,7 +29,7 @@ type CPU struct {
 
 	Clock int64 // cycles
 
-	t Ticker // tick callback
+	PPU Ticker // tick callback
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -42,7 +42,7 @@ func NewCPU(bus *hwio.Table, ticker Ticker) *CPU {
 		SP:  0xFD,
 		P:   0x00,
 		PC:  0x0000,
-		t:   ticker,
+		PPU: ticker,
 	}
 	return cpu
 }
@@ -84,7 +84,9 @@ func (c *CPU) Run(until int64) {
 }
 
 func (c *CPU) tick() {
-	c.t.Tick()
+	c.PPU.Tick()
+	c.PPU.Tick()
+	c.PPU.Tick()
 	c.Clock++
 }
 

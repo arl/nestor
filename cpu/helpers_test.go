@@ -199,9 +199,9 @@ func nextpow2(v uint64) uint64 {
 	return v + 1
 }
 
-type ticker struct{}
+type dummyppu struct{}
 
-func (tt *ticker) Tick() {}
+func (tt *dummyppu) Tick() {}
 
 // loadCPUWith loads a CPU with a memory dump.
 func loadCPUWith(tb testing.TB, dump string) *CPU {
@@ -213,7 +213,7 @@ func loadCPUWith(tb testing.TB, dump string) *CPU {
 		mem.MapMemorySlice(line.off, line.off+uint16(len(line.bytes))-1, line.bytes, false)
 	}
 
-	cpu := NewCPU(mem, &ticker{})
+	cpu := NewCPU(mem, &dummyppu{})
 	cpu.Reset()
 	return cpu
 }

@@ -12,8 +12,11 @@ const (
 )
 
 type PPU struct {
-	Bus  *hwio.Table
-	Regs *Regs
+	Bus  *hwio.Table // PPU bus
+	Regs *Regs       // PPU registers
+
+	Cycle    int // Current cycle/pixel in scanline
+	Scanline int // Current scanline being drawn
 
 	//	$0000-$0FFF	$1000	Pattern table 0
 	//	$1000-$1FFF	$1000	Pattern table 1
@@ -51,7 +54,41 @@ func (p *PPU) Reset() {
 }
 
 func (p *PPU) Tick() {
+	switch {
+	// Visible scanlines
+	case p.Scanline >= 0 && p.Scanline <= 239:
 
+		switch {
+		// Idle
+		case p.Cycle == 0:
+			break
+		// Fetch data
+		case p.Cycle > 0 && p.Cycle <= 256:
+			break
+		case p.Cycle > 256 && p.Cycle <= 320:
+			break
+		case p.Cycle > 321 && p.Cycle <= 336:
+			break
+		case p.Cycle > 337 && p.Cycle <= 340:
+			break
+		}
+
+	// Post-render scanline
+	case p.Scanline == 240:
+		break
+
+	// VBlank
+	case p.Scanline >= 241 && p.Scanline <= 260:
+	}
+
+	p.Cycle++
+	if p.Cycle >= NumCycles {
+		p.Cycle = 0
+		p.Scanline++
+		if p.Scanline >= NumScanlines {
+			p.Scanline = 0
+		}
+	}
 }
 
 func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
