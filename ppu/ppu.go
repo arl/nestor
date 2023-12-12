@@ -55,9 +55,15 @@ func (p *PPU) Reset() {
 
 func (p *PPU) Tick() {
 	switch {
+	// Pre-render line
+	case p.Scanline == 261:
+		if p.Cycle == 1 {
+			// Clear vblank, sprite0Hit and spriteOverflow
+			p.Regs.PPUSTATUS.Value &^= 0b11100000
+		}
+
 	// Visible scanlines
 	case p.Scanline >= 0 && p.Scanline <= 239:
-
 		switch {
 		// Idle
 		case p.Cycle == 0:
@@ -79,6 +85,9 @@ func (p *PPU) Tick() {
 
 	// VBlank
 	case p.Scanline >= 241 && p.Scanline <= 260:
+		if p.Scanline == 241 && p.Cycle == 1 {
+			p.Regs.PPUSTATUS.Value |= 1 << vblank
+		}
 	}
 
 	p.Cycle++

@@ -21,6 +21,12 @@ type Regs struct {
 	// OAMDMA hwio.Reg8 `hwio:"bank:1,writeonly,wcb"`
 }
 
+const (
+	vblank         = 7
+	sprite0Hit     = 6
+	spriteOverflow = 5
+)
+
 func NewRegs() *Regs {
 	regs := &Regs{}
 	hwio.MustInitRegs(regs)
