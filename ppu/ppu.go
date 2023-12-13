@@ -1,9 +1,8 @@
 package ppu
 
 import (
-	"fmt"
-
 	"nestor/emu/hwio"
+	log "nestor/emu/logger"
 )
 
 const (
@@ -50,7 +49,7 @@ func (p *PPU) InitBus() {
 }
 
 func (p *PPU) Reset() {
-
+	// TODO
 }
 
 func (p *PPU) Tick() {
@@ -101,16 +100,28 @@ func (p *PPU) Tick() {
 }
 
 func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
-	fmt.Printf("PATTERNTABLES writes %d bytes at 0x%04x -> 0x%02X\n", n, addr, p.PatternTables.Data[addr])
+	log.ModPPU.DebugZ("Write to PATTERNTABLES").
+		Hex8("val", p.PatternTables.Data[addr]).
+		Hex16("addr", addr).
+		End()
 }
 
 func (p *PPU) WriteNAMETABLES(addr uint16, n int) {
 	memaddr := addr & 0x0FFF
 	ntnum := memaddr / 0x0400
-	fmt.Printf("NAMETABLES writes %d bytes at 0x%04x (nametable %d)-> 0x%02X\n", n, addr, ntnum, p.NameTables.Data[memaddr])
+	log.ModPPU.DebugZ("Write to NAMETABLES").
+		Uint16("num", ntnum).
+		Hex8("val", p.NameTables.Data[memaddr]).
+		Hex16("addr", addr).
+		End()
+
+	// fmt.Printf("NAMETABLES writes %d bytes at 0x%04x (nametable %d)-> 0x%02X\n", n, addr, ntnum, p.NameTables.Data[memaddr])
 }
 
 func (p *PPU) WritePALETTES(addr uint16, n int) {
 	memaddr := addr & 0x01F
-	fmt.Printf("PALLETTES writes %d bytes at 0x%04x -> 0x%02X\n", n, addr, p.Palettes.Data[memaddr])
+	log.ModPPU.DebugZ("Write to PALETTES").
+		Hex8("val", p.Palettes.Data[memaddr]).
+		Hex16("addr", addr).
+		End()
 }

@@ -1,9 +1,8 @@
 package ppu
 
 import (
-	"fmt"
-
 	"nestor/emu/hwio"
+	log "nestor/emu/logger"
 )
 
 // CPU-exposed memory-mapped PPU registers.
@@ -33,28 +32,28 @@ func NewRegs() *Regs {
 	return regs
 }
 
-func (r *Regs) WritePPUCTRL(old uint8, val uint8) {
-	fmt.Printf("PPUCTRL write %02x was %02x\n", val, old)
+func (r *Regs) WritePPUCTRL(old, val uint8) {
+	log.ModPPU.DebugZ("Write to PPUCTRL").Hex8("val", val).End()
 }
 
-func (r *Regs) WritePPUMASK(old uint8, val uint8) {
-	fmt.Printf("PPUMASK write %02x was %02x\n", val, old)
+func (r *Regs) WritePPUMASK(old, val uint8) {
+	log.ModPPU.DebugZ("Write to PPUMASK").Hex8("val", val).End()
 }
 
 func (r *Regs) ReadPPUSTATUS(val uint8) uint8 {
-	fmt.Printf("PPUSTATUS read %02x\n", val)
+	log.ModPPU.DebugZ("Read from PPUSTATUS").Hex8("val", val).End()
 	return val
 }
 
-func (r *Regs) WritePPUADDR(old uint8, val uint8) {
-	fmt.Printf("PPUADDR write %02x was %02x\n", val, old)
+func (r *Regs) WritePPUADDR(old, val uint8) {
+	log.ModPPU.DebugZ("Write to PPUADDR").Hex8("val", val).End()
 }
 
 func (r *Regs) ReadPPUDATA(val uint8) uint8 {
-	fmt.Printf("PPUDATA read %02x\n", val)
+	log.ModPPU.DebugZ("Read from PPUDATA").Hex8("val", val).End()
 	return val
 }
 
-func (r *Regs) WritePPUDATA(old uint8, val uint8) {
-	fmt.Printf("PPUDATA write %02x was %02x\n", val, old)
+func (r *Regs) WritePPUDATA(old, val uint8) {
+	log.ModPPU.DebugZ("Write to PPUDATA").Hex8("val", val).End()
 }

@@ -5,18 +5,22 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
+	log "nestor/emu/logger"
 	"nestor/ines"
 )
 
 func main() {
 	disasmLog := &outfile{}
 	infosFlag := false
+	flagLogging := ""
 
-	flag.Var(disasmLog, "dbglog", "write execution log to [file|stdout|stderr] (for testing/debugging")
 	flag.BoolVar(&infosFlag, "infos", false, "print infos about the rom and exit")
-	flag.Parse()
+	flag.StringVar(&flagLogging, "log", "", "enable logging for specified modules")
+	flag.Var(disasmLog, "execlog", "write execution log to [file|stdout|stderr] (very very verbose")
 
+	flag.Parse()
 	if len(flag.Args()) < 1 {
 		flag.Usage()
 		return
@@ -32,6 +36,20 @@ func main() {
 	if infosFlag {
 		rom.PrintInfos(os.Stdout)
 		return
+	}
+
+	if flagLogging != "" {
+		var modmask log.ModuleMask
+		for _, modname := range strings.Split(flagLogging, ",") {
+			if modname == "all" {
+				modmask |= log.ModuleMaskAll
+			} else if m, found := log.ModuleByName(modname); found {
+				modmask |= m.Mask()
+			} else {
+				log.ModEmu.FatalZ("invalid module name").String("name", modname).End()
+			}
+		}
+		log.EnableDebugModules(modmask)
 	}
 
 	nes := &NES{}

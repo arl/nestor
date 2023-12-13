@@ -16,10 +16,10 @@ const (
 // possible for an emulator to define additional modules through NewModule()
 const (
 	ModEmu Module = iota + 1
-	ModCpu
+	ModCPU
 	ModMem
 	ModHwIo
-	ModGfx
+	ModPPU
 	ModInput
 	ModSound
 
@@ -31,7 +31,7 @@ var modCount = endStandardMods
 var modDebugMask ModuleMask = 0
 
 var modNames = []string{
-	"<error>", "emu", "cpu", "mem", "hwio", "gfx", "input", "sound",
+	"<error>", "emu", "cpu", "mem", "hwio", "ppu", "input", "sound",
 }
 
 func NewModule(name string) Module {
