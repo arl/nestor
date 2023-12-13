@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"nestor/emu/hwio"
+	"nestor/ppu"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -100,17 +101,10 @@ func testOpcodes(op string) func(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.Name, func(t *testing.T) {
-				mem := hwio.NewTable("cputest")
 				slice := newSlice()
 				defer putSlice(slice)
 
-				mem.MapMem(0x0000, &hwio.Mem{
-					Data:  *slice,
-					Flags: hwio.MemFlag8,
-					VSize: int(0x10000),
-				})
-
-				cpu := NewCPU(mem, &dummyppu{})
+				cpu := NewCPU(ppu.New())
 				cpu.A = tt.Initial.A
 				cpu.X = tt.Initial.X
 				cpu.Y = tt.Initial.Y
@@ -118,9 +112,16 @@ func testOpcodes(op string) func(t *testing.T) {
 				cpu.SP = tt.Initial.SP
 				cpu.PC = tt.Initial.PC
 
-				// preload RAM
+				// Preload RAM with test values.
+				cpu.Bus = hwio.NewTable("cputest")
+				cpu.Bus.MapMem(0x0000, &hwio.Mem{
+					Data:  *slice,
+					Flags: hwio.MemFlag8,
+					VSize: int(0x10000),
+				})
+
 				for _, row := range tt.Initial.RAM {
-					mem.Write8(row[0], uint8(row[1]))
+					cpu.Bus.Write8(row[0], uint8(row[1]))
 				}
 
 				if testing.Verbose() {
@@ -153,7 +154,7 @@ func testOpcodes(op string) func(t *testing.T) {
 				for _, row := range tt.Final.RAM {
 					addr := row[0]
 					val := uint8(row[1])
-					got := mem.Read8(addr)
+					got := cpu.Bus.Read8(addr)
 					if got != val {
 						t.Errorf("ram[0x%x] = 0x%x, want 0x%x", addr, got, val)
 					}

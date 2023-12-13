@@ -6,7 +6,6 @@ import (
 
 	"nestor/cpu"
 	"nestor/emu"
-	"nestor/emu/hwio"
 	"nestor/emu/mappers"
 	"nestor/ines"
 	"nestor/ppu"
@@ -17,13 +16,11 @@ type NES struct {
 }
 
 func (nes *NES) PowerUp(rom *ines.Rom) error {
-	ppubus := hwio.NewTable("ppu")
-	nes.Hw.PPU = ppu.New(ppubus)
+	nes.Hw.PPU = ppu.New()
 	nes.Hw.PPU.InitBus()
 
-	cpubus := hwio.NewTable("cpu")
-	nes.Hw.CPU = cpu.NewCPU(cpubus, nes.Hw.PPU)
-	nes.Hw.CPU.InitBus(nes.Hw.PPU.Regs)
+	nes.Hw.CPU = cpu.NewCPU(nes.Hw.PPU)
+	nes.Hw.CPU.InitBus()
 
 	// Map cartridge memory and hardware based on mapper.
 	return mapCartridge(rom, &nes.Hw)
@@ -54,15 +51,13 @@ func (nes *NES) Run() {
 
 func (nes *NES) RunOneFrame() {
 	nes.Hw.CPU.Run(29781)
+	nes.Hw.CPU.Clock -= 29781
 }
 
 func (nes *NES) RunDisasm(out io.Writer, nestest bool) {
 	d := cpu.NewDisasm(nes.Hw.CPU, out, nestest)
 	for {
 		d.Run(29781) // random
+		nes.Hw.CPU.Clock -= 29781
 	}
 }
-
-type ticker struct{}
-
-func (tt *ticker) Tick() {}

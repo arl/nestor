@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"nestor/emu/hwio"
-	"nestor/ppu"
 )
 
 var opsDisasm = [256]disasmFunc{
@@ -298,7 +297,6 @@ func (d *disasm) Run(until int64) {
 		d.op(pc)
 		ops[opcode](d.cpu)
 	}
-	d.cpu.Clock -= until
 }
 
 func (d *disasm) op(pc uint16) {
@@ -313,13 +311,12 @@ func (d *disasm) op(pc uint16) {
 		tmp = append(tmp, fmt.Sprintf("%02X ", b)...)
 	}
 
-	ppu := d.cpu.PPU.(*ppu.PPU)
 	if d.isNestest {
 		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3d,%3d CYC:%d\n",
-			pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, ppu.Scanline, ppu.Cycle, d.prevClock)
+			pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.cpu.PPU.Scanline, d.cpu.PPU.Cycle, d.prevClock)
 	} else {
 		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%s SP:%02X PPU:%3d,%3d CYC:%d\n",
-			pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, ppu.Scanline, ppu.Cycle, d.prevClock)
+			pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, d.cpu.PPU.Scanline, d.cpu.PPU.Cycle, d.prevClock)
 	}
 	d.w.Write(d.bb.Bytes())
 }

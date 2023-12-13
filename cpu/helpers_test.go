@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/hex"
-	"nestor/emu/hwio"
+	"nestor/ppu"
 	"strconv"
 	"strings"
 	"testing"
@@ -199,21 +199,16 @@ func nextpow2(v uint64) uint64 {
 	return v + 1
 }
 
-type dummyppu struct{}
-
-func (tt *dummyppu) Tick() {}
-
 // loadCPUWith loads a CPU with a memory dump.
 func loadCPUWith(tb testing.TB, dump string) *CPU {
-	mem := hwio.NewTable("cpu")
+	cpu := NewCPU(ppu.New())
 	lines := loadDump(tb, dump)
 	for _, line := range lines {
 		hd := hex.Dump(line.bytes)
 		tb.Logf("mapping $%04X: %s", line.off, hd[10:10+3*line.len])
-		mem.MapMemorySlice(line.off, line.off+uint16(len(line.bytes))-1, line.bytes, false)
+		cpu.Bus.MapMemorySlice(line.off, line.off+uint16(len(line.bytes))-1, line.bytes, false)
 	}
 
-	cpu := NewCPU(mem, &dummyppu{})
 	cpu.Reset()
 	return cpu
 }

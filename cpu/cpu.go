@@ -7,10 +7,6 @@ import (
 	"nestor/ppu"
 )
 
-type Ticker interface {
-	Tick()
-}
-
 // Locations reserved for vector pointers.
 const (
 	NMIvector   = 0xFFFA // Non-Maskable Interrupt
@@ -29,25 +25,25 @@ type CPU struct {
 
 	Clock int64 // cycles
 
-	PPU Ticker // tick callback
+	PPU *ppu.PPU // tick callback
 }
 
 // NewCPU creates a new CPU at power-up state.
-func NewCPU(bus *hwio.Table, ticker Ticker) *CPU {
+func NewCPU(ppu *ppu.PPU) *CPU {
 	cpu := &CPU{
-		Bus: bus,
+		Bus: hwio.NewTable("cpu"),
 		A:   0x00,
 		X:   0x00,
 		Y:   0x00,
 		SP:  0xFD,
 		P:   0x00,
 		PC:  0x0000,
-		PPU: ticker,
+		PPU: ppu,
 	}
 	return cpu
 }
 
-func (c *CPU) InitBus(ppuRegs *ppu.Regs) {
+func (c *CPU) InitBus() {
 	// 0x0000-0x1FFF -> RAM, mirrored.
 	c.Bus.MapMemorySlice(0x0000, 0x07FF, c.Ram[:], false)
 	c.Bus.MapMemorySlice(0x0800, 0x0FFF, c.Ram[:], false)
@@ -55,8 +51,9 @@ func (c *CPU) InitBus(ppuRegs *ppu.Regs) {
 	c.Bus.MapMemorySlice(0x1800, 0x1FFF, c.Ram[:], false)
 
 	// 0x2000-0x3FFF -> PPU registers, mirrored.
+	hwio.MustInitRegs(&c.PPU.Regs)
 	for i := uint16(0x2000); i < 0x4000; i += 8 {
-		c.Bus.MapBank(i, ppuRegs, 0)
+		c.Bus.MapBank(i, &c.PPU.Regs, 0)
 	}
 
 	// 0x4000-0x4017 -> APU and IO registers.
@@ -80,7 +77,6 @@ func (c *CPU) Run(until int64) {
 		c.PC++
 		ops[opcode](c)
 	}
-	c.Clock -= until
 }
 
 func (c *CPU) tick() {

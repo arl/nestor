@@ -26,12 +26,6 @@ const (
 	spriteOverflow = 5
 )
 
-func NewRegs() *Regs {
-	regs := &Regs{}
-	hwio.MustInitRegs(regs)
-	return regs
-}
-
 func (r *Regs) WritePPUCTRL(old, val uint8) {
 	log.ModPPU.DebugZ("Write to PPUCTRL").Hex8("val", val).End()
 }

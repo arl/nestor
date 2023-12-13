@@ -11,8 +11,9 @@ const (
 )
 
 type PPU struct {
-	Bus  *hwio.Table // PPU bus
-	Regs *Regs       // PPU registers
+	Bus *hwio.Table // PPU bus
+
+	Regs Regs // PPU registers
 
 	Cycle    int // Current cycle/pixel in scanline
 	Scanline int // Current scanline being drawn
@@ -33,19 +34,16 @@ type PPU struct {
 	Palettes hwio.Mem `hwio:"offset=0x3F00,size=0x20,vsize=0x100,wcb"`
 }
 
-func New(bus *hwio.Table) *PPU {
-	ppu := &PPU{
-		Bus:  bus,
-		Regs: NewRegs(),
+func New() *PPU {
+	return &PPU{
+		Bus: hwio.NewTable("ppu"),
 	}
-
-	hwio.MustInitRegs(ppu)
-	ppu.Reset()
-	return ppu
 }
 
 func (p *PPU) InitBus() {
+	hwio.MustInitRegs(p)
 	p.Bus.MapBank(0x0000, p, 0)
+	p.Reset()
 }
 
 func (p *PPU) Reset() {
@@ -114,8 +112,6 @@ func (p *PPU) WriteNAMETABLES(addr uint16, n int) {
 		Hex8("val", p.NameTables.Data[memaddr]).
 		Hex16("addr", addr).
 		End()
-
-	// fmt.Printf("NAMETABLES writes %d bytes at 0x%04x (nametable %d)-> 0x%02X\n", n, addr, ntnum, p.NameTables.Data[memaddr])
 }
 
 func (p *PPU) WritePALETTES(addr uint16, n int) {
