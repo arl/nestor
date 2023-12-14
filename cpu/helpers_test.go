@@ -61,19 +61,19 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 		panic("odd number of states")
 	}
 
-	checkbool := func(name string, got, want uint8) {
+	checkbool := func(name string, got, want int) {
 		t.Helper()
 		if got != want {
 			t.Errorf("got %s=%d, want %d", name, got, want)
 		}
 	}
-	checkuint8 := func(name string, got, want uint8) {
+	checkuint8 := func(name string, got, want int) {
 		t.Helper()
 		if got != want {
 			t.Errorf("got %s=$%02X, want $%02X", name, got, want)
 		}
 	}
-	checkuint16 := func(name string, got, want uint16) {
+	checkuint16 := func(name string, got, want int) {
 		t.Helper()
 		if got != want {
 			t.Errorf("got %s=$%04X, want $%04X", name, got, want)
@@ -91,37 +91,37 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 		s := states[i].(string)
 		switch {
 		case s == "A":
-			checkuint8("A", cpu.A, states[i+1].(uint8))
+			checkuint8("A", int(cpu.A), states[i+1].(int))
 		case s == "X":
-			checkuint8("X", cpu.X, states[i+1].(uint8))
+			checkuint8("X", int(cpu.X), states[i+1].(int))
 		case s == "Y":
-			checkuint8("Y", cpu.Y, states[i+1].(uint8))
+			checkuint8("Y", int(cpu.Y), states[i+1].(int))
 		case s == "PC":
-			checkuint16("PC", cpu.PC, states[i+1].(uint16))
+			checkuint16("PC", int(cpu.PC), states[i+1].(int))
 		case s == "SP":
-			checkuint8("SP", uint8(cpu.SP), states[i+1].(uint8))
+			checkuint8("SP", int(cpu.SP), states[i+1].(int))
 		case s == "P":
-			if got, want := uint8(cpu.P), states[i+1].(uint8); got != want {
+			if got, want := int(cpu.P), states[i+1].(int); got != want {
 				t.Errorf("got P=$%02X(%s), want $%02X(%s)", got, P(got), want, P(want))
 			}
 		case len(s) > 1 && s[0] == 'P':
 			for j := 1; j < len(s); j++ {
-				bit := states[i+1].(uint8)
+				bit := states[i+1].(int)
 				switch s[j] {
 				case 'n':
-					checkbool("Pn", b2i(cpu.P.N()), bit)
+					checkbool("Pn", int(b2i(cpu.P.N())), bit)
 				case 'v':
-					checkbool("Pv", b2i(cpu.P.V()), bit)
+					checkbool("Pv", int(b2i(cpu.P.V())), bit)
 				case 'b':
-					checkbool("Pb", b2i(cpu.P.B()), bit)
+					checkbool("Pb", int(b2i(cpu.P.B())), bit)
 				case 'd':
-					checkbool("Pd", b2i(cpu.P.D()), bit)
+					checkbool("Pd", int(b2i(cpu.P.D())), bit)
 				case 'i':
-					checkbool("Pi", b2i(cpu.P.I()), bit)
+					checkbool("Pi", int(b2i(cpu.P.I())), bit)
 				case 'z':
-					checkbool("Pz", b2i(cpu.P.Z()), bit)
+					checkbool("Pz", int(b2i(cpu.P.Z())), bit)
 				case 'c':
-					checkbool("Pc", b2i(cpu.P.C()), bit)
+					checkbool("Pc", int(b2i(cpu.P.C())), bit)
 				default:
 					panic("unknown P bit: " + string(s[j]))
 				}

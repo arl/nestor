@@ -8,8 +8,9 @@ import (
 )
 
 func checkedRead8(tb testing.TB, bus *hwio.Table, addr uint16, want uint8) {
-	v := bus.Read8(addr)
-	if v != want {
+	tb.Helper()
+
+	if v := bus.Read8(addr); v != want {
 		tb.Errorf("%s[0x%04X] should be 0x%02X, got 0x%02X", bus.Name, addr, want, v)
 	}
 }

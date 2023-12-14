@@ -3,8 +3,6 @@ package cpu
 import (
 	"encoding/json"
 	"fmt"
-	"nestor/emu/hwio"
-	"nestor/ppu"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,6 +10,9 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"nestor/emu/hwio"
+	"nestor/ppu"
 )
 
 func TestAllOpcodesAreImplemented(t *testing.T) {
@@ -72,29 +73,24 @@ func testOpcodes(op string) func(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		var tests []struct {
-			Name    string `json:"name"`
-			Initial struct {
-				PC  uint16     `json:"pc"`
-				SP  uint8      `json:"s"`
-				A   uint8      `json:"a"`
-				X   uint8      `json:"x"`
-				Y   uint8      `json:"y"`
-				P   uint8      `json:"p"`
-				RAM [][]uint16 `json:"ram"`
-			} `json:"initial"`
-			Final struct {
-				PC  uint16     `json:"pc"`
-				SP  uint8      `json:"s"`
-				A   uint8      `json:"a"`
-				X   uint8      `json:"x"`
-				Y   uint8      `json:"y"`
-				P   uint8      `json:"p"`
-				RAM [][]uint16 `json:"ram"`
-			} `json:"final"`
-			Cycles [][]any `json:"cycles"`
-		}
-
+		type (
+			CPUState struct {
+				PC  int     `json:"pc"`
+				SP  int     `json:"s"`
+				A   int     `json:"a"`
+				X   int     `json:"x"`
+				Y   int     `json:"y"`
+				P   int     `json:"p"`
+				RAM [][]int `json:"ram"`
+			}
+			TestCase struct {
+				Name    string   `json:"name"`
+				Initial CPUState `json:"initial"`
+				Final   CPUState `json:"final"`
+				Cycles  [][]any  `json:"cycles"`
+			}
+		)
+		var tests []TestCase
 		if err := json.Unmarshal(buf, &tests); err != nil {
 			t.Fatal(err)
 		}
@@ -105,12 +101,12 @@ func testOpcodes(op string) func(t *testing.T) {
 				defer putSlice(slice)
 
 				cpu := NewCPU(ppu.New())
-				cpu.A = tt.Initial.A
-				cpu.X = tt.Initial.X
-				cpu.Y = tt.Initial.Y
+				cpu.A = uint8(tt.Initial.A)
+				cpu.X = uint8(tt.Initial.X)
+				cpu.Y = uint8(tt.Initial.Y)
 				cpu.P = P(tt.Initial.P)
-				cpu.SP = tt.Initial.SP
-				cpu.PC = tt.Initial.PC
+				cpu.SP = uint8(tt.Initial.SP)
+				cpu.PC = uint16(tt.Initial.PC)
 
 				// Preload RAM with test values.
 				cpu.Bus = hwio.NewTable("cputest")
@@ -121,7 +117,7 @@ func testOpcodes(op string) func(t *testing.T) {
 				})
 
 				for _, row := range tt.Initial.RAM {
-					cpu.Bus.Write8(row[0], uint8(row[1]))
+					cpu.Bus.Write8(uint16(row[0]), uint8(row[1]))
 				}
 
 				if testing.Verbose() {
@@ -154,7 +150,7 @@ func testOpcodes(op string) func(t *testing.T) {
 				for _, row := range tt.Final.RAM {
 					addr := row[0]
 					val := uint8(row[1])
-					got := cpu.Bus.Read8(addr)
+					got := cpu.Bus.Read8(uint16(addr))
 					if got != val {
 						t.Errorf("ram[0x%x] = 0x%x, want 0x%x", addr, got, val)
 					}
@@ -183,10 +179,10 @@ func TestCPx(t *testing.T) {
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		runAndCheckState(t, cpu, 4,
-			"A", uint8(0x00),
-			"X", uint8(0x40),
-			"Y", uint8(0x00),
-			"P", uint8(0b10110000),
+			"A", 0x00,
+			"X", 0x40,
+			"Y", 0x00,
+			"P", 0b10110000,
 		)
 	})
 	t.Run("40 - 40", func(t *testing.T) {
@@ -197,10 +193,10 @@ func TestCPx(t *testing.T) {
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		runAndCheckState(t, cpu, 4,
-			"A", uint8(0x00),
-			"X", uint8(0x40),
-			"Y", uint8(0x00),
-			"P", uint8(0b00110011),
+			"A", 0x00,
+			"X", 0x40,
+			"Y", 0x00,
+			"P", 0b00110011,
 		)
 	})
 	t.Run("40 - 39", func(t *testing.T) {
@@ -211,10 +207,10 @@ func TestCPx(t *testing.T) {
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		runAndCheckState(t, cpu, 4,
-			"A", uint8(0x00),
-			"X", uint8(0x40),
-			"Y", uint8(0x00),
-			"P", uint8(0b00110001),
+			"A", 0x00,
+			"X", 0x40,
+			"Y", 0x00,
+			"P", 0b00110001,
 		)
 	})
 }
@@ -225,10 +221,10 @@ func TestLDA_STA(t *testing.T) {
 	cpu.Clock = 0
 	cpu.PC = 0x0600
 	runAndCheckState(t, cpu, 6*3,
-		"A", uint8(0x08),
-		"Pb", uint8(1),
-		"PC", uint16(0x060F),
-		"SP", uint8(0xfd),
+		"A", 0x08,
+		"Pb", 1,
+		"PC", 0x060F,
+		"SP", 0xfd,
 	)
 }
 
@@ -242,9 +238,9 @@ func TestEOR(t *testing.T) {
 		cpu.PC = 0x0100
 		cpu.A = 0x80
 		runAndCheckState(t, cpu, 3,
-			"A", uint8(0x86),
-			"Pn", uint8(1),
-			"Pz", uint8(0),
+			"A", 0x86,
+			"Pn", 1,
+			"Pz", 0,
 		)
 	})
 }
@@ -260,9 +256,9 @@ FFFC: 00 01`
 		cpu.A = 0x80
 		cpu.P.writeBit(pbitC, true)
 		runAndCheckState(t, cpu, 5,
-			"Pn", uint8(1),
-			"Pc", uint8(1),
-			"Pz", uint8(0),
+			"Pn", 1,
+			"Pc", 1,
+			"Pz", 0,
 		)
 		wantMem8(t, cpu, 0x0000, 0xAA)
 	})
@@ -287,11 +283,11 @@ FFFC: 00 06
 	cpu.P = 0x30
 	cpu.SP = 0xFF
 	runAndCheckState(t, cpu, 562,
-		"PC", uint16(0x0618),
-		"A", uint8(0x00),
-		"X", uint8(0x10),
-		"Y", uint8(0x20),
-		"SP", uint8(0xFF),
+		"PC", 0x0618,
+		"A", 0x00,
+		"X", 0x10,
+		"Y", 0x20,
+		"SP", 0xFF,
 		"mem", `
 01f0: 0f 0e 0d 0c 0b 0a 09 08 07 06 05 04 03 02 01 00
 0200: 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
@@ -312,10 +308,10 @@ func TestStackSmall(t *testing.T) {
 	cpu.P = 0x30
 	cpu.SP = 0xFF
 	runAndCheckState(t, cpu, 8,
-		"PC", uint16(0x0606),
-		"A", uint8(0xAA),
-		"SP", uint8(0xFF),
-		"Pn", uint8(1),
+		"PC", 0x0606,
+		"A", 0xAA,
+		"SP", 0xFF,
+		"Pn", 1,
 	)
 }
 
@@ -333,10 +329,10 @@ func TestJSR_RTS(t *testing.T) {
 	cpu.Clock = 0
 	cpu.PC = 0x0600
 	cpu.P = 0x30
-	runAndCheckState(t, cpu, 6, "PC", uint16(0x0620))
-	runAndCheckState(t, cpu, 6+2, "A", uint8(0x88))
-	runAndCheckState(t, cpu, 6+2+6, "PC", uint16(0x0603))
-	runAndCheckState(t, cpu, 6+2+6+2, "A", uint8(0xFF))
+	runAndCheckState(t, cpu, 6, "PC", 0x0620)
+	runAndCheckState(t, cpu, 6+2, "A", 0x88)
+	runAndCheckState(t, cpu, 6+2+6, "PC", 0x0603)
+	runAndCheckState(t, cpu, 6+2+6+2, "A", 0xFF)
 }
 
 type mapbus struct {
