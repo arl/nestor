@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"image/color"
-	"log"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -24,7 +23,6 @@ func startScreen(nes *NES) {
 
 	wsz := fyne.NewSize(float32(Width), float32(Height))
 	w.Resize(wsz)
-	log.Println("starting window")
 	w.ShowAndRun()
 }
 

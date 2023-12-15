@@ -7,18 +7,22 @@ import (
 	"os"
 	"strings"
 
+	"nestor/cpu"
+	"nestor/emu/hwio"
 	log "nestor/emu/logger"
 	"nestor/ines"
 )
 
 func main() {
 	disasmLog := &outfile{}
-	infosFlag := false
+	romInfos := false
 	flagLogging := ""
+	resetVector := int64(-1)
 
-	flag.BoolVar(&infosFlag, "infos", false, "print infos about the rom and exit")
+	flag.BoolVar(&romInfos, "infos", false, "print infos about the rom and exit")
 	flag.StringVar(&flagLogging, "log", "", "enable logging for specified modules")
 	flag.Var(disasmLog, "execlog", "write execution log to [file|stdout|stderr] (very very verbose")
+	flag.Int64Var(&resetVector, "reset", -1, "overwrite reset vector (default: use reset vector from rom")
 
 	flag.Parse()
 	if len(flag.Args()) < 1 {
@@ -33,7 +37,7 @@ func main() {
 		fatalf("nes 2.0 roms are not supported yet")
 	}
 
-	if infosFlag {
+	if romInfos {
 		rom.PrintInfos(os.Stdout)
 		return
 	}
@@ -54,6 +58,9 @@ func main() {
 
 	nes := &NES{}
 	checkf(nes.PowerUp(rom), "error during power up")
+	if resetVector != -1 {
+		hwio.Write16(nes.Hw.CPU.Bus, cpu.ResetVector, uint16(resetVector))
+	}
 	nes.Reset()
 
 	go func() {

@@ -11,8 +11,17 @@ type BankIO8 interface {
 	Write8(addr uint16, val uint8)
 }
 
-type BankIO interface {
-	BankIO8
+func Write16(b BankIO8, addr uint16, val uint16) {
+	lo := uint8(val & 0xff)
+	hi := uint8(val >> 8)
+	b.Write8(addr, lo)
+	b.Write8(addr+1, hi)
+}
+
+func Read16(b BankIO8, addr uint16) uint16 {
+	lo := b.Read8(addr)
+	hi := b.Read8(addr + 1)
+	return uint16(hi)<<8 | uint16(lo)
 }
 
 type Table struct {

@@ -9,9 +9,9 @@ import (
 
 // Locations reserved for vector pointers.
 const (
-	NMIvector   = 0xFFFA // Non-Maskable Interrupt
-	ResetVector = 0xFFFC // Reset
-	IRQvector   = 0xFFFE // Interrupt Request
+	NMIvector   = uint16(0xFFFA) // Non-Maskable Interrupt
+	ResetVector = uint16(0xFFFC) // Reset
+	IRQvector   = uint16(0xFFFE) // Interrupt Request
 )
 
 type CPU struct {
