@@ -67,3 +67,27 @@ func (reg *Reg8) Read8(addr uint16) uint8 {
 	}
 	return reg.Value
 }
+
+func (reg *Reg8) GetBit(n uint) bool {
+	return reg.GetBiti(n) != 0
+}
+
+func (reg *Reg8) GetBiti(n uint) uint8 {
+	return reg.Value >> (n) & 0x01
+}
+
+func (reg *Reg8) SetBit(n uint) {
+	reg.Value |= (1 << n)
+}
+
+func (reg *Reg8) ClearBit(n uint) {
+	reg.Value &= ^(1 << n)
+}
+
+func (reg *Reg8) FlipBit(n uint) {
+	reg.Value ^= (1 << n)
+}
+
+func (reg *Reg8) ClearBits(mask uint8) {
+	reg.Value &= ^mask
+}

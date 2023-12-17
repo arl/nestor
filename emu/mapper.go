@@ -1,8 +1,10 @@
 package emu
 
-import "nestor/ines"
+import (
+	"nestor/ines"
+)
 
 type MapperDesc struct {
 	Name string
-	Load func(rom *ines.Rom, hw *Hardware) error
+	Load func(rom *ines.Rom, hw *NESHardware) error
 }

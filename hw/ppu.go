@@ -1,4 +1,4 @@
-package ppu
+package hw
 
 import (
 	"nestor/emu/hwio"
@@ -12,7 +12,7 @@ const (
 
 type PPU struct {
 	Bus *hwio.Table // PPU bus
-
+	// CPU  *cpu.CPU
 	Regs Regs // PPU registers
 
 	Cycle    int // Current cycle/pixel in scanline
@@ -34,7 +34,7 @@ type PPU struct {
 	Palettes hwio.Mem `hwio:"offset=0x3F00,size=0x20,vsize=0x100,wcb"`
 }
 
-func New() *PPU {
+func NewPPU() *PPU {
 	return &PPU{
 		Bus: hwio.NewTable("ppu"),
 	}
@@ -56,7 +56,12 @@ func (p *PPU) Tick() {
 	case p.Scanline == 261:
 		if p.Cycle == 1 {
 			// Clear vblank, sprite0Hit and spriteOverflow
-			p.Regs.PPUSTATUS.Value &^= 0b11100000
+			const mask = 1<<vblank | 1<<sprite0Hit | 1<<spriteOverflow
+			p.Regs.PPUSTATUS.ClearBits(mask)
+
+			if p.Regs.PPUCTRL.GetBit(nmi) {
+				panic("CONTINUER ICI")
+			}
 		}
 
 	// Visible scanlines
@@ -80,11 +85,16 @@ func (p *PPU) Tick() {
 	case p.Scanline == 240:
 		break
 
-	// VBlank
-	case p.Scanline >= 241 && p.Scanline <= 260:
-		if p.Scanline == 241 && p.Cycle == 1 {
+	// VBlank start (set nmi)
+	case p.Scanline == 241:
+		if p.Cycle == 1 {
 			p.Regs.PPUSTATUS.Value |= 1 << vblank
+			// if
 		}
+		// { status.vBlank = true; if (ctrl.nmi) CPU::set_nmi(); }
+
+	// VBlank
+	case p.Scanline >= 242 && p.Scanline <= 260:
 	}
 
 	p.Cycle++

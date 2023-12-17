@@ -79,8 +79,8 @@ const (
 // NOTE: this structure does not directly implement the BankIO interface for
 // performance reasons. In fact, it would be inefficient to parse all the flags
 // at runtime for each memory access to correctly implement it; so, clients must
-// call the BankIO8, BankIO16, BankIO32 methods to create adaptors that
-// implement memory access depending on the memory bank configuration.
+// call the BankIO8 method to create adaptors that implement memory access
+// depending on the memory bank configuration.
 type Mem struct {
 	Name    string            // name of the memory area (for debugging)
 	Data    []byte            // actual memory buffer

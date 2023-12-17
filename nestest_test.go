@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"nestor/cpu"
+	"nestor/hw"
 	"nestor/ines"
 )
 
@@ -45,11 +45,12 @@ func TestNestest(t *testing.T) {
 
 	// nestest.nes has an automated test mode that starts at 0xC000, with 7
 	// cycles. The manual mode starting at the reset vector requires the screen.
+
 	nes.Hw.CPU.PC = 0xC000
 	nes.Hw.CPU.Clock = 7
-	nes.Hw.CPU.P = cpu.P(0b00100100)
+	nes.Hw.CPU.P = hw.P(0b00100100)
 	nes.Hw.PPU.Cycle = 18
 
-	disasm := cpu.NewDisasm(nes.Hw.CPU, flog, true)
+	disasm := hw.NewDisasm(nes.Hw.CPU, flog, true)
 	disasm.Run(26560)
 }

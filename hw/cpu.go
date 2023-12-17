@@ -1,17 +1,16 @@
-package cpu
+package hw
 
 //go:generate go run ./cpugen/gen_nes6502.go -out ./opcodes.go
 
 import (
 	"nestor/emu/hwio"
-	"nestor/ppu"
 )
 
 // Locations reserved for vector pointers.
 const (
-	NMIvector   = uint16(0xFFFA) // Non-Maskable Interrupt
-	ResetVector = uint16(0xFFFC) // Reset
-	IRQvector   = uint16(0xFFFE) // Interrupt Request
+	CpuNMIvector   = uint16(0xFFFA) // Non-Maskable Interrupt
+	CpuResetVector = uint16(0xFFFC) // Reset
+	CpuIRQvector   = uint16(0xFFFE) // Interrupt Request
 )
 
 type CPU struct {
@@ -25,11 +24,11 @@ type CPU struct {
 
 	Clock int64 // cycles
 
-	PPU *ppu.PPU // tick callback
+	PPU *PPU // tick callback
 }
 
 // NewCPU creates a new CPU at power-up state.
-func NewCPU(ppu *ppu.PPU) *CPU {
+func NewCPU(ppu *PPU) *CPU {
 	cpu := &CPU{
 		Bus: hwio.NewTable("cpu"),
 		A:   0x00,
@@ -66,7 +65,7 @@ func (c *CPU) InitBus() {
 }
 
 func (c *CPU) Reset() {
-	c.PC = c.Read16(ResetVector)
+	c.PC = c.Read16(CpuResetVector)
 	c.SP = 0xFD
 	c.P = 0x34
 }

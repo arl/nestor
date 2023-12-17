@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"nestor/cpu"
 	"nestor/emu/hwio"
 	log "nestor/emu/logger"
+	"nestor/hw"
 	"nestor/ines"
 )
 
@@ -56,10 +56,10 @@ func main() {
 		log.EnableDebugModules(modmask)
 	}
 
-	nes := &NES{}
+	var nes NES
 	checkf(nes.PowerUp(rom), "error during power up")
 	if resetVector != -1 {
-		hwio.Write16(nes.Hw.CPU.Bus, cpu.ResetVector, uint16(resetVector))
+		hwio.Write16(nes.Hw.CPU.Bus, hw.CpuResetVector, uint16(resetVector))
 	}
 	nes.Reset()
 
@@ -72,7 +72,7 @@ func main() {
 		}
 	}()
 
-	startScreen(nes)
+	startScreen(&nes)
 }
 
 func check(err error) {

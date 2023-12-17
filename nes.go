@@ -4,29 +4,28 @@ import (
 	"fmt"
 	"io"
 
-	"nestor/cpu"
 	"nestor/emu"
 	"nestor/emu/mappers"
+	"nestor/hw"
 	"nestor/ines"
-	"nestor/ppu"
 )
 
 type NES struct {
-	Hw emu.Hardware
+	Hw emu.NESHardware
 }
 
 func (nes *NES) PowerUp(rom *ines.Rom) error {
-	nes.Hw.PPU = ppu.New()
+	nes.Hw.PPU = hw.NewPPU()
 	nes.Hw.PPU.InitBus()
 
-	nes.Hw.CPU = cpu.NewCPU(nes.Hw.PPU)
+	nes.Hw.CPU = hw.NewCPU(nes.Hw.PPU)
 	nes.Hw.CPU.InitBus()
 
 	// Map cartridge memory and hardware based on mapper.
 	return mapCartridge(rom, &nes.Hw)
 }
 
-func mapCartridge(rom *ines.Rom, hw *emu.Hardware) error {
+func mapCartridge(rom *ines.Rom, hw *emu.NESHardware) error {
 	mapper, ok := mappers.All[rom.Mapper()]
 	if !ok {
 		return fmt.Errorf("unsupported mapper %03d", rom.Mapper())
@@ -39,8 +38,7 @@ func mapCartridge(rom *ines.Rom, hw *emu.Hardware) error {
 }
 
 func (nes *NES) Reset() {
-	nes.Hw.CPU.Reset()
-	nes.Hw.PPU.Reset()
+	nes.Hw.Reset()
 }
 
 func (nes *NES) Run() {
@@ -55,7 +53,7 @@ func (nes *NES) RunOneFrame() {
 }
 
 func (nes *NES) RunDisasm(out io.Writer, nestest bool) {
-	d := cpu.NewDisasm(nes.Hw.CPU, out, nestest)
+	d := hw.NewDisasm(nes.Hw.CPU, out, nestest)
 	for {
 		d.Run(29781) // random
 		nes.Hw.CPU.Clock -= 29781

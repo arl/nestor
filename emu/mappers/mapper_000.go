@@ -12,7 +12,7 @@ var NROM = emu.MapperDesc{
 	Load: loadMapper000,
 }
 
-func loadMapper000(rom *ines.Rom, hw *emu.Hardware) error {
+func loadMapper000(rom *ines.Rom, hw *emu.NESHardware) error {
 	// CPU memory space mapping.
 	//
 

@@ -1,4 +1,4 @@
-package cpu
+package hw
 
 import (
 	"encoding/json"
@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"nestor/emu/hwio"
-	"nestor/ppu"
 )
 
 func TestAllOpcodesAreImplemented(t *testing.T) {
@@ -100,7 +99,7 @@ func testOpcodes(op string) func(t *testing.T) {
 				slice := newSlice()
 				defer putSlice(slice)
 
-				cpu := NewCPU(ppu.New())
+				cpu := NewCPU(NewPPU())
 				cpu.A = uint8(tt.Initial.A)
 				cpu.X = uint8(tt.Initial.X)
 				cpu.Y = uint8(tt.Initial.Y)
