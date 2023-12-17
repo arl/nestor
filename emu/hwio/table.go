@@ -107,6 +107,13 @@ func (t *Table) MapReg8(addr uint16, io *Reg8) {
 }
 
 func (t *Table) MapMem(addr uint16, mem *Mem) {
+	log.ModHwIo.DebugZ("mapping mem").
+		Hex16("addr", addr).
+		Hex16("size", uint16(mem.VSize)).
+		String("area", mem.Name).
+		String("bus", t.Name).
+		End()
+
 	if len(mem.Data)&(len(mem.Data)-1) != 0 {
 		panic("memory buffer size is not pow2")
 	}
@@ -118,6 +125,12 @@ func (t *Table) MapMem(addr uint16, mem *Mem) {
 }
 
 func (t *Table) MapMemorySlice(addr, end uint16, mem []uint8, readonly bool) {
+	log.ModHwIo.DebugZ("mapping slice").
+		Hex16("addr", addr).
+		Hex16("end", end).
+		String("bus", t.Name).
+		End()
+
 	flags := MemFlag8
 	if readonly {
 		flags |= MemFlag8ReadOnly
