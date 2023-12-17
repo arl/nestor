@@ -15,6 +15,10 @@ var NROM = emu.MapperDesc{
 func loadMapper000(rom *ines.Rom, hw *emu.Hardware) error {
 	// CPU memory space mapping.
 	//
+
+	// PRG-RAM (Family basic only but we still always provide it).
+	hw.CPU.Bus.MapMemorySlice(0x6000, 0x7FFF, rom.PRGROM, false)
+
 	switch len(rom.PRGROM) {
 	case 0x4000:
 		hw.CPU.Bus.MapMemorySlice(0x8000, 0xBFFF, rom.PRGROM, true)
