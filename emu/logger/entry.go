@@ -56,49 +56,49 @@ func (entry Entry) WithDelayedFields(getfields func() Fields) Entry {
 }
 
 func (entry Entry) Debug(args ...any) {
-	if entry.mod.Enabled(logrus.DebugLevel) {
+	if entry.mod.Enabled(DebugLevel) {
 		entry.log().Debug(args...)
 	}
 }
 
 func (entry Entry) Print(args ...any) {
-	if entry.mod.Enabled(logrus.InfoLevel) {
+	if entry.mod.Enabled(InfoLevel) {
 		entry.log().Print(args...)
 	}
 }
 
 func (entry Entry) Info(args ...any) {
-	if entry.mod.Enabled(logrus.InfoLevel) {
+	if entry.mod.Enabled(InfoLevel) {
 		entry.log().Info(args...)
 	}
 }
 
 func (entry Entry) Warn(args ...any) {
-	if entry.mod.Enabled(logrus.WarnLevel) {
+	if entry.mod.Enabled(WarnLevel) {
 		entry.log().Warn(args...)
 	}
 }
 
 func (entry Entry) Warning(args ...any) {
-	if entry.mod.Enabled(logrus.WarnLevel) {
+	if entry.mod.Enabled(WarnLevel) {
 		entry.log().Warning(args...)
 	}
 }
 
 func (entry Entry) Error(args ...any) {
-	if entry.mod.Enabled(logrus.ErrorLevel) {
+	if entry.mod.Enabled(ErrorLevel) {
 		entry.log().Error(args...)
 	}
 }
 
 func (entry Entry) Fatal(args ...any) {
-	if entry.mod.Enabled(logrus.FatalLevel) {
+	if entry.mod.Enabled(FatalLevel) {
 		entry.log().Fatal(args...)
 	}
 }
 
 func (entry Entry) Panic(args ...any) {
-	if entry.mod.Enabled(logrus.PanicLevel) {
+	if entry.mod.Enabled(PanicLevel) {
 		entry.log().Panic(args...)
 	}
 }
@@ -106,49 +106,49 @@ func (entry Entry) Panic(args ...any) {
 // printf-like family
 
 func (entry Entry) Debugf(format string, args ...any) {
-	if entry.mod.Enabled(logrus.DebugLevel) {
+	if entry.mod.Enabled(DebugLevel) {
 		entry.log().Debugf(format, args...)
 	}
 }
 
 func (entry Entry) Printf(format string, args ...any) {
-	if entry.mod.Enabled(logrus.InfoLevel) {
+	if entry.mod.Enabled(InfoLevel) {
 		entry.log().Printf(format, args...)
 	}
 }
 
 func (entry Entry) Infof(format string, args ...any) {
-	if entry.mod.Enabled(logrus.InfoLevel) {
+	if entry.mod.Enabled(InfoLevel) {
 		entry.log().Infof(format, args...)
 	}
 }
 
 func (entry Entry) Warnf(format string, args ...any) {
-	if entry.mod.Enabled(logrus.WarnLevel) {
+	if entry.mod.Enabled(WarnLevel) {
 		entry.log().Warnf(format, args...)
 	}
 }
 
 func (entry Entry) Warningf(format string, args ...any) {
-	if entry.mod.Enabled(logrus.WarnLevel) {
+	if entry.mod.Enabled(WarnLevel) {
 		entry.log().Warningf(format, args...)
 	}
 }
 
 func (entry Entry) Errorf(format string, args ...any) {
-	if entry.mod.Enabled(logrus.ErrorLevel) {
+	if entry.mod.Enabled(ErrorLevel) {
 		entry.log().Errorf(format, args...)
 	}
 }
 
 func (entry Entry) Fatalf(format string, args ...any) {
-	if entry.mod.Enabled(logrus.FatalLevel) {
+	if entry.mod.Enabled(FatalLevel) {
 		entry.log().Fatalf(format, args...)
 	}
 }
 
 func (entry Entry) Panicf(format string, args ...any) {
-	if entry.mod.Enabled(logrus.PanicLevel) {
+	if entry.mod.Enabled(PanicLevel) {
 		entry.log().Panicf(format, args...)
 	}
 }
@@ -156,49 +156,49 @@ func (entry Entry) Panicf(format string, args ...any) {
 // New-line style family
 
 func (entry Entry) Debugln(args ...any) {
-	if entry.mod.Enabled(logrus.DebugLevel) {
+	if entry.mod.Enabled(DebugLevel) {
 		entry.log().Debugln(args...)
 	}
 }
 
 func (entry Entry) Println(args ...any) {
-	if entry.mod.Enabled(logrus.InfoLevel) {
+	if entry.mod.Enabled(InfoLevel) {
 		entry.log().Println(args...)
 	}
 }
 
 func (entry Entry) Infoln(args ...any) {
-	if entry.mod.Enabled(logrus.InfoLevel) {
+	if entry.mod.Enabled(InfoLevel) {
 		entry.log().Infoln(args...)
 	}
 }
 
 func (entry Entry) Warnln(args ...any) {
-	if entry.mod.Enabled(logrus.WarnLevel) {
+	if entry.mod.Enabled(WarnLevel) {
 		entry.log().Warnln(args...)
 	}
 }
 
 func (entry Entry) Warningln(args ...any) {
-	if entry.mod.Enabled(logrus.WarnLevel) {
+	if entry.mod.Enabled(WarnLevel) {
 		entry.log().Warningln(args...)
 	}
 }
 
 func (entry Entry) Errorln(args ...any) {
-	if entry.mod.Enabled(logrus.ErrorLevel) {
+	if entry.mod.Enabled(ErrorLevel) {
 		entry.log().Errorln(args...)
 	}
 }
 
 func (entry Entry) Fatalln(args ...any) {
-	if entry.mod.Enabled(logrus.FatalLevel) {
+	if entry.mod.Enabled(FatalLevel) {
 		entry.log().Fatalln(args...)
 	}
 }
 
 func (entry Entry) Panicln(args ...any) {
-	if entry.mod.Enabled(logrus.PanicLevel) {
+	if entry.mod.Enabled(PanicLevel) {
 		entry.log().Panicln(args...)
 	}
 }

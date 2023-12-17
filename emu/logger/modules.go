@@ -1,9 +1,5 @@
 package logger
 
-import (
-	"gopkg.in/Sirupsen/logrus.v0"
-)
-
 type ModuleMask uint64
 type Module uint
 
@@ -62,8 +58,8 @@ func (mod Module) Mask() ModuleMask {
 	return 1 << ModuleMask(mod)
 }
 
-func (mod Module) Enabled(level logrus.Level) bool {
-	return level <= logrus.WarnLevel || modDebugMask&mod.Mask() != 0
+func (mod Module) Enabled(level Level) bool {
+	return level <= WarnLevel || modDebugMask&mod.Mask() != 0
 }
 
 // Implement the whole logging interface directly on modules
@@ -116,7 +112,7 @@ func (mod Module) Panicf(format string, args ...any) {
 
 // New-style fast functions
 
-func (mod Module) logz(lvl logrus.Level, msg string) *EntryZ {
+func (mod Module) logz(lvl Level, msg string) *EntryZ {
 	if mod.Enabled(lvl) {
 		e := NewEntryZ()
 		e.lvl = lvl
@@ -127,9 +123,9 @@ func (mod Module) logz(lvl logrus.Level, msg string) *EntryZ {
 	return nil
 }
 
-func (mod Module) DebugZ(msg string) *EntryZ { return mod.logz(logrus.DebugLevel, msg) }
-func (mod Module) InfoZ(msg string) *EntryZ  { return mod.logz(logrus.InfoLevel, msg) }
-func (mod Module) WarnZ(msg string) *EntryZ  { return mod.logz(logrus.WarnLevel, msg) }
-func (mod Module) ErrorZ(msg string) *EntryZ { return mod.logz(logrus.ErrorLevel, msg) }
-func (mod Module) FatalZ(msg string) *EntryZ { return mod.logz(logrus.FatalLevel, msg) }
-func (mod Module) PanicZ(msg string) *EntryZ { return mod.logz(logrus.PanicLevel, msg) }
+func (mod Module) DebugZ(msg string) *EntryZ { return mod.logz(DebugLevel, msg) }
+func (mod Module) InfoZ(msg string) *EntryZ  { return mod.logz(InfoLevel, msg) }
+func (mod Module) WarnZ(msg string) *EntryZ  { return mod.logz(WarnLevel, msg) }
+func (mod Module) ErrorZ(msg string) *EntryZ { return mod.logz(ErrorLevel, msg) }
+func (mod Module) FatalZ(msg string) *EntryZ { return mod.logz(FatalLevel, msg) }
+func (mod Module) PanicZ(msg string) *EntryZ { return mod.logz(PanicLevel, msg) }

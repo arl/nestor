@@ -7,6 +7,17 @@ import (
 	"gopkg.in/Sirupsen/logrus.v0"
 )
 
+type Level = logrus.Level
+
+const (
+	DebugLevel = logrus.DebugLevel
+	InfoLevel  = logrus.InfoLevel
+	WarnLevel  = logrus.WarnLevel
+	ErrorLevel = logrus.ErrorLevel
+	FatalLevel = logrus.FatalLevel
+	PanicLevel = logrus.PanicLevel
+)
+
 type textFormatter struct {
 	logrus.TextFormatter
 }
@@ -23,7 +34,7 @@ func (f *textFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 }
 
 func Disable() {
-	logrus.SetLevel(logrus.PanicLevel)
+	logrus.SetLevel(PanicLevel)
 }
 
 func SetOutput(out io.Writer) {

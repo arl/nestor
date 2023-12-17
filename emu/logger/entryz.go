@@ -12,7 +12,7 @@ import (
 )
 
 type EntryZ struct {
-	lvl   logrus.Level
+	lvl   Level
 	msg   string
 	mod   Module
 	zfbuf [16]ZField
@@ -207,11 +207,11 @@ func (z *EntryZ) end() {
 
 	var levelColor int
 	switch z.lvl {
-	case logrus.DebugLevel:
+	case DebugLevel:
 		levelColor = gray
-	case logrus.WarnLevel:
+	case WarnLevel:
 		levelColor = yellow
-	case logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel:
+	case ErrorLevel, FatalLevel, PanicLevel:
 		levelColor = red
 	default:
 		levelColor = blue
@@ -241,9 +241,9 @@ func (z *EntryZ) end() {
 	z.buf.Reset()
 
 	switch z.lvl {
-	case logrus.FatalLevel:
+	case FatalLevel:
 		os.Exit(1)
-	case logrus.PanicLevel:
+	case PanicLevel:
 		panic("raising panic in logger")
 	}
 
