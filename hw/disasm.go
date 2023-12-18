@@ -266,10 +266,12 @@ var opsDisasm = [256]disasmFunc{
 }
 
 type disasm struct {
-	cpu       *CPU
-	prevPC    uint16
-	prevClock int64
-	bb        bytes.Buffer
+	cpu             *CPU
+	prevPC          uint16
+	prevClock       int64
+	prevPPUCycle    int
+	prevPPUScanline int
+	bb              bytes.Buffer
 
 	// use nestest 'golden log' format for automatic diff.
 	isNestest bool
@@ -289,6 +291,8 @@ func (d *disasm) Run(until int64) {
 	for d.cpu.Clock < until {
 		d.prevPC = d.cpu.PC
 		d.prevClock = d.cpu.Clock
+		d.prevPPUCycle = d.cpu.PPU.Cycle
+		d.prevPPUScanline = d.cpu.PPU.Scanline
 
 		pc := d.cpu.PC
 		opcode := d.cpu.Read8(d.cpu.PC)
@@ -312,10 +316,10 @@ func (d *disasm) op(pc uint16) {
 
 	if d.isNestest {
 		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3d,%3d CYC:%d\n",
-			pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.cpu.PPU.Scanline, d.cpu.PPU.Cycle, d.prevClock)
+			pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.prevPPUScanline, d.prevPPUCycle, d.prevClock)
 	} else {
 		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%s SP:%02X PPU:%3d,%3d CYC:%d\n",
-			pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, d.cpu.PPU.Scanline, d.cpu.PPU.Cycle, d.prevClock)
+			pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, d.prevPPUScanline, d.prevPPUCycle, d.prevClock)
 	}
 	d.w.Write(d.bb.Bytes())
 }

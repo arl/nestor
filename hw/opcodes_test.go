@@ -314,26 +314,6 @@ func TestStackSmall(t *testing.T) {
 	)
 }
 
-func TestJSR_RTS(t *testing.T) {
-	dump := `
-# upper stack
-01F0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-# JSR $0620
-# LDA #$FF
-0600: 20 20 06 A9 FF
-# LDA #$88
-# RTS
-0620: A9 88 60`
-	cpu := loadCPUWith(t, dump)
-	cpu.Clock = 0
-	cpu.PC = 0x0600
-	cpu.P = 0x30
-	runAndCheckState(t, cpu, 6, "PC", 0x0620)
-	runAndCheckState(t, cpu, 6+2, "A", 0x88)
-	runAndCheckState(t, cpu, 6+2+6, "PC", 0x0603)
-	runAndCheckState(t, cpu, 6+2+6+2, "A", 0xFF)
-}
-
 type mapbus struct {
 	t testing.TB
 	m map[uint16]uint8

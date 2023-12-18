@@ -14,17 +14,17 @@ const (
 )
 
 type CPU struct {
-	Bus *hwio.Table
-	Ram [0x800]byte // Internal RAM
+	Bus   *hwio.Table
+	Ram   [0x800]byte // Internal RAM
+	Clock int64       // cycles
+	PPU   *PPU        // tick callback
 
 	// cpu registers
 	A, X, Y, SP uint8
 	PC          uint16
 	P           P
 
-	Clock int64 // cycles
-
-	PPU *PPU // tick callback
+	nmi bool
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -34,7 +34,7 @@ func NewCPU(ppu *PPU) *CPU {
 		A:   0x00,
 		X:   0x00,
 		Y:   0x00,
-		SP:  0xFD,
+		// SP:  0xFD,
 		P:   0x00,
 		PC:  0x0000,
 		PPU: ppu,
@@ -65,13 +65,53 @@ func (c *CPU) InitBus() {
 }
 
 func (c *CPU) Reset() {
-	c.PC = c.Read16(CpuResetVector)
-	c.SP = 0xFD
+	c.tick()
+	c.tick()
+	c.SP -= 3
+	c.tick()
+	c.tick()
+	c.tick()
 	c.P = 0x34
+	c.PC = c.Read16(CpuResetVector)
+}
+
+func (c *CPU) setNMIFlag() {
+	c.nmi = true
+}
+
+func (c *CPU) doNMI() {
+	c.tick()
+	c.tick()
+
+	// copied from opcode00 (BRK)
+	{
+		top := uint16(c.SP) + 0x0100
+		c.Write8(top, (uint8((c.PC + 1) >> 8)))
+		c.SP -= 1
+	}
+	{
+		top := uint16(c.SP) + 0x0100
+		c.Write8(top, (uint8((c.PC + 1) & 0xFF)))
+		c.SP -= 1
+	}
+	p := c.P
+	p.setBit(pbitB)
+	{
+		top := uint16(c.SP) + 0x0100
+		c.Write8(top, (uint8(p)))
+		c.SP -= 1
+	}
+	c.P.setBit(pbitI)
+	c.PC = c.Read16(CpuNMIvector)
+	c.nmi = false
 }
 
 func (c *CPU) Run(until int64) {
 	for c.Clock < until {
+		if c.nmi {
+			c.doNMI()
+		}
+
 		opcode := c.Read8(uint16(c.PC))
 		c.PC++
 		ops[opcode](c)

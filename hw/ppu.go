@@ -11,8 +11,8 @@ const (
 )
 
 type PPU struct {
-	Bus *hwio.Table // PPU bus
-	// CPU  *cpu.CPU
+	Bus  *hwio.Table // PPU bus
+	CPU  *CPU
 	Regs Regs // PPU registers
 
 	Cycle    int // Current cycle/pixel in scanline
@@ -48,6 +48,8 @@ func (p *PPU) InitBus() {
 
 func (p *PPU) Reset() {
 	// TODO
+	p.Scanline = 0
+	p.Cycle = 0
 }
 
 func (p *PPU) Tick() {
@@ -58,10 +60,6 @@ func (p *PPU) Tick() {
 			// Clear vblank, sprite0Hit and spriteOverflow
 			const mask = 1<<vblank | 1<<sprite0Hit | 1<<spriteOverflow
 			p.Regs.PPUSTATUS.ClearBits(mask)
-
-			if p.Regs.PPUCTRL.GetBit(nmi) {
-				panic("CONTINUER ICI")
-			}
 		}
 
 	// Visible scanlines
@@ -88,10 +86,11 @@ func (p *PPU) Tick() {
 	// VBlank start (set nmi)
 	case p.Scanline == 241:
 		if p.Cycle == 1 {
-			p.Regs.PPUSTATUS.Value |= 1 << vblank
-			// if
+			p.Regs.PPUSTATUS.SetBit(vblank)
+			if p.Regs.PPUCTRL.GetBit(nmi) {
+				p.CPU.setNMIFlag()
+			}
 		}
-		// { status.vBlank = true; if (ctrl.nmi) CPU::set_nmi(); }
 
 	// VBlank
 	case p.Scanline >= 242 && p.Scanline <= 260:

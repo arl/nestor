@@ -84,7 +84,7 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 		r = NewDisasm(cpu, tbwriter{t}, false)
 	}
 
-	r.Run(ncycles)
+	r.Run(cpu.Clock + ncycles)
 
 	for i := 0; i < len(states); i += 2 {
 		s := states[i].(string)
