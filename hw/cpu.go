@@ -4,6 +4,7 @@ package hw
 
 import (
 	"nestor/emu/hwio"
+	log "nestor/emu/logger"
 )
 
 // Locations reserved for vector pointers.
@@ -79,6 +80,8 @@ func (c *CPU) setNMIFlag() {
 }
 
 func (c *CPU) doNMI() {
+	log.ModCPU.DebugZ("doNMI").End()
+
 	c.tick()
 	c.tick()
 

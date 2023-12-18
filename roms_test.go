@@ -84,13 +84,10 @@ func TestInstructionsV5(t *testing.T) {
 }
 
 func TestInterruptsV2(t *testing.T) {
+	t.Skip("need APU")
 	dir := filepath.Join("testdata", "nes-test-roms", "cpu_interrupts_v2", "rom_singles")
 	files := []string{
-		// "1-cli_latency.nes", // APU should generate IRQ when $4017 = $00
-		// "2-nmi_and_brk.nes",
-		// "3-nmi_and_irq.nes",
-		// "4-irq_and_dma.nes",
-		// "5-branch_delays_irq.nes",
+		"1-cli_latency.nes", // APU should generate IRQ when $4017 = $00
 	}
 
 	log.SetOutput(io.Discard)
