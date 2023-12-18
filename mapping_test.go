@@ -73,17 +73,17 @@ func TestPPURegisterMapping(t *testing.T) {
 	tcheck(t, nes.PowerUp(cartridge))
 
 	nes.Hw.CPU.Bus.Write8(0x2000, 0x27)
-	if nes.Hw.PPU.Regs.PPUCTRL.Value != 0x27 {
-		t.Errorf("PPUCTRL should be 0x27, got 0x%02X", nes.Hw.PPU.Regs.PPUCTRL.Value)
+	if nes.Hw.PPU.PPUCTRL.Value != 0x27 {
+		t.Errorf("PPUCTRL should be 0x27, got 0x%02X", nes.Hw.PPU.PPUCTRL.Value)
 	}
 
 	nes.Hw.CPU.Bus.Write8(0x3456, 0x18)
-	if nes.Hw.PPU.Regs.PPUADDR.Value != 0x18 {
-		t.Errorf("PPUADDR should be 0x18, got 0x%02X", nes.Hw.PPU.Regs.PPUADDR.Value)
+	if nes.Hw.PPU.PPUADDR.Value != 0x18 {
+		t.Errorf("PPUADDR should be 0x18, got 0x%02X", nes.Hw.PPU.PPUADDR.Value)
 	}
 
 	nes.Hw.CPU.Bus.Write8(0x3FFF, 0xF5)
-	if nes.Hw.PPU.Regs.PPUDATA.Value != 0xF5 {
-		t.Errorf("PPUDATA should be 0xF5, got 0x%02X", nes.Hw.PPU.Regs.PPUDATA.Value)
+	if nes.Hw.PPU.PPUDATA.Value != 0xF5 {
+		t.Errorf("PPUDATA should be 0xF5, got 0x%02X", nes.Hw.PPU.PPUDATA.Value)
 	}
 }

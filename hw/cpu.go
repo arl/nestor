@@ -50,9 +50,8 @@ func (c *CPU) InitBus() {
 	c.Bus.MapMemorySlice(0x1800, 0x1FFF, c.Ram[:], false)
 
 	// 0x2000-0x3FFF -> PPU registers, mirrored.
-	hwio.MustInitRegs(&c.PPU.Regs)
 	for i := uint16(0x2000); i < 0x4000; i += 8 {
-		c.Bus.MapBank(i, &c.PPU.Regs, 0)
+		c.Bus.MapBank(i, c.PPU, 1)
 	}
 
 	// 0x4000-0x4017 -> APU and IO registers.

@@ -10,10 +10,69 @@ const (
 	NumCycles    = 341 // Number of PPU cycles per scanline.
 )
 
+const (
+	// PPUCTRL bits
+
+	// Generate an NMI at the start of the
+	// vertical blanking interval (0: off; 1: on)
+	nmi = 7
+
+	// PPU master/slave select
+	// (0: read backdrop from EXT pins; 1: output color on EXT pins)
+	ppuMasterSlave = 6
+
+	// Sprite size (0: 8x8 pixels; 1: 8x16 pixels – see PPU OAM#Byte 1)
+	spriteSize = 5
+
+	// Background pattern table address (0: $0000; 1: $1000)
+	backgroundAddr = 4
+
+	// Sprite pattern table address for 8x8 sprites
+	// (0: $0000; 1: $1000; ignored in 8x16 mode)
+	spriteAddr = 3
+
+	// VRAM address increment per CPU read/write of PPUDATA
+	// (0: add 1, going across; 1: add 32, going down)
+	vramIncr = 2
+
+	// Base nametable address
+	// (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
+	baseNTmask = 0b11
+)
+
+const (
+	// PPUSTATUS bits
+
+	// Vertical blank has started (0: not in vblank; 1: in vblank).
+	// Set at dot 1 of line 241 (the line *after* the post-render
+	// line); cleared after reading $2002 and at dot 1 of the
+	// pre-render line.
+	vblank = 7
+
+	// Sprite 0 Hit.  Set when a nonzero pixel of sprite 0 overlaps
+	// a nonzero background pixel; cleared at dot 1 of the pre-render
+	// line.  Used for raster timing.
+	sprite0Hit = 6
+
+	// Sprite overflow. The intent was for this flag to be set
+	// whenever more than eight sprites appear on a scanline, but a
+	// hardware bug causes the actual behavior to be more complicated
+	// and generate false positives as well as false negatives; see
+	// PPU sprite evaluation. This flag is set during sprite
+	// evaluation and cleared at dot 1 (the second dot) of the
+	// pre-render line.
+	spriteOverflow = 5
+
+	// Returns stale PPU bus contents.
+	openbusMask = 0b11111
+)
+
 type PPU struct {
-	Bus  *hwio.Table // PPU bus
-	CPU  *CPU
-	Regs Regs // PPU registers
+	Bus *hwio.Table // PPU bus
+	CPU *CPU
+
+	vramAddr   uint16
+	writeLatch bool
 
 	Cycle    int // Current cycle/pixel in scanline
 	Scanline int // Current scanline being drawn
@@ -32,6 +91,19 @@ type PPU struct {
 	// $3F00-$3F1F	$0020	Palette RAM indexes
 	// $3F20-$3FFF	$00E0	Mirrors of $3F00-$3F1F
 	Palettes hwio.Mem `hwio:"offset=0x3F00,size=0x20,vsize=0x100,wcb"`
+
+	// CPU-exposed memory-mapped PPU registers.
+	// This bank is mapped at 0x2000-0x3FFF, with mirrors.
+	PPUCTRL   hwio.Reg8 `hwio:"bank=1,offset=0x0,writeonly,wcb"`
+	PPUMASK   hwio.Reg8 `hwio:"bank=1,offset=0x1,writeonly,wcb"`
+	PPUSTATUS hwio.Reg8 `hwio:"bank=1,offset=0x2,readonly,rcb"`
+	// OAMADDR   hwio.Reg8 `hwio:"bank=1,offset=0x3,writeonly,wcb"`
+	// OAMDATA   hwio.Reg8 `hwio:"bank=1,offset=0x4"`
+	PPUSCROLL hwio.Reg8 `hwio:"bank=1,offset=0x5,writeonly,wcb"`
+	PPUADDR   hwio.Reg8 `hwio:"bank=1,offset=0x6,writeonly,wcb"`
+	PPUDATA   hwio.Reg8 `hwio:"bank=1,offset=0x7,rcb,wcb,"`
+
+	// OAMDMA hwio.Reg8 `hwio:"bank=2,writeonly,wcb"`
 }
 
 func NewPPU() *PPU {
@@ -59,7 +131,7 @@ func (p *PPU) Tick() {
 		if p.Cycle == 1 {
 			// Clear vblank, sprite0Hit and spriteOverflow
 			const mask = 1<<vblank | 1<<sprite0Hit | 1<<spriteOverflow
-			p.Regs.PPUSTATUS.ClearBits(mask)
+			p.PPUSTATUS.ClearBits(mask)
 		}
 
 	// Visible scanlines
@@ -86,8 +158,8 @@ func (p *PPU) Tick() {
 	// VBlank start (set nmi)
 	case p.Scanline == 241:
 		if p.Cycle == 1 {
-			p.Regs.PPUSTATUS.SetBit(vblank)
-			if p.Regs.PPUCTRL.GetBit(nmi) {
+			p.PPUSTATUS.SetBit(vblank)
+			if p.PPUCTRL.GetBit(nmi) {
 				p.CPU.setNMIFlag()
 			}
 		}
@@ -129,4 +201,47 @@ func (p *PPU) WritePALETTES(addr uint16, n int) {
 		Hex8("val", p.Palettes.Data[memaddr]).
 		Hex16("addr", addr).
 		End()
+}
+
+// PPUADDR is the 16-bit PPU r/w address, allows the CPU to address VRAM.
+func (p *PPU) WritePPUADDR(old, val uint8) {
+	if !p.writeLatch {
+		// Write upper address byte.
+		p.vramAddr = uint16(val) << 8
+		p.writeLatch = true
+	} else {
+		// Write lower address byte.
+		p.vramAddr &= 0xff00 // clear low byte first.
+		p.vramAddr |= uint16(val)
+		log.ModPPU.DebugZ("PPUADDR write").Hex16("addr", p.vramAddr).End()
+	}
+}
+
+func (ppu *PPU) WritePPUCTRL(old, val uint8) {
+	log.ModPPU.DebugZ("Write to PPUCTRL").Hex8("val", val).End()
+}
+
+func (ppu *PPU) ReadPPUSTATUS(val uint8) uint8 {
+	if val != 0 {
+		log.ModPPU.DebugZ("Read from PPUSTATUS").Hex8("val", val).End()
+	}
+	ppu.writeLatch = false
+	return val
+}
+
+func (ppu *PPU) WritePPUMASK(old, val uint8) {
+	log.ModPPU.DebugZ("Write to PPUMASK").Hex8("val", val).End()
+}
+
+func (ppu *PPU) WritePPUSCROLL(old, val uint8) {
+	log.ModPPU.DebugZ("Write to PPUSCROLL").Hex8("val", val).End()
+}
+
+func (ppu *PPU) ReadPPUDATA(val uint8) uint8 {
+	log.ModPPU.DebugZ("Read from PPUDATA").Hex8("val", val).End()
+	return val
+}
+
+func (ppu *PPU) WritePPUDATA(old, val uint8) {
+	log.ModPPU.DebugZ("Write to PPUDATA").Hex8("val", val).End()
 }
