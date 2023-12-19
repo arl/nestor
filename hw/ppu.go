@@ -72,8 +72,9 @@ type PPU struct {
 	CPU *CPU
 
 	// For VRAM r/w from CPU
-	vramAddr   uint16
-	writeLatch bool
+	vramAddr    uint16
+	writeLatch  bool
+	ppuDataRbuf uint8
 
 	Cycle    int // Current cycle/pixel in scanline
 	Scanline int // Current scanline being drawn
@@ -245,18 +246,35 @@ func (p *PPU) WritePPUADDR(old, val uint8) {
 }
 
 // PPUDATA: 0x2007
-func (ppu *PPU) ReadPPUDATA(val uint8) uint8 {
+func (ppu *PPU) ReadPPUDATA(_ uint8) uint8 {
+	defer ppu.incVRAMaddr()
+
+	var val uint8
+	switch {
+	case ppu.vramAddr < 0x3EFF:
+		// Reading VRAM is too slow so the actual data
+		// will be returned at the next read.
+		data := ppu.ppuDataRbuf
+		ppu.ppuDataRbuf = ppu.Bus.Read8(ppu.vramAddr)
+		val = data
+	default: // 0x3F00-3FFF
+		// Reading palette data is immediate.
+		val = ppu.Bus.Read8(ppu.vramAddr)
+		// Still it overwrites the read buffer.
+		ppu.ppuDataRbuf = val
+	}
+
 	log.ModPPU.DebugZ("VRAM read").
 		Hex16("addr", ppu.vramAddr).
 		Hex8("val", val).
 		End()
-
-	log.ModPPU.DebugZ("Read from PPUDATA").Hex8("val", val).End()
 	return val
 }
 
 // PPUDATA: 0x2007
 func (ppu *PPU) WritePPUDATA(old, val uint8) {
+	defer ppu.incVRAMaddr()
+
 	// Mirror down address (only 0x000-0x3fff range is valid).
 	ppu.vramAddr &= 0x3fff
 	log.ModPPU.DebugZ("VRAM write").
@@ -265,7 +283,9 @@ func (ppu *PPU) WritePPUDATA(old, val uint8) {
 		End()
 
 	ppu.Bus.Write8(ppu.vramAddr, val)
+}
 
+func (ppu *PPU) incVRAMaddr() {
 	// vram address increment
 	if ppu.PPUCTRL.GetBit(vramIncr) {
 		ppu.vramAddr += 32
