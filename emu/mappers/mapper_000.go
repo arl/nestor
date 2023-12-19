@@ -38,10 +38,9 @@ func loadMapper000(rom *ines.Rom, hw *emu.NESHardware) error {
 	case 0x0000:
 		// Some roms have no CHR-ROM, allocate mem anyway.
 		// XXX: not sure about that
-		CHRROM := make([]uint8, 0x2000)
-		hw.PPU.PatternTables.Data = CHRROM
+		copy(hw.PPU.PatternTables.Data, make([]uint8, 0x2000))
 	case 0x2000:
-		hw.PPU.PatternTables.Data = rom.CHRROM
+		copy(hw.PPU.PatternTables.Data, rom.CHRROM)
 	default:
 		return fmt.Errorf("unexpected CHRROM size: 0x%x", len(rom.CHRROM))
 
