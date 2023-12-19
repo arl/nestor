@@ -71,6 +71,7 @@ type PPU struct {
 	Bus *hwio.Table // PPU bus
 	CPU *CPU
 
+	// For VRAM r/w from CPU
 	vramAddr   uint16
 	writeLatch bool
 
@@ -122,6 +123,8 @@ func (p *PPU) Reset() {
 	// TODO
 	p.Scanline = 0
 	p.Cycle = 0
+	p.writeLatch = false
+	p.vramAddr = 0
 }
 
 func (p *PPU) Tick() {
@@ -203,24 +206,17 @@ func (p *PPU) WritePALETTES(addr uint16, n int) {
 		End()
 }
 
-// PPUADDR is the 16-bit PPU r/w address, allows the CPU to address VRAM.
-func (p *PPU) WritePPUADDR(old, val uint8) {
-	if !p.writeLatch {
-		// Write upper address byte.
-		p.vramAddr = uint16(val) << 8
-		p.writeLatch = true
-	} else {
-		// Write lower address byte.
-		p.vramAddr &= 0xff00 // clear low byte first.
-		p.vramAddr |= uint16(val)
-		log.ModPPU.DebugZ("PPUADDR write").Hex16("addr", p.vramAddr).End()
-	}
-}
-
+// PPUCTRL: 0x2000
 func (ppu *PPU) WritePPUCTRL(old, val uint8) {
 	log.ModPPU.DebugZ("Write to PPUCTRL").Hex8("val", val).End()
 }
 
+// PPUMASK: 0x2001
+func (ppu *PPU) WritePPUMASK(old, val uint8) {
+	log.ModPPU.DebugZ("Write to PPUMASK").Hex8("val", val).End()
+}
+
+// PPUSTATUS: 0x2002
 func (ppu *PPU) ReadPPUSTATUS(val uint8) uint8 {
 	if val != 0 {
 		log.ModPPU.DebugZ("Read from PPUSTATUS").Hex8("val", val).End()
@@ -229,19 +225,51 @@ func (ppu *PPU) ReadPPUSTATUS(val uint8) uint8 {
 	return val
 }
 
-func (ppu *PPU) WritePPUMASK(old, val uint8) {
-	log.ModPPU.DebugZ("Write to PPUMASK").Hex8("val", val).End()
-}
-
+// PPUSCROLL: 0x2005
 func (ppu *PPU) WritePPUSCROLL(old, val uint8) {
 	log.ModPPU.DebugZ("Write to PPUSCROLL").Hex8("val", val).End()
 }
 
+// To read/write VRAM from CPU, PPUADDR is set to the address of the operation.
+// It's a 16-bit register so 2 writes are necessary.
+// PPUADDR: 0x2006
+func (p *PPU) WritePPUADDR(old, val uint8) {
+	if p.writeLatch {
+		// Lower address byte.
+		p.vramAddr = p.vramAddr&(0xff00) | uint16(val)
+	} else {
+		// Upper address byte.
+		p.vramAddr = p.vramAddr&0x00ff | uint16(val)<<8
+	}
+	p.writeLatch = !p.writeLatch
+}
+
+// PPUDATA: 0x2007
 func (ppu *PPU) ReadPPUDATA(val uint8) uint8 {
+	log.ModPPU.DebugZ("VRAM read").
+		Hex16("addr", ppu.vramAddr).
+		Hex8("val", val).
+		End()
+
 	log.ModPPU.DebugZ("Read from PPUDATA").Hex8("val", val).End()
 	return val
 }
 
+// PPUDATA: 0x2007
 func (ppu *PPU) WritePPUDATA(old, val uint8) {
-	log.ModPPU.DebugZ("Write to PPUDATA").Hex8("val", val).End()
+	// Mirror down address (only 0x000-0x3fff range is valid).
+	ppu.vramAddr &= 0x3fff
+	log.ModPPU.DebugZ("VRAM write").
+		Hex16("addr", ppu.vramAddr).
+		Hex8("val", val).
+		End()
+
+	ppu.Bus.Write8(ppu.vramAddr, val)
+
+	// vram address increment
+	if ppu.PPUCTRL.GetBit(vramIncr) {
+		ppu.vramAddr += 32
+	} else {
+		ppu.vramAddr++
+	}
 }
