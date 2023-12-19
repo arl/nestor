@@ -52,7 +52,7 @@ func TestNestest(t *testing.T) {
 
 	nes.Hw.CPU.Reset()
 	nes.Hw.CPU.P = hw.P(0x24)
-	disasm := hw.NewDisasm(nes.Hw.CPU, flog, true)
+	disasm := hw.NewDisasm(nes.Hw.CPU, flog)
 	disasm.Run(26560)
 }
 

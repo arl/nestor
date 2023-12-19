@@ -66,7 +66,7 @@ func main() {
 	go func() {
 		if disasmLog.w != nil {
 			defer disasmLog.Close()
-			nes.RunDisasm(disasmLog, false)
+			nes.RunDisasm(disasmLog)
 		} else {
 			nes.Run()
 		}

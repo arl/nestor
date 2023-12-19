@@ -81,7 +81,7 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 
 	var r runner = cpu
 	if testing.Verbose() {
-		r = NewDisasm(cpu, tbwriter{t}, false)
+		r = NewDisasm(cpu, tbwriter{t})
 	}
 
 	r.Run(cpu.Clock + ncycles)
