@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"image/color"
+	"image"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -14,18 +13,21 @@ const (
 	Height = 224
 )
 
-func startScreen(nes *NES) {
+func startGUI(screenCh <-chan *image.RGBA) {
 	myApp := app.New()
 	w := myApp.NewWindow("NEStor")
 
-	rect := canvas.NewRectangle(color.White)
-	w.SetContent(rect)
+	img := canvas.NewImageFromImage(image.NewRGBA(image.Rect(0, 0, Width, Height)))
+	w.SetContent(img)
+
+	go func() {
+		for {
+			img.Image = <-screenCh
+			img.Refresh()
+		}
+	}()
 
 	wsz := fyne.NewSize(float32(Width), float32(Height))
 	w.Resize(wsz)
 	w.ShowAndRun()
-}
-
-func tidyUp() {
-	fmt.Println("Exited")
 }

@@ -1,6 +1,8 @@
 package hw
 
 import (
+	"image"
+
 	"nestor/emu/hwio"
 	log "nestor/emu/logger"
 )
@@ -105,6 +107,8 @@ type PPU struct {
 	Bus *hwio.Table // PPU bus
 	CPU *CPU
 
+	screen image.RGBA
+
 	// For VRAM r/w from CPU
 	vramAddr    uint16
 	writeLatch  bool
@@ -146,6 +150,10 @@ func NewPPU() *PPU {
 	return &PPU{
 		Bus: hwio.NewTable("ppu"),
 	}
+}
+
+func (p *PPU) Output() *image.RGBA {
+	return &p.screen
 }
 
 func (p *PPU) InitBus() {

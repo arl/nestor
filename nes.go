@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"io"
 
 	"nestor/emu"
@@ -12,6 +13,8 @@ import (
 
 type NES struct {
 	Hw emu.NESHardware
+
+	screenCh chan *image.RGBA
 }
 
 func (nes *NES) PowerUp(rom *ines.Rom) error {
@@ -43,9 +46,20 @@ func (nes *NES) Reset() {
 	nes.Hw.Reset()
 }
 
+func (nes *NES) AttachScreen() <-chan *image.RGBA {
+	if nes.screenCh != nil {
+		panic("screen already attached")
+	}
+	nes.screenCh = make(chan *image.RGBA)
+	return nes.screenCh
+}
+
 func (nes *NES) Run() {
 	for {
 		nes.RunOneFrame()
+		if nes.screenCh != nil {
+			nes.screenCh <- nes.Hw.PPU.Output()
+		}
 	}
 }
 
