@@ -107,13 +107,6 @@ type PPU struct {
 	Bus *hwio.Table // PPU bus
 	CPU *CPU
 
-	screen image.RGBA
-
-	// For VRAM r/w from CPU
-	vramAddr    uint16
-	writeLatch  bool
-	ppuDataRbuf uint8
-
 	Cycle    int // Current cycle/pixel in scanline
 	Scanline int // Current scanline being drawn
 
@@ -144,6 +137,17 @@ type PPU struct {
 	PPUDATA   hwio.Reg8 `hwio:"bank=1,offset=0x7,rcb,wcb,"`
 
 	// OAMDMA hwio.Reg8 `hwio:"bank=2,writeonly,wcb"`
+
+	screen image.RGBA
+
+	// VRAM read/write
+	vramAddr    uint16
+	writeLatch  bool
+	ppuDataRbuf uint8
+
+	// Background registers
+	bgPatternData [2]uint16
+	bgPaletteAttr [2]uint8
 }
 
 func NewPPU() *PPU {
@@ -172,16 +176,44 @@ func (p *PPU) Reset() {
 
 func (p *PPU) Tick() {
 	switch {
-	// Pre-render line
+	case p.Scanline < 240:
+		p.doScanline(renderMode)
+	case p.Scanline == 240:
+		p.doScanline(postRender)
+	case p.Scanline == 241:
+		p.doScanline(vblankNMI)
 	case p.Scanline == 261:
+		p.doScanline(preRender)
+	}
+	p.Cycle++
+	if p.Cycle >= NumCycles {
+		p.Cycle -= NumCycles
+		p.Scanline++
+		if p.Scanline >= NumScanlines {
+			p.Scanline = 0
+		}
+	}
+}
+
+type scanlineMode int
+
+const (
+	preRender scanlineMode = iota
+	renderMode
+	postRender
+	vblankNMI
+)
+
+func (p *PPU) doScanline(sm scanlineMode) {
+	switch sm {
+	case preRender:
 		if p.Cycle == 1 {
 			// Clear vblank, sprite0Hit and spriteOverflow
 			const mask = 1<<vblank | 1<<sprite0Hit | 1<<spriteOverflow
 			p.PPUSTATUS.ClearBits(mask)
 		}
 
-	// Visible scanlines
-	case p.Scanline >= 0 && p.Scanline <= 239:
+	case renderMode:
 		switch {
 		// Idle
 		case p.Cycle == 0:
@@ -197,31 +229,23 @@ func (p *PPU) Tick() {
 			break
 		}
 
-	// Post-render scanline
-	case p.Scanline == 240:
+	case postRender:
 		break
 
-	// VBlank start (set nmi)
-	case p.Scanline == 241:
+	case vblankNMI:
 		if p.Cycle == 1 {
 			p.PPUSTATUS.SetBit(vblank)
 			if p.PPUCTRL.GetBit(nmi) {
 				p.CPU.setNMIFlag()
 			}
 		}
-
-	// VBlank
-	case p.Scanline >= 242 && p.Scanline <= 260:
 	}
 
-	p.Cycle++
-	if p.Cycle >= NumCycles {
-		p.Cycle = 0
-		p.Scanline++
-		if p.Scanline >= NumScanlines {
-			p.Scanline = 0
-		}
-	}
+}
+
+// render renders one pixel.
+func (p *PPU) render() {
+
 }
 
 func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
