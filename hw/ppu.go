@@ -12,47 +12,73 @@ const (
 
 const (
 	// PPUCTRL bits
+	// $2000
 
-	// Generate an NMI at the start of the
-	// vertical blanking interval (0: off; 1: on)
-	nmi = 7
+	// Nametable selection mask
+	// (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
+	ntselect = 0b11
 
-	// PPU master/slave select
-	// (0: read backdrop from EXT pins; 1: output color on EXT pins)
-	ppuMasterSlave = 6
-
-	// Sprite size (0: 8x8 pixels; 1: 8x16 pixels – see PPU OAM#Byte 1)
-	spriteSize = 5
-
-	// Background pattern table address (0: $0000; 1: $1000)
-	backgroundAddr = 4
+	// VRAM address increment per CPU read/write of PPUDATA
+	// (0: +1 i.e. horizontal; 1: +32 i.e. vertical)
+	vramIncr = 2
 
 	// Sprite pattern table address for 8x8 sprites
 	// (0: $0000; 1: $1000; ignored in 8x16 mode)
 	spriteAddr = 3
 
-	// VRAM address increment per CPU read/write of PPUDATA
-	// (0: add 1, going across; 1: add 32, going down)
-	vramIncr = 2
+	// Background pattern table address (0: $0000; 1: $1000)
+	backgroundAddr = 4
 
-	// Base nametable address
-	// (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
-	baseNTmask = 0b11
+	// Sprite size (0: 8x8 pixels; 1: 8x16 pixels – see byte 1 of OAM)
+	spriteSize = 5
+
+	// PPU master/slave select
+	// (0: read backdrop from EXT pins; 1: output color on EXT pins)
+	ppuMasterSlave = 6
+
+	// Generate an NMI at the start of the
+	// vertical blanking interval (0: off; 1: on)
+	nmi = 7
+)
+
+const (
+	// PPUMASK bits
+	// $2001
+
+	// Greyscale
+	// (0: normal color, 1: produce a greyscale display)
+	greyscale = 0
+
+	// Show background in leftmost 8 pixels of screen
+	// 1: Show, 0: Hide
+	leftmostBg = 1
+
+	// Show sprites in leftmost 8 pixels of screen
+	// 1: Show, 0: Hide
+	leftmostSprites = 2
+
+	// Show background
+	showBg = 3
+
+	// Show sprites
+	showSprites = 4
+
+	// Emphasize red
+	highlightRed = 5
+
+	// Emphasize green
+	highlightGreen = 6
+
+	// Emphasize blue
+	highlightBlue = 7
 )
 
 const (
 	// PPUSTATUS bits
+	// $2002
 
-	// Vertical blank has started (0: not in vblank; 1: in vblank).
-	// Set at dot 1 of line 241 (the line *after* the post-render
-	// line); cleared after reading $2002 and at dot 1 of the
-	// pre-render line.
-	vblank = 7
-
-	// Sprite 0 Hit.  Set when a nonzero pixel of sprite 0 overlaps
-	// a nonzero background pixel; cleared at dot 1 of the pre-render
-	// line.  Used for raster timing.
-	sprite0Hit = 6
+	// Returns stale PPU bus contents.
+	openbusMask = 0b11111
 
 	// Sprite overflow. The intent was for this flag to be set
 	// whenever more than eight sprites appear on a scanline, but a
@@ -63,8 +89,16 @@ const (
 	// pre-render line.
 	spriteOverflow = 5
 
-	// Returns stale PPU bus contents.
-	openbusMask = 0b11111
+	// Sprite 0 Hit.  Set when a nonzero pixel of sprite 0 overlaps
+	// a nonzero background pixel; cleared at dot 1 of the pre-render
+	// line.  Used for raster timing.
+	sprite0Hit = 6
+
+	// Vertical blank has started (0: not in vblank; 1: in vblank).
+	// Set at dot 1 of line 241 (the line *after* the post-render
+	// line); cleared after reading $2002 and at dot 1 of the
+	// pre-render line.
+	vblank = 7
 )
 
 type PPU struct {
@@ -94,8 +128,8 @@ type PPU struct {
 	// $3F20-$3FFF	$00E0	Mirrors of $3F00-$3F1F
 	Palettes hwio.Mem `hwio:"offset=0x3F00,size=0x20,vsize=0x100,wcb"`
 
-	// CPU-exposed memory-mapped PPU registers.
-	// This bank is mapped at 0x2000-0x3FFF, with mirrors.
+	// CPU-exposed memory-mapped PPU registers
+	// mapped from $2000 to $2007, mirrored up to $3fff
 	PPUCTRL   hwio.Reg8 `hwio:"bank=1,offset=0x0,writeonly,wcb"`
 	PPUMASK   hwio.Reg8 `hwio:"bank=1,offset=0x1,writeonly,wcb"`
 	PPUSTATUS hwio.Reg8 `hwio:"bank=1,offset=0x2,readonly,rcb"`
@@ -207,17 +241,17 @@ func (p *PPU) WritePALETTES(addr uint16, n int) {
 		End()
 }
 
-// PPUCTRL: 0x2000
-func (ppu *PPU) WritePPUCTRL(old, val uint8) {
+// PPUCTRL: $2000
+func (p *PPU) WritePPUCTRL(old, val uint8) {
 	log.ModPPU.DebugZ("Write to PPUCTRL").Hex8("val", val).End()
 }
 
-// PPUMASK: 0x2001
-func (ppu *PPU) WritePPUMASK(old, val uint8) {
+// PPUMASK: $2001
+func (p *PPU) WritePPUMASK(old, val uint8) {
 	log.ModPPU.DebugZ("Write to PPUMASK").Hex8("val", val).End()
 }
 
-// PPUSTATUS: 0x2002
+// PPUSTATUS: $2002
 func (ppu *PPU) ReadPPUSTATUS(val uint8) uint8 {
 	if val != 0 {
 		log.ModPPU.DebugZ("Read from PPUSTATUS").Hex8("val", val).End()
@@ -226,14 +260,14 @@ func (ppu *PPU) ReadPPUSTATUS(val uint8) uint8 {
 	return val
 }
 
-// PPUSCROLL: 0x2005
-func (ppu *PPU) WritePPUSCROLL(old, val uint8) {
+// PPUSCROLL: $2005
+func (p *PPU) WritePPUSCROLL(old, val uint8) {
 	log.ModPPU.DebugZ("Write to PPUSCROLL").Hex8("val", val).End()
 }
 
 // To read/write VRAM from CPU, PPUADDR is set to the address of the operation.
 // It's a 16-bit register so 2 writes are necessary.
-// PPUADDR: 0x2006
+// PPUADDR: $2006
 func (p *PPU) WritePPUADDR(old, val uint8) {
 	if p.writeLatch {
 		// Lower address byte.
@@ -245,51 +279,52 @@ func (p *PPU) WritePPUADDR(old, val uint8) {
 	p.writeLatch = !p.writeLatch
 }
 
-// PPUDATA: 0x2007
-func (ppu *PPU) ReadPPUDATA(_ uint8) uint8 {
-	defer ppu.incVRAMaddr()
+// PPUDATA: $2007
+func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
+	defer p.incVRAMaddr()
 
 	var val uint8
 	switch {
-	case ppu.vramAddr < 0x3EFF:
+	case p.vramAddr < 0x3EFF:
 		// Reading VRAM is too slow so the actual data
 		// will be returned at the next read.
-		data := ppu.ppuDataRbuf
-		ppu.ppuDataRbuf = ppu.Bus.Read8(ppu.vramAddr)
+		data := p.ppuDataRbuf
+		p.ppuDataRbuf = p.Bus.Read8(p.vramAddr)
 		val = data
-	default: // 0x3F00-3FFF
+	default: // $3F00-3FFF
 		// Reading palette data is immediate.
-		val = ppu.Bus.Read8(ppu.vramAddr)
+		val = p.Bus.Read8(p.vramAddr)
 		// Still it overwrites the read buffer.
-		ppu.ppuDataRbuf = val
+		p.ppuDataRbuf = val
 	}
 
 	log.ModPPU.DebugZ("VRAM read").
-		Hex16("addr", ppu.vramAddr).
+		Hex16("addr", p.vramAddr).
 		Hex8("val", val).
 		End()
 	return val
 }
 
-// PPUDATA: 0x2007
-func (ppu *PPU) WritePPUDATA(old, val uint8) {
-	defer ppu.incVRAMaddr()
+// PPUDATA: $2007
+func (p *PPU) WritePPUDATA(old, val uint8) {
+	defer p.incVRAMaddr()
 
-	// Mirror down address (only 0x000-0x3fff range is valid).
-	ppu.vramAddr &= 0x3fff
+	// Mirror down address (only $000-$3fff range is valid).
+	p.vramAddr &= 0x3fff
 	log.ModPPU.DebugZ("VRAM write").
-		Hex16("addr", ppu.vramAddr).
+		Hex16("addr", p.vramAddr).
 		Hex8("val", val).
 		End()
 
-	ppu.Bus.Write8(ppu.vramAddr, val)
+	p.Bus.Write8(p.vramAddr, val)
 }
 
-func (ppu *PPU) incVRAMaddr() {
+// After each i/o on PPUDATA, PPPUADDR is incremented.
+func (p *PPU) incVRAMaddr() {
 	// vram address increment
-	if ppu.PPUCTRL.GetBit(vramIncr) {
-		ppu.vramAddr += 32
+	if p.PPUCTRL.GetBit(vramIncr) {
+		p.vramAddr += 32
 	} else {
-		ppu.vramAddr++
+		p.vramAddr++
 	}
 }
