@@ -72,7 +72,8 @@ func main() {
 		}
 	}()
 
-	startGUI(nes.AttachScreen())
+	ui := newGUI(&nes)
+	ui.run()
 }
 
 func check(err error) {
