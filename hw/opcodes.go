@@ -50,7 +50,7 @@ func opcode02(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM called\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x02) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -257,7 +257,7 @@ func opcode12(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM called\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x12) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -487,7 +487,7 @@ func opcode22(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM called\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x22) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -720,7 +720,7 @@ func opcode32(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM called\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x32) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -977,7 +977,7 @@ func opcode42(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM called\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x42) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -1197,7 +1197,7 @@ func opcode52(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM called\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x52) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -1445,7 +1445,7 @@ func opcode62(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM called\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x62) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -1711,7 +1711,7 @@ func opcode72(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM called\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x72) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -2130,7 +2130,7 @@ func opcode92(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM called\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x92) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -2483,7 +2483,7 @@ func opcodeB2(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM called\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0xB2) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -2887,7 +2887,7 @@ func opcodeD2(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM called\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0xD2) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 
@@ -3328,7 +3328,7 @@ func opcodeF2(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM called\nPC:0x%04X", cpu.PC)
+	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0xF2) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
 

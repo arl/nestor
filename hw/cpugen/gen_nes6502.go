@@ -540,7 +540,7 @@ func (g *Generator) BRK(_ opdef) {
 	g.printf(`p.setBit(pbitB)`)
 	push8(g, `uint8(p)`)
 	g.printf(`cpu.P.setBit(pbitI)`)
-	g.printf(`cpu.PC = cpu.Read16(IRQvector)`)
+	g.printf(`cpu.PC = cpu.Read16(CpuIRQvector)`)
 }
 
 func (g *Generator) DCP(def opdef) {
@@ -562,7 +562,7 @@ func (g *Generator) ISB(def opdef) {
 
 func (g *Generator) JAM(def opdef) {
 	g.unstable = append(g.unstable, def.i)
-	insertPanic(g, `Halt and catch fire!\nJAM called`)
+	insertPanic(g, fmt.Sprintf(`Halt and catch fire!\nJAM(0x%02X) called`, def.i))
 }
 
 func (g *Generator) JMP(_ opdef) {
