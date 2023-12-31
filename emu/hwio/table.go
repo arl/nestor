@@ -129,6 +129,7 @@ func (t *Table) MapMemorySlice(addr, end uint16, mem []uint8, readonly bool) {
 		Hex16("addr", addr).
 		Hex16("end", end).
 		String("bus", t.Name).
+		Bool("ro", readonly).
 		End()
 
 	flags := MemFlag8
