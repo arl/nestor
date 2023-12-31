@@ -40,17 +40,16 @@ func TestNestest(t *testing.T) {
 		want, err := os.ReadFile("testdata/nes-test-roms/other/nestest.log")
 		tcheck(t, err)
 
-		// TODO(arl) diff should be nil once APU is implemented.
-		// With the APU not yet implemented, we have a few mismatched lines at
-		// the end of the log. For now, we check this doesn't drift.
+		// TODO(arl) diff should be empty once APU is implemented. As of now,
+		// since there's no APU, we have a few mismatched lines at the end of
+		// the log. For now, we check this doesn't drift.
 		dmp := diffmatchpatch.New()
 		diffs := dmp.DiffMain(string(want), string(content), true)
 		if dmp.DiffLevenshtein(diffs) != 8 {
-			t.Fatalf("investigate why the Levenshtein disatnce distance has changed")
+			t.Fatalf("investigate why the Levenshtein distance has changed")
 		}
 	})
 
-	nes.Hw.CPU.Reset()
 	nes.Hw.CPU.P = hw.P(0x24)
 	disasm := hw.NewDisasm(nes.Hw.CPU, flog)
 	disasm.Run(26560)

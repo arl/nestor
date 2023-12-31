@@ -27,7 +27,13 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 	nes.Hw.PPU.CPU = nes.Hw.CPU
 
 	// Map cartridge memory and hardware based on mapper.
-	return mapCartridge(rom, &nes.Hw)
+	err := mapCartridge(rom, &nes.Hw)
+	if err != nil {
+		return fmt.Errorf("mapper failed to map cartridge: %s", err)
+	}
+
+	nes.Reset()
+	return nil
 }
 
 func mapCartridge(rom *ines.Rom, hw *emu.NESHardware) error {
@@ -43,7 +49,8 @@ func mapCartridge(rom *ines.Rom, hw *emu.NESHardware) error {
 }
 
 func (nes *NES) Reset() {
-	nes.Hw.Reset()
+	nes.Hw.PPU.Reset()
+	nes.Hw.CPU.Reset()
 }
 
 func (nes *NES) AttachScreen() <-chan *image.RGBA {

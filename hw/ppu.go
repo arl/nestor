@@ -163,7 +163,6 @@ func (p *PPU) Output() *image.RGBA {
 func (p *PPU) InitBus() {
 	hwio.MustInitRegs(p)
 	p.Bus.MapBank(0x0000, p, 0)
-	p.Reset()
 }
 
 func (p *PPU) Reset() {
