@@ -96,9 +96,9 @@ func TestInterruptsV2(t *testing.T) {
 }
 
 func runTestRom(path string) func(t *testing.T) {
-	// All text output is written starting at $6004, with a zero-byte
-	// terminator at the end. As more text is written, the terminator is moved
-	// forward, so an emulator can print the current text at any time.
+	// All text output is written starting at $6004, with a zero-byte terminator
+	// at the end. As more text is written, the terminator is moved forward, so
+	// an emulator can print the current text at any time.
 
 	// The test status is written to $6000. $80 means the test is running, $81
 	// means the test needs the reset button pressed, but delayed by at least
@@ -113,17 +113,27 @@ func runTestRom(path string) func(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-
 		var nes NES
 		checkf(nes.PowerUp(rom), "error during power up")
 		nes.Reset()
 
 		magic := []byte{0xde, 0xb0, 0x61}
+		magicset := 0
 		var result uint8
 
 		for {
 			nes.RunOneFrame()
+
 			data := nes.Hw.CPU.Bus.FetchPointer(0x6001)
+			if magicset == 0 {
+				if bytes.Equal(data[:3], magic) {
+					magicset = 1
+				}
+				// Wait for the magic bytes to appear
+				continue
+			}
+
+			// Once magic bytes have been written, they must not be overwritten.
 			if !bytes.Equal(data[:3], magic) {
 				t.Fatalf("corrupted memory")
 			}
