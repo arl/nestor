@@ -78,7 +78,7 @@ func (nes *NES) RunOneFrame() {
 func (nes *NES) RunDisasm(out io.Writer) {
 	d := hw.NewDisasm(nes.Hw.CPU, out)
 	for {
-		d.Run(29781) // random
+		d.Run(29781)
 		nes.Hw.CPU.Clock -= 29781
 	}
 }
