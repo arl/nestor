@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"runtime/pprof"
 	"strings"
 
 	"nestor/emu/hwio"
@@ -17,8 +19,10 @@ func main() {
 	disasmLog := &outfile{}
 	romInfos := false
 	flagLogging := ""
+	cpuprofile := ""
 	resetVector := int64(-1)
 
+	flag.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
 	flag.BoolVar(&romInfos, "infos", false, "print infos about the rom and exit")
 	flag.StringVar(&flagLogging, "log", "", "enable logging for specified modules")
 	flag.Var(disasmLog, "execlog", "write execution log to [file|stdout|stderr] (very very verbose")
@@ -55,6 +59,25 @@ func main() {
 		}
 		log.EnableDebugModules(modmask)
 	}
+
+	if cpuprofile != "" {
+		f, err := os.Create(cpuprofile)
+		if err != nil {
+			log.ModEmu.FatalZ(err.Error())
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		<-c
+		if cpuprofile != "" {
+			pprof.StopCPUProfile()
+			log.ModEmu.Infof("CPU profile written to %s", cpuprofile)
+		}
+		os.Exit(1)
+	}()
 
 	var nes NES
 	checkf(nes.PowerUp(rom), "error during power up")
