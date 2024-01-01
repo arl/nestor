@@ -296,6 +296,10 @@ func (d *disasm) Run(until int64) {
 		d.cpu.PC++
 		d.op(pc)
 		ops[opcode](d.cpu)
+
+		if d.cpu.prevRunIRQ || d.cpu.prevNeedNmi {
+			d.cpu.IRQ()
+		}
 	}
 }
 

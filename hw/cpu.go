@@ -4,7 +4,6 @@ package hw
 
 import (
 	"nestor/emu/hwio"
-	log "nestor/emu/logger"
 )
 
 // Locations reserved for vector pointers.
@@ -25,7 +24,11 @@ type CPU struct {
 	PC          uint16
 	P           P
 
-	nmi bool
+	// interrupt handling
+	nmiFlag, prevNmiFlag bool
+	needNmi, prevNeedNmi bool
+	runIRQ, prevRunIRQ   bool
+	irqFlag              bool
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -73,50 +76,22 @@ func (c *CPU) Reset() {
 	c.tick()
 	c.P = 0x34
 	c.PC = c.Read16(CpuResetVector)
+	c.nmiFlag = false
+	c.irqFlag = false
 }
 
-func (c *CPU) setNMIFlag() {
-	c.nmi = true
-}
-
-func (c *CPU) doNMI() {
-	log.ModCPU.DebugZ("doNMI").End()
-
-	c.tick()
-	c.tick()
-
-	// copied from opcode00 (BRK)
-	{
-		top := uint16(c.SP) + 0x0100
-		c.Write8(top, (uint8((c.PC + 1) >> 8)))
-		c.SP -= 1
-	}
-	{
-		top := uint16(c.SP) + 0x0100
-		c.Write8(top, (uint8((c.PC + 1) & 0xFF)))
-		c.SP -= 1
-	}
-	p := c.P
-	p.setBit(pbitB)
-	{
-		top := uint16(c.SP) + 0x0100
-		c.Write8(top, (uint8(p)))
-		c.SP -= 1
-	}
-	c.P.setBit(pbitI)
-	c.PC = c.Read16(CpuNMIvector)
-	c.nmi = false
-}
+func (c *CPU) setNMIflag()   { c.nmiFlag = true }
+func (c *CPU) clearNMIflag() { c.nmiFlag = false }
 
 func (c *CPU) Run(until int64) {
 	for c.Clock < until {
-		if c.nmi {
-			c.doNMI()
-		}
-
 		opcode := c.Read8(uint16(c.PC))
 		c.PC++
 		ops[opcode](c)
+
+		if c.prevRunIRQ || c.prevNeedNmi {
+			c.IRQ()
+		}
 	}
 }
 
@@ -129,12 +104,15 @@ func (c *CPU) tick() {
 
 func (c *CPU) Read8(addr uint16) uint8 {
 	c.tick()
-	return c.Bus.Read8(addr)
+	val := c.Bus.Read8(addr)
+	c.handleInterrupts()
+	return val
 }
 
 func (c *CPU) Write8(addr uint16, val uint8) {
 	c.tick()
 	c.Bus.Write8(addr, val)
+	c.handleInterrupts()
 }
 
 func (c *CPU) Read16(addr uint16) uint16 {
@@ -148,6 +126,105 @@ func (c *CPU) Write16(addr uint16, val uint16) {
 	hi := uint8(val >> 8)
 	c.Write8(addr, lo)
 	c.Write8(addr+1, hi)
+}
+
+func (c *CPU) handleInterrupts() {
+	// The internal signal goes high during φ1 of the cycle that follows the one
+	// where the edge is detected and stays high until the NMI has been handled.
+	c.prevNeedNmi = c.needNmi
+
+	// This edge detector polls the status of the NMI line during φ2 of each CPU
+	// cycle (i.e., during the second half of each cycle) and raises an internal
+	// signal if the input goes from being high during one cycle to being low
+	// during the next.
+	if !c.prevNmiFlag && c.nmiFlag {
+		c.needNmi = true
+	}
+	c.prevNmiFlag = c.nmiFlag
+
+	// It's really the status of the interrupt lines at the end of the
+	// second-to-last cycle that matters. Keep the IRQ lines values from the
+	// previous cycle. The before-to-last cycle's values will be used.
+	c.prevRunIRQ = c.runIRQ
+	c.runIRQ = c.irqFlag && !c.P.bit(pbitI)
+}
+
+func BRK(cpu *CPU) {
+	cpu.tick()
+	{
+		top := uint16(cpu.SP) + 0x0100
+		cpu.Write8(top, (uint8((cpu.PC + 1) >> 8)))
+		cpu.SP -= 1
+	}
+	{
+		top := uint16(cpu.SP) + 0x0100
+		cpu.Write8(top, (uint8((cpu.PC + 1) & 0xFF)))
+		cpu.SP -= 1
+	}
+	p := cpu.P
+	p.setBit(pbitB)
+	p.setBit(pbitU)
+	if cpu.needNmi {
+		cpu.needNmi = false
+		top := uint16(cpu.SP) + 0x0100
+		cpu.Write8(top, (uint8(p)))
+		cpu.SP -= 1
+		cpu.P.setBit(pbitI)
+		cpu.PC = cpu.Read16(CpuNMIvector)
+	} else {
+		top := uint16(cpu.SP) + 0x0100
+		cpu.Write8(top, (uint8(p)))
+		cpu.SP -= 1
+		cpu.P.setBit(pbitI)
+		cpu.PC = cpu.Read16(CpuIRQvector)
+	}
+
+	// Ensure we don't start an NMI right after running a BRK instruction (first
+	// instruction in IRQ handler must run first - needed for nmi_and_brk test)
+	cpu.prevNeedNmi = false
+}
+
+func (c *CPU) IRQ() {
+	c.tick()
+	c.tick()
+
+	// Push PC on the stack
+	{
+		top := uint16(c.SP) + 0x0100
+		c.Write8(top, (uint8((c.PC + 1) >> 8)))
+		c.SP -= 1
+	}
+	{
+		top := uint16(c.SP) + 0x0100
+		c.Write8(top, (uint8((c.PC + 1) & 0xFF)))
+		c.SP -= 1
+	}
+
+	if c.needNmi {
+		c.needNmi = false
+		p := c.P
+		p.setBit(pbitB)
+		{
+			top := uint16(c.SP) + 0x0100
+			c.Write8(top, (uint8(p)))
+			c.SP -= 1
+		}
+		c.P.setBit(pbitI)
+		c.PC = c.Read16(CpuNMIvector)
+
+		// TODO inform the debugger we just had an NMI
+	} else {
+		p := c.P
+		p.setBit(pbitB)
+		{
+			top := uint16(c.SP) + 0x0100
+			c.Write8(top, (uint8(p)))
+			c.SP -= 1
+		}
+		c.P.setBit(pbitI)
+		c.PC = c.Read16(CpuIRQvector)
+		// TODO inform the debugger we just had an IRQ
+	}
 }
 
 // P is the 6502 Processor Status Register.

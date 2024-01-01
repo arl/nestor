@@ -235,7 +235,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 		if p.Cycle == 1 {
 			p.PPUSTATUS.SetBit(vblank)
 			if p.PPUCTRL.GetBit(nmi) {
-				p.CPU.setNMIFlag()
+				p.CPU.setNMIflag()
 			}
 		}
 	}
@@ -275,6 +275,17 @@ func (p *PPU) WritePALETTES(addr uint16, n int) {
 // PPUCTRL: $2000
 func (p *PPU) WritePPUCTRL(old, val uint8) {
 	log.ModPPU.DebugZ("Write to PPUCTRL").Hex8("val", val).End()
+
+	nmiOnVblank := p.PPUCTRL.GetBit(nmi)
+
+	// By toggling the nmi bit (bit 7 of PPUCTRL) during vblank without reading
+	// PPUSTATUS, a program can cause /nmi to be pulled low multiple times,
+	// causing multiple NMIs to be generated.
+	if !nmiOnVblank {
+		p.CPU.clearNMIflag()
+	} else if p.PPUSTATUS.GetBit(vblank) {
+		p.CPU.setNMIflag()
+	}
 }
 
 // PPUMASK: $2001
@@ -288,7 +299,15 @@ func (ppu *PPU) ReadPPUSTATUS(val uint8) uint8 {
 		log.ModPPU.DebugZ("Read from PPUSTATUS").Hex8("val", val).End()
 	}
 	ppu.writeLatch = false
-	return val
+	ret := ppu.PPUSTATUS.GetBiti(spriteOverflow)<<spriteOverflow |
+		ppu.PPUSTATUS.GetBiti(sprite0Hit)<<sprite0Hit |
+		ppu.PPUSTATUS.GetBiti(vblank)<<vblank
+
+	ppu.PPUSTATUS.ClearBit(vblank)
+	ppu.CPU.clearNMIflag()
+
+	// TODO: emulate open bus ?
+	return ret
 }
 
 // PPUSCROLL: $2005
