@@ -5,30 +5,6 @@ import (
 	"fmt"
 )
 
-// BRK - implied addressing.
-func opcode00(cpu *CPU) {
-	cpu.tick()
-	{
-		top := uint16(cpu.SP) + 0x0100
-		cpu.Write8(top, (uint8((cpu.PC + 1) >> 8)))
-		cpu.SP -= 1
-	}
-	{
-		top := uint16(cpu.SP) + 0x0100
-		cpu.Write8(top, (uint8((cpu.PC + 1) & 0xFF)))
-		cpu.SP -= 1
-	}
-	p := cpu.P
-	p.setBit(pbitB)
-	{
-		top := uint16(cpu.SP) + 0x0100
-		cpu.Write8(top, (uint8(p)))
-		cpu.SP -= 1
-	}
-	cpu.P.setBit(pbitI)
-	cpu.PC = cpu.Read16(CpuIRQvector)
-}
-
 // ORA - indexed addressing (abs, X).
 func opcode01(cpu *CPU) {
 	cpu.tick()
@@ -3546,7 +3522,7 @@ func opcodeFF(cpu *CPU) {
 
 // nes 6502 opcodes table
 var ops = [256]func(*CPU){
-	opcode00, opcode01, opcode02, opcode03, opcode04, opcode05, opcode06, opcode07, opcode08, opcode09, opcode0A, opcode0B, opcode0C, opcode0D, opcode0E, opcode0F,
+	BRK, opcode01, opcode02, opcode03, opcode04, opcode05, opcode06, opcode07, opcode08, opcode09, opcode0A, opcode0B, opcode0C, opcode0D, opcode0E, opcode0F,
 	opcode10, opcode11, opcode12, opcode13, opcode14, opcode15, opcode16, opcode17, opcode18, opcode19, opcode1A, opcode1B, opcode1C, opcode1D, opcode1E, opcode1F,
 	opcode20, opcode21, opcode22, opcode23, opcode24, opcode25, opcode26, opcode27, opcode28, opcode29, opcode2A, opcode2B, opcode2C, opcode2D, opcode2E, opcode2F,
 	opcode30, opcode31, opcode32, opcode33, opcode34, opcode35, opcode36, opcode37, opcode38, opcode39, opcode3A, opcode3B, opcode3C, opcode3D, opcode3E, opcode3F,

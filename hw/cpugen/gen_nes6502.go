@@ -18,6 +18,8 @@ type opdef struct {
 	m string // addressing mode
 	f func(g *Generator, def opdef)
 
+	dontgen bool // manually written
+
 	// opcode detail string
 	// 	- r: declare 'val' and set it to 'oper/accumulator'
 	// 	- w: write 'val' back into 'oper/accumulator'
@@ -28,7 +30,7 @@ type opdef struct {
 }
 
 var defs = [256]opdef{
-	{i: 0x00, n: "BRK", d: "      ", m: "imp"},
+	{i: 0x00, n: "BRK", d: "      ", m: "imp", dontgen: true},
 	{i: 0x01, n: "ORA", d: "r     ", m: "izx"},
 	{i: 0x02, n: "JAM", d: "     i", m: "imm"},
 	{i: 0x03, n: "SLO", d: "rw   i", m: "izx"},
@@ -866,6 +868,9 @@ func (g *Generator) opcodeFooter(code uint8) {
 
 func (g *Generator) opcodes() {
 	for _, def := range defs {
+		if def.dontgen {
+			continue
+		}
 		g.opcodeHeader(def.i)
 		if def.f != nil {
 			def.f(g, def)
@@ -882,7 +887,12 @@ func (g *Generator) opcodesTable() {
 	bb := &strings.Builder{}
 	for i := 0; i < 16; i++ {
 		for j := 0; j < 16; j++ {
-			fmt.Fprintf(bb, "opcode%02X, ", i*16+j)
+			opcode := i*16 + j
+			if defs[opcode].dontgen {
+				fmt.Fprintf(bb, "%s,", defs[opcode].n)
+			} else {
+				fmt.Fprintf(bb, "opcode%02X, ", opcode)
+			}
 		}
 		bb.WriteByte('\n')
 	}
