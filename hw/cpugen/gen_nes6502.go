@@ -344,7 +344,7 @@ func abx(g *Generator, info string) {
 		g.printf(`oper := addr + uint16(cpu.X)`)
 		tickIfPageCrossed(g, "oper", "addr")
 	default:
-		g.printf(`cpu.tick()`)
+		tick(g)
 		g.printf(`oper := cpu.Read16(cpu.PC)`)
 		g.printf(`cpu.PC += 2`)
 		g.printf(`oper += uint16(cpu.X)`)
@@ -361,7 +361,7 @@ func aby(g *Generator, info string) {
 		tickIfPageCrossed(g, "oper", "addr")
 	default:
 		g.printf(`// default`)
-		g.printf(`cpu.tick()`)
+		tick(g)
 		g.printf(`oper := cpu.Read16(cpu.PC)`)
 		g.printf(`cpu.PC += 2`)
 		g.printf(`oper += uint16(cpu.Y)`)
@@ -374,7 +374,7 @@ func zpg(g *Generator, _ string) {
 }
 
 func zpx(g *Generator, _ string) {
-	g.printf(`cpu.tick()`)
+	tick(g)
 	g.printf(`addr := cpu.Read8(cpu.PC)`)
 	g.printf(`cpu.PC++`)
 	g.printf(`oper := uint16(addr) + uint16(cpu.X)`)
@@ -382,7 +382,7 @@ func zpx(g *Generator, _ string) {
 }
 
 func zpy(g *Generator, _ string) {
-	g.printf(`cpu.tick()`)
+	tick(g)
 	g.printf(`addr := cpu.Read8(cpu.PC)`)
 	g.printf(`cpu.PC++`)
 	g.printf(`oper := uint16(addr) + uint16(cpu.Y)`)
@@ -390,7 +390,7 @@ func zpy(g *Generator, _ string) {
 }
 
 func izx(g *Generator, info string) {
-	g.printf(`cpu.tick()`)
+	tick(g)
 	zpg(g, info)
 	g.printf(`oper = uint16(uint8(oper) + cpu.X)`)
 	r16zpwrap(g)
@@ -408,7 +408,7 @@ func izy(g *Generator, info string) {
 		g.printf(`// extra cycle always`)
 		zpg(g, info)
 		r16zpwrap(g)
-		g.printf(`cpu.tick()`)
+		tick(g)
 		g.printf(`oper += uint16(cpu.Y)`)
 	default:
 		g.printf(`// default`)
@@ -448,8 +448,8 @@ func branch(ibit int, val bool) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		g.printf(`if cpu.P.bit(%d) == %t {`, ibit, val)
 		g.printf(`// branching`)
+		tick(g)
 		tickIfPageCrossed(g, "cpu.PC+1", "oper")
-		g.printf(`	cpu.tick()`)
 		g.printf(`	cpu.PC = oper`)
 		g.printf(`	return`)
 		g.printf(`}`)
@@ -457,9 +457,13 @@ func branch(ibit int, val bool) func(g *Generator, _ opdef) {
 	}
 }
 
+func tick(g *Generator) {
+	g.printf(`cpu.tick()`)
+}
+
 func tickIfPageCrossed(g *Generator, a, b string) {
 	g.printf(`if 0xFF00&(%s) != 0xFF00&(%s) {`, a, b)
-	g.printf(`	cpu.tick()`)
+	tick(g)
 	g.printf(`}`)
 }
 
@@ -512,7 +516,7 @@ func (g *Generator) ARR(_ opdef) {
 func (g *Generator) ASL(_ opdef) {
 	g.printf(`carry := val & 0x80`)
 	g.printf(`val = (val << 1) & 0xfe`)
-	g.printf(`cpu.tick()`)
+	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
 }
@@ -524,7 +528,7 @@ func (g *Generator) BIT(_ opdef) {
 }
 
 func (g *Generator) BRK(_ opdef) {
-	g.printf(`cpu.tick()`)
+	tick(g)
 	push16(g, `cpu.PC+1`)
 	g.printf(`p := cpu.P`)
 	g.printf(`p.setBit(pbitB)`)
@@ -561,7 +565,7 @@ func (g *Generator) JMP(_ opdef) {
 
 func (g *Generator) JSR(_ opdef) {
 	g.printf(`oper := cpu.Read16(cpu.PC)`)
-	g.printf(`cpu.tick()`)
+	tick(g)
 	push16(g, `cpu.PC+1`)
 	g.printf(`cpu.PC = oper`)
 }
@@ -577,14 +581,14 @@ func (g *Generator) LSR(_ opdef) {
 	g.printf(`{`)
 	g.printf(`carry := val & 0x01 // carry is bit 0`)
 	g.printf(`val = (val >> 1)&0x7f`)
-	g.printf(`cpu.tick()`)
+	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
 	g.printf(`}`)
 }
 
 func (g *Generator) NOP(_ opdef) {
-	g.printf(`cpu.tick()`)
+	tick(g)
 }
 
 func (g *Generator) ORA(_ opdef) {
@@ -593,27 +597,27 @@ func (g *Generator) ORA(_ opdef) {
 }
 
 func (g *Generator) PHA(_ opdef) {
-	g.printf(`cpu.tick()`)
+	tick(g)
 	push8(g, `cpu.A`)
 }
 
 func (g *Generator) PHP(_ opdef) {
-	g.printf(`cpu.tick()`)
+	tick(g)
 	g.printf(`p := cpu.P`)
 	g.printf(`p |= (1 << pbitB) | (1 << pbitU)`)
 	push8(g, `uint8(p)`)
 }
 
 func (g *Generator) PLA(_ opdef) {
-	g.printf(`cpu.tick()`)
-	g.printf(`cpu.tick()`)
+	tick(g)
+	tick(g)
 	pull8(g, `cpu.A`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
 func (g *Generator) PLP(_ opdef) {
-	g.printf(`cpu.tick()`)
-	g.printf(`cpu.tick()`)
+	tick(g)
+	tick(g)
 	g.printf(`var p uint8`)
 	pull8(g, `p`)
 	g.printf(`const mask uint8 = 0b11001111 // ignore B and U bits`)
@@ -631,7 +635,7 @@ func (g *Generator) ROL(_ opdef) {
 	g.printf(`if cpu.P.C() {`)
 	g.printf(`	val |= 1 << 0`)
 	g.printf(`}`)
-	g.printf(`cpu.tick()`)
+	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
 }
@@ -643,7 +647,7 @@ func (g *Generator) ROR(_ opdef) {
 	g.printf(`if cpu.P.C() {`)
 	g.printf(`	val |= 1 << 7`)
 	g.printf(`}`)
-	g.printf(`cpu.tick()`)
+	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
 	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
 	g.printf(`}`)
@@ -655,8 +659,8 @@ func (g *Generator) RRA(def opdef) {
 }
 
 func (g *Generator) RTI(_ opdef) {
-	g.printf(`cpu.tick()`)
-	g.printf(`cpu.tick()`)
+	tick(g)
+	tick(g)
 	g.printf(`var p uint8`)
 	pull8(g, `p`)
 	g.printf(`const mask uint8 = 0b11001111 // ignore B and U bits`)
@@ -665,11 +669,11 @@ func (g *Generator) RTI(_ opdef) {
 }
 
 func (g *Generator) RTS(_ opdef) {
-	g.printf(`cpu.tick()`)
-	g.printf(`cpu.tick()`)
 	pull16(g, `cpu.PC`)
+	tick(g)
+	tick(g)
 	g.printf(`cpu.PC++`)
-	g.printf(`cpu.tick()`)
+	tick(g)
 }
 
 func (g *Generator) SAX(_ opdef) {
@@ -736,7 +740,7 @@ func T(src, dst string) func(g *Generator, _ opdef) {
 		if dst != "SP" {
 			g.printf(`cpu.P.checkNZ(cpu.%s)`, src)
 		}
-		g.printf(`cpu.tick()`)
+		tick(g)
 	}
 }
 
@@ -752,7 +756,7 @@ func regOrMem(v string) string {
 
 func inc(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.tick()`)
+		tick(g)
 		v = regOrMem(v)
 		g.printf(`%s++`, v)
 		g.printf(`cpu.P.checkNZ(%s)`, v)
@@ -761,7 +765,7 @@ func inc(v string) func(g *Generator, _ opdef) {
 
 func dec(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.tick()`)
+		tick(g)
 		v = regOrMem(v)
 		g.printf(`%s--`, v)
 		g.printf(`cpu.P.checkNZ(%s)`, v)
@@ -771,14 +775,14 @@ func dec(v string) func(g *Generator, _ opdef) {
 func clear(ibit uint) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		g.printf(`cpu.P.clearBit(%d)`, ibit)
-		g.printf(`cpu.tick()`)
+		tick(g)
 	}
 }
 
 func set(ibit uint) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		g.printf(`cpu.P.setBit(%d)`, ibit)
-		g.printf(`cpu.tick()`)
+		tick(g)
 	}
 }
 
