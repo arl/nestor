@@ -193,12 +193,17 @@ func opcode10(cpu *CPU) {
 	off := int8(cpu.Read8(cpu.PC))
 	oper := uint16(int16(cpu.PC+1) + int16(off))
 	_ = oper
-	if cpu.P.bit(7) == false {
-		// branching
+	if cpu.P.bit(7) == false { // do branch
+		// A taken non-page-crossing branch ignores IRQ/NMI during its last
+		// clock, so that next instruction executes before the IRQ.
+		// Fixes 'branch_delays_irq' test.
+		if cpu.runIRQ && !cpu.prevRunIRQ {
+			cpu.runIRQ = false
+		}
+		cpu.tick()
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
-		cpu.tick()
 		cpu.PC = oper
 		return
 	}
@@ -643,12 +648,17 @@ func opcode30(cpu *CPU) {
 	off := int8(cpu.Read8(cpu.PC))
 	oper := uint16(int16(cpu.PC+1) + int16(off))
 	_ = oper
-	if cpu.P.bit(7) == true {
-		// branching
+	if cpu.P.bit(7) == true { // do branch
+		// A taken non-page-crossing branch ignores IRQ/NMI during its last
+		// clock, so that next instruction executes before the IRQ.
+		// Fixes 'branch_delays_irq' test.
+		if cpu.runIRQ && !cpu.prevRunIRQ {
+			cpu.runIRQ = false
+		}
+		cpu.tick()
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
-		cpu.tick()
 		cpu.PC = oper
 		return
 	}
@@ -1101,12 +1111,17 @@ func opcode50(cpu *CPU) {
 	off := int8(cpu.Read8(cpu.PC))
 	oper := uint16(int16(cpu.PC+1) + int16(off))
 	_ = oper
-	if cpu.P.bit(6) == false {
-		// branching
+	if cpu.P.bit(6) == false { // do branch
+		// A taken non-page-crossing branch ignores IRQ/NMI during its last
+		// clock, so that next instruction executes before the IRQ.
+		// Fixes 'branch_delays_irq' test.
+		if cpu.runIRQ && !cpu.prevRunIRQ {
+			cpu.runIRQ = false
+		}
+		cpu.tick()
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
-		cpu.tick()
 		cpu.PC = oper
 		return
 	}
@@ -1597,12 +1612,17 @@ func opcode70(cpu *CPU) {
 	off := int8(cpu.Read8(cpu.PC))
 	oper := uint16(int16(cpu.PC+1) + int16(off))
 	_ = oper
-	if cpu.P.bit(6) == true {
-		// branching
+	if cpu.P.bit(6) == true { // do branch
+		// A taken non-page-crossing branch ignores IRQ/NMI during its last
+		// clock, so that next instruction executes before the IRQ.
+		// Fixes 'branch_delays_irq' test.
+		if cpu.runIRQ && !cpu.prevRunIRQ {
+			cpu.runIRQ = false
+		}
+		cpu.tick()
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
-		cpu.tick()
 		cpu.PC = oper
 		return
 	}
@@ -2023,12 +2043,17 @@ func opcode90(cpu *CPU) {
 	off := int8(cpu.Read8(cpu.PC))
 	oper := uint16(int16(cpu.PC+1) + int16(off))
 	_ = oper
-	if cpu.P.bit(0) == false {
-		// branching
+	if cpu.P.bit(0) == false { // do branch
+		// A taken non-page-crossing branch ignores IRQ/NMI during its last
+		// clock, so that next instruction executes before the IRQ.
+		// Fixes 'branch_delays_irq' test.
+		if cpu.runIRQ && !cpu.prevRunIRQ {
+			cpu.runIRQ = false
+		}
+		cpu.tick()
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
-		cpu.tick()
 		cpu.PC = oper
 		return
 	}
@@ -2372,12 +2397,17 @@ func opcodeB0(cpu *CPU) {
 	off := int8(cpu.Read8(cpu.PC))
 	oper := uint16(int16(cpu.PC+1) + int16(off))
 	_ = oper
-	if cpu.P.bit(0) == true {
-		// branching
+	if cpu.P.bit(0) == true { // do branch
+		// A taken non-page-crossing branch ignores IRQ/NMI during its last
+		// clock, so that next instruction executes before the IRQ.
+		// Fixes 'branch_delays_irq' test.
+		if cpu.runIRQ && !cpu.prevRunIRQ {
+			cpu.runIRQ = false
+		}
+		cpu.tick()
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
-		cpu.tick()
 		cpu.PC = oper
 		return
 	}
@@ -2776,12 +2806,17 @@ func opcodeD0(cpu *CPU) {
 	off := int8(cpu.Read8(cpu.PC))
 	oper := uint16(int16(cpu.PC+1) + int16(off))
 	_ = oper
-	if cpu.P.bit(1) == false {
-		// branching
+	if cpu.P.bit(1) == false { // do branch
+		// A taken non-page-crossing branch ignores IRQ/NMI during its last
+		// clock, so that next instruction executes before the IRQ.
+		// Fixes 'branch_delays_irq' test.
+		if cpu.runIRQ && !cpu.prevRunIRQ {
+			cpu.runIRQ = false
+		}
+		cpu.tick()
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
-		cpu.tick()
 		cpu.PC = oper
 		return
 	}
@@ -3213,12 +3248,17 @@ func opcodeF0(cpu *CPU) {
 	off := int8(cpu.Read8(cpu.PC))
 	oper := uint16(int16(cpu.PC+1) + int16(off))
 	_ = oper
-	if cpu.P.bit(1) == true {
-		// branching
+	if cpu.P.bit(1) == true { // do branch
+		// A taken non-page-crossing branch ignores IRQ/NMI during its last
+		// clock, so that next instruction executes before the IRQ.
+		// Fixes 'branch_delays_irq' test.
+		if cpu.runIRQ && !cpu.prevRunIRQ {
+			cpu.runIRQ = false
+		}
+		cpu.tick()
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			cpu.tick()
 		}
-		cpu.tick()
 		cpu.PC = oper
 		return
 	}

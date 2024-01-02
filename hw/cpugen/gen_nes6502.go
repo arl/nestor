@@ -446,8 +446,13 @@ func r16zpwrap(g *Generator) {
 
 func branch(ibit int, val bool) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`if cpu.P.bit(%d) == %t {`, ibit, val)
-		g.printf(`// branching`)
+		g.printf(`if cpu.P.bit(%d) == %t { // do branch`, ibit, val)
+		g.printf(`// A taken non-page-crossing branch ignores IRQ/NMI during its last`)
+		g.printf(`// clock, so that next instruction executes before the IRQ.`)
+		g.printf(`// Fixes 'branch_delays_irq' test.`)
+		g.printf(`if cpu.runIRQ && !cpu.prevRunIRQ {`)
+		g.printf(`	cpu.runIRQ = false`)
+		g.printf(`}`)
 		tick(g)
 		tickIfPageCrossed(g, "cpu.PC+1", "oper")
 		g.printf(`	cpu.PC = oper`)
