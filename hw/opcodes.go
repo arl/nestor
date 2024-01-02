@@ -105,11 +105,7 @@ func opcode08(cpu *CPU) {
 	cpu.tick()
 	p := cpu.P
 	p |= (1 << pbitB) | (1 << pbitU)
-	{
-		top := uint16(cpu.SP) + 0x0100
-		cpu.Write8(top, (uint8(p)))
-		cpu.SP -= 1
-	}
+	cpu.push8(uint8(p))
 }
 
 // ORA - immediate addressing.
@@ -429,16 +425,7 @@ func opcode1F(cpu *CPU) {
 func opcode20(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
 	cpu.tick()
-	{
-		top := uint16(cpu.SP) + 0x0100
-		cpu.Write8(top, (uint8((cpu.PC + 1) >> 8)))
-		cpu.SP -= 1
-	}
-	{
-		top := uint16(cpu.SP) + 0x0100
-		cpu.Write8(top, (uint8((cpu.PC + 1) & 0xFF)))
-		cpu.SP -= 1
-	}
+	cpu.push16(cpu.PC + 1)
 	cpu.PC = oper
 }
 
@@ -554,11 +541,7 @@ func opcode28(cpu *CPU) {
 	cpu.tick()
 	cpu.tick()
 	var p uint8
-	{
-		cpu.SP += 1
-		top := uint16(cpu.SP) + 0x0100
-		p = cpu.Read8(top)
-	}
+	p = cpu.pull8()
 	const mask uint8 = 0b11001111 // ignore B and U bits
 	cpu.P = P(((uint8(cpu.P)) & (^mask)) | ((p) & (mask)))
 }
@@ -911,25 +894,10 @@ func opcode40(cpu *CPU) {
 	cpu.tick()
 	cpu.tick()
 	var p uint8
-	{
-		cpu.SP += 1
-		top := uint16(cpu.SP) + 0x0100
-		p = cpu.Read8(top)
-	}
+	p = cpu.pull8()
 	const mask uint8 = 0b11001111 // ignore B and U bits
 	cpu.P = P(((uint8(cpu.P)) & (^mask)) | ((p) & (mask)))
-	var lo, hi uint8
-	{
-		cpu.SP += 1
-		top := uint16(cpu.SP) + 0x0100
-		lo = cpu.Read8(top)
-	}
-	{
-		cpu.SP += 1
-		top := uint16(cpu.SP) + 0x0100
-		hi = cpu.Read8(top)
-	}
-	cpu.PC = uint16(hi)<<8 | uint16(lo)
+	cpu.PC = cpu.pull16()
 }
 
 // EOR - indexed addressing (abs, X).
@@ -1036,11 +1004,7 @@ func opcode47(cpu *CPU) {
 // PHA - implied addressing.
 func opcode48(cpu *CPU) {
 	cpu.tick()
-	{
-		top := uint16(cpu.SP) + 0x0100
-		cpu.Write8(top, (cpu.A))
-		cpu.SP -= 1
-	}
+	cpu.push8(cpu.A)
 }
 
 // EOR - immediate addressing.
@@ -1379,20 +1343,9 @@ func opcode5F(cpu *CPU) {
 
 // RTS - implied addressing.
 func opcode60(cpu *CPU) {
+	cpu.PC = cpu.pull16()
 	cpu.tick()
 	cpu.tick()
-	var lo, hi uint8
-	{
-		cpu.SP += 1
-		top := uint16(cpu.SP) + 0x0100
-		lo = cpu.Read8(top)
-	}
-	{
-		cpu.SP += 1
-		top := uint16(cpu.SP) + 0x0100
-		hi = cpu.Read8(top)
-	}
-	cpu.PC = uint16(hi)<<8 | uint16(lo)
 	cpu.PC++
 	cpu.tick()
 }
@@ -1523,11 +1476,7 @@ func opcode67(cpu *CPU) {
 func opcode68(cpu *CPU) {
 	cpu.tick()
 	cpu.tick()
-	{
-		cpu.SP += 1
-		top := uint16(cpu.SP) + 0x0100
-		cpu.A = cpu.Read8(top)
-	}
+	cpu.A = cpu.pull8()
 	cpu.P.checkNZ(cpu.A)
 }
 

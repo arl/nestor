@@ -420,32 +420,20 @@ func izy(g *Generator, info string) {
 
 // helpers
 
-func push8(g *Generator, val string) {
-	g.printf(`{`)
-	g.printf(`top := uint16(cpu.SP) + 0x0100`)
-	g.printf(`cpu.Write8(top, (%s))`, val)
-	g.printf(`cpu.SP -= 1`)
-	g.printf(`}`)
+func push8(g *Generator, v string) {
+	g.printf(`cpu.push8(%s)`, v)
 }
 
-func push16(g *Generator, val string) {
-	push8(g, fmt.Sprintf(`uint8((%s)>>8)`, val))
-	push8(g, fmt.Sprintf(`uint8((%s)&0xFF)`, val))
+func push16(g *Generator, v string) {
+	g.printf(`cpu.push16(%s)`, v)
 }
 
-func pull8(g *Generator, ret string) {
-	g.printf(`{`)
-	g.printf(`cpu.SP += 1`)
-	g.printf(`top := uint16(cpu.SP) + 0x0100`)
-	g.printf(`%s = cpu.Read8(top)`, ret)
-	g.printf(`}`)
+func pull8(g *Generator, v string) {
+	g.printf(`%s = cpu.pull8()`, v)
 }
 
-func pull16(g *Generator, ret string) {
-	g.printf(` var lo, hi uint8`)
-	pull8(g, `lo`)
-	pull8(g, `hi`)
-	g.printf(`%s = uint16(hi)<<8 | uint16(lo)`, ret)
+func pull16(g *Generator, v string) {
+	g.printf(`%s = cpu.pull16()`, v)
 }
 
 // read 16 bytes from the zero page, handling page wrap.

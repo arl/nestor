@@ -128,6 +128,33 @@ func (c *CPU) Write16(addr uint16, val uint16) {
 	c.Write8(addr+1, hi)
 }
 
+/* Stack operations */
+
+func (c *CPU) push8(val uint8) {
+	top := uint16(c.SP) + 0x0100
+	c.Write8(top, val)
+	c.SP -= 1
+}
+
+func (c *CPU) push16(val uint16) {
+	c.push8(uint8(val >> 8))
+	c.push8(uint8(val & 0xff))
+}
+
+func (c *CPU) pull8() uint8 {
+	c.SP++
+	top := uint16(c.SP) + 0x0100
+	return c.Read8(top)
+}
+
+func (c *CPU) pull16() uint16 {
+	lo := c.pull8()
+	hi := c.pull8()
+	return uint16(hi)<<8 | uint16(lo)
+}
+
+/* interrupt handling */
+
 func (c *CPU) handleInterrupts() {
 	// The internal signal goes high during φ1 of the cycle that follows the one
 	// where the edge is detected and stays high until the NMI has been handled.
@@ -151,30 +178,19 @@ func (c *CPU) handleInterrupts() {
 
 func BRK(cpu *CPU) {
 	cpu.tick()
-	{
-		top := uint16(cpu.SP) + 0x0100
-		cpu.Write8(top, (uint8((cpu.PC + 1) >> 8)))
-		cpu.SP -= 1
-	}
-	{
-		top := uint16(cpu.SP) + 0x0100
-		cpu.Write8(top, (uint8((cpu.PC + 1) & 0xFF)))
-		cpu.SP -= 1
-	}
+
+	cpu.push16(cpu.PC + 1)
+
 	p := cpu.P
 	p.setBit(pbitB)
 	p.setBit(pbitU)
 	if cpu.needNmi {
 		cpu.needNmi = false
-		top := uint16(cpu.SP) + 0x0100
-		cpu.Write8(top, (uint8(p)))
-		cpu.SP -= 1
+		cpu.push8(uint8(p))
 		cpu.P.setBit(pbitI)
 		cpu.PC = cpu.Read16(CpuNMIvector)
 	} else {
-		top := uint16(cpu.SP) + 0x0100
-		cpu.Write8(top, (uint8(p)))
-		cpu.SP -= 1
+		cpu.push8(uint8(p))
 		cpu.P.setBit(pbitI)
 		cpu.PC = cpu.Read16(CpuIRQvector)
 	}
@@ -188,44 +204,27 @@ func (c *CPU) IRQ() {
 	c.tick()
 	c.tick()
 
-	// Push PC on the stack
-	{
-		top := uint16(c.SP) + 0x0100
-		c.Write8(top, (uint8((c.PC + 1) >> 8)))
-		c.SP -= 1
-	}
-	{
-		top := uint16(c.SP) + 0x0100
-		c.Write8(top, (uint8((c.PC + 1) & 0xFF)))
-		c.SP -= 1
-	}
+	c.push16(c.PC + 1)
 
 	if c.needNmi {
 		c.needNmi = false
 		p := c.P
 		p.setBit(pbitB)
-		{
-			top := uint16(c.SP) + 0x0100
-			c.Write8(top, (uint8(p)))
-			c.SP -= 1
-		}
+		c.push8(uint8(p))
 		c.P.setBit(pbitI)
 		c.PC = c.Read16(CpuNMIvector)
-
 		// TODO inform the debugger we just had an NMI
 	} else {
 		p := c.P
 		p.setBit(pbitB)
-		{
-			top := uint16(c.SP) + 0x0100
-			c.Write8(top, (uint8(p)))
-			c.SP -= 1
-		}
+		c.push8(uint8(p))
 		c.P.setBit(pbitI)
 		c.PC = c.Read16(CpuIRQvector)
 		// TODO inform the debugger we just had an IRQ
 	}
 }
+
+/* Processor Status Register */
 
 // P is the 6502 Processor Status Register.
 type P uint8
