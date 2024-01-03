@@ -75,7 +75,7 @@ func (c *CPU) Reset() {
 	c.P = 0x00
 	c.P.setBit(pbitI)
 	c.runIRQ = false
-	c.Clock = 0
+	c.Clock = -1
 	// Directly read from the bus to prevent clock ticks.
 	c.PC = hwio.Read16(c.Bus, CpuResetVector)
 
@@ -84,6 +84,7 @@ func (c *CPU) Reset() {
 	for i := 0; i < 8; i++ {
 		c.tick()
 	}
+	c.tick()
 }
 
 func (c *CPU) setNMIflag()   { c.nmiFlag = true }

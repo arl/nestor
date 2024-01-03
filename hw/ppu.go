@@ -295,9 +295,6 @@ func (p *PPU) WritePPUMASK(old, val uint8) {
 
 // PPUSTATUS: $2002
 func (ppu *PPU) ReadPPUSTATUS(val uint8) uint8 {
-	if val != 0 {
-		log.ModPPU.DebugZ("Read from PPUSTATUS").Hex8("val", val).End()
-	}
 	ppu.writeLatch = false
 	ret := ppu.PPUSTATUS.GetBiti(spriteOverflow)<<spriteOverflow |
 		ppu.PPUSTATUS.GetBiti(sprite0Hit)<<sprite0Hit |
@@ -305,8 +302,7 @@ func (ppu *PPU) ReadPPUSTATUS(val uint8) uint8 {
 
 	ppu.PPUSTATUS.ClearBit(vblank)
 	ppu.CPU.clearNMIflag()
-
-	// TODO: emulate open bus ?
+	// TODO: emulate open bus?
 	return ret
 }
 
