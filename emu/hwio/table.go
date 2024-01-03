@@ -162,6 +162,25 @@ func (t *Table) Read8(addr uint16) uint8 {
 	return io.(BankIO8).Read8(addr)
 }
 
+// Peek8 is like Read8, but always succeeds, and never logs.
+// Useful for debugging for example.
+// Returns 00 if the address is unmapped.
+func (t *Table) Peek8(addr uint16) uint8 {
+	io := t.table8.Search(addr)
+	if io == nil {
+		return 0
+	}
+	switch io := io.(type) {
+	case *memUnalignedLE:
+		return io.Read8(addr)
+	case *Reg8:
+		return io.Value
+	case BankIO8:
+		return io.Read8(addr)
+	}
+	panic(fmt.Errorf("invalid io type: %T", io))
+}
+
 func (t *Table) Write8(addr uint16, val uint8) {
 	io := t.table8.Search(addr)
 	if io == nil {

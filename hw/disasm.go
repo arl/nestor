@@ -303,21 +303,7 @@ func (d *disasm) Run(until int64) {
 }
 
 func (d *disasm) read8(addr uint16) uint8 {
-	// XXX this is a workaround to avoid disturbing/modifying the system when
-	// reading it for the execution log (aka tracer). Instead what we should
-	// have is the tracer _inside_ the cpu, so it knows if reads/writes
-	// originate from the program or from the tracer, in which case the
-	// read/write would 'side effects free'.
-	//
-	// There's also the question of registers. Calling FetchPointer on a
-	// register doesn't work for now, instead we should probably just return the
-	// current register value.
-
-	mem := d.cpu.Bus.FetchPointer(addr)
-	if len(mem) >= 1 {
-		return mem[0]
-	}
-	return d.cpu.Bus.Read8(addr)
+	return d.cpu.Bus.Peek8(addr)
 }
 
 func (d *disasm) read16(addr uint16) uint16 {
