@@ -68,16 +68,22 @@ func (c *CPU) InitBus() {
 }
 
 func (c *CPU) Reset() {
-	c.tick()
-	c.tick()
-	c.SP -= 3
-	c.tick()
-	c.tick()
-	c.tick()
-	c.P = 0x34
-	c.PC = c.Read16(CpuResetVector)
-	c.nmiFlag = false
-	c.irqFlag = false
+	c.A = 0x00
+	c.X = 0x00
+	c.Y = 0x00
+	c.SP = 0xFD
+	c.P = 0x00
+	c.P.setBit(pbitI)
+	c.runIRQ = false
+	c.Clock = 0
+	// Directly read from the bus to prevent clock ticks.
+	c.PC = hwio.Read16(c.Bus, CpuResetVector)
+
+	// The CPU takes 8 cycles before it starts executing the ROM's code
+	// after a reset/power up
+	for i := 0; i < 8; i++ {
+		c.tick()
+	}
 }
 
 func (c *CPU) setNMIflag()   { c.nmiFlag = true }
@@ -85,7 +91,7 @@ func (c *CPU) clearNMIflag() { c.nmiFlag = false }
 
 func (c *CPU) Run(until int64) {
 	for c.Clock < until {
-		opcode := c.Read8(uint16(c.PC))
+		opcode := c.Read8(c.PC)
 		c.PC++
 		ops[opcode](c)
 
@@ -128,7 +134,7 @@ func (c *CPU) Write16(addr uint16, val uint16) {
 	c.Write8(addr+1, hi)
 }
 
-/* Stack operations */
+/* stack operations */
 
 func (c *CPU) push8(val uint8) {
 	top := uint16(c.SP) + 0x0100

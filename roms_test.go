@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/binary"
 	"io"
 	"os"
 	"path/filepath"
@@ -21,9 +20,6 @@ func TestNestest(t *testing.T) {
 	nes := new(NES)
 	cartridge, err := ines.ReadRom("testdata/nes-test-roms/other/nestest.nes")
 
-	// This rom has an 'automation' mode. To enable it, PC must be set to C000.
-	// We do that by overwriting the rom location of the reset vector.
-	binary.LittleEndian.PutUint16(cartridge.PRGROM[0x3FFC:], 0xC000)
 	tcheck(t, err)
 	tcheck(t, nes.PowerUp(cartridge))
 
@@ -49,8 +45,13 @@ func TestNestest(t *testing.T) {
 			t.Fatalf("investigate why the Levenshtein distance has changed")
 		}
 	})
-
+	// This rom has an 'automation' mode. To enable it, PC must be set to C000.
+	// We do that by overwriting the rom location of the reset vector.
+	// binary.LittleEndian.PutUint16(cartridge.PRGROM[0x3FFC:], 0xC000)
+	nes.Hw.CPU.PC = 0xC000
 	nes.Hw.CPU.P = hw.P(0x24)
+	nes.Hw.CPU.Clock = 7
+	nes.Hw.PPU.Cycle = 21
 	disasm := hw.NewDisasm(nes.Hw.CPU, flog)
 	disasm.Run(26560)
 }
