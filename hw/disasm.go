@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-
-	log "nestor/emu/logger"
 )
 
 var opsDisasm = [256]disasmFunc{
@@ -52,6 +50,7 @@ var opsDisasm = [256]disasmFunc{
 	0x28: disasm_imp("PLP"),
 	0x29: disasm_imm("AND"),
 	0x2A: disasm_acc("ROL"),
+	0x2B: disasm_imm("*ANC"),
 	0x2C: disasm_abs("BIT"),
 	0x2D: disasm_abs("AND"),
 	0x2E: disasm_abs("ROL"),
@@ -313,12 +312,12 @@ func (d *disasm) read8(addr uint16) uint8 {
 	// There's also the question of registers. Calling FetchPointer on a
 	// register doesn't work for now, instead we should probably just return the
 	// current register value.
+
 	mem := d.cpu.Bus.FetchPointer(addr)
-	if mem == nil {
-		log.ModMem.Debugf("disasm access unmapped memory 0x%04x", addr)
-		return 0
+	if len(mem) >= 1 {
+		return mem[0]
 	}
-	return mem[0]
+	return d.cpu.Bus.Read8(addr)
 }
 
 func (d *disasm) read16(addr uint16) uint16 {
