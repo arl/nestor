@@ -1,4 +1,4 @@
-package emu
+package hw
 
 import (
 	"bytes"
@@ -50,6 +50,7 @@ var opsDisasm = [256]disasmFunc{
 	0x28: disasm_imp("PLP"),
 	0x29: disasm_imm("AND"),
 	0x2A: disasm_acc("ROL"),
+	0x2B: disasm_imm("*ANC"),
 	0x2C: disasm_abs("BIT"),
 	0x2D: disasm_abs("AND"),
 	0x2E: disasm_abs("ROL"),
@@ -265,63 +266,93 @@ var opsDisasm = [256]disasmFunc{
 }
 
 type disasm struct {
-	cpu       *CPU
-	prevPC    uint16
-	prevClock int64
-	bb        bytes.Buffer
-
-	// use nestest 'golden log' format for automatic diff.
-	isNestest bool
+	cpu             *CPU
+	prevPC          uint16
+	prevClock       int64
+	prevPPUCycle    int
+	prevPPUScanline int
+	bb              bytes.Buffer
 
 	w io.Writer
 }
 
-func (d *disasm) loopinit() {
-	d.prevPC = d.cpu.PC
-	d.prevClock = d.cpu.Clock
+func NewDisasm(cpu *CPU, w io.Writer) *disasm {
+	return &disasm{
+		cpu: cpu,
+		w:   w,
+	}
+}
+
+func (d *disasm) Run(until int64) {
+	for d.cpu.Clock < until {
+		d.prevPC = d.cpu.PC
+		d.prevClock = d.cpu.Clock
+		d.prevPPUCycle = d.cpu.PPU.Cycle
+		d.prevPPUScanline = d.cpu.PPU.Scanline
+
+		pc := d.cpu.PC
+		opcode := d.cpu.Read8(d.cpu.PC)
+		d.cpu.PC++
+		d.op(pc)
+		ops[opcode](d.cpu)
+
+		if d.cpu.prevRunIRQ || d.cpu.prevNeedNmi {
+			d.cpu.IRQ()
+		}
+	}
+}
+
+func (d *disasm) read8(addr uint16) uint8 {
+	// XXX this is a workaround to avoid disturbing/modifying the system when
+	// reading it for the execution log (aka tracer). Instead what we should
+	// have is the tracer _inside_ the cpu, so it knows if reads/writes
+	// originate from the program or from the tracer, in which case the
+	// read/write would 'side effects free'.
+	//
+	// There's also the question of registers. Calling FetchPointer on a
+	// register doesn't work for now, instead we should probably just return the
+	// current register value.
+
+	mem := d.cpu.Bus.FetchPointer(addr)
+	if len(mem) >= 1 {
+		return mem[0]
+	}
+	return d.cpu.Bus.Read8(addr)
+}
+
+func (d *disasm) read16(addr uint16) uint16 {
+	lo := d.read8(addr)
+	hi := d.read8(addr + 1)
+	return uint16(lo) | uint16(hi)<<8
 }
 
 func (d *disasm) op(pc uint16) {
 	d.bb.Reset()
 
-	opcode := d.cpu.bus.Read8(pc)
+	opcode := d.read8(pc)
 	opstr, nbytes := opsDisasm[opcode](d)
 
 	var tmp []byte
 	for i := uint16(0); i < uint16(nbytes); i++ {
-		b := d.cpu.bus.Read8(pc + i)
+		b := d.read8(pc + i)
 		tmp = append(tmp, fmt.Sprintf("%02X ", b)...)
 	}
 
-	if d.isNestest {
-		// TODO: re-add PPU when we'll have anything else than 0,0
-		// fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3X,%3X CYC:%d",
-		// 	d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, 0, 0, d.cpu.Clock)
-		// fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d",
-		// 	d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.cpu.Clock)
-		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d\n", pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.prevClock)
-	} else {
-		// TODO: re-add PPU when we'll have anything else than 0,0
-		// fmt.Fprintf(&d.bb, "A:%02X X:%02X Y:%02X P:%s SP:%02X PPU:%3X,%3X CYC:%d",
-		// 	d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, 0, 0, d.cpu.Clock)
-		fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%s SP:%02X CYC:%d\n", pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, d.cpu.P, d.cpu.SP, d.prevClock)
-	}
+	fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3d,%3d CYC:%d\n",
+		pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.prevPPUScanline, d.prevPPUCycle, d.prevClock)
 	d.w.Write(d.bb.Bytes())
 }
 
 // addressing modes
-//
-// For the disassembler, addressing modes use cpu.bus.Read rather than cpu.Read,
-// because we don't want to tick the clock.
 
-func (d *disasm) imm() uint8  { return d.cpu.bus.Read8(d.prevPC + 1) }
-func (d *disasm) abs() uint16 { return Read16(d.cpu.bus, d.prevPC+1) }
-func (d *disasm) zp() uint8   { return d.cpu.bus.Read8(d.prevPC + 1) }
+func (d *disasm) imm() uint8  { return d.read8(d.prevPC + 1) }
+func (d *disasm) abs() uint16 { return d.read16(d.prevPC + 1) }
+func (d *disasm) zp() uint8   { return d.read8(d.prevPC + 1) }
 func (d *disasm) zpx() uint8  { return d.zp() + d.cpu.X }
 func (d *disasm) zpy() uint8  { return d.zp() + d.cpu.Y }
 
 func (d *disasm) rel() uint16 {
-	off := int16(int8(d.cpu.bus.Read8(d.prevPC + 1)))
+	off := int16(int8(d.read8(d.prevPC + 1)))
 	return uint16(int16(d.prevPC+2) + off)
 }
 
@@ -332,15 +363,15 @@ func (d *disasm) izx() uint16 {
 }
 
 func (d *disasm) zpr16(addr uint16) uint16 {
-	lo := d.cpu.bus.Read8(addr)
-	hi := d.cpu.bus.Read8(uint16(uint8(addr) + 1))
+	lo := d.read8(addr)
+	hi := d.read8(uint16(uint8(addr) + 1))
 	return uint16(hi)<<8 | uint16(lo)
 }
 
 func (d *disasm) ind() uint16 {
-	oper := Read16(d.cpu.bus, d.prevPC+1)
-	lo := d.cpu.bus.Read8(oper)
-	hi := d.cpu.bus.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
+	oper := d.read16(d.prevPC + 1)
+	lo := d.read8(oper)
+	hi := d.read8((0xff00 & oper) | (0x00ff & (oper + 1)))
 	return uint16(hi)<<8 | uint16(lo)
 }
 
@@ -390,7 +421,7 @@ func disasm_abs(op string) disasmFunc {
 		case "JMP", "JSR":
 			return fmt.Sprintf("% 4s $%04X", op, addr), 3
 		default:
-			return fmt.Sprintf("% 4s $%04X = %02X", op, addr, d.cpu.bus.Read8(addr)), 3
+			return fmt.Sprintf("% 4s $%04X = %02X", op, addr, d.read8(addr)), 3
 		}
 	}
 }
@@ -399,7 +430,7 @@ func disasm_abx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		oper := d.abs()
 		addr := d.abx()
-		return fmt.Sprintf("% 4s $%04X,X @ %04X = %02X", op, oper, addr, d.cpu.bus.Read8(addr)), 3
+		return fmt.Sprintf("% 4s $%04X,X @ %04X = %02X", op, oper, addr, d.read8(addr)), 3
 	}
 }
 
@@ -407,14 +438,14 @@ func disasm_aby(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		oper := d.abs()
 		addr := d.aby()
-		return fmt.Sprintf("% 4s $%04X,Y @ %04X = %02X", op, oper, addr, d.cpu.bus.Read8(addr)), 3
+		return fmt.Sprintf("% 4s $%04X,Y @ %04X = %02X", op, oper, addr, d.read8(addr)), 3
 	}
 }
 
 func disasm_zp(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.zp()
-		value := d.cpu.bus.Read8(uint16(addr))
+		value := d.read8(uint16(addr))
 		return fmt.Sprintf("% 4s $%02X = %02X", op, addr, value), 2
 	}
 }
@@ -423,7 +454,7 @@ func disasm_zpx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.zp()
 		addr2 := d.zpx()
-		return fmt.Sprintf("% 4s $%02X,X @ %02X = %02X", op, addr, addr2, d.cpu.bus.Read8(uint16(addr2))), 2
+		return fmt.Sprintf("% 4s $%02X,X @ %02X = %02X", op, addr, addr2, d.read8(uint16(addr2))), 2
 	}
 }
 
@@ -431,7 +462,7 @@ func disasm_zpy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
 		addr := d.zp()
 		addr2 := d.zpy()
-		return fmt.Sprintf("% 4s $%02X,Y @ %02X = %02X", op, addr, addr2, d.cpu.bus.Read8(uint16(addr2))), 2
+		return fmt.Sprintf("% 4s $%02X,Y @ %02X = %02X", op, addr, addr2, d.read8(uint16(addr2))), 2
 	}
 }
 
@@ -444,7 +475,7 @@ func disasm_rel(op string) disasmFunc {
 // indirect (JMP-only)
 func disasm_ind(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		oper := Read16(d.cpu.bus, d.prevPC+1)
+		oper := d.read16(d.prevPC + 1)
 		dst := d.ind()
 		return fmt.Sprintf("% 4s ($%04X) = %04X", op, oper, dst), 3
 	}
@@ -452,19 +483,19 @@ func disasm_ind(op string) disasmFunc {
 
 func disasm_izx(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.bus.Read8(d.prevPC + 1)
+		addr := d.read8(d.prevPC + 1)
 		zp := d.zp() + d.cpu.X
 		addr2 := d.izx()
-		return fmt.Sprintf("% 4s ($%02X,X) @ %02X = %04X = %02X", op, addr, zp, addr2, d.cpu.bus.Read8(addr2)), 2
+		return fmt.Sprintf("% 4s ($%02X,X) @ %02X = %04X = %02X", op, addr, zp, addr2, d.read8(addr2)), 2
 	}
 }
 
 func disasm_izy(op string) disasmFunc {
 	return func(d *disasm) (string, int) {
-		addr := d.cpu.bus.Read8(d.prevPC + 1)
+		addr := d.read8(d.prevPC + 1)
 		oper := d.zp()
 		addr2 := d.zpr16(uint16(oper))
 		dst := addr2 + uint16(d.cpu.Y)
-		return fmt.Sprintf("% 4s ($%02X),Y = %04X @ %04X = %02X", op, addr, addr2, dst, d.cpu.bus.Read8(dst)), 2
+		return fmt.Sprintf("% 4s ($%02X),Y = %04X @ %04X = %02X", op, addr, addr2, dst, d.read8(dst)), 2
 	}
 }

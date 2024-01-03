@@ -1,4 +1,4 @@
-package emu
+package hw
 
 import (
 	"bufio"
@@ -24,10 +24,10 @@ func hasPanicked(f func()) (yes bool, msg any) {
 
 /* cpu specific testing helpers */
 
-func wantMem8(t *testing.T, cpu *CPU, addr uint16, want uint8) {
+func wantMem8(t *testing.T, cp *CPU, addr uint16, want uint8) {
 	t.Helper()
 
-	if got := cpu.Read8(addr); got != want {
+	if got := cp.Read8(addr); got != want {
 		t.Errorf("$%04X = %02X want %02X", addr, got, want)
 	}
 }
@@ -49,67 +49,78 @@ func wantMem(t *testing.T, cpu *CPU, dl dumpline) {
 	}
 }
 
-func wantCPUState(t *testing.T, cpu *CPU, states ...any) {
+type runner interface {
+	Run(int64)
+}
+
+func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 	t.Helper()
 
 	if len(states)%2 != 0 {
 		panic("odd number of states")
 	}
 
-	checkbool := func(name string, got, want uint8) {
+	checkbool := func(name string, got, want int) {
 		t.Helper()
 		if got != want {
 			t.Errorf("got %s=%d, want %d", name, got, want)
 		}
 	}
-	checkuint8 := func(name string, got, want uint8) {
+	checkuint8 := func(name string, got, want int) {
 		t.Helper()
 		if got != want {
 			t.Errorf("got %s=$%02X, want $%02X", name, got, want)
 		}
 	}
-	checkuint16 := func(name string, got, want uint16) {
+	checkuint16 := func(name string, got, want int) {
 		t.Helper()
 		if got != want {
 			t.Errorf("got %s=$%04X, want $%04X", name, got, want)
 		}
 	}
 
+	var r runner = cpu
+	if testing.Verbose() {
+		r = NewDisasm(cpu, tbwriter{t})
+	}
+
+	r.Run(cpu.Clock + ncycles)
+
 	for i := 0; i < len(states); i += 2 {
 		s := states[i].(string)
 		switch {
 		case s == "A":
-			checkuint8("A", cpu.A, uint8(states[i+1].(int)))
+			checkuint8("A", int(cpu.A), states[i+1].(int))
 		case s == "X":
-			checkuint8("X", cpu.X, uint8(states[i+1].(int)))
+			checkuint8("X", int(cpu.X), states[i+1].(int))
 		case s == "Y":
-			checkuint8("Y", cpu.Y, uint8(states[i+1].(int)))
+			checkuint8("Y", int(cpu.Y), states[i+1].(int))
 		case s == "PC":
-			checkuint16("PC", cpu.PC, uint16(states[i+1].(int)))
+			checkuint16("PC", int(cpu.PC), states[i+1].(int))
 		case s == "SP":
-			checkuint8("SP", uint8(cpu.SP), uint8(states[i+1].(int)))
+			checkuint8("SP", int(cpu.SP), states[i+1].(int))
 		case s == "P":
-			if got, want := uint8(cpu.P), uint8(states[i+1].(int)); got != want {
+			if got, want := int(cpu.P), states[i+1].(int); got != want {
 				t.Errorf("got P=$%02X(%s), want $%02X(%s)", got, P(got), want, P(want))
 			}
 		case len(s) > 1 && s[0] == 'P':
 			for j := 1; j < len(s); j++ {
-				bit := uint8(states[i+1].(int))
+				bit := states[i+1].(int)
 				switch s[j] {
 				case 'n':
-					checkbool("Pn", b2i(cpu.P.N()), bit)
+					checkbool("Pn", int(b2i(cpu.P.N())), bit)
 				case 'v':
-					checkbool("Pv", b2i(cpu.P.V()), bit)
+					checkbool("Pv", int(b2i(cpu.P.V())), bit)
 				case 'b':
-					checkbool("Pb", b2i(cpu.P.B()), bit)
+					checkbool("Pb", int(b2i(cpu.P.B())), bit)
 				case 'd':
-					checkbool("Pd", b2i(cpu.P.D()), bit)
+					checkbool("Pd", int(b2i(cpu.P.D())), bit)
 				case 'i':
-					checkbool("Pi", b2i(cpu.P.I()), bit)
+					checkbool("Pi", int(b2i(cpu.P.I())), bit)
 				case 'z':
-					checkbool("Pz", b2i(cpu.P.Z()), bit)
+					checkbool("Pz", int(b2i(cpu.P.Z())), bit)
 				case 'c':
-					checkbool("Pc", b2i(cpu.P.C()), bit)
+					checkbool("Pc", int(b2i(cpu.P.C())), bit)
 				default:
 					panic("unknown P bit: " + string(s[j]))
 				}
@@ -187,25 +198,17 @@ func nextpow2(v uint64) uint64 {
 	return v + 1
 }
 
-type ticker struct{}
-
-func (tt *ticker) Tick() {}
-
 // loadCPUWith loads a CPU with a memory dump.
 func loadCPUWith(tb testing.TB, dump string) *CPU {
-	mem := new(MemMap)
+	cpu := NewCPU(NewPPU())
 	lines := loadDump(tb, dump)
 	for _, line := range lines {
 		hd := hex.Dump(line.bytes)
 		tb.Logf("mapping $%04X: %s", line.off, hd[10:10+3*line.len])
-		mem.MapSlice(line.off, line.off+uint16(len(line.bytes))-1, line.bytes)
+		cpu.Bus.MapMemorySlice(line.off, line.off+uint16(len(line.bytes))-1, line.bytes, false)
 	}
 
-	cpu := NewCPU(mem, &ticker{})
 	cpu.Reset()
-	if testing.Verbose() {
-		cpu.SetDisasm(tbwriter{tb}, false)
-	}
 	return cpu
 }
 

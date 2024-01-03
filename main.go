@@ -5,21 +5,30 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
+	"os/signal"
+	"runtime/pprof"
 	"strings"
 
-	"nestor/emu"
+	"nestor/emu/hwio"
+	log "nestor/emu/logger"
+	"nestor/hw"
 	"nestor/ines"
 )
 
 func main() {
-	hexbyte := hexbyte(0x34)
-	disasmLog := new(outfile)
+	disasmLog := &outfile{}
+	romInfos := false
+	flagLogging := ""
+	cpuprofile := ""
+	resetVector := int64(-1)
 
-	flag.Var(&hexbyte, "P", "P register after first cpu reset (hex)")
-	flag.Var(disasmLog, "dbglog", "write execution log to [file|stdout|stderr] (for testing/debugging")
+	flag.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
+	flag.BoolVar(&romInfos, "infos", false, "print infos about the rom and exit")
+	flag.StringVar(&flagLogging, "log", "", "enable logging for specified modules")
+	flag.Var(disasmLog, "execlog", "write execution log to [file|stdout|stderr] (very very verbose")
+	flag.Int64Var(&resetVector, "reset", -1, "overwrite reset vector (default: use reset vector from rom")
+
 	flag.Parse()
-
 	if len(flag.Args()) < 1 {
 		flag.Usage()
 		return
@@ -27,22 +36,67 @@ func main() {
 
 	path := flag.Arg(0)
 	rom, err := ines.ReadRom(path)
+	checkf(err, "failed to open rom")
 	if rom.IsNES20() {
 		fatalf("nes 2.0 roms are not supported yet")
 	}
-	checkf(err, "failed to open rom %s", path)
 
-	nes := new(NES)
-	checkf(nes.PowerUp(rom), "error during power up")
-
-	nes.Reset()
-	nes.CPU.P = emu.P(hexbyte)
-	if disasmLog.w != nil {
-		defer disasmLog.Close()
-		nes.CPU.SetDisasm(disasmLog, false)
+	if romInfos {
+		rom.PrintInfos(os.Stdout)
+		return
 	}
 
-	checkf(startScreen(nes), "can't start screen")
+	if flagLogging != "" {
+		var modmask log.ModuleMask
+		for _, modname := range strings.Split(flagLogging, ",") {
+			if modname == "all" {
+				modmask |= log.ModuleMaskAll
+			} else if m, found := log.ModuleByName(modname); found {
+				modmask |= m.Mask()
+			} else {
+				log.ModEmu.FatalZ("invalid module name").String("name", modname).End()
+			}
+		}
+		log.EnableDebugModules(modmask)
+	}
+
+	if cpuprofile != "" {
+		f, err := os.Create(cpuprofile)
+		if err != nil {
+			log.ModEmu.FatalZ(err.Error())
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		<-c
+		if cpuprofile != "" {
+			pprof.StopCPUProfile()
+			log.ModEmu.Infof("CPU profile written to %s", cpuprofile)
+		}
+		os.Exit(1)
+	}()
+
+	var nes NES
+	checkf(nes.PowerUp(rom), "error during power up")
+	if resetVector != -1 {
+		hwio.Write16(nes.Hw.CPU.Bus, hw.CpuResetVector, uint16(resetVector))
+	}
+	nes.Reset()
+
+	go func() {
+		if disasmLog.w != nil {
+			defer disasmLog.Close()
+			nes.RunDisasm(disasmLog)
+		} else {
+			nes.Run()
+		}
+	}()
+
+	ui := newGUI(&nes)
+	ui.run()
 }
 
 func check(err error) {
@@ -69,20 +123,6 @@ func fatalf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "\n\t%s\n", fmt.Sprintf(format, args...))
 	os.Exit(1)
 }
-
-type hexbyte byte
-
-func (b *hexbyte) Set(s string) error {
-	str := strings.TrimPrefix(s, "0x")
-	v, err := strconv.ParseUint(str, 16, 8)
-	if err != nil {
-		return fmt.Errorf("hexbyte: can't parse %v: %s", v, err)
-	}
-	*b = hexbyte(v)
-	return nil
-}
-
-func (b *hexbyte) String() string { return fmt.Sprintf("0x%02X", *b) }
 
 type outfile struct {
 	w    io.Writer

@@ -1,0 +1,93 @@
+package hwio
+
+import (
+	"fmt"
+
+	log "nestor/emu/logger"
+)
+
+type RegFlags uint8
+
+const (
+	RegFlagReadOnly RegFlags = (1 << iota)
+	RegFlagWriteOnly
+)
+
+type Reg8 struct {
+	Name   string
+	Value  uint8
+	RoMask uint8
+
+	Flags   RegFlags
+	ReadCb  func(val uint8) uint8
+	WriteCb func(old uint8, val uint8)
+}
+
+func (reg Reg8) String() string {
+	s := fmt.Sprintf("%s{%02x", reg.Name, reg.Value)
+	if reg.ReadCb != nil {
+		s += ",r!"
+	}
+	if reg.WriteCb != nil {
+		s += ",w!"
+	}
+	return s + "}"
+}
+
+func (reg *Reg8) write(val uint8, romask uint8) {
+	romask = romask | reg.RoMask
+	old := reg.Value
+	reg.Value = (reg.Value & romask) | (val &^ romask)
+	if reg.WriteCb != nil {
+		reg.WriteCb(old, reg.Value)
+	}
+}
+
+func (reg *Reg8) Write8(addr uint16, val uint8) {
+	if reg.Flags&RegFlagReadOnly != 0 {
+		log.ModHwIo.ErrorZ("invalid Write8 to readonly reg").
+			String("name", reg.Name).
+			Hex16("addr", addr).
+			End()
+		return
+	}
+	reg.write(val, 0)
+}
+
+func (reg *Reg8) Read8(addr uint16) uint8 {
+	if reg.Flags&RegFlagWriteOnly != 0 {
+		log.ModHwIo.ErrorZ("invalid Read8 from writeonly reg").
+			String("name", reg.Name).
+			Hex16("addr", addr).
+			End()
+		return 0
+	}
+	if reg.ReadCb != nil {
+		return reg.ReadCb(reg.Value)
+	}
+	return reg.Value
+}
+
+func (reg *Reg8) GetBit(n uint) bool {
+	return reg.GetBiti(n) != 0
+}
+
+func (reg *Reg8) GetBiti(n uint) uint8 {
+	return reg.Value >> (n) & 0x01
+}
+
+func (reg *Reg8) SetBit(n uint) {
+	reg.Value |= (1 << n)
+}
+
+func (reg *Reg8) ClearBit(n uint) {
+	reg.Value &= ^(1 << n)
+}
+
+func (reg *Reg8) FlipBit(n uint) {
+	reg.Value ^= (1 << n)
+}
+
+func (reg *Reg8) ClearBits(mask uint8) {
+	reg.Value &= ^mask
+}

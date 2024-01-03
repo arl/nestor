@@ -2,40 +2,83 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"io"
 
 	"nestor/emu"
+	"nestor/emu/mappers"
+	"nestor/hw"
 	"nestor/ines"
 )
 
 type NES struct {
-	CPU *emu.CPU
+	Hw emu.NESHardware
+
+	screenCh chan *image.RGBA
 }
 
 func (nes *NES) PowerUp(rom *ines.Rom) error {
-	cpubus := newCpuBus("cpu")
-	cpubus.MapMemory()
+	nes.Hw.PPU = hw.NewPPU()
+	nes.Hw.PPU.InitBus()
 
-	nes.CPU = emu.NewCPU(cpubus, &ticker{})
-	if rom.Mapper() != 0 {
-		// Only handle mapper 000 (NROM) for now.
-		return fmt.Errorf("unsupported mapper: %d", rom.Mapper())
+	nes.Hw.CPU = hw.NewCPU(nes.Hw.PPU)
+	nes.Hw.CPU.InitBus()
+
+	nes.Hw.PPU.CPU = nes.Hw.CPU
+
+	// Map cartridge memory and hardware based on mapper.
+	err := mapCartridge(rom, &nes.Hw)
+	if err != nil {
+		return fmt.Errorf("mapper failed to map cartridge: %s", err)
 	}
 
-	if err := loadMapper000(rom, cpubus); err != nil {
-		return fmt.Errorf("failed to load mapper %03d: %s", rom.Mapper(), err)
+	nes.Reset()
+	return nil
+}
+
+func mapCartridge(rom *ines.Rom, hw *emu.NESHardware) error {
+	mapper, ok := mappers.All[rom.Mapper()]
+	if !ok {
+		return fmt.Errorf("unsupported mapper %03d", rom.Mapper())
+	}
+
+	if err := mapper.Load(rom, hw); err != nil {
+		return fmt.Errorf("failed to load mapper %03d (%s): %s", rom.Mapper(), mapper.Name, err)
 	}
 	return nil
 }
 
-// Reset forwards the reset signal to all hardware.
 func (nes *NES) Reset() {
-	nes.CPU.Reset()
+	nes.Hw.PPU.Reset()
+	nes.Hw.CPU.Reset()
+}
+
+func (nes *NES) AttachScreen() <-chan *image.RGBA {
+	if nes.screenCh != nil {
+		panic("screen already attached")
+	}
+	nes.screenCh = make(chan *image.RGBA)
+	return nes.screenCh
 }
 
 func (nes *NES) Run() {
-	nes.CPU.Run(29692) // random
+	for {
+		nes.RunOneFrame()
+		if nes.screenCh != nil {
+			nes.screenCh <- nes.Hw.PPU.Output()
+		}
+	}
 }
 
-type ticker struct{}
+func (nes *NES) RunOneFrame() {
+	nes.Hw.CPU.Run(29781)
+	nes.Hw.CPU.Clock -= 29781
+}
 
-func (tt *ticker) Tick() {}
+func (nes *NES) RunDisasm(out io.Writer) {
+	d := hw.NewDisasm(nes.Hw.CPU, out)
+	for {
+		d.Run(29781)
+		nes.Hw.CPU.Clock -= 29781
+	}
+}
