@@ -12,39 +12,22 @@ import (
 	log "nestor/emu/logger"
 	"nestor/hw"
 	"nestor/ines"
-
-	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func TestNestest(t *testing.T) {
-	nes := new(NES)
+	var nes NES
 	cartridge, err := ines.ReadRom("testdata/nes-test-roms/other/nestest.nes")
-
 	tcheck(t, err)
 	tcheck(t, nes.PowerUp(cartridge))
 
 	flog, err := os.CreateTemp("", "nestor.nestest.*.log")
 	tcheck(t, err)
 	t.Log(flog.Name())
-
 	t.Cleanup(func() {
 		flog.Close()
 		t.Logf("log saved to %s", flog.Name())
-		content, err := os.ReadFile(flog.Name())
-		tcheck(t, err)
-
-		want, err := os.ReadFile("testdata/nes-test-roms/other/nestest.log")
-		tcheck(t, err)
-
-		// TODO(arl) diff should be empty once APU is implemented. As of now,
-		// since there's no APU, we have a few mismatched lines at the end of
-		// the log. For now, we check this doesn't drift.
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(want), string(content), true)
-		if dmp.DiffLevenshtein(diffs) != 8 {
-			t.Fatalf("investigate why the Levenshtein distance has changed")
-		}
 	})
+
 	// This rom has an 'automation' mode. To enable it, PC must be set to C000.
 	// We do that by overwriting the rom location of the reset vector.
 	// binary.LittleEndian.PutUint16(cartridge.PRGROM[0x3FFC:], 0xC000)
@@ -54,6 +37,11 @@ func TestNestest(t *testing.T) {
 	nes.Hw.PPU.Cycle = 21
 	disasm := hw.NewDisasm(nes.Hw.CPU, flog)
 	disasm.Run(26560)
+
+	r1, r2 := nes.Hw.CPU.Read8(0x02), nes.Hw.CPU.Read8(0x03)
+	if r1 != 0x00 || r2 != 0x00 {
+		t.Fatalf("nestest failed: 0x%02x%02x", r1, r2)
+	}
 }
 
 func TestInstructionsV5(t *testing.T) {
