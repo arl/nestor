@@ -211,7 +211,7 @@ func (c *CPU) IRQ() {
 	c.tick()
 	c.tick()
 
-	c.push16(c.PC + 1)
+	c.push16(c.PC)
 
 	if c.needNmi {
 		c.needNmi = false
