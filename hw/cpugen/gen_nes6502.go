@@ -62,7 +62,7 @@ var defs = [256]opdef{
 	{i: 0x1D, n: "ORA", d: "r  x  ", m: "abx"},
 	{i: 0x1E, n: "ASL", d: "rw    ", m: "abx"},
 	{i: 0x1F, n: "SLO", d: "rw   i", m: "abx"},
-	{i: 0x20, n: "JSR", d: "      ", m: "imp"}, // special case. should be 'abs' but handle it as 'implied'
+	{i: 0x20, n: "JSR", d: "      ", m: "abs"},
 	{i: 0x21, n: "AND", d: "r     ", m: "izx"},
 	{i: 0x22, n: "JAM", d: "     i", m: "imm"},
 	{i: 0x23, n: "RLA", d: "rw   i", m: "izx"},
@@ -569,9 +569,8 @@ func (g *Generator) JMP(_ opdef) {
 }
 
 func (g *Generator) JSR(_ opdef) {
-	g.printf(`oper := cpu.Read16(cpu.PC)`)
 	tick(g)
-	push16(g, `cpu.PC+1`)
+	push16(g, `cpu.PC-1`)
 	g.printf(`cpu.PC = oper`)
 }
 
