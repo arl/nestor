@@ -884,54 +884,115 @@ func (g *Generator) opcodes() {
 	}
 }
 
+func (g *Generator) disasmAddrModes() {
+	for name, am := range addrModes {
+		fname := strings.ToUpper(name[:1]) + name[1:]
+		g.printf(`func disasm%s(cpu*CPU, pc uint16, opname string) []byte {`, fname)
+		g.printf(`var bb bytes.Buffer`)
+		g.printf(`fmt.Fprintf(&bb, "%%04X  ", pc)`)
+
+		for n := 0; n < am.n; n++ {
+			g.printf(`oper%d := cpu.Bus.Peek8(pc+%d)`, n, n)
+		}
+		for n := 0; n < am.n; n++ {
+			g.printf(`fmt.Fprintf(&bb, "%%02X ", oper%d)`, n)
+		}
+		g.printf(`fmt.Fprintf(&bb, "%%*s", %d, "")`, 9-3*am.n)
+		if am.n == 3 {
+			g.printf(`oper16 := uint16(oper1)|uint16(oper2)<<8`)
+		}
+
+		g.printf(`bb.WriteString(opname)`)
+
+		switch name {
+		case "imp":
+		case "acc":
+			g.printf(`fmt.Fprintf(&bb, " A")`)
+		case "rel":
+			g.printf(`off := int16(int8(oper1))`)
+			g.printf(`oper := uint16(int16(pc+2) + off)`)
+			g.printf(`fmt.Fprintf(&bb, " $%%04X", oper)`)
+		case "ind":
+			g.printf(`fmt.Fprintf(&bb, " ($%%04X)", oper16)`)
+		case "abs":
+			g.printf(`fmt.Fprintf(&bb, " $%%04X", oper16)`)
+		case "abx":
+			g.printf(`fmt.Fprintf(&bb, " $%%04X,X", oper16)`)
+		case "aby":
+			g.printf(`fmt.Fprintf(&bb, " $%%04X,Y", oper16)`)
+		case "imm":
+			g.printf(`fmt.Fprintf(&bb, " #$%%02X", oper1)`)
+		case "zpx", "zpy", "zp", "zpg":
+			g.printf(`fmt.Fprintf(&bb, " $%%02X", oper1)`)
+		case "izx":
+			g.printf(`fmt.Fprintf(&bb, " ($%%02X,X)", oper1)`)
+		case "izy":
+			g.printf(`fmt.Fprintf(&bb, " ($%%02X),Y", oper1)`)
+		}
+		g.printf(`return bb.Bytes()`)
+		g.printf(`}`)
+		g.printf(``)
+	}
+}
+
 func (g *Generator) disasmOpcode(def opdef) {
 	g.printf(`func disasmOpcode%02X(cpu*CPU, pc uint16) []byte {`, def.i)
-	g.printf(`var bb bytes.Buffer`)
-	g.printf(`fmt.Fprintf(&bb, "%%04X  ", pc)`)
-
-	am := addrModes[def.m]
-	for n := 0; n < am.n; n++ {
-		g.printf(`oper%d := cpu.Bus.Peek8(pc+%d)`, n, n)
-		g.printf(`fmt.Fprintf(&bb, "%%02X ", oper%d)`, n)
-	}
-	g.printf(`fmt.Fprintf(&bb, "%%*s", %d, "")`, 9-3*am.n)
-	if am.n == 3 {
-		g.printf(`oper16 := uint16(oper1)|uint16(oper2)<<8`)
-	}
-
+	opname := ""
 	if has(def.d, 'i') {
-		g.printf(`fmt.Fprintf(&bb, "*%%s ", opcodeNames[oper0])`)
+		opname = "*" + def.n
+		// g.printf(`fmt.Fprintf(&bb, "*%%s ", opcodeNames[oper0])`)
 	} else {
-		g.printf(`fmt.Fprintf(&bb, " %%s ", opcodeNames[oper0])`)
+		opname = " " + def.n
+		// g.printf(`fmt.Fprintf(&bb, " %%s ", opcodeNames[oper0])`)
 	}
+	g.printf(`return disasm%s(cpu, pc, "%s")`, strings.ToUpper(def.m[:1])+def.m[1:], opname)
 
-	switch def.m {
-	case "imp":
-		break
-	case "acc":
-		g.printf(`fmt.Fprintf(&bb, "A")`)
-	case "rel":
-		g.printf(`off := int16(int8(oper1))`)
-		g.printf(`oper := uint16(int16(pc+2) + off)`)
-		g.printf(`fmt.Fprintf(&bb, "$%%04X", oper)`)
-	case "ind":
-		g.printf(`fmt.Fprintf(&bb, "($%%04X)", oper16)`)
-	case "abs":
-		g.printf(`fmt.Fprintf(&bb, "$%%04X", oper16)`)
-	case "abx":
-		g.printf(`fmt.Fprintf(&bb, "$%%04X,X", oper16)`)
-	case "aby":
-		g.printf(`fmt.Fprintf(&bb, "$%%04X,Y", oper16)`)
-	case "imm":
-		g.printf(`fmt.Fprintf(&bb, "#$%%02X", oper1)`)
-	case "zpx", "zpy", "zp", "zpg":
-		g.printf(`fmt.Fprintf(&bb, "$%%02X", oper1)`)
-	case "izx":
-		g.printf(`fmt.Fprintf(&bb, "($%%02X,X)", oper1)`)
-	case "izy":
-		g.printf(`fmt.Fprintf(&bb, "($%%02X),Y", oper1)`)
-	}
-	g.printf(`return bb.Bytes()`)
+	// g.printf(`var bb bytes.Buffer`)
+	// g.printf(`fmt.Fprintf(&bb, "%%04X  ", pc)`)
+
+	// am := addrModes[def.m]
+	// for n := 0; n < am.n; n++ {
+	// 	g.printf(`oper%d := cpu.Bus.Peek8(pc+%d)`, n, n)
+	// 	g.printf(`fmt.Fprintf(&bb, "%%02X ", oper%d)`, n)
+	// }
+	// g.printf(`fmt.Fprintf(&bb, "%%*s", %d, "")`, 9-3*am.n)
+	// if am.n == 3 {
+	// 	g.printf(`oper16 := uint16(oper1)|uint16(oper2)<<8`)
+	// }
+
+	// if has(def.d, 'i') {
+	// 	g.printf(`fmt.Fprintf(&bb, "*%%s ", opcodeNames[oper0])`)
+	// } else {
+	// 	g.printf(`fmt.Fprintf(&bb, " %%s ", opcodeNames[oper0])`)
+	// }
+
+	// switch def.m {
+	// case "imp":
+	// 	break
+	// case "acc":
+	// 	g.printf(`fmt.Fprintf(&bb, "A")`)
+	// case "rel":
+	// 	g.printf(`off := int16(int8(oper1))`)
+	// 	g.printf(`oper := uint16(int16(pc+2) + off)`)
+	// 	g.printf(`fmt.Fprintf(&bb, "$%%04X", oper)`)
+	// case "ind":
+	// 	g.printf(`fmt.Fprintf(&bb, "($%%04X)", oper16)`)
+	// case "abs":
+	// 	g.printf(`fmt.Fprintf(&bb, "$%%04X", oper16)`)
+	// case "abx":
+	// 	g.printf(`fmt.Fprintf(&bb, "$%%04X,X", oper16)`)
+	// case "aby":
+	// 	g.printf(`fmt.Fprintf(&bb, "$%%04X,Y", oper16)`)
+	// case "imm":
+	// 	g.printf(`fmt.Fprintf(&bb, "#$%%02X", oper1)`)
+	// case "zpx", "zpy", "zp", "zpg":
+	// 	g.printf(`fmt.Fprintf(&bb, "$%%02X", oper1)`)
+	// case "izx":
+	// 	g.printf(`fmt.Fprintf(&bb, "($%%02X,X)", oper1)`)
+	// case "izy":
+	// 	g.printf(`fmt.Fprintf(&bb, "($%%02X),Y", oper1)`)
+	// }
+	// g.printf(`return bb.Bytes()`)
 	g.printf(`}`)
 }
 
@@ -1008,6 +1069,7 @@ func main() {
 	g.opcodes()
 	g.unstableOpcodes()
 	g.opcodesTable()
+	g.disasmAddrModes()
 	g.disasmTable()
 	g.opcodeNamesTable()
 
