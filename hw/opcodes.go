@@ -2,8 +2,19 @@
 package hw
 
 import (
+	"bytes"
 	"fmt"
 )
+
+func disasmOpcode00(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
+}
 
 // ORA - indexed addressing (abs, X).
 func opcode01(cpu *CPU) {
@@ -21,6 +32,19 @@ func opcode01(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode01(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // JAM - immediate addressing.
 func opcode02(cpu *CPU) {
 	oper := cpu.PC
@@ -28,6 +52,19 @@ func opcode02(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x02) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcode02(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SLO - indexed addressing (abs, X).
@@ -52,12 +89,38 @@ func opcode03(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode03(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // NOP - zero page addressing.
 func opcode04(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode04(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ORA - zero page addressing.
@@ -68,6 +131,19 @@ func opcode05(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode05(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ASL - zero page addressing.
@@ -82,6 +158,19 @@ func opcode06(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode06(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SLO - zero page addressing.
@@ -100,12 +189,35 @@ func opcode07(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode07(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // PHP - implied addressing.
 func opcode08(cpu *CPU) {
 	cpu.tick()
 	p := cpu.P
 	p |= (1 << pbitB) | (1 << pbitU)
 	cpu.push8(uint8(p))
+}
+
+func disasmOpcode08(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // ORA - immediate addressing.
@@ -116,6 +228,19 @@ func opcode09(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode09(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ASL - adressing accumulator.
@@ -129,6 +254,17 @@ func opcode0A(cpu *CPU) {
 	cpu.A = val
 }
 
+func disasmOpcode0A(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "A")
+	return bb.Bytes()
+}
+
 // ANC - immediate addressing.
 func opcode0B(cpu *CPU) {
 	oper := cpu.PC
@@ -140,12 +276,41 @@ func opcode0B(cpu *CPU) {
 	cpu.P.writeBit(pbitC, cpu.P.N())
 }
 
+func disasmOpcode0B(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
+}
+
 // NOP - absolute addressing.
 func opcode0C(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode0C(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // ORA - absolute addressing.
@@ -156,6 +321,22 @@ func opcode0D(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode0D(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // ASL - absolute addressing.
@@ -172,6 +353,22 @@ func opcode0E(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode0E(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // SLO - absolute addressing.
 func opcode0F(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -186,6 +383,22 @@ func opcode0F(cpu *CPU) {
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode0F(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // BPL - relative addressing.
@@ -210,6 +423,21 @@ func opcode10(cpu *CPU) {
 	cpu.PC++
 }
 
+func disasmOpcode10(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	off := int16(int8(oper1))
+	oper := uint16(int16(pc+2) + off)
+	fmt.Fprintf(&bb, "$%04X", oper)
+	return bb.Bytes()
+}
+
 // ORA - indexed addressing (abs),Y.
 func opcode11(cpu *CPU) {
 	// extra cycle for page cross
@@ -229,6 +457,19 @@ func opcode11(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode11(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // JAM - immediate addressing.
 func opcode12(cpu *CPU) {
 	oper := cpu.PC
@@ -236,6 +477,19 @@ func opcode12(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x12) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcode12(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SLO - indexed addressing (abs),Y.
@@ -261,6 +515,19 @@ func opcode13(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode13(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // NOP - indexed addressing: zeropage,X.
 func opcode14(cpu *CPU) {
 	cpu.tick()
@@ -270,6 +537,19 @@ func opcode14(cpu *CPU) {
 	oper &= 0xff
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode14(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ORA - indexed addressing: zeropage,X.
@@ -283,6 +563,19 @@ func opcode15(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode15(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ASL - indexed addressing: zeropage,X.
@@ -300,6 +593,19 @@ func opcode16(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode16(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SLO - indexed addressing: zeropage,X.
@@ -321,10 +627,33 @@ func opcode17(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode17(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // CLC - implied addressing.
 func opcode18(cpu *CPU) {
 	cpu.P.clearBit(0)
 	cpu.tick()
+}
+
+func disasmOpcode18(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // ORA - absolute indexed Y.
@@ -342,9 +671,35 @@ func opcode19(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode19(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // NOP - implied addressing.
 func opcode1A(cpu *CPU) {
 	cpu.tick()
+}
+
+func disasmOpcode1A(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // SLO - absolute indexed Y.
@@ -366,6 +721,22 @@ func opcode1B(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode1B(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // NOP - absolute indexed X.
 func opcode1C(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
@@ -376,6 +747,22 @@ func opcode1C(cpu *CPU) {
 	}
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode1C(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // ORA - absolute indexed X.
@@ -392,6 +779,22 @@ func opcode1D(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode1D(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
+}
+
 // ASL - absolute indexed X.
 func opcode1E(cpu *CPU) {
 	cpu.tick()
@@ -406,6 +809,22 @@ func opcode1E(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode1E(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // SLO - absolute indexed X.
@@ -426,12 +845,46 @@ func opcode1F(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// JSR - implied addressing.
+func disasmOpcode1F(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
+}
+
+// JSR - absolute addressing.
 func opcode20(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	_ = oper
 	cpu.tick()
-	cpu.push16(cpu.PC + 1)
+	cpu.push16(cpu.PC - 1)
 	cpu.PC = oper
+}
+
+func disasmOpcode20(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // AND - indexed addressing (abs, X).
@@ -450,6 +903,19 @@ func opcode21(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode21(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // JAM - immediate addressing.
 func opcode22(cpu *CPU) {
 	oper := cpu.PC
@@ -457,6 +923,19 @@ func opcode22(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x22) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcode22(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // RLA - indexed addressing (abs, X).
@@ -484,6 +963,19 @@ func opcode23(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode23(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // BIT - zero page addressing.
 func opcode24(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
@@ -495,6 +987,19 @@ func opcode24(cpu *CPU) {
 	cpu.P.checkZ(cpu.A & val)
 }
 
+func disasmOpcode24(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // AND - zero page addressing.
 func opcode25(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
@@ -503,6 +1008,19 @@ func opcode25(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode25(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ROL - zero page addressing.
@@ -520,6 +1038,19 @@ func opcode26(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode26(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // RLA - zero page addressing.
@@ -541,6 +1072,19 @@ func opcode27(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode27(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // PLP - implied addressing.
 func opcode28(cpu *CPU) {
 	cpu.tick()
@@ -551,6 +1095,16 @@ func opcode28(cpu *CPU) {
 	cpu.P = P(((uint8(cpu.P)) & (^mask)) | ((p) & (mask)))
 }
 
+func disasmOpcode28(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
+}
+
 // AND - immediate addressing.
 func opcode29(cpu *CPU) {
 	oper := cpu.PC
@@ -559,6 +1113,19 @@ func opcode29(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode29(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ROL - adressing accumulator.
@@ -575,6 +1142,17 @@ func opcode2A(cpu *CPU) {
 	cpu.A = val
 }
 
+func disasmOpcode2A(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "A")
+	return bb.Bytes()
+}
+
 // ANC - immediate addressing.
 func opcode2B(cpu *CPU) {
 	oper := cpu.PC
@@ -584,6 +1162,19 @@ func opcode2B(cpu *CPU) {
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.P.writeBit(pbitC, cpu.P.N())
+}
+
+func disasmOpcode2B(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // BIT - absolute addressing.
@@ -597,6 +1188,22 @@ func opcode2C(cpu *CPU) {
 	cpu.P.checkZ(cpu.A & val)
 }
 
+func disasmOpcode2C(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // AND - absolute addressing.
 func opcode2D(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -605,6 +1212,22 @@ func opcode2D(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode2D(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // ROL - absolute addressing.
@@ -624,6 +1247,22 @@ func opcode2E(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode2E(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // RLA - absolute addressing.
 func opcode2F(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -641,6 +1280,22 @@ func opcode2F(cpu *CPU) {
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode2F(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // BMI - relative addressing.
@@ -665,6 +1320,21 @@ func opcode30(cpu *CPU) {
 	cpu.PC++
 }
 
+func disasmOpcode30(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	off := int16(int8(oper1))
+	oper := uint16(int16(pc+2) + off)
+	fmt.Fprintf(&bb, "$%04X", oper)
+	return bb.Bytes()
+}
+
 // AND - indexed addressing (abs),Y.
 func opcode31(cpu *CPU) {
 	// extra cycle for page cross
@@ -684,6 +1354,19 @@ func opcode31(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode31(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // JAM - immediate addressing.
 func opcode32(cpu *CPU) {
 	oper := cpu.PC
@@ -691,6 +1374,19 @@ func opcode32(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x32) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcode32(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // RLA - indexed addressing (abs),Y.
@@ -719,6 +1415,19 @@ func opcode33(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode33(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // NOP - indexed addressing: zeropage,X.
 func opcode34(cpu *CPU) {
 	cpu.tick()
@@ -728,6 +1437,19 @@ func opcode34(cpu *CPU) {
 	oper &= 0xff
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode34(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // AND - indexed addressing: zeropage,X.
@@ -741,6 +1463,19 @@ func opcode35(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode35(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ROL - indexed addressing: zeropage,X.
@@ -761,6 +1496,19 @@ func opcode36(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode36(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // RLA - indexed addressing: zeropage,X.
@@ -785,10 +1533,33 @@ func opcode37(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode37(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // SEC - implied addressing.
 func opcode38(cpu *CPU) {
 	cpu.P.setBit(0)
 	cpu.tick()
+}
+
+func disasmOpcode38(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // AND - absolute indexed Y.
@@ -806,9 +1577,35 @@ func opcode39(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode39(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // NOP - implied addressing.
 func opcode3A(cpu *CPU) {
 	cpu.tick()
+}
+
+func disasmOpcode3A(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // RLA - absolute indexed Y.
@@ -833,6 +1630,22 @@ func opcode3B(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode3B(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // NOP - absolute indexed X.
 func opcode3C(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
@@ -843,6 +1656,22 @@ func opcode3C(cpu *CPU) {
 	}
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode3C(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // AND - absolute indexed X.
@@ -857,6 +1686,22 @@ func opcode3D(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode3D(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // ROL - absolute indexed X.
@@ -876,6 +1721,22 @@ func opcode3E(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	cpu.P.writeBit(pbitC, carry != 0)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode3E(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // RLA - absolute indexed X.
@@ -899,6 +1760,22 @@ func opcode3F(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode3F(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
+}
+
 // RTI - implied addressing.
 func opcode40(cpu *CPU) {
 	cpu.tick()
@@ -908,6 +1785,16 @@ func opcode40(cpu *CPU) {
 	const mask uint8 = 0b11001111 // ignore B and U bits
 	cpu.P = P(((uint8(cpu.P)) & (^mask)) | ((p) & (mask)))
 	cpu.PC = cpu.pull16()
+}
+
+func disasmOpcode40(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // EOR - indexed addressing (abs, X).
@@ -926,6 +1813,19 @@ func opcode41(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode41(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // JAM - immediate addressing.
 func opcode42(cpu *CPU) {
 	oper := cpu.PC
@@ -933,6 +1833,19 @@ func opcode42(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x42) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcode42(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SRE - indexed addressing (abs, X).
@@ -959,12 +1872,38 @@ func opcode43(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode43(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // NOP - zero page addressing.
 func opcode44(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode44(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // EOR - zero page addressing.
@@ -975,6 +1914,19 @@ func opcode45(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode45(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // LSR - zero page addressing.
@@ -991,6 +1943,19 @@ func opcode46(cpu *CPU) {
 		cpu.P.writeBit(pbitC, carry != 0)
 	}
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode46(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SRE - zero page addressing.
@@ -1011,10 +1976,33 @@ func opcode47(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode47(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // PHA - implied addressing.
 func opcode48(cpu *CPU) {
 	cpu.tick()
 	cpu.push8(cpu.A)
+}
+
+func disasmOpcode48(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // EOR - immediate addressing.
@@ -1025,6 +2013,19 @@ func opcode49(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode49(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // LSR - adressing accumulator.
@@ -1038,6 +2039,17 @@ func opcode4A(cpu *CPU) {
 		cpu.P.writeBit(pbitC, carry != 0)
 	}
 	cpu.A = val
+}
+
+func disasmOpcode4A(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "A")
+	return bb.Bytes()
 }
 
 // ALR - immediate addressing.
@@ -1054,12 +2066,41 @@ func opcode4B(cpu *CPU) {
 	cpu.P.writeBit(pbitC, carry != 0)
 }
 
+func disasmOpcode4B(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
+}
+
 // JMP - absolute addressing.
 func opcode4C(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	_ = oper
 	cpu.PC = oper
+}
+
+func disasmOpcode4C(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // EOR - absolute addressing.
@@ -1070,6 +2111,22 @@ func opcode4D(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode4D(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // LSR - absolute addressing.
@@ -1088,6 +2145,22 @@ func opcode4E(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode4E(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // SRE - absolute addressing.
 func opcode4F(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -1104,6 +2177,22 @@ func opcode4F(cpu *CPU) {
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode4F(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // BVC - relative addressing.
@@ -1128,6 +2217,21 @@ func opcode50(cpu *CPU) {
 	cpu.PC++
 }
 
+func disasmOpcode50(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	off := int16(int8(oper1))
+	oper := uint16(int16(pc+2) + off)
+	fmt.Fprintf(&bb, "$%04X", oper)
+	return bb.Bytes()
+}
+
 // EOR - indexed addressing (abs),Y.
 func opcode51(cpu *CPU) {
 	// extra cycle for page cross
@@ -1147,6 +2251,19 @@ func opcode51(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode51(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // JAM - immediate addressing.
 func opcode52(cpu *CPU) {
 	oper := cpu.PC
@@ -1154,6 +2271,19 @@ func opcode52(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x52) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcode52(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SRE - indexed addressing (abs),Y.
@@ -1181,6 +2311,19 @@ func opcode53(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode53(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // NOP - indexed addressing: zeropage,X.
 func opcode54(cpu *CPU) {
 	cpu.tick()
@@ -1190,6 +2333,19 @@ func opcode54(cpu *CPU) {
 	oper &= 0xff
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode54(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // EOR - indexed addressing: zeropage,X.
@@ -1203,6 +2359,19 @@ func opcode55(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode55(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // LSR - indexed addressing: zeropage,X.
@@ -1222,6 +2391,19 @@ func opcode56(cpu *CPU) {
 		cpu.P.writeBit(pbitC, carry != 0)
 	}
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode56(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SRE - indexed addressing: zeropage,X.
@@ -1245,10 +2427,33 @@ func opcode57(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode57(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // CLI - implied addressing.
 func opcode58(cpu *CPU) {
 	cpu.P.clearBit(2)
 	cpu.tick()
+}
+
+func disasmOpcode58(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // EOR - absolute indexed Y.
@@ -1266,9 +2471,35 @@ func opcode59(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode59(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // NOP - implied addressing.
 func opcode5A(cpu *CPU) {
 	cpu.tick()
+}
+
+func disasmOpcode5A(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // SRE - absolute indexed Y.
@@ -1292,6 +2523,22 @@ func opcode5B(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode5B(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // NOP - absolute indexed X.
 func opcode5C(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
@@ -1302,6 +2549,22 @@ func opcode5C(cpu *CPU) {
 	}
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode5C(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // EOR - absolute indexed X.
@@ -1316,6 +2579,22 @@ func opcode5D(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode5D(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // LSR - absolute indexed X.
@@ -1334,6 +2613,22 @@ func opcode5E(cpu *CPU) {
 		cpu.P.writeBit(pbitC, carry != 0)
 	}
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode5E(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // SRE - absolute indexed X.
@@ -1356,6 +2651,22 @@ func opcode5F(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode5F(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
+}
+
 // RTS - implied addressing.
 func opcode60(cpu *CPU) {
 	cpu.PC = cpu.pull16()
@@ -1363,6 +2674,16 @@ func opcode60(cpu *CPU) {
 	cpu.tick()
 	cpu.PC++
 	cpu.tick()
+}
+
+func disasmOpcode60(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // ADC - indexed addressing (abs, X).
@@ -1384,6 +2705,19 @@ func opcode61(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode61(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // JAM - immediate addressing.
 func opcode62(cpu *CPU) {
 	oper := cpu.PC
@@ -1391,6 +2725,19 @@ func opcode62(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x62) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcode62(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // RRA - indexed addressing (abs, X).
@@ -1423,12 +2770,38 @@ func opcode63(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode63(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // NOP - zero page addressing.
 func opcode64(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode64(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ADC - zero page addressing.
@@ -1442,6 +2815,19 @@ func opcode65(cpu *CPU) {
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode65(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ROR - zero page addressing.
@@ -1461,6 +2847,19 @@ func opcode66(cpu *CPU) {
 		cpu.P.writeBit(pbitC, carry != 0)
 	}
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode66(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // RRA - zero page addressing.
@@ -1487,12 +2886,35 @@ func opcode67(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode67(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // PLA - implied addressing.
 func opcode68(cpu *CPU) {
 	cpu.tick()
 	cpu.tick()
 	cpu.A = cpu.pull8()
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode68(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // ADC - immediate addressing.
@@ -1506,6 +2928,19 @@ func opcode69(cpu *CPU) {
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode69(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ROR - adressing accumulator.
@@ -1524,6 +2959,17 @@ func opcode6A(cpu *CPU) {
 	cpu.A = val
 }
 
+func disasmOpcode6A(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "A")
+	return bb.Bytes()
+}
+
 // ARR - immediate addressing.
 func opcode6B(cpu *CPU) {
 	oper := cpu.PC
@@ -1540,6 +2986,19 @@ func opcode6B(cpu *CPU) {
 	cpu.P.writeBit(pbitC, cpu.A&(1<<6) != 0)
 }
 
+func disasmOpcode6B(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
+}
+
 // JMP - indirect addressing.
 func opcode6C(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -1549,6 +3008,22 @@ func opcode6C(cpu *CPU) {
 	oper = uint16(hi)<<8 | uint16(lo)
 	_ = oper
 	cpu.PC = oper
+}
+
+func disasmOpcode6C(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%04X)", oper16)
+	return bb.Bytes()
 }
 
 // ADC - absolute addressing.
@@ -1562,6 +3037,22 @@ func opcode6D(cpu *CPU) {
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode6D(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // ROR - absolute addressing.
@@ -1581,6 +3072,22 @@ func opcode6E(cpu *CPU) {
 		cpu.P.writeBit(pbitC, carry != 0)
 	}
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode6E(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // RRA - absolute addressing.
@@ -1607,6 +3114,22 @@ func opcode6F(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode6F(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // BVS - relative addressing.
 func opcode70(cpu *CPU) {
 	off := int8(cpu.Read8(cpu.PC))
@@ -1627,6 +3150,21 @@ func opcode70(cpu *CPU) {
 		return
 	}
 	cpu.PC++
+}
+
+func disasmOpcode70(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	off := int16(int8(oper1))
+	oper := uint16(int16(pc+2) + off)
+	fmt.Fprintf(&bb, "$%04X", oper)
+	return bb.Bytes()
 }
 
 // ADC - indexed addressing (abs),Y.
@@ -1651,6 +3189,19 @@ func opcode71(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode71(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // JAM - immediate addressing.
 func opcode72(cpu *CPU) {
 	oper := cpu.PC
@@ -1658,6 +3209,19 @@ func opcode72(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x72) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcode72(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // RRA - indexed addressing (abs),Y.
@@ -1691,6 +3255,19 @@ func opcode73(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode73(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // NOP - indexed addressing: zeropage,X.
 func opcode74(cpu *CPU) {
 	cpu.tick()
@@ -1700,6 +3277,19 @@ func opcode74(cpu *CPU) {
 	oper &= 0xff
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode74(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ADC - indexed addressing: zeropage,X.
@@ -1716,6 +3306,19 @@ func opcode75(cpu *CPU) {
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode75(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ROR - indexed addressing: zeropage,X.
@@ -1738,6 +3341,19 @@ func opcode76(cpu *CPU) {
 		cpu.P.writeBit(pbitC, carry != 0)
 	}
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode76(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // RRA - indexed addressing: zeropage,X.
@@ -1767,10 +3383,33 @@ func opcode77(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode77(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // SEI - implied addressing.
 func opcode78(cpu *CPU) {
 	cpu.P.setBit(2)
 	cpu.tick()
+}
+
+func disasmOpcode78(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // ADC - absolute indexed Y.
@@ -1791,9 +3430,35 @@ func opcode79(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcode79(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // NOP - implied addressing.
 func opcode7A(cpu *CPU) {
 	cpu.tick()
+}
+
+func disasmOpcode7A(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // RRA - absolute indexed Y.
@@ -1823,6 +3488,22 @@ func opcode7B(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode7B(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // NOP - absolute indexed X.
 func opcode7C(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
@@ -1833,6 +3514,22 @@ func opcode7C(cpu *CPU) {
 	}
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode7C(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // ADC - absolute indexed X.
@@ -1850,6 +3547,22 @@ func opcode7D(cpu *CPU) {
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
 	cpu.P.checkNZ(cpu.A)
+}
+
+func disasmOpcode7D(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // ROR - absolute indexed X.
@@ -1871,6 +3584,22 @@ func opcode7E(cpu *CPU) {
 		cpu.P.writeBit(pbitC, carry != 0)
 	}
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcode7E(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // RRA - absolute indexed X.
@@ -1899,12 +3628,41 @@ func opcode7F(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcode7F(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
+}
+
 // NOP - immediate addressing.
 func opcode80(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode80(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // STA - indexed addressing (abs, X).
@@ -1921,12 +3679,38 @@ func opcode81(cpu *CPU) {
 	cpu.Write8(oper, cpu.A)
 }
 
+func disasmOpcode81(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // NOP - immediate addressing.
 func opcode82(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcode82(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SAX - indexed addressing (abs, X).
@@ -1943,12 +3727,38 @@ func opcode83(cpu *CPU) {
 	cpu.Write8(oper, cpu.A&cpu.X)
 }
 
+func disasmOpcode83(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // STY - zero page addressing.
 func opcode84(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	_ = oper
 	cpu.Write8(oper, cpu.Y)
+}
+
+func disasmOpcode84(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // STA - zero page addressing.
@@ -1959,12 +3769,38 @@ func opcode85(cpu *CPU) {
 	cpu.Write8(oper, cpu.A)
 }
 
+func disasmOpcode85(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // STX - zero page addressing.
 func opcode86(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	_ = oper
 	cpu.Write8(oper, cpu.X)
+}
+
+func disasmOpcode86(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SAX - zero page addressing.
@@ -1975,11 +3811,34 @@ func opcode87(cpu *CPU) {
 	cpu.Write8(oper, cpu.A&cpu.X)
 }
 
+func disasmOpcode87(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // DEY - implied addressing.
 func opcode88(cpu *CPU) {
 	cpu.tick()
 	cpu.Y--
 	cpu.P.checkNZ(cpu.Y)
+}
+
+func disasmOpcode88(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // NOP - immediate addressing.
@@ -1990,11 +3849,34 @@ func opcode89(cpu *CPU) {
 	cpu.tick()
 }
 
+func disasmOpcode89(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
+}
+
 // TXA - implied addressing.
 func opcode8A(cpu *CPU) {
 	cpu.A = cpu.X
 	cpu.P.checkNZ(cpu.X)
 	cpu.tick()
+}
+
+func disasmOpcode8A(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // ANE - immediate addressing.
@@ -2006,12 +3888,41 @@ func opcode8B(cpu *CPU) {
 	panic(msg)
 }
 
+func disasmOpcode8B(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
+}
+
 // STY - absolute addressing.
 func opcode8C(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	_ = oper
 	cpu.Write8(oper, cpu.Y)
+}
+
+func disasmOpcode8C(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // STA - absolute addressing.
@@ -2022,6 +3933,22 @@ func opcode8D(cpu *CPU) {
 	cpu.Write8(oper, cpu.A)
 }
 
+func disasmOpcode8D(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // STX - absolute addressing.
 func opcode8E(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -2030,12 +3957,44 @@ func opcode8E(cpu *CPU) {
 	cpu.Write8(oper, cpu.X)
 }
 
+func disasmOpcode8E(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // SAX - absolute addressing.
 func opcode8F(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	_ = oper
 	cpu.Write8(oper, cpu.A&cpu.X)
+}
+
+func disasmOpcode8F(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // BCC - relative addressing.
@@ -2060,6 +4019,21 @@ func opcode90(cpu *CPU) {
 	cpu.PC++
 }
 
+func disasmOpcode90(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	off := int16(int8(oper1))
+	oper := uint16(int16(pc+2) + off)
+	fmt.Fprintf(&bb, "$%04X", oper)
+	return bb.Bytes()
+}
+
 // STA - indexed addressing (abs),Y.
 func opcode91(cpu *CPU) {
 	// extra cycle always
@@ -2075,6 +4049,19 @@ func opcode91(cpu *CPU) {
 	cpu.Write8(oper, cpu.A)
 }
 
+func disasmOpcode91(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // JAM - immediate addressing.
 func opcode92(cpu *CPU) {
 	oper := cpu.PC
@@ -2082,6 +4069,19 @@ func opcode92(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x92) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcode92(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SHA - indexed addressing (abs),Y.
@@ -2099,6 +4099,19 @@ func opcode93(cpu *CPU) {
 	panic(msg)
 }
 
+func disasmOpcode93(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // STY - indexed addressing: zeropage,X.
 func opcode94(cpu *CPU) {
 	cpu.tick()
@@ -2108,6 +4121,19 @@ func opcode94(cpu *CPU) {
 	oper &= 0xff
 	_ = oper
 	cpu.Write8(oper, cpu.Y)
+}
+
+func disasmOpcode94(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // STA - indexed addressing: zeropage,X.
@@ -2121,6 +4147,19 @@ func opcode95(cpu *CPU) {
 	cpu.Write8(oper, cpu.A)
 }
 
+func disasmOpcode95(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // STX - indexed addressing: zeropage,Y.
 func opcode96(cpu *CPU) {
 	cpu.tick()
@@ -2130,6 +4169,19 @@ func opcode96(cpu *CPU) {
 	oper &= 0xff
 	_ = oper
 	cpu.Write8(oper, cpu.X)
+}
+
+func disasmOpcode96(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SAX - indexed addressing: zeropage,Y.
@@ -2143,11 +4195,34 @@ func opcode97(cpu *CPU) {
 	cpu.Write8(oper, cpu.A&cpu.X)
 }
 
+func disasmOpcode97(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // TYA - implied addressing.
 func opcode98(cpu *CPU) {
 	cpu.A = cpu.Y
 	cpu.P.checkNZ(cpu.Y)
 	cpu.tick()
+}
+
+func disasmOpcode98(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // STA - absolute indexed Y.
@@ -2161,10 +4236,36 @@ func opcode99(cpu *CPU) {
 	cpu.Write8(oper, cpu.A)
 }
 
+func disasmOpcode99(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // TXS - implied addressing.
 func opcode9A(cpu *CPU) {
 	cpu.SP = cpu.X
 	cpu.tick()
+}
+
+func disasmOpcode9A(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // TAS - absolute indexed Y.
@@ -2179,6 +4280,22 @@ func opcode9B(cpu *CPU) {
 	panic(msg)
 }
 
+func disasmOpcode9B(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // SHY - absolute indexed X.
 func opcode9C(cpu *CPU) {
 	cpu.tick()
@@ -2190,6 +4307,22 @@ func opcode9C(cpu *CPU) {
 	panic(msg)
 }
 
+func disasmOpcode9C(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
+}
+
 // STA - absolute indexed X.
 func opcode9D(cpu *CPU) {
 	cpu.tick()
@@ -2198,6 +4331,22 @@ func opcode9D(cpu *CPU) {
 	oper += uint16(cpu.X)
 	_ = oper
 	cpu.Write8(oper, cpu.A)
+}
+
+func disasmOpcode9D(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // SHX - absolute indexed Y.
@@ -2212,6 +4361,22 @@ func opcode9E(cpu *CPU) {
 	panic(msg)
 }
 
+func disasmOpcode9E(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // SHA - absolute indexed Y.
 func opcode9F(cpu *CPU) {
 	// default
@@ -2224,6 +4389,22 @@ func opcode9F(cpu *CPU) {
 	panic(msg)
 }
 
+func disasmOpcode9F(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // LDY - immediate addressing.
 func opcodeA0(cpu *CPU) {
 	oper := cpu.PC
@@ -2232,6 +4413,19 @@ func opcodeA0(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.Y = val
 	cpu.P.checkNZ(val)
+}
+
+func disasmOpcodeA0(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // LDA - indexed addressing (abs, X).
@@ -2250,6 +4444,19 @@ func opcodeA1(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeA1(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // LDX - immediate addressing.
 func opcodeA2(cpu *CPU) {
 	oper := cpu.PC
@@ -2258,6 +4465,19 @@ func opcodeA2(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.X = val
 	cpu.P.checkNZ(val)
+}
+
+func disasmOpcodeA2(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // LAX - indexed addressing (abs, X).
@@ -2277,6 +4497,19 @@ func opcodeA3(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeA3(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // LDY - zero page addressing.
 func opcodeA4(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
@@ -2285,6 +4518,19 @@ func opcodeA4(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.Y = val
 	cpu.P.checkNZ(val)
+}
+
+func disasmOpcodeA4(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // LDA - zero page addressing.
@@ -2297,6 +4543,19 @@ func opcodeA5(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeA5(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // LDX - zero page addressing.
 func opcodeA6(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
@@ -2305,6 +4564,19 @@ func opcodeA6(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.X = val
 	cpu.P.checkNZ(val)
+}
+
+func disasmOpcodeA6(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // LAX - zero page addressing.
@@ -2318,11 +4590,34 @@ func opcodeA7(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeA7(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // TAY - implied addressing.
 func opcodeA8(cpu *CPU) {
 	cpu.Y = cpu.A
 	cpu.P.checkNZ(cpu.A)
 	cpu.tick()
+}
+
+func disasmOpcodeA8(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // LDA - immediate addressing.
@@ -2335,11 +4630,34 @@ func opcodeA9(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeA9(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
+}
+
 // TAX - implied addressing.
 func opcodeAA(cpu *CPU) {
 	cpu.X = cpu.A
 	cpu.P.checkNZ(cpu.A)
 	cpu.tick()
+}
+
+func disasmOpcodeAA(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // LXA - immediate addressing.
@@ -2349,6 +4667,19 @@ func opcodeAB(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("unsupported unstable opcode 0xAB (LXA)\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcodeAB(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // LDY - absolute addressing.
@@ -2361,6 +4692,22 @@ func opcodeAC(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeAC(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // LDA - absolute addressing.
 func opcodeAD(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -2369,6 +4716,22 @@ func opcodeAD(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A = val
 	cpu.P.checkNZ(val)
+}
+
+func disasmOpcodeAD(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // LDX - absolute addressing.
@@ -2381,6 +4744,22 @@ func opcodeAE(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeAE(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // LAX - absolute addressing.
 func opcodeAF(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -2390,6 +4769,22 @@ func opcodeAF(cpu *CPU) {
 	cpu.A = val
 	cpu.X = val
 	cpu.P.checkNZ(val)
+}
+
+func disasmOpcodeAF(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // BCS - relative addressing.
@@ -2414,6 +4809,21 @@ func opcodeB0(cpu *CPU) {
 	cpu.PC++
 }
 
+func disasmOpcodeB0(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	off := int16(int8(oper1))
+	oper := uint16(int16(pc+2) + off)
+	fmt.Fprintf(&bb, "$%04X", oper)
+	return bb.Bytes()
+}
+
 // LDA - indexed addressing (abs),Y.
 func opcodeB1(cpu *CPU) {
 	// extra cycle for page cross
@@ -2433,6 +4843,19 @@ func opcodeB1(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeB1(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // JAM - immediate addressing.
 func opcodeB2(cpu *CPU) {
 	oper := cpu.PC
@@ -2440,6 +4863,19 @@ func opcodeB2(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0xB2) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcodeB2(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // LAX - indexed addressing (abs),Y.
@@ -2462,6 +4898,19 @@ func opcodeB3(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeB3(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // LDY - indexed addressing: zeropage,X.
 func opcodeB4(cpu *CPU) {
 	cpu.tick()
@@ -2473,6 +4922,19 @@ func opcodeB4(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.Y = val
 	cpu.P.checkNZ(val)
+}
+
+func disasmOpcodeB4(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // LDA - indexed addressing: zeropage,X.
@@ -2488,6 +4950,19 @@ func opcodeB5(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeB5(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // LDX - indexed addressing: zeropage,Y.
 func opcodeB6(cpu *CPU) {
 	cpu.tick()
@@ -2499,6 +4974,19 @@ func opcodeB6(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.X = val
 	cpu.P.checkNZ(val)
+}
+
+func disasmOpcodeB6(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // LAX - indexed addressing: zeropage,Y.
@@ -2515,10 +5003,33 @@ func opcodeB7(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeB7(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // CLV - implied addressing.
 func opcodeB8(cpu *CPU) {
 	cpu.P.clearBit(6)
 	cpu.tick()
+}
+
+func disasmOpcodeB8(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // LDA - absolute indexed Y.
@@ -2536,11 +5047,37 @@ func opcodeB9(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeB9(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // TSX - implied addressing.
 func opcodeBA(cpu *CPU) {
 	cpu.X = cpu.SP
 	cpu.P.checkNZ(cpu.SP)
 	cpu.tick()
+}
+
+func disasmOpcodeBA(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // LAS - absolute indexed Y.
@@ -2560,6 +5097,22 @@ func opcodeBB(cpu *CPU) {
 	cpu.SP = cpu.A
 }
 
+func disasmOpcodeBB(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // LDY - absolute indexed X.
 func opcodeBC(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
@@ -2572,6 +5125,22 @@ func opcodeBC(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.Y = val
 	cpu.P.checkNZ(val)
+}
+
+func disasmOpcodeBC(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // LDA - absolute indexed X.
@@ -2588,6 +5157,22 @@ func opcodeBD(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeBD(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
+}
+
 // LDX - absolute indexed Y.
 func opcodeBE(cpu *CPU) {
 	// extra cycle for page cross
@@ -2601,6 +5186,22 @@ func opcodeBE(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.X = val
 	cpu.P.checkNZ(val)
+}
+
+func disasmOpcodeBE(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
 }
 
 // LAX - absolute indexed Y.
@@ -2619,6 +5220,22 @@ func opcodeBF(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
+func disasmOpcodeBF(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // CPY - immediate addressing.
 func opcodeC0(cpu *CPU) {
 	oper := cpu.PC
@@ -2627,6 +5244,19 @@ func opcodeC0(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.Y - val)
 	cpu.P.writeBit(pbitC, val <= cpu.Y)
+}
+
+func disasmOpcodeC0(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // CMP - indexed addressing (abs, X).
@@ -2645,12 +5275,38 @@ func opcodeC1(cpu *CPU) {
 	cpu.P.writeBit(pbitC, val <= cpu.A)
 }
 
+func disasmOpcodeC1(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // NOP - immediate addressing.
 func opcodeC2(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcodeC2(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // DCP - indexed addressing (abs, X).
@@ -2673,6 +5329,19 @@ func opcodeC3(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeC3(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // CPY - zero page addressing.
 func opcodeC4(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
@@ -2681,6 +5350,19 @@ func opcodeC4(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.Y - val)
 	cpu.P.writeBit(pbitC, val <= cpu.Y)
+}
+
+func disasmOpcodeC4(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // CMP - zero page addressing.
@@ -2693,6 +5375,19 @@ func opcodeC5(cpu *CPU) {
 	cpu.P.writeBit(pbitC, val <= cpu.A)
 }
 
+func disasmOpcodeC5(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // DEC - zero page addressing.
 func opcodeC6(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
@@ -2703,6 +5398,19 @@ func opcodeC6(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcodeC6(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // DCP - zero page addressing.
@@ -2719,11 +5427,34 @@ func opcodeC7(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeC7(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // INY - implied addressing.
 func opcodeC8(cpu *CPU) {
 	cpu.tick()
 	cpu.Y++
 	cpu.P.checkNZ(cpu.Y)
+}
+
+func disasmOpcodeC8(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // CMP - immediate addressing.
@@ -2736,11 +5467,34 @@ func opcodeC9(cpu *CPU) {
 	cpu.P.writeBit(pbitC, val <= cpu.A)
 }
 
+func disasmOpcodeC9(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
+}
+
 // DEX - implied addressing.
 func opcodeCA(cpu *CPU) {
 	cpu.tick()
 	cpu.X--
 	cpu.P.checkNZ(cpu.X)
+}
+
+func disasmOpcodeCA(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // SBX - immediate addressing.
@@ -2755,6 +5509,19 @@ func opcodeCB(cpu *CPU) {
 	cpu.P.writeBit(pbitC, ival >= 0)
 }
 
+func disasmOpcodeCB(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
+}
+
 // CPY - absolute addressing.
 func opcodeCC(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -2765,6 +5532,22 @@ func opcodeCC(cpu *CPU) {
 	cpu.P.writeBit(pbitC, val <= cpu.Y)
 }
 
+func disasmOpcodeCC(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // CMP - absolute addressing.
 func opcodeCD(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -2773,6 +5556,22 @@ func opcodeCD(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.writeBit(pbitC, val <= cpu.A)
+}
+
+func disasmOpcodeCD(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // DEC - absolute addressing.
@@ -2787,6 +5586,22 @@ func opcodeCE(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeCE(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // DCP - absolute addressing.
 func opcodeCF(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -2799,6 +5614,22 @@ func opcodeCF(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.writeBit(pbitC, val <= cpu.A)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcodeCF(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // BNE - relative addressing.
@@ -2823,6 +5654,21 @@ func opcodeD0(cpu *CPU) {
 	cpu.PC++
 }
 
+func disasmOpcodeD0(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	off := int16(int8(oper1))
+	oper := uint16(int16(pc+2) + off)
+	fmt.Fprintf(&bb, "$%04X", oper)
+	return bb.Bytes()
+}
+
 // CMP - indexed addressing (abs),Y.
 func opcodeD1(cpu *CPU) {
 	// extra cycle for page cross
@@ -2842,6 +5688,19 @@ func opcodeD1(cpu *CPU) {
 	cpu.P.writeBit(pbitC, val <= cpu.A)
 }
 
+func disasmOpcodeD1(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // JAM - immediate addressing.
 func opcodeD2(cpu *CPU) {
 	oper := cpu.PC
@@ -2849,6 +5708,19 @@ func opcodeD2(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0xD2) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcodeD2(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // DCP - indexed addressing (abs),Y.
@@ -2872,6 +5744,19 @@ func opcodeD3(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeD3(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // NOP - indexed addressing: zeropage,X.
 func opcodeD4(cpu *CPU) {
 	cpu.tick()
@@ -2881,6 +5766,19 @@ func opcodeD4(cpu *CPU) {
 	oper &= 0xff
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcodeD4(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // CMP - indexed addressing: zeropage,X.
@@ -2896,6 +5794,19 @@ func opcodeD5(cpu *CPU) {
 	cpu.P.writeBit(pbitC, val <= cpu.A)
 }
 
+func disasmOpcodeD5(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // DEC - indexed addressing: zeropage,X.
 func opcodeD6(cpu *CPU) {
 	cpu.tick()
@@ -2909,6 +5820,19 @@ func opcodeD6(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcodeD6(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // DCP - indexed addressing: zeropage,X.
@@ -2928,10 +5852,33 @@ func opcodeD7(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeD7(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // CLD - implied addressing.
 func opcodeD8(cpu *CPU) {
 	cpu.P.clearBit(3)
 	cpu.tick()
+}
+
+func disasmOpcodeD8(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // CMP - absolute indexed Y.
@@ -2949,9 +5896,35 @@ func opcodeD9(cpu *CPU) {
 	cpu.P.writeBit(pbitC, val <= cpu.A)
 }
 
+func disasmOpcodeD9(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // NOP - implied addressing.
 func opcodeDA(cpu *CPU) {
 	cpu.tick()
+}
+
+func disasmOpcodeDA(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // DCP - absolute indexed Y.
@@ -2971,6 +5944,22 @@ func opcodeDB(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeDB(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // NOP - absolute indexed X.
 func opcodeDC(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
@@ -2981,6 +5970,22 @@ func opcodeDC(cpu *CPU) {
 	}
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcodeDC(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // CMP - absolute indexed X.
@@ -2997,6 +6002,22 @@ func opcodeDD(cpu *CPU) {
 	cpu.P.writeBit(pbitC, val <= cpu.A)
 }
 
+func disasmOpcodeDD(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
+}
+
 // DEC - absolute indexed X.
 func opcodeDE(cpu *CPU) {
 	cpu.tick()
@@ -3009,6 +6030,22 @@ func opcodeDE(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcodeDE(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // DCP - absolute indexed X.
@@ -3027,6 +6064,22 @@ func opcodeDF(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeDF(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
+}
+
 // CPX - immediate addressing.
 func opcodeE0(cpu *CPU) {
 	oper := cpu.PC
@@ -3035,6 +6088,19 @@ func opcodeE0(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
 	cpu.P.writeBit(pbitC, val <= cpu.X)
+}
+
+func disasmOpcodeE0(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SBC - indexed addressing (abs, X).
@@ -3057,12 +6123,38 @@ func opcodeE1(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcodeE1(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // NOP - immediate addressing.
 func opcodeE2(cpu *CPU) {
 	oper := cpu.PC
 	cpu.PC++
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcodeE2(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ISB - indexed addressing (abs, X).
@@ -3091,6 +6183,19 @@ func opcodeE3(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeE3(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
 // CPX - zero page addressing.
 func opcodeE4(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
@@ -3099,6 +6204,19 @@ func opcodeE4(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
 	cpu.P.writeBit(pbitC, val <= cpu.X)
+}
+
+func disasmOpcodeE4(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SBC - zero page addressing.
@@ -3115,6 +6233,19 @@ func opcodeE5(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcodeE5(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // INC - zero page addressing.
 func opcodeE6(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
@@ -3125,6 +6256,19 @@ func opcodeE6(cpu *CPU) {
 	val++
 	cpu.P.checkNZ(val)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcodeE6(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ISB - zero page addressing.
@@ -3147,11 +6291,34 @@ func opcodeE7(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeE7(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // INX - implied addressing.
 func opcodeE8(cpu *CPU) {
 	cpu.tick()
 	cpu.X++
 	cpu.P.checkNZ(cpu.X)
+}
+
+func disasmOpcodeE8(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // SBC - immediate addressing.
@@ -3168,9 +6335,32 @@ func opcodeE9(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcodeE9(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
+}
+
 // NOP - implied addressing.
 func opcodeEA(cpu *CPU) {
 	cpu.tick()
+}
+
+func disasmOpcodeEA(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // SBC - immediate addressing.
@@ -3187,6 +6377,19 @@ func opcodeEB(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcodeEB(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
+}
+
 // CPX - absolute addressing.
 func opcodeEC(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -3195,6 +6398,22 @@ func opcodeEC(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
 	cpu.P.writeBit(pbitC, val <= cpu.X)
+}
+
+func disasmOpcodeEC(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // SBC - absolute addressing.
@@ -3211,6 +6430,22 @@ func opcodeED(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcodeED(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // INC - absolute addressing.
 func opcodeEE(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
@@ -3221,6 +6456,22 @@ func opcodeEE(cpu *CPU) {
 	val++
 	cpu.P.checkNZ(val)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcodeEE(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
 }
 
 // ISB - absolute addressing.
@@ -3243,6 +6494,22 @@ func opcodeEF(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeEF(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X", oper16)
+	return bb.Bytes()
+}
+
 // BEQ - relative addressing.
 func opcodeF0(cpu *CPU) {
 	off := int8(cpu.Read8(cpu.PC))
@@ -3263,6 +6530,21 @@ func opcodeF0(cpu *CPU) {
 		return
 	}
 	cpu.PC++
+}
+
+func disasmOpcodeF0(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	off := int16(int8(oper1))
+	oper := uint16(int16(pc+2) + off)
+	fmt.Fprintf(&bb, "$%04X", oper)
+	return bb.Bytes()
 }
 
 // SBC - indexed addressing (abs),Y.
@@ -3288,6 +6570,19 @@ func opcodeF1(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcodeF1(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // JAM - immediate addressing.
 func opcodeF2(cpu *CPU) {
 	oper := cpu.PC
@@ -3295,6 +6590,19 @@ func opcodeF2(cpu *CPU) {
 	_ = oper
 	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0xF2) called\nPC:0x%04X", cpu.PC)
 	panic(msg)
+}
+
+func disasmOpcodeF2(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "#$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ISB - indexed addressing (abs),Y.
@@ -3324,6 +6632,19 @@ func opcodeF3(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeF3(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
 // NOP - indexed addressing: zeropage,X.
 func opcodeF4(cpu *CPU) {
 	cpu.tick()
@@ -3333,6 +6654,19 @@ func opcodeF4(cpu *CPU) {
 	oper &= 0xff
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcodeF4(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // SBC - indexed addressing: zeropage,X.
@@ -3352,6 +6686,19 @@ func opcodeF5(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcodeF5(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // INC - indexed addressing: zeropage,X.
 func opcodeF6(cpu *CPU) {
 	cpu.tick()
@@ -3365,6 +6712,19 @@ func opcodeF6(cpu *CPU) {
 	val++
 	cpu.P.checkNZ(val)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcodeF6(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
 }
 
 // ISB - indexed addressing: zeropage,X.
@@ -3390,10 +6750,33 @@ func opcodeF7(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeF7(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%02X", oper1)
+	return bb.Bytes()
+}
+
 // SED - implied addressing.
 func opcodeF8(cpu *CPU) {
 	cpu.P.setBit(3)
 	cpu.tick()
+}
+
+func disasmOpcodeF8(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // SBC - absolute indexed Y.
@@ -3415,9 +6798,35 @@ func opcodeF9(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcodeF9(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // NOP - implied addressing.
 func opcodeFA(cpu *CPU) {
 	cpu.tick()
+}
+
+func disasmOpcodeFA(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	return bb.Bytes()
 }
 
 // ISB - absolute indexed Y.
@@ -3443,6 +6852,22 @@ func opcodeFB(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
+func disasmOpcodeFB(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,Y", oper16)
+	return bb.Bytes()
+}
+
 // NOP - absolute indexed X.
 func opcodeFC(cpu *CPU) {
 	addr := cpu.Read16(cpu.PC)
@@ -3453,6 +6878,22 @@ func opcodeFC(cpu *CPU) {
 	}
 	_ = oper
 	cpu.tick()
+}
+
+func disasmOpcodeFC(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // SBC - absolute indexed X.
@@ -3473,6 +6914,22 @@ func opcodeFD(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
+func disasmOpcodeFD(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
+}
+
 // INC - absolute indexed X.
 func opcodeFE(cpu *CPU) {
 	cpu.tick()
@@ -3485,6 +6942,22 @@ func opcodeFE(cpu *CPU) {
 	val++
 	cpu.P.checkNZ(val)
 	cpu.Write8(oper, val)
+}
+
+func disasmOpcodeFE(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, " %s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // ISB - absolute indexed X.
@@ -3509,24 +6982,20 @@ func opcodeFF(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// nes 6502 opcodes table
-var ops = [256]func(*CPU){
-	BRK, opcode01, opcode02, opcode03, opcode04, opcode05, opcode06, opcode07, opcode08, opcode09, opcode0A, opcode0B, opcode0C, opcode0D, opcode0E, opcode0F,
-	opcode10, opcode11, opcode12, opcode13, opcode14, opcode15, opcode16, opcode17, opcode18, opcode19, opcode1A, opcode1B, opcode1C, opcode1D, opcode1E, opcode1F,
-	opcode20, opcode21, opcode22, opcode23, opcode24, opcode25, opcode26, opcode27, opcode28, opcode29, opcode2A, opcode2B, opcode2C, opcode2D, opcode2E, opcode2F,
-	opcode30, opcode31, opcode32, opcode33, opcode34, opcode35, opcode36, opcode37, opcode38, opcode39, opcode3A, opcode3B, opcode3C, opcode3D, opcode3E, opcode3F,
-	opcode40, opcode41, opcode42, opcode43, opcode44, opcode45, opcode46, opcode47, opcode48, opcode49, opcode4A, opcode4B, opcode4C, opcode4D, opcode4E, opcode4F,
-	opcode50, opcode51, opcode52, opcode53, opcode54, opcode55, opcode56, opcode57, opcode58, opcode59, opcode5A, opcode5B, opcode5C, opcode5D, opcode5E, opcode5F,
-	opcode60, opcode61, opcode62, opcode63, opcode64, opcode65, opcode66, opcode67, opcode68, opcode69, opcode6A, opcode6B, opcode6C, opcode6D, opcode6E, opcode6F,
-	opcode70, opcode71, opcode72, opcode73, opcode74, opcode75, opcode76, opcode77, opcode78, opcode79, opcode7A, opcode7B, opcode7C, opcode7D, opcode7E, opcode7F,
-	opcode80, opcode81, opcode82, opcode83, opcode84, opcode85, opcode86, opcode87, opcode88, opcode89, opcode8A, opcode8B, opcode8C, opcode8D, opcode8E, opcode8F,
-	opcode90, opcode91, opcode92, opcode93, opcode94, opcode95, opcode96, opcode97, opcode98, opcode99, opcode9A, opcode9B, opcode9C, opcode9D, opcode9E, opcode9F,
-	opcodeA0, opcodeA1, opcodeA2, opcodeA3, opcodeA4, opcodeA5, opcodeA6, opcodeA7, opcodeA8, opcodeA9, opcodeAA, opcodeAB, opcodeAC, opcodeAD, opcodeAE, opcodeAF,
-	opcodeB0, opcodeB1, opcodeB2, opcodeB3, opcodeB4, opcodeB5, opcodeB6, opcodeB7, opcodeB8, opcodeB9, opcodeBA, opcodeBB, opcodeBC, opcodeBD, opcodeBE, opcodeBF,
-	opcodeC0, opcodeC1, opcodeC2, opcodeC3, opcodeC4, opcodeC5, opcodeC6, opcodeC7, opcodeC8, opcodeC9, opcodeCA, opcodeCB, opcodeCC, opcodeCD, opcodeCE, opcodeCF,
-	opcodeD0, opcodeD1, opcodeD2, opcodeD3, opcodeD4, opcodeD5, opcodeD6, opcodeD7, opcodeD8, opcodeD9, opcodeDA, opcodeDB, opcodeDC, opcodeDD, opcodeDE, opcodeDF,
-	opcodeE0, opcodeE1, opcodeE2, opcodeE3, opcodeE4, opcodeE5, opcodeE6, opcodeE7, opcodeE8, opcodeE9, opcodeEA, opcodeEB, opcodeEC, opcodeED, opcodeEE, opcodeEF,
-	opcodeF0, opcodeF1, opcodeF2, opcodeF3, opcodeF4, opcodeF5, opcodeF6, opcodeF7, opcodeF8, opcodeF9, opcodeFA, opcodeFB, opcodeFC, opcodeFD, opcodeFE, opcodeFF,
+func disasmOpcodeFF(cpu *CPU, pc uint16) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	fmt.Fprintf(&bb, "*%s ", opcodeNames[oper0])
+	fmt.Fprintf(&bb, "$%04X,X", oper16)
+	return bb.Bytes()
 }
 
 // list of unstable opcodes (unsupported)
@@ -3550,4 +7019,63 @@ var unstableOps = [256]uint8{
 	0xB2: 1, // JAM
 	0xD2: 1, // JAM
 	0xF2: 1, // JAM
+}
+
+// nes 6502 opcodes table
+var ops = [256]func(*CPU){
+	BRK, opcode01, opcode02, opcode03, opcode04, opcode05, opcode06, opcode07, opcode08, opcode09, opcode0A, opcode0B, opcode0C, opcode0D, opcode0E, opcode0F,
+	opcode10, opcode11, opcode12, opcode13, opcode14, opcode15, opcode16, opcode17, opcode18, opcode19, opcode1A, opcode1B, opcode1C, opcode1D, opcode1E, opcode1F,
+	opcode20, opcode21, opcode22, opcode23, opcode24, opcode25, opcode26, opcode27, opcode28, opcode29, opcode2A, opcode2B, opcode2C, opcode2D, opcode2E, opcode2F,
+	opcode30, opcode31, opcode32, opcode33, opcode34, opcode35, opcode36, opcode37, opcode38, opcode39, opcode3A, opcode3B, opcode3C, opcode3D, opcode3E, opcode3F,
+	opcode40, opcode41, opcode42, opcode43, opcode44, opcode45, opcode46, opcode47, opcode48, opcode49, opcode4A, opcode4B, opcode4C, opcode4D, opcode4E, opcode4F,
+	opcode50, opcode51, opcode52, opcode53, opcode54, opcode55, opcode56, opcode57, opcode58, opcode59, opcode5A, opcode5B, opcode5C, opcode5D, opcode5E, opcode5F,
+	opcode60, opcode61, opcode62, opcode63, opcode64, opcode65, opcode66, opcode67, opcode68, opcode69, opcode6A, opcode6B, opcode6C, opcode6D, opcode6E, opcode6F,
+	opcode70, opcode71, opcode72, opcode73, opcode74, opcode75, opcode76, opcode77, opcode78, opcode79, opcode7A, opcode7B, opcode7C, opcode7D, opcode7E, opcode7F,
+	opcode80, opcode81, opcode82, opcode83, opcode84, opcode85, opcode86, opcode87, opcode88, opcode89, opcode8A, opcode8B, opcode8C, opcode8D, opcode8E, opcode8F,
+	opcode90, opcode91, opcode92, opcode93, opcode94, opcode95, opcode96, opcode97, opcode98, opcode99, opcode9A, opcode9B, opcode9C, opcode9D, opcode9E, opcode9F,
+	opcodeA0, opcodeA1, opcodeA2, opcodeA3, opcodeA4, opcodeA5, opcodeA6, opcodeA7, opcodeA8, opcodeA9, opcodeAA, opcodeAB, opcodeAC, opcodeAD, opcodeAE, opcodeAF,
+	opcodeB0, opcodeB1, opcodeB2, opcodeB3, opcodeB4, opcodeB5, opcodeB6, opcodeB7, opcodeB8, opcodeB9, opcodeBA, opcodeBB, opcodeBC, opcodeBD, opcodeBE, opcodeBF,
+	opcodeC0, opcodeC1, opcodeC2, opcodeC3, opcodeC4, opcodeC5, opcodeC6, opcodeC7, opcodeC8, opcodeC9, opcodeCA, opcodeCB, opcodeCC, opcodeCD, opcodeCE, opcodeCF,
+	opcodeD0, opcodeD1, opcodeD2, opcodeD3, opcodeD4, opcodeD5, opcodeD6, opcodeD7, opcodeD8, opcodeD9, opcodeDA, opcodeDB, opcodeDC, opcodeDD, opcodeDE, opcodeDF,
+	opcodeE0, opcodeE1, opcodeE2, opcodeE3, opcodeE4, opcodeE5, opcodeE6, opcodeE7, opcodeE8, opcodeE9, opcodeEA, opcodeEB, opcodeEC, opcodeED, opcodeEE, opcodeEF,
+	opcodeF0, opcodeF1, opcodeF2, opcodeF3, opcodeF4, opcodeF5, opcodeF6, opcodeF7, opcodeF8, opcodeF9, opcodeFA, opcodeFB, opcodeFC, opcodeFD, opcodeFE, opcodeFF,
+}
+
+// nes 6502 opcodes disassembly table
+var disasmOps = [256]func(*CPU, uint16) []byte{
+	disasmOpcode00, disasmOpcode01, disasmOpcode02, disasmOpcode03, disasmOpcode04, disasmOpcode05, disasmOpcode06, disasmOpcode07, disasmOpcode08, disasmOpcode09, disasmOpcode0A, disasmOpcode0B, disasmOpcode0C, disasmOpcode0D, disasmOpcode0E, disasmOpcode0F,
+	disasmOpcode10, disasmOpcode11, disasmOpcode12, disasmOpcode13, disasmOpcode14, disasmOpcode15, disasmOpcode16, disasmOpcode17, disasmOpcode18, disasmOpcode19, disasmOpcode1A, disasmOpcode1B, disasmOpcode1C, disasmOpcode1D, disasmOpcode1E, disasmOpcode1F,
+	disasmOpcode20, disasmOpcode21, disasmOpcode22, disasmOpcode23, disasmOpcode24, disasmOpcode25, disasmOpcode26, disasmOpcode27, disasmOpcode28, disasmOpcode29, disasmOpcode2A, disasmOpcode2B, disasmOpcode2C, disasmOpcode2D, disasmOpcode2E, disasmOpcode2F,
+	disasmOpcode30, disasmOpcode31, disasmOpcode32, disasmOpcode33, disasmOpcode34, disasmOpcode35, disasmOpcode36, disasmOpcode37, disasmOpcode38, disasmOpcode39, disasmOpcode3A, disasmOpcode3B, disasmOpcode3C, disasmOpcode3D, disasmOpcode3E, disasmOpcode3F,
+	disasmOpcode40, disasmOpcode41, disasmOpcode42, disasmOpcode43, disasmOpcode44, disasmOpcode45, disasmOpcode46, disasmOpcode47, disasmOpcode48, disasmOpcode49, disasmOpcode4A, disasmOpcode4B, disasmOpcode4C, disasmOpcode4D, disasmOpcode4E, disasmOpcode4F,
+	disasmOpcode50, disasmOpcode51, disasmOpcode52, disasmOpcode53, disasmOpcode54, disasmOpcode55, disasmOpcode56, disasmOpcode57, disasmOpcode58, disasmOpcode59, disasmOpcode5A, disasmOpcode5B, disasmOpcode5C, disasmOpcode5D, disasmOpcode5E, disasmOpcode5F,
+	disasmOpcode60, disasmOpcode61, disasmOpcode62, disasmOpcode63, disasmOpcode64, disasmOpcode65, disasmOpcode66, disasmOpcode67, disasmOpcode68, disasmOpcode69, disasmOpcode6A, disasmOpcode6B, disasmOpcode6C, disasmOpcode6D, disasmOpcode6E, disasmOpcode6F,
+	disasmOpcode70, disasmOpcode71, disasmOpcode72, disasmOpcode73, disasmOpcode74, disasmOpcode75, disasmOpcode76, disasmOpcode77, disasmOpcode78, disasmOpcode79, disasmOpcode7A, disasmOpcode7B, disasmOpcode7C, disasmOpcode7D, disasmOpcode7E, disasmOpcode7F,
+	disasmOpcode80, disasmOpcode81, disasmOpcode82, disasmOpcode83, disasmOpcode84, disasmOpcode85, disasmOpcode86, disasmOpcode87, disasmOpcode88, disasmOpcode89, disasmOpcode8A, disasmOpcode8B, disasmOpcode8C, disasmOpcode8D, disasmOpcode8E, disasmOpcode8F,
+	disasmOpcode90, disasmOpcode91, disasmOpcode92, disasmOpcode93, disasmOpcode94, disasmOpcode95, disasmOpcode96, disasmOpcode97, disasmOpcode98, disasmOpcode99, disasmOpcode9A, disasmOpcode9B, disasmOpcode9C, disasmOpcode9D, disasmOpcode9E, disasmOpcode9F,
+	disasmOpcodeA0, disasmOpcodeA1, disasmOpcodeA2, disasmOpcodeA3, disasmOpcodeA4, disasmOpcodeA5, disasmOpcodeA6, disasmOpcodeA7, disasmOpcodeA8, disasmOpcodeA9, disasmOpcodeAA, disasmOpcodeAB, disasmOpcodeAC, disasmOpcodeAD, disasmOpcodeAE, disasmOpcodeAF,
+	disasmOpcodeB0, disasmOpcodeB1, disasmOpcodeB2, disasmOpcodeB3, disasmOpcodeB4, disasmOpcodeB5, disasmOpcodeB6, disasmOpcodeB7, disasmOpcodeB8, disasmOpcodeB9, disasmOpcodeBA, disasmOpcodeBB, disasmOpcodeBC, disasmOpcodeBD, disasmOpcodeBE, disasmOpcodeBF,
+	disasmOpcodeC0, disasmOpcodeC1, disasmOpcodeC2, disasmOpcodeC3, disasmOpcodeC4, disasmOpcodeC5, disasmOpcodeC6, disasmOpcodeC7, disasmOpcodeC8, disasmOpcodeC9, disasmOpcodeCA, disasmOpcodeCB, disasmOpcodeCC, disasmOpcodeCD, disasmOpcodeCE, disasmOpcodeCF,
+	disasmOpcodeD0, disasmOpcodeD1, disasmOpcodeD2, disasmOpcodeD3, disasmOpcodeD4, disasmOpcodeD5, disasmOpcodeD6, disasmOpcodeD7, disasmOpcodeD8, disasmOpcodeD9, disasmOpcodeDA, disasmOpcodeDB, disasmOpcodeDC, disasmOpcodeDD, disasmOpcodeDE, disasmOpcodeDF,
+	disasmOpcodeE0, disasmOpcodeE1, disasmOpcodeE2, disasmOpcodeE3, disasmOpcodeE4, disasmOpcodeE5, disasmOpcodeE6, disasmOpcodeE7, disasmOpcodeE8, disasmOpcodeE9, disasmOpcodeEA, disasmOpcodeEB, disasmOpcodeEC, disasmOpcodeED, disasmOpcodeEE, disasmOpcodeEF,
+	disasmOpcodeF0, disasmOpcodeF1, disasmOpcodeF2, disasmOpcodeF3, disasmOpcodeF4, disasmOpcodeF5, disasmOpcodeF6, disasmOpcodeF7, disasmOpcodeF8, disasmOpcodeF9, disasmOpcodeFA, disasmOpcodeFB, disasmOpcodeFC, disasmOpcodeFD, disasmOpcodeFE, disasmOpcodeFF,
+}
+
+var opcodeNames = [256]string{
+	"BRK", "ORA", "JAM", "SLO", "NOP", "ORA", "ASL", "SLO", "PHP", "ORA", "ASL", "ANC", "NOP", "ORA", "ASL", "SLO",
+	"BPL", "ORA", "JAM", "SLO", "NOP", "ORA", "ASL", "SLO", "CLC", "ORA", "NOP", "SLO", "NOP", "ORA", "ASL", "SLO",
+	"JSR", "AND", "JAM", "RLA", "BIT", "AND", "ROL", "RLA", "PLP", "AND", "ROL", "ANC", "BIT", "AND", "ROL", "RLA",
+	"BMI", "AND", "JAM", "RLA", "NOP", "AND", "ROL", "RLA", "SEC", "AND", "NOP", "RLA", "NOP", "AND", "ROL", "RLA",
+	"RTI", "EOR", "JAM", "SRE", "NOP", "EOR", "LSR", "SRE", "PHA", "EOR", "LSR", "ALR", "JMP", "EOR", "LSR", "SRE",
+	"BVC", "EOR", "JAM", "SRE", "NOP", "EOR", "LSR", "SRE", "CLI", "EOR", "NOP", "SRE", "NOP", "EOR", "LSR", "SRE",
+	"RTS", "ADC", "JAM", "RRA", "NOP", "ADC", "ROR", "RRA", "PLA", "ADC", "ROR", "ARR", "JMP", "ADC", "ROR", "RRA",
+	"BVS", "ADC", "JAM", "RRA", "NOP", "ADC", "ROR", "RRA", "SEI", "ADC", "NOP", "RRA", "NOP", "ADC", "ROR", "RRA",
+	"NOP", "STA", "NOP", "SAX", "STY", "STA", "STX", "SAX", "DEY", "NOP", "TXA", "ANE", "STY", "STA", "STX", "SAX",
+	"BCC", "STA", "JAM", "SHA", "STY", "STA", "STX", "SAX", "TYA", "STA", "TXS", "TAS", "SHY", "STA", "SHX", "SHA",
+	"LDY", "LDA", "LDX", "LAX", "LDY", "LDA", "LDX", "LAX", "TAY", "LDA", "TAX", "LXA", "LDY", "LDA", "LDX", "LAX",
+	"BCS", "LDA", "JAM", "LAX", "LDY", "LDA", "LDX", "LAX", "CLV", "LDA", "TSX", "LAS", "LDY", "LDA", "LDX", "LAX",
+	"CPY", "CMP", "NOP", "DCP", "CPY", "CMP", "DEC", "DCP", "INY", "CMP", "DEX", "SBX", "CPY", "CMP", "DEC", "DCP",
+	"BNE", "CMP", "JAM", "DCP", "NOP", "CMP", "DEC", "DCP", "CLD", "CMP", "NOP", "DCP", "NOP", "CMP", "DEC", "DCP",
+	"CPX", "SBC", "NOP", "ISB", "CPX", "SBC", "INC", "ISB", "INX", "SBC", "NOP", "SBC", "CPX", "SBC", "INC", "ISB",
+	"BEQ", "SBC", "JAM", "ISB", "NOP", "SBC", "INC", "ISB", "SED", "SBC", "NOP", "ISB", "NOP", "SBC", "INC", "ISB",
 }

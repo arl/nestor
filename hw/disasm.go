@@ -315,17 +315,20 @@ func (d *disasm) read16(addr uint16) uint16 {
 func (d *disasm) op(pc uint16) {
 	d.bb.Reset()
 
+	// Write disassembly.
 	opcode := d.read8(pc)
-	opstr, nbytes := opsDisasm[opcode](d)
+	dis := disasmOps[opcode](d.cpu, pc)
+	d.bb.Write(dis)
 
-	var tmp []byte
-	for i := uint16(0); i < uint16(nbytes); i++ {
-		b := d.read8(pc + i)
-		tmp = append(tmp, fmt.Sprintf("%02X ", b)...)
-	}
+	// Write CPU state.
+	fmt.Fprintf(&d.bb, "%-*s A:%02X X:%02X Y:%02X P:%02X SP:%02X", 40-len(dis), "",
+		d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP)
 
-	fmt.Fprintf(&d.bb, "%04X  %-9s%-33sA:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3d,%3d CYC:%d\n",
-		pc, tmp, opstr, d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP, d.prevPPUScanline, d.prevPPUCycle, d.prevClock)
+	// Write PPU state.
+	fmt.Fprintf(&d.bb, " PPU:%3d,%3d CYC:%d",
+		d.prevPPUScanline, d.prevPPUCycle, d.prevClock)
+
+	d.bb.WriteByte('\n')
 	d.w.Write(d.bb.Bytes())
 }
 
