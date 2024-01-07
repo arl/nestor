@@ -53,7 +53,7 @@ func (nes *NES) Reset() {
 	nes.Hw.CPU.Reset()
 }
 
-func (nes *NES) AttachScreen() <-chan *image.RGBA {
+func (nes *NES) FrameEvents() <-chan *image.RGBA {
 	if nes.screenCh != nil {
 		panic("screen already attached")
 	}
