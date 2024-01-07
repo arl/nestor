@@ -1,6 +1,7 @@
+//go:build linux || darwin
 // +build linux darwin
 
-package logger
+package log
 
 import (
 	"syscall"

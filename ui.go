@@ -17,7 +17,7 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 
-	log "nestor/emu/logger"
+	"nestor/emu/log"
 	"nestor/hw"
 )
 

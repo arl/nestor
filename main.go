@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"nestor/emu/hwio"
-	log "nestor/emu/logger"
+	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/ines"
 )

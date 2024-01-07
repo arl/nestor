@@ -3,13 +3,13 @@ package main
 import (
 	"bytes"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
 	"unsafe"
 
 	"nestor/emu/hwio"
-	log "nestor/emu/logger"
 	"nestor/hw"
 	"nestor/ines"
 )

@@ -1,4 +1,4 @@
-package logger
+package log
 
 type LogContextAdder interface {
 	// Given a log entry being formed, add some context it

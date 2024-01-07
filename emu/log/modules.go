@@ -1,4 +1,4 @@
-package logger
+package log
 
 type ModuleMask uint64
 type Module uint

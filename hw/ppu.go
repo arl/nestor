@@ -4,7 +4,7 @@ import (
 	"image"
 
 	"nestor/emu/hwio"
-	log "nestor/emu/logger"
+	"nestor/emu/log"
 )
 
 const (
