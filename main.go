@@ -16,17 +16,17 @@ import (
 )
 
 func main() {
-	disasmLog := &outfile{}
+	traceLog := &outfile{}
 	romInfos := false
-	flagLogging := ""
+	logflag := ""
 	cpuprofile := ""
 	resetVector := int64(-1)
 
+	flag.BoolVar(&romInfos, "rominfos", false, "print infos about the iNes rom and exit")
+	flag.StringVar(&logflag, "log", "", "enable logging for specified modules")
+	flag.Var(traceLog, "trace", "write cpu trace log to [file|stdout|stderr] (warning: quickly gets very big)")
+	flag.Int64Var(&resetVector, "reset", -1, "overwrite CPU reset vector with (default: rom-defined)")
 	flag.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
-	flag.BoolVar(&romInfos, "infos", false, "print infos about the rom and exit")
-	flag.StringVar(&flagLogging, "log", "", "enable logging for specified modules")
-	flag.Var(disasmLog, "execlog", "write execution log to [file|stdout|stderr] (very very verbose")
-	flag.Int64Var(&resetVector, "reset", -1, "overwrite reset vector (default: use reset vector from rom")
 
 	flag.Parse()
 	if len(flag.Args()) < 1 {
@@ -46,9 +46,9 @@ func main() {
 		return
 	}
 
-	if flagLogging != "" {
+	if logflag != "" {
 		var modmask log.ModuleMask
-		for _, modname := range strings.Split(flagLogging, ",") {
+		for _, modname := range strings.Split(logflag, ",") {
 			if modname == "all" {
 				modmask |= log.ModuleMaskAll
 			} else if m, found := log.ModuleByName(modname); found {
@@ -87,9 +87,9 @@ func main() {
 	nes.Reset()
 
 	go func() {
-		if disasmLog.w != nil {
-			defer disasmLog.Close()
-			nes.RunDisasm(disasmLog)
+		if traceLog.w != nil {
+			defer traceLog.Close()
+			nes.RunDisasm(traceLog)
 		} else {
 			nes.Run()
 		}
