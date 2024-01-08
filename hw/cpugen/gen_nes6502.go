@@ -805,9 +805,6 @@ func insertPanic(g *Generator, msg string) {
 
 type Generator struct {
 	io.Writer
-	outbuf bytes.Buffer
-	out    io.Writer
-
 	unstable []uint8
 }
 
