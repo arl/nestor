@@ -4579,152 +4579,6 @@ var ops = [256]func(*CPU){
 	opcodeF0, opcodeF1, opcodeF2, opcodeF3, opcodeF4, opcodeF5, opcodeF6, opcodeF7, opcodeF8, opcodeF9, opcodeFA, opcodeFB, opcodeFC, opcodeFD, opcodeFE, opcodeFF,
 }
 
-func disasmImp(cpu *CPU, pc uint16, opname string) []byte {
-	var bb bytes.Buffer
-	fmt.Fprintf(&bb, "%04X  ", pc)
-	oper0 := cpu.Bus.Peek8(pc + 0)
-	fmt.Fprintf(&bb, "%02X ", oper0)
-	fmt.Fprintf(&bb, "%*s", 6, "")
-	bb.WriteString(opname)
-	return bb.Bytes()
-}
-
-func disasmZpx(cpu *CPU, pc uint16, opname string) []byte {
-	var bb bytes.Buffer
-	fmt.Fprintf(&bb, "%04X  ", pc)
-	oper0 := cpu.Bus.Peek8(pc + 0)
-	oper1 := cpu.Bus.Peek8(pc + 1)
-	fmt.Fprintf(&bb, "%02X ", oper0)
-	fmt.Fprintf(&bb, "%02X ", oper1)
-	fmt.Fprintf(&bb, "%*s", 3, "")
-	bb.WriteString(opname)
-	fmt.Fprintf(&bb, " $%02X", oper1)
-	return bb.Bytes()
-}
-
-func disasmInd(cpu *CPU, pc uint16, opname string) []byte {
-	var bb bytes.Buffer
-	fmt.Fprintf(&bb, "%04X  ", pc)
-	oper0 := cpu.Bus.Peek8(pc + 0)
-	oper1 := cpu.Bus.Peek8(pc + 1)
-	oper2 := cpu.Bus.Peek8(pc + 2)
-	fmt.Fprintf(&bb, "%02X ", oper0)
-	fmt.Fprintf(&bb, "%02X ", oper1)
-	fmt.Fprintf(&bb, "%02X ", oper2)
-	fmt.Fprintf(&bb, "%*s", 0, "")
-	oper16 := uint16(oper1) | uint16(oper2)<<8
-	bb.WriteString(opname)
-	fmt.Fprintf(&bb, " ($%04X)", oper16)
-	return bb.Bytes()
-}
-
-func disasmIzx(cpu *CPU, pc uint16, opname string) []byte {
-	var bb bytes.Buffer
-	fmt.Fprintf(&bb, "%04X  ", pc)
-	oper0 := cpu.Bus.Peek8(pc + 0)
-	oper1 := cpu.Bus.Peek8(pc + 1)
-	fmt.Fprintf(&bb, "%02X ", oper0)
-	fmt.Fprintf(&bb, "%02X ", oper1)
-	fmt.Fprintf(&bb, "%*s", 3, "")
-	bb.WriteString(opname)
-	fmt.Fprintf(&bb, " ($%02X,X)", oper1)
-	return bb.Bytes()
-}
-
-func disasmZpy(cpu *CPU, pc uint16, opname string) []byte {
-	var bb bytes.Buffer
-	fmt.Fprintf(&bb, "%04X  ", pc)
-	oper0 := cpu.Bus.Peek8(pc + 0)
-	oper1 := cpu.Bus.Peek8(pc + 1)
-	fmt.Fprintf(&bb, "%02X ", oper0)
-	fmt.Fprintf(&bb, "%02X ", oper1)
-	fmt.Fprintf(&bb, "%*s", 3, "")
-	bb.WriteString(opname)
-	fmt.Fprintf(&bb, " $%02X", oper1)
-	return bb.Bytes()
-}
-
-func disasmAcc(cpu *CPU, pc uint16, opname string) []byte {
-	var bb bytes.Buffer
-	fmt.Fprintf(&bb, "%04X  ", pc)
-	oper0 := cpu.Bus.Peek8(pc + 0)
-	fmt.Fprintf(&bb, "%02X ", oper0)
-	fmt.Fprintf(&bb, "%*s", 6, "")
-	bb.WriteString(opname)
-	fmt.Fprintf(&bb, " A")
-	return bb.Bytes()
-}
-
-func disasmRel(cpu *CPU, pc uint16, opname string) []byte {
-	var bb bytes.Buffer
-	fmt.Fprintf(&bb, "%04X  ", pc)
-	oper0 := cpu.Bus.Peek8(pc + 0)
-	oper1 := cpu.Bus.Peek8(pc + 1)
-	fmt.Fprintf(&bb, "%02X ", oper0)
-	fmt.Fprintf(&bb, "%02X ", oper1)
-	fmt.Fprintf(&bb, "%*s", 3, "")
-	bb.WriteString(opname)
-	off := int16(int8(oper1))
-	oper := uint16(int16(pc+2) + off)
-	fmt.Fprintf(&bb, " $%04X", oper)
-	return bb.Bytes()
-}
-
-func disasmAby(cpu *CPU, pc uint16, opname string) []byte {
-	var bb bytes.Buffer
-	fmt.Fprintf(&bb, "%04X  ", pc)
-	oper0 := cpu.Bus.Peek8(pc + 0)
-	oper1 := cpu.Bus.Peek8(pc + 1)
-	oper2 := cpu.Bus.Peek8(pc + 2)
-	fmt.Fprintf(&bb, "%02X ", oper0)
-	fmt.Fprintf(&bb, "%02X ", oper1)
-	fmt.Fprintf(&bb, "%02X ", oper2)
-	fmt.Fprintf(&bb, "%*s", 0, "")
-	oper16 := uint16(oper1) | uint16(oper2)<<8
-	bb.WriteString(opname)
-	fmt.Fprintf(&bb, " $%04X,Y", oper16)
-	return bb.Bytes()
-}
-
-func disasmImm(cpu *CPU, pc uint16, opname string) []byte {
-	var bb bytes.Buffer
-	fmt.Fprintf(&bb, "%04X  ", pc)
-	oper0 := cpu.Bus.Peek8(pc + 0)
-	oper1 := cpu.Bus.Peek8(pc + 1)
-	fmt.Fprintf(&bb, "%02X ", oper0)
-	fmt.Fprintf(&bb, "%02X ", oper1)
-	fmt.Fprintf(&bb, "%*s", 3, "")
-	bb.WriteString(opname)
-	fmt.Fprintf(&bb, " #$%02X", oper1)
-	return bb.Bytes()
-}
-
-func disasmIzy(cpu *CPU, pc uint16, opname string) []byte {
-	var bb bytes.Buffer
-	fmt.Fprintf(&bb, "%04X  ", pc)
-	oper0 := cpu.Bus.Peek8(pc + 0)
-	oper1 := cpu.Bus.Peek8(pc + 1)
-	fmt.Fprintf(&bb, "%02X ", oper0)
-	fmt.Fprintf(&bb, "%02X ", oper1)
-	fmt.Fprintf(&bb, "%*s", 3, "")
-	bb.WriteString(opname)
-	fmt.Fprintf(&bb, " ($%02X),Y", oper1)
-	return bb.Bytes()
-}
-
-func disasmZpg(cpu *CPU, pc uint16, opname string) []byte {
-	var bb bytes.Buffer
-	fmt.Fprintf(&bb, "%04X  ", pc)
-	oper0 := cpu.Bus.Peek8(pc + 0)
-	oper1 := cpu.Bus.Peek8(pc + 1)
-	fmt.Fprintf(&bb, "%02X ", oper0)
-	fmt.Fprintf(&bb, "%02X ", oper1)
-	fmt.Fprintf(&bb, "%*s", 3, "")
-	bb.WriteString(opname)
-	fmt.Fprintf(&bb, " $%02X", oper1)
-	return bb.Bytes()
-}
-
 func disasmAbs(cpu *CPU, pc uint16, opname string) []byte {
 	var bb bytes.Buffer
 	fmt.Fprintf(&bb, "%04X  ", pc)
@@ -4757,6 +4611,152 @@ func disasmAbx(cpu *CPU, pc uint16, opname string) []byte {
 	return bb.Bytes()
 }
 
+func disasmAby(cpu *CPU, pc uint16, opname string) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	bb.WriteString(opname)
+	fmt.Fprintf(&bb, " $%04X,Y", oper16)
+	return bb.Bytes()
+}
+
+func disasmAcc(cpu *CPU, pc uint16, opname string) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	bb.WriteString(opname)
+	fmt.Fprintf(&bb, " A")
+	return bb.Bytes()
+}
+
+func disasmImm(cpu *CPU, pc uint16, opname string) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	bb.WriteString(opname)
+	fmt.Fprintf(&bb, " #$%02X", oper1)
+	return bb.Bytes()
+}
+
+func disasmImp(cpu *CPU, pc uint16, opname string) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%*s", 6, "")
+	bb.WriteString(opname)
+	return bb.Bytes()
+}
+
+func disasmInd(cpu *CPU, pc uint16, opname string) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	oper2 := cpu.Bus.Peek8(pc + 2)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%02X ", oper2)
+	fmt.Fprintf(&bb, "%*s", 0, "")
+	oper16 := uint16(oper1) | uint16(oper2)<<8
+	bb.WriteString(opname)
+	fmt.Fprintf(&bb, " ($%04X)", oper16)
+	return bb.Bytes()
+}
+
+func disasmIzx(cpu *CPU, pc uint16, opname string) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	bb.WriteString(opname)
+	fmt.Fprintf(&bb, " ($%02X,X)", oper1)
+	return bb.Bytes()
+}
+
+func disasmIzy(cpu *CPU, pc uint16, opname string) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	bb.WriteString(opname)
+	fmt.Fprintf(&bb, " ($%02X),Y", oper1)
+	return bb.Bytes()
+}
+
+func disasmRel(cpu *CPU, pc uint16, opname string) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	bb.WriteString(opname)
+	off := int16(int8(oper1))
+	oper := uint16(int16(pc+2) + off)
+	fmt.Fprintf(&bb, " $%04X", oper)
+	return bb.Bytes()
+}
+
+func disasmZpg(cpu *CPU, pc uint16, opname string) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	bb.WriteString(opname)
+	fmt.Fprintf(&bb, " $%02X", oper1)
+	return bb.Bytes()
+}
+
+func disasmZpx(cpu *CPU, pc uint16, opname string) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	bb.WriteString(opname)
+	fmt.Fprintf(&bb, " $%02X", oper1)
+	return bb.Bytes()
+}
+
+func disasmZpy(cpu *CPU, pc uint16, opname string) []byte {
+	var bb bytes.Buffer
+	fmt.Fprintf(&bb, "%04X  ", pc)
+	oper0 := cpu.Bus.Peek8(pc + 0)
+	oper1 := cpu.Bus.Peek8(pc + 1)
+	fmt.Fprintf(&bb, "%02X ", oper0)
+	fmt.Fprintf(&bb, "%02X ", oper1)
+	fmt.Fprintf(&bb, "%*s", 3, "")
+	bb.WriteString(opname)
+	fmt.Fprintf(&bb, " $%02X", oper1)
+	return bb.Bytes()
+}
+
 // nes 6502 opcodes disassembly table
 var disasmOps = [256]func(*CPU, uint16) []byte{
 	disasmOpcode00, disasmOpcode01, disasmOpcode02, disasmOpcode03, disasmOpcode04, disasmOpcode05, disasmOpcode06, disasmOpcode07, disasmOpcode08, disasmOpcode09, disasmOpcode0A, disasmOpcode0B, disasmOpcode0C, disasmOpcode0D, disasmOpcode0E, disasmOpcode0F,
@@ -4775,4 +4775,23 @@ var disasmOps = [256]func(*CPU, uint16) []byte{
 	disasmOpcodeD0, disasmOpcodeD1, disasmOpcodeD2, disasmOpcodeD3, disasmOpcodeD4, disasmOpcodeD5, disasmOpcodeD6, disasmOpcodeD7, disasmOpcodeD8, disasmOpcodeD9, disasmOpcodeDA, disasmOpcodeDB, disasmOpcodeDC, disasmOpcodeDD, disasmOpcodeDE, disasmOpcodeDF,
 	disasmOpcodeE0, disasmOpcodeE1, disasmOpcodeE2, disasmOpcodeE3, disasmOpcodeE4, disasmOpcodeE5, disasmOpcodeE6, disasmOpcodeE7, disasmOpcodeE8, disasmOpcodeE9, disasmOpcodeEA, disasmOpcodeEB, disasmOpcodeEC, disasmOpcodeED, disasmOpcodeEE, disasmOpcodeEF,
 	disasmOpcodeF0, disasmOpcodeF1, disasmOpcodeF2, disasmOpcodeF3, disasmOpcodeF4, disasmOpcodeF5, disasmOpcodeF6, disasmOpcodeF7, disasmOpcodeF8, disasmOpcodeF9, disasmOpcodeFA, disasmOpcodeFB, disasmOpcodeFC, disasmOpcodeFD, disasmOpcodeFE, disasmOpcodeFF,
+}
+
+var opcodeNames = [256]string{
+	"BRK", "ORA", "JAM", "SLO", "NOP", "ORA", "ASL", "SLO", "PHP", "ORA", "ASL", "ANC", "NOP", "ORA", "ASL", "SLO",
+	"BPL", "ORA", "JAM", "SLO", "NOP", "ORA", "ASL", "SLO", "CLC", "ORA", "NOP", "SLO", "NOP", "ORA", "ASL", "SLO",
+	"JSR", "AND", "JAM", "RLA", "BIT", "AND", "ROL", "RLA", "PLP", "AND", "ROL", "ANC", "BIT", "AND", "ROL", "RLA",
+	"BMI", "AND", "JAM", "RLA", "NOP", "AND", "ROL", "RLA", "SEC", "AND", "NOP", "RLA", "NOP", "AND", "ROL", "RLA",
+	"RTI", "EOR", "JAM", "SRE", "NOP", "EOR", "LSR", "SRE", "PHA", "EOR", "LSR", "ALR", "JMP", "EOR", "LSR", "SRE",
+	"BVC", "EOR", "JAM", "SRE", "NOP", "EOR", "LSR", "SRE", "CLI", "EOR", "NOP", "SRE", "NOP", "EOR", "LSR", "SRE",
+	"RTS", "ADC", "JAM", "RRA", "NOP", "ADC", "ROR", "RRA", "PLA", "ADC", "ROR", "ARR", "JMP", "ADC", "ROR", "RRA",
+	"BVS", "ADC", "JAM", "RRA", "NOP", "ADC", "ROR", "RRA", "SEI", "ADC", "NOP", "RRA", "NOP", "ADC", "ROR", "RRA",
+	"NOP", "STA", "NOP", "SAX", "STY", "STA", "STX", "SAX", "DEY", "NOP", "TXA", "ANE", "STY", "STA", "STX", "SAX",
+	"BCC", "STA", "JAM", "SHA", "STY", "STA", "STX", "SAX", "TYA", "STA", "TXS", "TAS", "SHY", "STA", "SHX", "SHA",
+	"LDY", "LDA", "LDX", "LAX", "LDY", "LDA", "LDX", "LAX", "TAY", "LDA", "TAX", "LXA", "LDY", "LDA", "LDX", "LAX",
+	"BCS", "LDA", "JAM", "LAX", "LDY", "LDA", "LDX", "LAX", "CLV", "LDA", "TSX", "LAS", "LDY", "LDA", "LDX", "LAX",
+	"CPY", "CMP", "NOP", "DCP", "CPY", "CMP", "DEC", "DCP", "INY", "CMP", "DEX", "SBX", "CPY", "CMP", "DEC", "DCP",
+	"BNE", "CMP", "JAM", "DCP", "NOP", "CMP", "DEC", "DCP", "CLD", "CMP", "NOP", "DCP", "NOP", "CMP", "DEC", "DCP",
+	"CPX", "SBC", "NOP", "ISB", "CPX", "SBC", "INC", "ISB", "INX", "SBC", "NOP", "SBC", "CPX", "SBC", "INC", "ISB",
+	"BEQ", "SBC", "JAM", "ISB", "NOP", "SBC", "INC", "ISB", "SED", "SBC", "NOP", "ISB", "NOP", "SBC", "INC", "ISB",
 }

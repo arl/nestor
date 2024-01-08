@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -882,7 +883,14 @@ func (g *Generator) opcodes() {
 }
 
 func (g *Generator) disasmAddrModes() {
-	for name, am := range addrModes {
+	// order alphabetically to get deterministic output.
+	var modes []string
+	for k := range addrModes {
+		modes = append(modes, k)
+	}
+	sort.Strings(modes)
+	for _, name := range modes {
+		am := addrModes[name]
 		fname := strings.ToUpper(name[:1]) + name[1:]
 		g.printf(`func disasm%s(cpu*CPU, pc uint16, opname string) []byte {`, fname)
 		g.printf(`var bb bytes.Buffer`)
