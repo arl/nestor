@@ -28,8 +28,8 @@ func (d *disasm) Run(until int64) {
 	for d.cpu.Clock < until {
 		d.prevPC = d.cpu.PC
 		d.prevClock = d.cpu.Clock
-		d.prevPPUCycle = d.cpu.PPU.Cycle
-		d.prevPPUScanline = d.cpu.PPU.Scanline
+		d.prevPPUCycle = d.cpu.ppu.Cycle
+		d.prevPPUScanline = d.cpu.ppu.Scanline
 
 		pc := d.cpu.PC
 		opcode := d.cpu.Read8(d.cpu.PC)

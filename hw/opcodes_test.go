@@ -100,6 +100,7 @@ func testOpcodes(op string) func(t *testing.T) {
 				defer putSlice(slice)
 
 				cpu := NewCPU(NewPPU())
+				cpu.ppuAbsent = true
 				cpu.A = uint8(tt.Initial.A)
 				cpu.X = uint8(tt.Initial.X)
 				cpu.Y = uint8(tt.Initial.Y)

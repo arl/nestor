@@ -17,7 +17,9 @@ type CPU struct {
 	Bus   *hwio.Table
 	Ram   [0x800]byte // Internal RAM
 	Clock int64       // cycles
-	PPU   *PPU        // tick callback
+
+	ppu       *PPU
+	ppuAbsent bool // allow to disconnect PPU during CPU tests
 
 	// cpu registers
 	A, X, Y, SP uint8
@@ -41,7 +43,7 @@ func NewCPU(ppu *PPU) *CPU {
 		// SP:  0xFD,
 		P:   0x00,
 		PC:  0x0000,
-		PPU: ppu,
+		ppu: ppu,
 	}
 	return cpu
 }
@@ -55,7 +57,7 @@ func (c *CPU) InitBus() {
 
 	// 0x2000-0x3FFF -> PPU registers, mirrored.
 	for i := uint16(0x2000); i < 0x4000; i += 8 {
-		c.Bus.MapBank(i, c.PPU, 1)
+		c.Bus.MapBank(i, c.ppu, 1)
 	}
 
 	// 0x4000-0x4017 -> APU and IO registers.
@@ -103,9 +105,14 @@ func (c *CPU) Run(until int64) {
 }
 
 func (c *CPU) tick() {
-	c.PPU.Tick()
-	c.PPU.Tick()
-	c.PPU.Tick()
+	if c.ppuAbsent {
+		c.Clock++
+		return
+	}
+
+	c.ppu.Tick()
+	c.ppu.Tick()
+	c.ppu.Tick()
 	c.Clock++
 }
 
