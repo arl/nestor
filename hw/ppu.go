@@ -142,6 +142,7 @@ type PPU struct {
 
 	// VRAM read/write
 	vramAddr    uint16
+	vramTmp     uint16
 	writeLatch  bool
 	ppuDataRbuf uint8
 
@@ -286,6 +287,12 @@ func (p *PPU) WritePPUCTRL(old, val uint8) {
 	} else if p.PPUSTATUS.GetBit(vblank) {
 		p.CPU.setNMIflag()
 	}
+
+	// Transfer the nametable bits.
+	p.vramTmp &^= ntselect << 10
+	p.vramTmp |= (uint16(val) & ntselect) << 10
+
+	p.PPUCTRL.Value = val
 }
 
 // PPUMASK: $2001
@@ -309,26 +316,39 @@ func (ppu *PPU) ReadPPUSTATUS(val uint8) uint8 {
 // PPUSCROLL: $2005
 func (p *PPU) WritePPUSCROLL(old, val uint8) {
 	log.ModPPU.DebugZ("Write to PPUSCROLL").Hex8("val", val).End()
+
+	if !p.writeLatch { // first write
+		p.bg.finex = val & 0b111
+		p.vramTmp &^= 0b1_1111
+		p.vramTmp |= uint16(val >> 3)
+	} else { // second write
+		p.vramTmp &^= 0b0111_0011_1110_0000
+		p.vramTmp |= uint16(val&0b111) << 12
+		p.vramTmp |= uint16(val&0b1111_1000) << 2
+	}
+
+	p.writeLatch = !p.writeLatch
 }
 
 // To read/write VRAM from CPU, PPUADDR is set to the address of the operation.
 // It's a 16-bit register so 2 writes are necessary.
 // PPUADDR: $2006
 func (p *PPU) WritePPUADDR(old, val uint8) {
-	if p.writeLatch {
-		// Lower address byte.
-		p.vramAddr = p.vramAddr&(0xff00) | uint16(val)
-	} else {
-		// Upper address byte.
-		p.vramAddr = p.vramAddr&0x00ff | uint16(val)<<8
+	if !p.writeLatch { //first write
+		p.vramTmp &^= 0b11_1111_0000_0000
+		p.vramTmp |= uint16(val&0b11_1111) << 8
+		p.vramTmp &^= 1 << 14 // clear z bit
+	} else { // second write
+		p.vramTmp &^= 0xff
+		p.vramTmp |= uint16(val)
+		p.vramAddr = p.vramTmp
 	}
+
 	p.writeLatch = !p.writeLatch
 }
 
 // PPUDATA: $2007
 func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
-	defer p.incVRAMaddr()
-
 	var val uint8
 	switch {
 	case p.vramAddr < 0x3EFF:
@@ -344,6 +364,7 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 		p.ppuDataRbuf = val
 	}
 
+	p.incVRAMaddr()
 	log.ModPPU.DebugZ("VRAM read").
 		Hex16("addr", p.vramAddr).
 		Hex8("val", val).
@@ -353,24 +374,28 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 
 // PPUDATA: $2007
 func (p *PPU) WritePPUDATA(old, val uint8) {
-	defer p.incVRAMaddr()
-
 	// Mirror down address (only $000-$3fff range is valid).
 	p.vramAddr &= 0x3fff
+	p.Bus.Write8(p.vramAddr, val)
+	p.incVRAMaddr()
+
 	log.ModPPU.DebugZ("VRAM write").
 		Hex16("addr", p.vramAddr).
 		Hex8("val", val).
 		End()
-
-	p.Bus.Write8(p.vramAddr, val)
 }
 
 // After each i/o on PPUDATA, PPPUADDR is incremented.
 func (p *PPU) incVRAMaddr() {
-	// vram address increment
+	if p.Scanline < 240 {
+		return
+	}
+
+	// Increment VRAM address.
+	incr := uint16(1)
 	if p.PPUCTRL.GetBit(vramIncr) {
 		p.vramAddr += 32
-	} else {
-		p.vramAddr++
 	}
+	p.vramAddr = (p.vramAddr + incr) & 0x7fff
+}
 }
