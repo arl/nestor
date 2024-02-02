@@ -141,6 +141,13 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 	}
 }
 
+func b2i(b bool) byte {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 type dumpline struct {
 	off   uint16
 	len   uint16 // actual length

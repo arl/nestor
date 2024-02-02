@@ -59,7 +59,7 @@ func opcode03(cpu *CPU) {
 	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -105,7 +105,7 @@ func opcode06(cpu *CPU) {
 	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.Write8(oper, val)
 }
 
@@ -123,7 +123,7 @@ func opcode07(cpu *CPU) {
 	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -136,8 +136,7 @@ func disasmOpcode07(cpu *CPU, pc uint16) []byte {
 // PHP - implied addressing.
 func opcode08(cpu *CPU) {
 	cpu.tick()
-	p := cpu.P
-	p |= (1 << pbitB) | (1 << pbitU)
+	p := cpu.P.SetB(true).SetU(true)
 	cpu.push8(uint8(p))
 }
 
@@ -166,7 +165,7 @@ func opcode0A(cpu *CPU) {
 	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A = val
 }
 
@@ -182,7 +181,7 @@ func opcode0B(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
-	cpu.P.writeBit(pbitC, cpu.P.N())
+	cpu.P = cpu.P.SetC(cpu.P.N())
 }
 
 func disasmOpcode0B(cpu *CPU, pc uint16) []byte {
@@ -225,7 +224,7 @@ func opcode0E(cpu *CPU) {
 	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.Write8(oper, val)
 }
 
@@ -243,7 +242,7 @@ func opcode0F(cpu *CPU) {
 	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -332,7 +331,7 @@ func opcode13(cpu *CPU) {
 	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -387,7 +386,7 @@ func opcode16(cpu *CPU) {
 	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.Write8(oper, val)
 }
 
@@ -408,7 +407,7 @@ func opcode17(cpu *CPU) {
 	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -469,7 +468,7 @@ func opcode1B(cpu *CPU) {
 	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -525,7 +524,7 @@ func opcode1E(cpu *CPU) {
 	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.Write8(oper, val)
 }
 
@@ -545,7 +544,7 @@ func opcode1F(cpu *CPU) {
 	val = (val << 1) & 0xfe
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -621,7 +620,7 @@ func opcode23(cpu *CPU) {
 	}
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -673,7 +672,7 @@ func opcode26(cpu *CPU) {
 	}
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.Write8(oper, val)
 }
 
@@ -694,7 +693,7 @@ func opcode27(cpu *CPU) {
 	}
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -742,7 +741,7 @@ func opcode2A(cpu *CPU) {
 	}
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A = val
 }
 
@@ -758,7 +757,7 @@ func opcode2B(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
-	cpu.P.writeBit(pbitC, cpu.P.N())
+	cpu.P = cpu.P.SetC(cpu.P.N())
 }
 
 func disasmOpcode2B(cpu *CPU, pc uint16) []byte {
@@ -807,7 +806,7 @@ func opcode2E(cpu *CPU) {
 	}
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.Write8(oper, val)
 }
 
@@ -828,7 +827,7 @@ func opcode2F(cpu *CPU) {
 	}
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -920,7 +919,7 @@ func opcode33(cpu *CPU) {
 	}
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -978,7 +977,7 @@ func opcode36(cpu *CPU) {
 	}
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.Write8(oper, val)
 }
 
@@ -1002,7 +1001,7 @@ func opcode37(cpu *CPU) {
 	}
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -1066,7 +1065,7 @@ func opcode3B(cpu *CPU) {
 	}
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -1125,7 +1124,7 @@ func opcode3E(cpu *CPU) {
 	}
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.Write8(oper, val)
 }
 
@@ -1148,7 +1147,7 @@ func opcode3F(cpu *CPU) {
 	}
 	cpu.tick()
 	cpu.P.checkNZ(val)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -1223,7 +1222,7 @@ func opcode43(cpu *CPU) {
 		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1271,7 +1270,7 @@ func opcode46(cpu *CPU) {
 		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.Write8(oper, val)
 }
@@ -1291,7 +1290,7 @@ func opcode47(cpu *CPU) {
 		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1334,7 +1333,7 @@ func opcode4A(cpu *CPU) {
 		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.A = val
 }
@@ -1354,7 +1353,7 @@ func opcode4B(cpu *CPU) {
 	carry := cpu.A & 0x01 // carry is bit 0
 	cpu.A = (cpu.A >> 1) & 0x7f
 	cpu.P.checkNZ(cpu.A)
-	cpu.P.writeBit(pbitC, carry != 0)
+	cpu.P = cpu.P.SetC(carry != 0)
 }
 
 func disasmOpcode4B(cpu *CPU, pc uint16) []byte {
@@ -1398,7 +1397,7 @@ func opcode4E(cpu *CPU) {
 		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.Write8(oper, val)
 }
@@ -1418,7 +1417,7 @@ func opcode4F(cpu *CPU) {
 		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1509,7 +1508,7 @@ func opcode53(cpu *CPU) {
 		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1566,7 +1565,7 @@ func opcode56(cpu *CPU) {
 		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.Write8(oper, val)
 }
@@ -1589,7 +1588,7 @@ func opcode57(cpu *CPU) {
 		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1652,7 +1651,7 @@ func opcode5B(cpu *CPU) {
 		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1710,7 +1709,7 @@ func opcode5E(cpu *CPU) {
 		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.Write8(oper, val)
 }
@@ -1732,7 +1731,7 @@ func opcode5F(cpu *CPU) {
 		val = (val >> 1) & 0x7f
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1768,7 +1767,10 @@ func opcode61(cpu *CPU) {
 	oper = uint16(hi)<<8 | uint16(lo)
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -1812,9 +1814,12 @@ func opcode63(cpu *CPU) {
 		}
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -1844,7 +1849,10 @@ func opcode65(cpu *CPU) {
 	cpu.PC++
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -1869,7 +1877,7 @@ func opcode66(cpu *CPU) {
 		}
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.Write8(oper, val)
 }
@@ -1892,9 +1900,12 @@ func opcode67(cpu *CPU) {
 		}
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -1924,7 +1935,10 @@ func opcode69(cpu *CPU) {
 	cpu.PC++
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -1946,7 +1960,7 @@ func opcode6A(cpu *CPU) {
 		}
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.A = val
 }
@@ -1963,12 +1977,12 @@ func opcode6B(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.A &= val
 	cpu.A >>= 1
-	cpu.P.writeBit(pbitV, (cpu.A>>6)^(cpu.A>>5)&0x01 != 0)
+	cpu.P = cpu.P.SetV((cpu.A>>6)^(cpu.A>>5)&0x01 != 0)
 	if cpu.P.C() {
 		cpu.A |= 1 << 7
 	}
 	cpu.P.checkNZ(cpu.A)
-	cpu.P.writeBit(pbitC, cpu.A&(1<<6) != 0)
+	cpu.P = cpu.P.SetC(cpu.A&(1<<6) != 0)
 }
 
 func disasmOpcode6B(cpu *CPU, pc uint16) []byte {
@@ -1996,7 +2010,10 @@ func opcode6D(cpu *CPU) {
 	cpu.PC += 2
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -2021,7 +2038,7 @@ func opcode6E(cpu *CPU) {
 		}
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.Write8(oper, val)
 }
@@ -2044,9 +2061,12 @@ func opcode6F(cpu *CPU) {
 		}
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -2099,7 +2119,10 @@ func opcode71(cpu *CPU) {
 	oper += uint16(cpu.Y)
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -2144,9 +2167,12 @@ func opcode73(cpu *CPU) {
 		}
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -2182,7 +2208,10 @@ func opcode75(cpu *CPU) {
 	oper &= 0xff
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -2210,7 +2239,7 @@ func opcode76(cpu *CPU) {
 		}
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.Write8(oper, val)
 }
@@ -2236,9 +2265,12 @@ func opcode77(cpu *CPU) {
 		}
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -2271,7 +2303,10 @@ func opcode79(cpu *CPU) {
 	}
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -2308,9 +2343,12 @@ func opcode7B(cpu *CPU) {
 		}
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -2348,7 +2386,10 @@ func opcode7D(cpu *CPU) {
 	}
 	_ = oper
 	val := cpu.Read8(oper)
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -2375,7 +2416,7 @@ func opcode7E(cpu *CPU) {
 		}
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
 	cpu.Write8(oper, val)
 }
@@ -2400,9 +2441,12 @@ func opcode7F(cpu *CPU) {
 		}
 		cpu.tick()
 		cpu.P.checkNZ(val)
-		cpu.P.writeBit(pbitC, carry != 0)
+		cpu.P = cpu.P.SetC(carry != 0)
 	}
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -3397,7 +3441,7 @@ func opcodeC0(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.Y - val)
-	cpu.P.writeBit(pbitC, val <= cpu.Y)
+	cpu.P = cpu.P.SetC(val <= cpu.Y)
 }
 
 func disasmOpcodeC0(cpu *CPU, pc uint16) []byte {
@@ -3417,7 +3461,7 @@ func opcodeC1(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 }
 
 func disasmOpcodeC1(cpu *CPU, pc uint16) []byte {
@@ -3452,7 +3496,7 @@ func opcodeC3(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -3467,7 +3511,7 @@ func opcodeC4(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.Y - val)
-	cpu.P.writeBit(pbitC, val <= cpu.Y)
+	cpu.P = cpu.P.SetC(val <= cpu.Y)
 }
 
 func disasmOpcodeC4(cpu *CPU, pc uint16) []byte {
@@ -3481,7 +3525,7 @@ func opcodeC5(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 }
 
 func disasmOpcodeC5(cpu *CPU, pc uint16) []byte {
@@ -3514,7 +3558,7 @@ func opcodeC7(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -3540,7 +3584,7 @@ func opcodeC9(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 }
 
 func disasmOpcodeC9(cpu *CPU, pc uint16) []byte {
@@ -3567,7 +3611,7 @@ func opcodeCB(cpu *CPU) {
 	ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)
 	cpu.X = uint8(ival)
 	cpu.P.checkNZ(uint8(ival))
-	cpu.P.writeBit(pbitC, ival >= 0)
+	cpu.P = cpu.P.SetC(ival >= 0)
 }
 
 func disasmOpcodeCB(cpu *CPU, pc uint16) []byte {
@@ -3581,7 +3625,7 @@ func opcodeCC(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.Y - val)
-	cpu.P.writeBit(pbitC, val <= cpu.Y)
+	cpu.P = cpu.P.SetC(val <= cpu.Y)
 }
 
 func disasmOpcodeCC(cpu *CPU, pc uint16) []byte {
@@ -3595,7 +3639,7 @@ func opcodeCD(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 }
 
 func disasmOpcodeCD(cpu *CPU, pc uint16) []byte {
@@ -3628,7 +3672,7 @@ func opcodeCF(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -3678,7 +3722,7 @@ func opcodeD1(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 }
 
 func disasmOpcodeD1(cpu *CPU, pc uint16) []byte {
@@ -3715,7 +3759,7 @@ func opcodeD3(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -3748,7 +3792,7 @@ func opcodeD5(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 }
 
 func disasmOpcodeD5(cpu *CPU, pc uint16) []byte {
@@ -3787,7 +3831,7 @@ func opcodeD7(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -3817,7 +3861,7 @@ func opcodeD9(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 }
 
 func disasmOpcodeD9(cpu *CPU, pc uint16) []byte {
@@ -3846,7 +3890,7 @@ func opcodeDB(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -3881,7 +3925,7 @@ func opcodeDD(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 }
 
 func disasmOpcodeDD(cpu *CPU, pc uint16) []byte {
@@ -3918,7 +3962,7 @@ func opcodeDF(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.writeBit(pbitC, val <= cpu.A)
+	cpu.P = cpu.P.SetC(val <= cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -3933,7 +3977,7 @@ func opcodeE0(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
-	cpu.P.writeBit(pbitC, val <= cpu.X)
+	cpu.P = cpu.P.SetC(val <= cpu.X)
 }
 
 func disasmOpcodeE0(cpu *CPU, pc uint16) []byte {
@@ -3953,7 +3997,10 @@ func opcodeE1(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -3993,7 +4040,10 @@ func opcodeE3(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	final := val
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4013,7 +4063,7 @@ func opcodeE4(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
-	cpu.P.writeBit(pbitC, val <= cpu.X)
+	cpu.P = cpu.P.SetC(val <= cpu.X)
 }
 
 func disasmOpcodeE4(cpu *CPU, pc uint16) []byte {
@@ -4027,7 +4077,10 @@ func opcodeE5(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4065,7 +4118,10 @@ func opcodeE7(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	final := val
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4096,7 +4152,10 @@ func opcodeE9(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4123,7 +4182,10 @@ func opcodeEB(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4141,7 +4203,7 @@ func opcodeEC(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
-	cpu.P.writeBit(pbitC, val <= cpu.X)
+	cpu.P = cpu.P.SetC(val <= cpu.X)
 }
 
 func disasmOpcodeEC(cpu *CPU, pc uint16) []byte {
@@ -4155,7 +4217,10 @@ func opcodeED(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4193,7 +4258,10 @@ func opcodeEF(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	final := val
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4248,7 +4316,10 @@ func opcodeF1(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4290,7 +4361,10 @@ func opcodeF3(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	final := val
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4328,7 +4402,10 @@ func opcodeF5(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4372,7 +4449,10 @@ func opcodeF7(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	final := val
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4407,7 +4487,10 @@ func opcodeF9(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4441,7 +4524,10 @@ func opcodeFB(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	final := val
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4481,7 +4567,10 @@ func opcodeFD(cpu *CPU) {
 	_ = oper
 	val := cpu.Read8(oper)
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
@@ -4523,7 +4612,10 @@ func opcodeFF(cpu *CPU) {
 	cpu.P.checkNZ(val)
 	final := val
 	val ^= 0xff
-	carry := cpu.P.ibit(pbitC)
+	var carry uint16
+	if cpu.P.C() {
+		carry = 1
+	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)

@@ -9,12 +9,12 @@ func TestPflag(t *testing.T) {
 		t.Errorf("got P = %q, want %q", p.String(), P(0x40))
 	}
 
-	p |= 1 << pbitI
+	p = p.SetI(true)
 	if p != 0x44 {
 		t.Errorf("got P = %q, want %q", p.String(), P(0x44))
 	}
 
-	p |= 1 << pbitB
+	p = p.SetB(true)
 	if p != 0x54 {
 		t.Errorf("got P = %q, want %q", p.String(), P(0x54))
 	}

@@ -74,8 +74,7 @@ func (c *CPU) Reset() {
 	c.X = 0x00
 	c.Y = 0x00
 	c.SP = 0xFD
-	c.P = 0x00
-	c.P.setBit(pbitI)
+	c.P = c.P.SetI(true)
 	c.runIRQ = false
 	c.Clock = -1
 	// Directly read from the bus to prevent clock ticks.
@@ -187,7 +186,7 @@ func (c *CPU) handleInterrupts() {
 	// second-to-last cycle that matters. Keep the IRQ lines values from the
 	// previous cycle. The before-to-last cycle's values will be used.
 	c.prevRunIRQ = c.runIRQ
-	c.runIRQ = c.irqFlag && !c.P.bit(pbitI)
+	c.runIRQ = c.irqFlag && !c.P.I()
 }
 
 func BRK(cpu *CPU) {
@@ -195,17 +194,15 @@ func BRK(cpu *CPU) {
 
 	cpu.push16(cpu.PC + 1)
 
-	p := cpu.P
-	p.setBit(pbitB)
-	p.setBit(pbitU)
+	p := cpu.P.SetB(true).SetU(true)
 	if cpu.needNmi {
 		cpu.needNmi = false
 		cpu.push8(uint8(p))
-		cpu.P.setBit(pbitI)
+		cpu.P = cpu.P.SetI(true)
 		cpu.PC = cpu.Read16(CpuNMIvector)
 	} else {
 		cpu.push8(uint8(p))
-		cpu.P.setBit(pbitI)
+		cpu.P = cpu.P.SetI(true)
 		cpu.PC = cpu.Read16(CpuIRQvector)
 	}
 
@@ -222,113 +219,16 @@ func (c *CPU) IRQ() {
 
 	if c.needNmi {
 		c.needNmi = false
-		p := c.P
-		p.setBit(pbitB)
+		p := c.P.SetB(true)
 		c.push8(uint8(p))
-		c.P.setBit(pbitI)
+		c.P = c.P.SetI(true)
 		c.PC = c.Read16(CpuNMIvector)
 		// TODO inform the debugger we just had an NMI
 	} else {
-		p := c.P
-		p.setBit(pbitB)
+		p := c.P.SetB(true)
 		c.push8(uint8(p))
-		c.P.setBit(pbitI)
+		c.P = c.P.SetI(true)
 		c.PC = c.Read16(CpuIRQvector)
 		// TODO inform the debugger we just had an IRQ
 	}
-}
-
-/* Processor Status Register */
-
-// P is the 6502 Processor Status Register.
-type P uint8
-
-func (p *P) clear() {
-	// only the unused bit is set
-	*p = 0x40
-}
-
-const (
-	pbitN = 7 - iota // Negative flag
-	pbitV            // oVerflow flag
-	pbitU            // Unused
-	pbitB            // Break flag
-	pbitD            // Decimal mode flag
-	pbitI            // Interrupt disable flag
-	pbitZ            // Zero flag
-	pbitC            // Carry flag
-)
-
-func (p P) N() bool { return p&(1<<pbitN) != 0 }
-func (p P) V() bool { return p&(1<<pbitV) != 0 }
-func (p P) B() bool { return p&(1<<pbitB) != 0 }
-func (p P) D() bool { return p&(1<<pbitD) != 0 }
-func (p P) I() bool { return p&(1<<pbitI) != 0 }
-func (p P) Z() bool { return p&(1<<pbitZ) != 0 }
-func (p P) C() bool { return p&(1<<pbitC) != 0 }
-
-func (p *P) checkNZ(v uint8) {
-	p.writeBit(pbitN, v&0x80 != 0)
-	p.writeBit(pbitZ, v == 0)
-}
-
-// sets N flag if bit 7 of v is set, clears it otherwise.
-func (p *P) checkN(v uint8) {
-	p.writeBit(pbitN, v&(1<<7) != 0)
-}
-
-// sets Z flag if v == 0, clears it otherwise.
-func (p *P) checkZ(v uint8) {
-	p.writeBit(pbitZ, v == 0)
-}
-
-func (p *P) checkCV(x, y uint8, sum uint16) {
-	// forward carry or unsigned overflow.
-	p.writeBit(pbitC, sum > 0xFF)
-
-	// signed overflow, can only happen if the sign of the sum differs
-	// from that of both operands.
-	v := (uint16(x) ^ sum) & (uint16(y) ^ sum) & 0x80
-	p.writeBit(pbitV, v != 0)
-}
-
-func (p *P) writeBit(i int, v bool) {
-	if v {
-		p.setBit(i)
-	} else {
-		p.clearBit(i)
-	}
-}
-
-func (p *P) setBit(i int) {
-	*p |= P(1 << i)
-}
-
-func (p *P) clearBit(i int) {
-	*p &= ^(1 << i) & 0xff
-}
-
-func (p *P) ibit(i int) uint8 {
-	return (uint8(*p) & (1 << i)) >> i
-}
-
-func (p P) bit(i int) bool {
-	return p&(1<<i) != 0
-}
-
-func (p P) String() string {
-	const bits = "nvubdizcNVUBDIZC"
-
-	s := make([]byte, 8)
-	for i := 0; i < 8; i++ {
-		s[i] = bits[i+int(8*p.ibit(7-i))]
-	}
-	return string(s)
-}
-
-func b2i(b bool) byte {
-	if b {
-		return 1
-	}
-	return 0
 }
