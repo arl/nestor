@@ -253,7 +253,7 @@ func TestROR(t *testing.T) {
 FFFC: 00 01`
 		cpu := loadCPUWith(t, dump)
 		cpu.A = 0x80
-		cpu.P = cpu.P.SetC(true)
+		cpu.P = cpu.P.SetCarry(true)
 		runAndCheckState(t, cpu, 5,
 			"Pn", 1,
 			"Pc", 1,

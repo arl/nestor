@@ -4,11 +4,11 @@ package hw
 
 type P uint8
 
-func (s P) C() bool {
+func (s P) Carry() bool {
 	return s&0x1 != 0
 }
 
-func (s P) SetC(val bool) P {
+func (s P) SetCarry(val bool) P {
 	var ival P
 	if val {
 		ival = 1
@@ -16,11 +16,11 @@ func (s P) SetC(val bool) P {
 	return s&^0x1 | ival<<0
 }
 
-func (s P) Z() bool {
+func (s P) Zero() bool {
 	return s&0x2 != 0
 }
 
-func (s P) SetZ(val bool) P {
+func (s P) SetZero(val bool) P {
 	var ival P
 	if val {
 		ival = 1
@@ -28,11 +28,11 @@ func (s P) SetZ(val bool) P {
 	return s&^0x2 | ival<<1
 }
 
-func (s P) I() bool {
+func (s P) IntDisable() bool {
 	return s&0x4 != 0
 }
 
-func (s P) SetI(val bool) P {
+func (s P) SetIntDisable(val bool) P {
 	var ival P
 	if val {
 		ival = 1
@@ -40,11 +40,11 @@ func (s P) SetI(val bool) P {
 	return s&^0x4 | ival<<2
 }
 
-func (s P) D() bool {
+func (s P) Decimal() bool {
 	return s&0x8 != 0
 }
 
-func (s P) SetD(val bool) P {
+func (s P) SetDecimal(val bool) P {
 	var ival P
 	if val {
 		ival = 1
@@ -52,11 +52,11 @@ func (s P) SetD(val bool) P {
 	return s&^0x8 | ival<<3
 }
 
-func (s P) B() bool {
+func (s P) Break() bool {
 	return s&0x10 != 0
 }
 
-func (s P) SetB(val bool) P {
+func (s P) SetBreak(val bool) P {
 	var ival P
 	if val {
 		ival = 1
@@ -64,11 +64,11 @@ func (s P) SetB(val bool) P {
 	return s&^0x10 | ival<<4
 }
 
-func (s P) U() bool {
+func (s P) Unused() bool {
 	return s&0x20 != 0
 }
 
-func (s P) SetU(val bool) P {
+func (s P) SetUnused(val bool) P {
 	var ival P
 	if val {
 		ival = 1
@@ -76,11 +76,11 @@ func (s P) SetU(val bool) P {
 	return s&^0x20 | ival<<5
 }
 
-func (s P) V() bool {
+func (s P) Overflow() bool {
 	return s&0x40 != 0
 }
 
-func (s P) SetV(val bool) P {
+func (s P) SetOverflow(val bool) P {
 	var ival P
 	if val {
 		ival = 1
@@ -88,11 +88,11 @@ func (s P) SetV(val bool) P {
 	return s&^0x40 | ival<<6
 }
 
-func (s P) N() bool {
+func (s P) Negative() bool {
 	return s&0x80 != 0
 }
 
-func (s P) SetN(val bool) P {
+func (s P) SetNegative(val bool) P {
 	var ival P
 	if val {
 		ival = 1

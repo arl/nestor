@@ -3,49 +3,44 @@ package hw
 import "testing"
 
 func TestPflag(t *testing.T) {
-	p := P(0x34)
-	p.clear()
-	if p != 0x40 {
-		t.Errorf("got P = %q, want %q", p.String(), P(0x40))
-	}
-
-	p = p.SetI(true)
+	p := P(0x40)
+	p = p.SetIntDisable(true)
 	if p != 0x44 {
 		t.Errorf("got P = %q, want %q", p.String(), P(0x44))
 	}
 
-	p = p.SetB(true)
+	p = p.SetBreak(true)
 	if p != 0x54 {
 		t.Errorf("got P = %q, want %q", p.String(), P(0x54))
 	}
 
 	// Negative flag
 	p.checkN(0xff)
-	if !p.N() {
+	if !p.Negative() {
 		t.Error("N bit should be set")
 	}
 	p.checkN(0x7f)
-	if p.N() {
+	if p.Negative() {
 		t.Error("N bit should not be set")
 	}
 	p.checkN(0x80)
-	if !p.N() {
+	if !p.Negative() {
 		t.Error("N bit should be set")
 	}
 
 	// Zero flag
 	p.checkZ(0)
-	if !p.Z() {
+	if !p.Zero() {
 		t.Error("Z bit should be set")
 	}
 
 	p.checkZ(1)
-	if p.Z() {
+	if p.Zero() {
 		t.Error("Z bit should not be set")
 	}
 
 	p.checkZ(0xff)
-	if p.Z() {
+	if p.Zero() {
 		t.Error("Z bit should not be set")
 	}
 }
