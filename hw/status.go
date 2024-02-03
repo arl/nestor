@@ -4,98 +4,98 @@ package hw
 
 type P uint8
 
-func (s P) Carry() bool {
-	return s&0x1 != 0
+func (p P) carry() bool {
+	return p&0x1 != 0
 }
 
-func (s P) SetCarry(val bool) P {
+func (p P) setCarry(val bool) P {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return s&^0x1 | ival<<0
+	return p&^0x1 | ival<<0
 }
 
-func (s P) Zero() bool {
-	return s&0x2 != 0
+func (p P) zero() bool {
+	return p&0x2 != 0
 }
 
-func (s P) SetZero(val bool) P {
+func (p P) setZero(val bool) P {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return s&^0x2 | ival<<1
+	return p&^0x2 | ival<<1
 }
 
-func (s P) IntDisable() bool {
-	return s&0x4 != 0
+func (p P) intDisable() bool {
+	return p&0x4 != 0
 }
 
-func (s P) SetIntDisable(val bool) P {
+func (p P) setIntDisable(val bool) P {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return s&^0x4 | ival<<2
+	return p&^0x4 | ival<<2
 }
 
-func (s P) Decimal() bool {
-	return s&0x8 != 0
+func (p P) decimal() bool {
+	return p&0x8 != 0
 }
 
-func (s P) SetDecimal(val bool) P {
+func (p P) setDecimal(val bool) P {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return s&^0x8 | ival<<3
+	return p&^0x8 | ival<<3
 }
 
-func (s P) Break() bool {
-	return s&0x10 != 0
+func (p P) b() bool {
+	return p&0x10 != 0
 }
 
-func (s P) SetBreak(val bool) P {
+func (p P) setB(val bool) P {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return s&^0x10 | ival<<4
+	return p&^0x10 | ival<<4
 }
 
-func (s P) Unused() bool {
-	return s&0x20 != 0
+func (p P) unused() bool {
+	return p&0x20 != 0
 }
 
-func (s P) SetUnused(val bool) P {
+func (p P) setUnused(val bool) P {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return s&^0x20 | ival<<5
+	return p&^0x20 | ival<<5
 }
 
-func (s P) Overflow() bool {
-	return s&0x40 != 0
+func (p P) overflow() bool {
+	return p&0x40 != 0
 }
 
-func (s P) SetOverflow(val bool) P {
+func (p P) setOverflow(val bool) P {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return s&^0x40 | ival<<6
+	return p&^0x40 | ival<<6
 }
 
-func (s P) Negative() bool {
-	return s&0x80 != 0
+func (p P) negative() bool {
+	return p&0x80 != 0
 }
 
-func (s P) SetNegative(val bool) P {
+func (p P) setNegative(val bool) P {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return s&^0x80 | ival<<7
+	return p&^0x80 | ival<<7
 }

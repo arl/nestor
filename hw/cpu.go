@@ -74,7 +74,7 @@ func (c *CPU) Reset() {
 	c.X = 0x00
 	c.Y = 0x00
 	c.SP = 0xFD
-	c.P = c.P.SetIntDisable(true)
+	c.P = c.P.setIntDisable(true)
 	c.runIRQ = false
 	c.Clock = -1
 	// Directly read from the bus to prevent clock ticks.
@@ -186,7 +186,7 @@ func (c *CPU) handleInterrupts() {
 	// second-to-last cycle that matters. Keep the IRQ lines values from the
 	// previous cycle. The before-to-last cycle's values will be used.
 	c.prevRunIRQ = c.runIRQ
-	c.runIRQ = c.irqFlag && !c.P.IntDisable()
+	c.runIRQ = c.irqFlag && !c.P.intDisable()
 }
 
 func BRK(cpu *CPU) {
@@ -194,15 +194,15 @@ func BRK(cpu *CPU) {
 
 	cpu.push16(cpu.PC + 1)
 
-	p := cpu.P.SetBreak(true).SetUnused(true)
+	p := cpu.P.setB(true).setUnused(true)
 	if cpu.needNmi {
 		cpu.needNmi = false
 		cpu.push8(uint8(p))
-		cpu.P = cpu.P.SetIntDisable(true)
+		cpu.P = cpu.P.setIntDisable(true)
 		cpu.PC = cpu.Read16(CpuNMIvector)
 	} else {
 		cpu.push8(uint8(p))
-		cpu.P = cpu.P.SetIntDisable(true)
+		cpu.P = cpu.P.setIntDisable(true)
 		cpu.PC = cpu.Read16(CpuIRQvector)
 	}
 
@@ -219,15 +219,15 @@ func (c *CPU) IRQ() {
 
 	if c.needNmi {
 		c.needNmi = false
-		p := c.P.SetBreak(true)
+		p := c.P.setB(true)
 		c.push8(uint8(p))
-		c.P = c.P.SetIntDisable(true)
+		c.P = c.P.setIntDisable(true)
 		c.PC = c.Read16(CpuNMIvector)
 		// TODO inform the debugger we just had an NMI
 	} else {
-		p := c.P.SetBreak(true)
+		p := c.P.setB(true)
 		c.push8(uint8(p))
-		c.P = c.P.SetIntDisable(true)
+		c.P = c.P.setIntDisable(true)
 		c.PC = c.Read16(CpuIRQvector)
 		// TODO inform the debugger we just had an IRQ
 	}

@@ -108,19 +108,19 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 				bit := states[i+1].(int)
 				switch s[j] {
 				case 'n':
-					checkbool("Pn", int(b2i(cpu.P.Negative())), bit)
+					checkbool("Pn", int(b2i(cpu.P.negative())), bit)
 				case 'v':
-					checkbool("Pv", int(b2i(cpu.P.Overflow())), bit)
+					checkbool("Pv", int(b2i(cpu.P.overflow())), bit)
 				case 'b':
-					checkbool("Pb", int(b2i(cpu.P.Break())), bit)
+					checkbool("Pb", int(b2i(cpu.P.b())), bit)
 				case 'd':
-					checkbool("Pd", int(b2i(cpu.P.Decimal())), bit)
+					checkbool("Pd", int(b2i(cpu.P.decimal())), bit)
 				case 'i':
-					checkbool("Pi", int(b2i(cpu.P.IntDisable())), bit)
+					checkbool("Pi", int(b2i(cpu.P.intDisable())), bit)
 				case 'z':
-					checkbool("Pz", int(b2i(cpu.P.Zero())), bit)
+					checkbool("Pz", int(b2i(cpu.P.zero())), bit)
 				case 'c':
-					checkbool("Pc", int(b2i(cpu.P.Carry())), bit)
+					checkbool("Pc", int(b2i(cpu.P.carry())), bit)
 				default:
 					panic("unknown P bit: " + string(s[j]))
 				}

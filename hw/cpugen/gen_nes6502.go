@@ -317,23 +317,30 @@ var addrModes = map[string]addrmode{
 // Process status flag constants
 //
 
-type PFlagName string
-
 const (
-	C PFlagName = "Carry"
-	Z PFlagName = "Zero"
-	I PFlagName = "IntDisable"
-	D PFlagName = "Decimal"
-	B PFlagName = "Break"
-	U PFlagName = "Unused"
-	V PFlagName = "Overflow"
-	N PFlagName = "Negative"
+	Carry = iota
+	Zero
+	IntDisable
+	Decimal
+	Break
+	Unused
+	Overflow
+	Negative
 )
 
-func PFlagNameFromBit(i uint) PFlagName {
-	flags := []PFlagName{C, Z, I, D, B, U, V, N}
-	return flags[i]
+var flagOps = [8][2]string{
+	{"carry", "setCarry"},
+	{"zero", "setZero"},
+	{"intDisable", "setIntDisable"},
+	{"decimal", "setDecimal"},
+	{"b", "setB"},
+	{"unused", "setUnused"},
+	{"overflow", "setOverflow"},
+	{"negative", "setNegative"},
 }
+
+func pget(i uint) string { return flagOps[i][0] }
+func pset(i uint) string { return flagOps[i][1] }
 
 //
 // addressing modes
@@ -464,7 +471,7 @@ func pull16(g *Generator, v string) {
 
 func carrybit(g *Generator) {
 	g.printf(`var carry uint16`)
-	g.printf(`if cpu.P.Carry() {`)
+	g.printf(`if cpu.P.%s() {`, pget(Carry))
 	g.printf(`	carry = 1`)
 	g.printf(`}`)
 }
@@ -483,8 +490,7 @@ func branch(ibit int, val bool) func(g *Generator, _ opdef) {
 		if !val {
 			neg = "!"
 		}
-		sbit := PFlagNameFromBit(uint(ibit))
-		g.printf(`if %scpu.P.%s() { // do branch`, neg, sbit)
+		g.printf(`if %scpu.P.%s() { // do branch`, neg, pget(uint(ibit)))
 		g.printf(`// A taken non-page-crossing branch ignores IRQ/NMI during its last`)
 		g.printf(`// clock, so that next instruction executes before the IRQ.`)
 		g.printf(`// Fixes 'branch_delays_irq' test.`)
@@ -532,12 +538,12 @@ func (g *Generator) ALR(_ opdef) {
 	g.printf(`carry := cpu.A & 0x01 // carry is bit 0`)
 	g.printf(`cpu.A = (cpu.A >> 1) & 0x7f`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
-	g.printf(`cpu.P = cpu.P.SetCarry(carry != 0)`)
+	g.printf(`cpu.P = cpu.P.%s(carry != 0)`, pset(Carry))
 }
 
 func (g *Generator) ANC(def opdef) {
 	g.AND(def)
-	g.printf(`cpu.P = cpu.P.SetCarry(cpu.P.Negative())`)
+	g.printf(`cpu.P = cpu.P.%s(cpu.P.%s())`, pset(Carry), pget(Negative))
 }
 
 func (g *Generator) AND(_ opdef) {
@@ -548,12 +554,12 @@ func (g *Generator) AND(_ opdef) {
 func (g *Generator) ARR(_ opdef) {
 	g.printf(`cpu.A &= val`)
 	g.printf(`cpu.A >>= 1`)
-	g.printf(`cpu.P = cpu.P.SetOverflow((cpu.A>>6)^(cpu.A>>5)&0x01 != 0)`)
-	g.printf(`if cpu.P.Carry() {`)
+	g.printf(`cpu.P = cpu.P.%s((cpu.A>>6)^(cpu.A>>5)&0x01 != 0)`, pset(Overflow))
+	g.printf(`if cpu.P.%s() {`, pget(Carry))
 	g.printf(`	cpu.A |= 1 << 7`)
 	g.printf(`}`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
-	g.printf(`cpu.P = cpu.P.SetCarry(cpu.A&(1<<6) != 0)`)
+	g.printf(`cpu.P = cpu.P.%s(cpu.A&(1<<6) != 0)`, pset(Carry))
 }
 
 func (g *Generator) ASL(_ opdef) {
@@ -561,7 +567,7 @@ func (g *Generator) ASL(_ opdef) {
 	g.printf(`val = (val << 1) & 0xfe`)
 	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P = cpu.P.SetCarry(carry != 0)`)
+	g.printf(`cpu.P = cpu.P.%s(carry != 0)`, pset(Carry))
 }
 
 func (g *Generator) BIT(_ opdef) {
@@ -576,7 +582,7 @@ func (g *Generator) BRK(_ opdef) {
 	g.printf(`p := cpu.P`)
 	g.printf(`p = p.SetBreak(true)`)
 	push8(g, `uint8(p)`)
-	g.printf(`cpu.P = cpu.P.SetIntDisable(true)`)
+	g.printf(`cpu.P = cpu.P.%s(true)`, pset(IntDisable))
 	g.printf(`cpu.PC = cpu.Read16(CpuIRQvector)`)
 }
 
@@ -625,7 +631,7 @@ func (g *Generator) LSR(_ opdef) {
 	g.printf(`val = (val >> 1)&0x7f`)
 	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P = cpu.P.SetCarry(carry != 0)`)
+	g.printf(`cpu.P = cpu.P.%s(carry != 0)`, pset(Carry))
 	g.printf(`}`)
 }
 
@@ -645,7 +651,7 @@ func (g *Generator) PHA(_ opdef) {
 
 func (g *Generator) PHP(_ opdef) {
 	tick(g)
-	g.printf(`p := cpu.P.SetBreak(true).SetUnused(true)`)
+	g.printf(`p := cpu.P.%s(true).%s(true)`, pset(Break), pset(Unused))
 	push8(g, `uint8(p)`)
 }
 
@@ -673,24 +679,24 @@ func (g *Generator) RLA(def opdef) {
 func (g *Generator) ROL(_ opdef) {
 	g.printf(`carry := val & 0x80`)
 	g.printf(`val <<= 1`)
-	g.printf(`if cpu.P.Carry() {`)
+	g.printf(`if cpu.P.%s() {`, pget(Carry))
 	g.printf(`	val |= 1 << 0`)
 	g.printf(`}`)
 	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P = cpu.P.SetCarry(carry != 0)`)
+	g.printf(`cpu.P = cpu.P.%s(carry != 0)`, pset(Carry))
 }
 
 func (g *Generator) ROR(_ opdef) {
 	g.printf(`{`)
 	g.printf(`carry := val & 0x01`)
 	g.printf(`val >>= 1`)
-	g.printf(`if cpu.P.Carry() {`)
+	g.printf(`if cpu.P.%s() {`, pget(Carry))
 	g.printf(`	val |= 1 << 7`)
 	g.printf(`}`)
 	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P = cpu.P.SetCarry(carry != 0)`)
+	g.printf(`cpu.P = cpu.P.%s(carry != 0)`, pset(Carry))
 	g.printf(`}`)
 }
 
@@ -734,7 +740,7 @@ func (g *Generator) SBX(def opdef) {
 	g.printf(`ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)`)
 	g.printf(`cpu.X = uint8(ival)`)
 	g.printf(`cpu.P.checkNZ(uint8(ival))`)
-	g.printf(`cpu.P = cpu.P.SetCarry(ival >= 0)`)
+	g.printf(`cpu.P = cpu.P.%s(ival >= 0)`, pset(Carry))
 }
 
 func (g *Generator) SLO(def opdef) {
@@ -771,7 +777,7 @@ func cmp(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		v = regOrMem(v)
 		g.printf(`cpu.P.checkNZ(%s - val)`, v)
-		g.printf(`cpu.P = cpu.P.SetCarry(val <= %s)`, v)
+		g.printf(`cpu.P = cpu.P.%s(val <= %s)`, pset(Carry), v)
 	}
 }
 
@@ -815,14 +821,14 @@ func dec(v string) func(g *Generator, _ opdef) {
 
 func clear(ibit uint) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.P = cpu.P.Set%s(false)`, PFlagNameFromBit(ibit))
+		g.printf(`cpu.P = cpu.P.%s(false)`, pset(ibit))
 		tick(g)
 	}
 }
 
 func set(ibit uint) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.P = cpu.P.Set%s(true)`, PFlagNameFromBit(ibit))
+		g.printf(`cpu.P = cpu.P.%s(true)`, pset(ibit))
 		tick(g)
 	}
 }
