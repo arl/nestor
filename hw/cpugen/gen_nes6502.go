@@ -538,12 +538,12 @@ func (g *Generator) ALR(_ opdef) {
 	g.printf(`carry := cpu.A & 0x01 // carry is bit 0`)
 	g.printf(`cpu.A = (cpu.A >> 1) & 0x7f`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
-	g.printf(`cpu.P = cpu.P.%s(carry != 0)`, pset(Carry))
+	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
 }
 
 func (g *Generator) ANC(def opdef) {
 	g.AND(def)
-	g.printf(`cpu.P = cpu.P.%s(cpu.P.%s())`, pset(Carry), pget(Negative))
+	g.printf(`cpu.P.%s(cpu.P.%s())`, pset(Carry), pget(Negative))
 }
 
 func (g *Generator) AND(_ opdef) {
@@ -554,12 +554,12 @@ func (g *Generator) AND(_ opdef) {
 func (g *Generator) ARR(_ opdef) {
 	g.printf(`cpu.A &= val`)
 	g.printf(`cpu.A >>= 1`)
-	g.printf(`cpu.P = cpu.P.%s((cpu.A>>6)^(cpu.A>>5)&0x01 != 0)`, pset(Overflow))
+	g.printf(`cpu.P.%s((cpu.A>>6)^(cpu.A>>5)&0x01 != 0)`, pset(Overflow))
 	g.printf(`if cpu.P.%s() {`, pget(Carry))
 	g.printf(`	cpu.A |= 1 << 7`)
 	g.printf(`}`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
-	g.printf(`cpu.P = cpu.P.%s(cpu.A&(1<<6) != 0)`, pset(Carry))
+	g.printf(`cpu.P.%s(cpu.A&(1<<6) != 0)`, pset(Carry))
 }
 
 func (g *Generator) ASL(_ opdef) {
@@ -567,7 +567,7 @@ func (g *Generator) ASL(_ opdef) {
 	g.printf(`val = (val << 1) & 0xfe`)
 	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P = cpu.P.%s(carry != 0)`, pset(Carry))
+	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
 }
 
 func (g *Generator) BIT(_ opdef) {
@@ -580,9 +580,9 @@ func (g *Generator) BRK(_ opdef) {
 	tick(g)
 	push16(g, `cpu.PC+1`)
 	g.printf(`p := cpu.P`)
-	g.printf(`p = p.SetBreak(true)`)
+	g.printf(`p.%s(true)`, pset(Break))
 	push8(g, `uint8(p)`)
-	g.printf(`cpu.P = cpu.P.%s(true)`, pset(IntDisable))
+	g.printf(`cpu.P.%s(true)`, pset(IntDisable))
 	g.printf(`cpu.PC = cpu.Read16(CpuIRQvector)`)
 }
 
@@ -631,7 +631,7 @@ func (g *Generator) LSR(_ opdef) {
 	g.printf(`val = (val >> 1)&0x7f`)
 	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P = cpu.P.%s(carry != 0)`, pset(Carry))
+	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
 	g.printf(`}`)
 }
 
@@ -651,7 +651,9 @@ func (g *Generator) PHA(_ opdef) {
 
 func (g *Generator) PHP(_ opdef) {
 	tick(g)
-	g.printf(`p := cpu.P.%s(true).%s(true)`, pset(Break), pset(Unused))
+	g.printf(`p := cpu.P`)
+	g.printf(`p.%s(true)`, pset(Break))
+	g.printf(`p.%s(true)`, pset(Unused))
 	push8(g, `uint8(p)`)
 }
 
@@ -684,7 +686,7 @@ func (g *Generator) ROL(_ opdef) {
 	g.printf(`}`)
 	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P = cpu.P.%s(carry != 0)`, pset(Carry))
+	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
 }
 
 func (g *Generator) ROR(_ opdef) {
@@ -696,7 +698,7 @@ func (g *Generator) ROR(_ opdef) {
 	g.printf(`}`)
 	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P = cpu.P.%s(carry != 0)`, pset(Carry))
+	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
 	g.printf(`}`)
 }
 
@@ -740,7 +742,7 @@ func (g *Generator) SBX(def opdef) {
 	g.printf(`ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)`)
 	g.printf(`cpu.X = uint8(ival)`)
 	g.printf(`cpu.P.checkNZ(uint8(ival))`)
-	g.printf(`cpu.P = cpu.P.%s(ival >= 0)`, pset(Carry))
+	g.printf(`cpu.P.%s(ival >= 0)`, pset(Carry))
 }
 
 func (g *Generator) SLO(def opdef) {
@@ -777,7 +779,7 @@ func cmp(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		v = regOrMem(v)
 		g.printf(`cpu.P.checkNZ(%s - val)`, v)
-		g.printf(`cpu.P = cpu.P.%s(val <= %s)`, pset(Carry), v)
+		g.printf(`cpu.P.%s(val <= %s)`, pset(Carry), v)
 	}
 }
 
@@ -821,14 +823,14 @@ func dec(v string) func(g *Generator, _ opdef) {
 
 func clear(ibit uint) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.P = cpu.P.%s(false)`, pset(ibit))
+		g.printf(`cpu.P.%s(false)`, pset(ibit))
 		tick(g)
 	}
 }
 
 func set(ibit uint) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.P = cpu.P.%s(true)`, pset(ibit))
+		g.printf(`cpu.P.%s(true)`, pset(ibit))
 		tick(g)
 	}
 }

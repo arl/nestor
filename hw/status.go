@@ -8,94 +8,102 @@ func (p P) carry() bool {
 	return p&0x1 != 0
 }
 
-func (p P) setCarry(val bool) P {
+func (p *P) setCarry(val bool) {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return p&^0x1 | ival<<0
+	*p &^= 0x1
+	*p |= ival
 }
 
 func (p P) zero() bool {
 	return p&0x2 != 0
 }
 
-func (p P) setZero(val bool) P {
+func (p *P) setZero(val bool) {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return p&^0x2 | ival<<1
+	*p &^= 0x2
+	*p |= ival << 1
 }
 
 func (p P) intDisable() bool {
 	return p&0x4 != 0
 }
 
-func (p P) setIntDisable(val bool) P {
+func (p *P) setIntDisable(val bool) {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return p&^0x4 | ival<<2
+	*p &^= 0x4
+	*p |= ival << 2
 }
 
 func (p P) decimal() bool {
 	return p&0x8 != 0
 }
 
-func (p P) setDecimal(val bool) P {
+func (p *P) setDecimal(val bool) {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return p&^0x8 | ival<<3
+	*p &^= 0x8
+	*p |= ival << 3
 }
 
 func (p P) b() bool {
 	return p&0x10 != 0
 }
 
-func (p P) setB(val bool) P {
+func (p *P) setB(val bool) {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return p&^0x10 | ival<<4
+	*p &^= 0x10
+	*p |= ival << 4
 }
 
 func (p P) unused() bool {
 	return p&0x20 != 0
 }
 
-func (p P) setUnused(val bool) P {
+func (p *P) setUnused(val bool) {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return p&^0x20 | ival<<5
+	*p &^= 0x20
+	*p |= ival << 5
 }
 
 func (p P) overflow() bool {
 	return p&0x40 != 0
 }
 
-func (p P) setOverflow(val bool) P {
+func (p *P) setOverflow(val bool) {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return p&^0x40 | ival<<6
+	*p &^= 0x40
+	*p |= ival << 6
 }
 
 func (p P) negative() bool {
 	return p&0x80 != 0
 }
 
-func (p P) setNegative(val bool) P {
+func (p *P) setNegative(val bool) {
 	var ival P
 	if val {
 		ival = 1
 	}
-	return p&^0x80 | ival<<7
+	*p &^= 0x80
+	*p |= ival << 7
 }

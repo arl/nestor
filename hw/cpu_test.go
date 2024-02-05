@@ -4,12 +4,12 @@ import "testing"
 
 func TestPflag(t *testing.T) {
 	p := P(0x40)
-	p = p.setIntDisable(true)
+	p.setIntDisable(true)
 	if p != 0x44 {
 		t.Errorf("got P = %q, want %q", p.String(), P(0x44))
 	}
 
-	p = p.setB(true)
+	p.setB(true)
 	if p != 0x54 {
 		t.Errorf("got P = %q, want %q", p.String(), P(0x54))
 	}

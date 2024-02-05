@@ -74,7 +74,7 @@ func (c *CPU) Reset() {
 	c.X = 0x00
 	c.Y = 0x00
 	c.SP = 0xFD
-	c.P = c.P.setIntDisable(true)
+	c.P.setIntDisable(true)
 	c.runIRQ = false
 	c.Clock = -1
 	// Directly read from the bus to prevent clock ticks.
@@ -194,15 +194,17 @@ func BRK(cpu *CPU) {
 
 	cpu.push16(cpu.PC + 1)
 
-	p := cpu.P.setB(true).setUnused(true)
+	p := cpu.P
+	p.setB(true)
+	p.setUnused(true)
 	if cpu.needNmi {
 		cpu.needNmi = false
 		cpu.push8(uint8(p))
-		cpu.P = cpu.P.setIntDisable(true)
+		cpu.P.setIntDisable(true)
 		cpu.PC = cpu.Read16(CpuNMIvector)
 	} else {
 		cpu.push8(uint8(p))
-		cpu.P = cpu.P.setIntDisable(true)
+		cpu.P.setIntDisable(true)
 		cpu.PC = cpu.Read16(CpuIRQvector)
 	}
 
@@ -219,15 +221,17 @@ func (c *CPU) IRQ() {
 
 	if c.needNmi {
 		c.needNmi = false
-		p := c.P.setB(true)
+		p := c.P
+		p.setB(true)
 		c.push8(uint8(p))
-		c.P = c.P.setIntDisable(true)
+		c.P.setIntDisable(true)
 		c.PC = c.Read16(CpuNMIvector)
 		// TODO inform the debugger we just had an NMI
 	} else {
-		p := c.P.setB(true)
+		p := c.P
+		p.setB(true)
 		c.push8(uint8(p))
-		c.P = c.P.setIntDisable(true)
+		c.P.setIntDisable(true)
 		c.PC = c.Read16(CpuIRQvector)
 		// TODO inform the debugger we just had an IRQ
 	}
