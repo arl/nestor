@@ -31,11 +31,11 @@ func (l *loopy) setNametable(val uint8) {
 	*l |= loopy(val&0x3) << 10
 }
 
-func (l loopy) finey() uint8 {
-	return uint8((l >> 12) & 0x7)
+func (l loopy) finey() uint16 {
+	return uint16((l >> 12) & 0x7)
 }
 
-func (l *loopy) setFiney(val uint8) {
+func (l *loopy) setFiney(val uint16) {
 	*l &^= 0x7 << 12
 	*l |= loopy(val&0x7) << 12
 }
@@ -113,17 +113,13 @@ func (p *ppuctrl) setSpriteTable(val bool) {
 	*p |= ival << 3
 }
 
-func (p ppuctrl) bgTable() bool {
-	return p&0x10 != 0
+func (p ppuctrl) bgTable() uint16 {
+	return uint16((p >> 4) & 0x1)
 }
 
-func (p *ppuctrl) setBgTable(val bool) {
-	var ival ppuctrl
-	if val {
-		ival = 1
-	}
-	*p &^= 0x10
-	*p |= ival << 4
+func (p *ppuctrl) setBgTable(val uint16) {
+	*p &^= 0x1 << 4
+	*p |= ppuctrl(val&0x1) << 4
 }
 
 func (p ppuctrl) spriteSize() bool {

@@ -6,10 +6,10 @@ package hw
 
 // 'Loopy' register
 type loopy struct {
-	coarsex   uint8 `bitfield:"5"` // Coarse X
-	coarsey   uint8 `bitfield:"5"` // Coarse Y
-	nametable uint8 `bitfield:"2"` // Nametable
-	finey     uint8 `bitfield:"3"` // Fine Y
+	coarsex   uint8  `bitfield:"5"` // Coarse X
+	coarsey   uint8  `bitfield:"5"` // Coarse Y
+	nametable uint8  `bitfield:"2"` // Nametable
+	finey     uint16 `bitfield:"3"` // Fine Y
 
 	low  uint8 `bitfield:"8,union=lohi"`
 	high uint8 `bitfield:"7,union=lohi"`
@@ -33,7 +33,7 @@ type ppuctrl struct {
 	spriteTable bool `bitfield:"1"`
 
 	// Background pattern table address (0: $0000; 1: $1000)
-	bgTable bool `bitfield:"1"`
+	bgTable uint16 `bitfield:"1"`
 
 	// Sprite size (0: 8x8 pixels; 1: 8x16 pixels – see byte 1 of OAM)
 	spriteSize bool `bitfield:"1"`

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"image"
-	"image/color"
 	"os"
 
 	"gioui.org/app"
@@ -62,7 +61,8 @@ func (ui *gui) loop() error {
 	events := make(chan event.Event)
 	acks := make(chan struct{})
 
-	nesFrame := ui.nes.FrameEvents()
+	frameCh := ui.nes.FrameEvents()
+	var frame *image.RGBA
 
 	go func() {
 		for {
@@ -100,7 +100,7 @@ func (ui *gui) loop() error {
 					}
 				}
 				// render and handle UI.
-				ui.Layout(gtx)
+				ui.Layout(gtx, frame)
 				area.Pop()
 
 				// Pass drawing operations to the gpu
@@ -113,32 +113,36 @@ func (ui *gui) loop() error {
 			}
 			acks <- struct{}{}
 
-		case img := <-nesFrame:
-			_ = img
+		case img := <-frameCh:
+			frame = img
 			ui.w.Invalidate()
 		}
 	}
 }
 
-func (ui *gui) Layout(gtx C) D {
+func (ui *gui) Layout(gtx C, frame *image.RGBA) D {
 	pt := patternsTable{ppu: ui.nes.Hw.PPU}
+	screen := nesScreen{frame}
 	return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Alignment(layout.NW), Spacing: layout.SpaceEnd}.
 		Layout(gtx,
-			layout.Rigid(nesScreen{}.Layout),
+			layout.Rigid(screen.Layout),
 			layout.Rigid(pt.Layout),
 		)
 }
 
-type nesScreen struct{}
+type nesScreen struct {
+	frame *image.RGBA
+}
 
 func (ns nesScreen) Layout(gtx C) D {
 	size := image.Pt(ScreenWidth, ScreenHeight)
 	gtx.Constraints = layout.Exact(size)
 
-	// Paint the shape with a green color.
-	paint.FillShape(gtx.Ops, color.NRGBA{G: 0xFF, A: 0xFF}, clip.Rect{Max: gtx.Constraints.Min}.Op())
-
-	return D{Size: size}
+	return widget.Image{
+		Src:   paint.NewImageOp(ns.frame),
+		Fit:   widget.Contain,
+		Scale: 0.5,
+	}.Layout(gtx)
 }
 
 type patternsTable struct {
