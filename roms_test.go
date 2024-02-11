@@ -157,3 +157,38 @@ func memToString(t *hwio.Table, addr uint16) string {
 	}
 	return unsafe.String(&data[0], i)
 }
+
+func TestNametableMirroring(t *testing.T) {
+	rom, err := ines.ReadRom("testdata/nes-test-roms/other/snow.nes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rom.Mirroring() != ines.HorzMirroring {
+		t.Errorf("incorrect nt mirroring")
+	}
+	var nes NES
+	checkf(nes.PowerUp(rom), "error during power up")
+	nes.Reset()
+
+	nes.Hw.PPU.Bus.Write8(0x2000, 'A')
+	nes.Hw.PPU.Bus.Write8(0x2800, 'B')
+
+	addrs := []uint16{
+		0x2000, // A
+		0x2400, // A
+		0x2800, // B
+		0x2C00, // B
+		0x3000, // A
+		0x3400, // A
+		0x3800, // B
+		0x3C00, // B
+	}
+	var nts []byte
+	for _, a := range addrs {
+		nts = append(nts, nes.Hw.PPU.Bus.Read8(a))
+	}
+
+	if string(nts) != "AABBAABB" {
+		t.Errorf("mirrors = %s", nts)
+	}
+}

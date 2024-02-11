@@ -18,6 +18,7 @@ type Rom struct {
 func (rom *Rom) PrintInfos(w io.Writer) {
 	fmt.Fprintf(w, "PRG ROM: 0x%x bytes\n", len(rom.PRGROM))
 	fmt.Fprintf(w, "CHR ROM: 0x%x bytes\n", len(rom.CHRROM))
+	fmt.Fprintf(w, "Nametable mirroring: %s\n", rom.Mirroring())
 	fmt.Fprintf(w, "Mapper: %d\n", rom.Mapper())
 	fmt.Fprintf(w, "Trainer: %t\n", rom.HasTrainer())
 	fmt.Fprintf(w, "Persistent: %t\n", rom.HasPersistent())
@@ -114,4 +115,28 @@ func (hdr *header) Mapper() uint16 {
 // IsNES20 reports whether the rom is in the NES2.0 format.
 func (hdr *header) IsNES20() bool {
 	return hdr.raw[7]&0x0c == 0x08
+}
+
+type Mirroring int
+
+const (
+	HorzMirroring Mirroring = iota
+	VertMirroring
+)
+
+func (m Mirroring) String() string {
+	switch m {
+	case HorzMirroring:
+		return "horizontal"
+	case VertMirroring:
+		return "vertical"
+	}
+	return "unknown"
+}
+
+func (hdr *header) Mirroring() Mirroring {
+	if hdr.raw[6]&1 != 0 {
+		return VertMirroring
+	}
+	return HorzMirroring
 }
