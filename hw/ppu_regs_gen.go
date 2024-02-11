@@ -1,14 +1,14 @@
 //go:build ignore
 
-package hw
+package main
 
 //go:generate bitfield -out ppu_regs.go
 
 // 'Loopy' register
 type loopy struct {
-	coarsex   uint8  `bitfield:"5"` // Coarse X
-	coarsey   uint8  `bitfield:"5"` // Coarse Y
-	nametable uint8  `bitfield:"2"` // Nametable
+	coarsex   uint16 `bitfield:"5"` // Coarse X
+	coarsey   uint16 `bitfield:"5"` // Coarse Y
+	nametable uint16 `bitfield:"2"` // Nametable
 	finey     uint16 `bitfield:"3"` // Fine Y
 
 	low  uint8 `bitfield:"8,union=lohi"`
@@ -22,7 +22,7 @@ type loopy struct {
 type ppuctrl struct {
 	// Nametable selection mask
 	// (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
-	nametable uint8 `bitfield:"2"`
+	nametable uint16 `bitfield:"2"`
 
 	// VRAM address increment per CPU read/write of PPUDATA
 	// (0: +1 i.e. horizontal; 1: +32 i.e. vertical)

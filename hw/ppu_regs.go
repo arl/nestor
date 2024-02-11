@@ -4,29 +4,29 @@ package hw
 
 type loopy uint16
 
-func (l loopy) coarsex() uint8 {
-	return uint8(l & 0x1f)
+func (l loopy) coarsex() uint16 {
+	return uint16(l & 0x1f)
 }
 
-func (l *loopy) setCoarsex(val uint8) {
+func (l *loopy) setCoarsex(val uint16) {
 	*l &^= 0x1f
 	*l |= loopy(val & 0x1f)
 }
 
-func (l loopy) coarsey() uint8 {
-	return uint8((l >> 5) & 0x1f)
+func (l loopy) coarsey() uint16 {
+	return uint16((l >> 5) & 0x1f)
 }
 
-func (l *loopy) setCoarsey(val uint8) {
+func (l *loopy) setCoarsey(val uint16) {
 	*l &^= 0x1f << 5
 	*l |= loopy(val&0x1f) << 5
 }
 
-func (l loopy) nametable() uint8 {
-	return uint8((l >> 10) & 0x3)
+func (l loopy) nametable() uint16 {
+	return uint16((l >> 10) & 0x3)
 }
 
-func (l *loopy) setNametable(val uint8) {
+func (l *loopy) setNametable(val uint16) {
 	*l &^= 0x3 << 10
 	*l |= loopy(val&0x3) << 10
 }
@@ -78,11 +78,11 @@ func (l *loopy) setVal(val uint16) {
 
 type ppuctrl uint8
 
-func (p ppuctrl) nametable() uint8 {
-	return uint8(p & 0x3)
+func (p ppuctrl) nametable() uint16 {
+	return uint16(p & 0x3)
 }
 
-func (p *ppuctrl) setNametable(val uint8) {
+func (p *ppuctrl) setNametable(val uint16) {
 	*p &^= 0x3
 	*p |= ppuctrl(val & 0x3)
 }
