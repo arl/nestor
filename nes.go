@@ -31,7 +31,7 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 	if err != nil {
 		return fmt.Errorf("mapper failed to map cartridge: %s", err)
 	}
-
+	nes.Hw.PPU.CreateScreen()
 	nes.Reset()
 	return nil
 }

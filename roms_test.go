@@ -109,6 +109,7 @@ func runTestRom(path string) func(t *testing.T) {
 		var nes NES
 		checkf(nes.PowerUp(rom), "error during power up")
 		nes.Reset()
+		nes.Hw.PPU.CreateScreen()
 
 		magic := []byte{0xde, 0xb0, 0x61}
 		magicset := 0
@@ -116,7 +117,6 @@ func runTestRom(path string) func(t *testing.T) {
 
 		for {
 			nes.RunOneFrame()
-
 			data := nes.Hw.CPU.Bus.FetchPointer(0x6001)
 			if magicset == 0 {
 				if bytes.Equal(data[:3], magic) {

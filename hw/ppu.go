@@ -1,9 +1,8 @@
 package hw
 
 import (
-	"fmt"
 	"image"
-	"image/color"
+	"unsafe"
 
 	"nestor/emu/hwio"
 	"nestor/emu/log"
@@ -15,7 +14,7 @@ const (
 )
 
 type PPU struct {
-	Bus *hwio.Table // PPU bus
+	Bus *hwio.Table
 	CPU *CPU
 
 	Cycle    int // Current cycle/pixel in scanline
@@ -25,12 +24,13 @@ type PPU struct {
 	//	$1000-$1FFF	$1000	Pattern table 1
 	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000,wcb"`
 
-	// $2000-$23FF	$0400	Nametable 0
-	// $2400-$27FF	$0400	Nametable 1
-	// $2800-$2BFF	$0400	Nametable 2
-	// $2C00-$2FFF	$0400	Nametable 3
-	// $3000-$3EFF	$0F00	Mirrors of $2000-$2EFF
-	NameTables hwio.Mem `hwio:"offset=0x2000,size=0x1000,vsize=0x1F00,wcb"`
+	// Nametables mapping depends on rom/mapper.
+	//  $2000-$23FF	$0400	Nametable 0
+	//  $2400-$27FF	$0400	Nametable 1
+	//  $2800-$2BFF	$0400	Nametable 2
+	//  $2C00-$2FFF	$0400	Nametable 3
+	//  $3000-$3EFF	$0F00	Mirrors of $2000-$2EFF
+	Nametables [0x800]byte
 
 	// $3F00-$3F1F	$0020	Palette RAM indexes
 	// $3F20-$3FFF	$00E0	Mirrors of $3F00-$3F1F
@@ -49,7 +49,10 @@ type PPU struct {
 
 	// OAMDMA hwio.Reg8 `hwio:"bank=2,writeonly,wcb"`
 
-	screen image.RGBA
+	screen *image.RGBA
+	pixels []uint32 // Video buffer.
+
+	oddFrame bool
 
 	// VRAM read/write
 	vramAddr   loopy
@@ -63,13 +66,18 @@ type PPU struct {
 
 func NewPPU() *PPU {
 	return &PPU{
-		Bus:    hwio.NewTable("ppu"),
-		screen: *image.NewRGBA(image.Rect(0, 0, 256, 224)),
+		Bus: hwio.NewTable("ppu"),
 	}
 }
 
+func (p *PPU) CreateScreen() {
+	p.screen = image.NewRGBA(image.Rect(0, 0, 256, 224))
+	p.pixels = make([]uint32, 256*240)
+}
+
 func (p *PPU) Output() *image.RGBA {
-	return &p.screen
+	p.screen.Pix = unsafe.Slice((*byte)(unsafe.Pointer(&p.pixels[0])), len(p.pixels)*4)
+	return p.screen
 }
 
 func (p *PPU) InitBus() {
@@ -78,11 +86,17 @@ func (p *PPU) InitBus() {
 }
 
 func (p *PPU) Reset() {
-	// TODO
 	p.Scanline = 0
 	p.Cycle = 0
 	p.writeLatch = false
 	p.vramAddr = 0
+	p.PPUCTRL.Value = 0
+	p.PPUMASK.Value = 0
+	p.PPUSTATUS.Value = 0
+	p.oddFrame = false
+	for i := range p.Nametables {
+		p.Nametables[i] = 0xff
+	}
 }
 
 func (p *PPU) Tick() {
@@ -98,10 +112,11 @@ func (p *PPU) Tick() {
 	}
 	p.Cycle++
 	if p.Cycle >= NumCycles {
-		p.Cycle -= NumCycles
+		p.Cycle %= NumCycles
 		p.Scanline++
 		if p.Scanline >= NumScanlines {
 			p.Scanline = 0
+			p.oddFrame = !p.oddFrame
 		}
 	}
 }
@@ -117,21 +132,35 @@ const (
 
 func (p *PPU) doScanline(sm scanlineMode) {
 	switch sm {
+	case vblankNMI:
+		if p.Cycle == 1 {
+			ppustatus := ppustatus(p.PPUSTATUS.Value)
+			ppustatus.setVblank(true)
+			p.PPUSTATUS.Value = uint8(ppustatus)
+			if ppuctrl(p.PPUCTRL.Value).nmi() {
+				p.CPU.setNMIflag()
+				log.ModPPU.DebugZ("Set NMI flag").End()
+			}
+		}
+	case postRender:
+		// nothing to do
 	case preRender, renderMode:
 		if p.Cycle == 1 {
 			if sm == preRender {
 				// Clear vblank, sprite0Hit and spriteOverflow
 				ppustatus := ppustatus(p.PPUSTATUS.Value)
-				ppustatus.setVblank(false)
 				ppustatus.setSpriteHit(false)
 				ppustatus.setSpriteOverflow(false)
 				p.PPUSTATUS.Value = uint8(ppustatus)
 			}
 		}
 
-		if p.Cycle >= 1 && p.Cycle <= 256 || p.Cycle >= 321 && p.Cycle <= 336 {
+		switch {
+		case p.Cycle >= 2 && p.Cycle <= 255,
+			p.Cycle >= 322 && p.Cycle <= 337:
 			p.renderPixel()
 			switch p.Cycle & 0b111 {
+
 			// nametable
 			case 1:
 				p.bg.addrLatch = p.ntAddr()
@@ -144,6 +173,12 @@ func (p *PPU) doScanline(sm scanlineMode) {
 				p.bg.addrLatch = p.atAddr()
 			case 4:
 				p.bg.at = p.Bus.Read8(p.bg.addrLatch)
+				if p.vramAddr.coarsey()&2 != 0 {
+					p.bg.at >>= 4
+				}
+				if p.vramAddr.coarsex()&2 != 0 {
+					p.bg.at >>= 2
+				}
 
 			// low background byte
 			case 5:
@@ -158,19 +193,39 @@ func (p *PPU) doScanline(sm scanlineMode) {
 				p.bg.bghi = p.Bus.Read8(p.bg.addrLatch)
 				p.horzScroll()
 			}
-		}
+		case p.Cycle == 256:
+			p.renderPixel()
+			p.bg.bghi = p.Bus.Read8(p.bg.addrLatch)
+			p.vertScroll()
+		case p.Cycle == 257:
+			p.renderPixel()
+			p.refillShifters()
+			p.horzUpdate()
+		case p.Cycle >= 280 && p.Cycle <= 304:
+			if sm == preRender {
+				p.vertUpdate()
+			}
 
-	case postRender:
-		break
+		// shifters aren't refilled
+		case p.Cycle == 1:
+			p.bg.addrLatch = p.ntAddr()
+			if sm == preRender {
+				ppustatus := ppustatus(p.PPUSTATUS.Value)
+				ppustatus.setVblank(false)
+				p.PPUSTATUS.Value = uint8(ppustatus)
+			}
+		case p.Cycle == 321:
+			fallthrough
+		case p.Cycle == 339:
+			p.bg.addrLatch = p.ntAddr()
 
-	case vblankNMI:
-		if p.Cycle == 1 {
-			ppustatus := ppustatus(p.PPUSTATUS.Value)
-			ppustatus.setVblank(true)
-			p.PPUSTATUS.Value = uint8(ppustatus)
-			if ppuctrl(p.PPUCTRL.Value).nmi() {
-				p.CPU.setNMIflag()
-				log.ModPPU.DebugZ("Set NMI flag").End()
+		// 'garbage' fetches
+		case p.Cycle == 338:
+			p.bg.nt = p.Bus.Read8(p.bg.addrLatch)
+		case p.Cycle == 340:
+			p.bg.nt = p.Bus.Read8(p.bg.addrLatch)
+			if sm == preRender && p.renderingEnabled() && p.oddFrame {
+				p.Cycle++
 			}
 		}
 	}
@@ -193,12 +248,11 @@ type bgregs struct {
 }
 
 func (p *PPU) ntAddr() uint16 {
-	return 0x2000 | p.vramAddr.addr()&0xFFF
+	return 0x2000 | p.vramAddr.val()&0xfff
 }
 
 func (p *PPU) atAddr() uint16 {
-	// TODO this is wrong since we should use coarseX and coarseY
-	return 0x23C0 | uint16(p.vramAddr.nametable())<<10
+	return 0x23C0 | p.vramAddr.nametable()<<10 | p.vramAddr.coarsey()/4<<3 | p.vramAddr.coarsex()/4
 }
 
 func (p *PPU) bgAddr() uint16 {
@@ -216,10 +270,44 @@ func (p *PPU) horzScroll() {
 		return
 	}
 	if p.vramAddr.coarsex() == 31 {
-		p.vramAddr.setVal(uint16(p.vramAddr) ^ 0x41F)
+		p.vramAddr.setVal(p.vramAddr.val() ^ 0x41F)
 	} else {
 		p.vramAddr.setCoarsex(p.vramAddr.coarsex() + 1)
 	}
+}
+
+func (p *PPU) vertScroll() {
+	if !p.renderingEnabled() {
+		return
+	}
+	if finey := p.vramAddr.finey(); finey < 7 {
+		p.vramAddr.setFiney(finey + 1)
+		return
+	}
+
+	p.vramAddr.setFiney(0)
+	if p.vramAddr.coarsey() == 31 {
+		p.vramAddr.setCoarsey(0)
+	} else if p.vramAddr.coarsey() == 29 {
+		p.vramAddr.setCoarsey(0)
+		p.vramAddr.setNametable(p.vramAddr.nametable() ^ 0b10)
+	} else {
+		p.vramAddr.setCoarsey(p.vramAddr.coarsey() + 1)
+	}
+}
+
+func (p *PPU) horzUpdate() {
+	if !p.renderingEnabled() {
+		return
+	}
+	p.vramAddr.setVal((p.vramAddr.val() & ^uint16(0x041F)) | (p.vramTmp.val() & 0x041F))
+}
+
+func (p *PPU) vertUpdate() {
+	if !p.renderingEnabled() {
+		return
+	}
+	p.vramAddr.setVal((p.vramAddr.val() & ^uint16(0x7BE0)) | (p.vramTmp.val() & 0x7BE0))
 }
 
 func (p *PPU) renderingEnabled() bool {
@@ -233,18 +321,17 @@ func (p *PPU) renderPixel() {
 
 	mask := ppumask(p.PPUMASK.Value)
 	if p.Scanline < 240 && p.Cycle >= 0 && p.Cycle < 256 {
-		if p.renderingEnabled() {
-			if mask.bg() {
-				hibit := uint8(p.bg.bgShifthi>>uint16(15-p.bg.finex)) & 1
-				lobit := uint8(p.bg.bgShiftlo>>uint16(15-p.bg.finex)) & 1
-				palette = (hibit << 1) | lobit
-				fmt.Println(p.bg.bglo, p.bg.bghi, palette)
-			}
-			rgba := nesPalette[p.Palettes.Data[palette]]
-			col := color.RGBA{R: uint8(rgba >> 16), G: uint8(rgba >> 8), B: uint8(rgba)}
-			col.A = 0xFF
-			p.screen.Set(x, p.Scanline, col)
+		if mask.bg() {
+			hibit := uint8(p.bg.bgShifthi>>(15-p.bg.finex)) & 1
+			lobit := uint8(p.bg.bgShiftlo>>(15-p.bg.finex)) & 1
+			palette = (hibit << 1) | lobit
 		}
+		paddr := uint16(0x3f00)
+		if p.renderingEnabled() {
+			paddr += uint16(palette)
+		}
+		pidx := p.Bus.Read8(paddr)
+		p.pixels[p.Scanline*256+x] = nesPalette[pidx]
 	}
 
 	// Perform background shifts:
@@ -255,29 +342,19 @@ func (p *PPU) renderPixel() {
 }
 
 var nesPalette = [...]uint32{
-	0x7C7C7C, 0x0000FC, 0x0000BC, 0x4428BC, 0x940084, 0xA80020, 0xA81000, 0x881400,
-	0x503000, 0x007800, 0x006800, 0x005800, 0x004058, 0x000000, 0x000000, 0x000000,
-	0xBCBCBC, 0x0078F8, 0x0058F8, 0x6844FC, 0xD800CC, 0xE40058, 0xF83800, 0xE45C10,
-	0xAC7C00, 0x00B800, 0x00A800, 0x00A844, 0x008888, 0x000000, 0x000000, 0x000000,
-	0xF8F8F8, 0x3CBCFC, 0x6888FC, 0x9878F8, 0xF878F8, 0xF85898, 0xF87858, 0xFCA044,
-	0xF8B800, 0xB8F818, 0x58D854, 0x58F898, 0x00E8D8, 0x787878, 0x000000, 0x000000,
-	0xFCFCFC, 0xA4E4FC, 0xB8B8F8, 0xD8B8F8, 0xF8B8F8, 0xF8A4C0, 0xF0D0B0, 0xFCE0A8,
-	0xF8D878, 0xD8F878, 0xB8F8B8, 0xB8F8D8, 0x00FCFC, 0xF8D8F8, 0x000000, 0x000000,
+	0xFF7C7C7C, 0xFF0000FC, 0xFF0000BC, 0xFF4428BC, 0xFF940084, 0xFFA80020, 0xFFA81000, 0xFF881400,
+	0xFF503000, 0xFF007800, 0xFF006800, 0xFF005800, 0xFF004058, 0xFF000000, 0xFF000000, 0xFF000000,
+	0xFFBCBCBC, 0xFF0078F8, 0xFF0058F8, 0xFF6844FC, 0xFFD800CC, 0xFFE40058, 0xFFF83800, 0xFFE45C10,
+	0xFFAC7C00, 0xFF00B800, 0xFF00A800, 0xFF00A844, 0xFF008888, 0xFF000000, 0xFF000000, 0xFF000000,
+	0xFFF8F8F8, 0xFF3CBCFC, 0xFF6888FC, 0xFF9878F8, 0xFFF878F8, 0xFFF85898, 0xFFF87858, 0xFFFCA044,
+	0xFFF8B800, 0xFFB8F818, 0xFF58D854, 0xFF58F898, 0xFF00E8D8, 0xFF787878, 0xFF000000, 0xFF000000,
+	0xFFFCFCFC, 0xFFA4E4FC, 0xFFB8B8F8, 0xFFD8B8F8, 0xFFF8B8F8, 0xFFF8A4C0, 0xFFF0D0B0, 0xFFFCE0A8,
+	0xFFF8D878, 0xFFD8F878, 0xFFB8F8B8, 0xFFB8F8D8, 0xFF00FCFC, 0xFFF8D8F8, 0xFF000000, 0xFF000000,
 }
 
 func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
 	log.ModPPU.DebugZ("Write to PATTERNTABLES").
 		Hex8("val", p.PatternTables.Data[addr]).
-		Hex16("addr", addr).
-		End()
-}
-
-func (p *PPU) WriteNAMETABLES(addr uint16, n int) {
-	memaddr := addr & 0x0FFF
-	ntnum := memaddr / 0x0400
-	log.ModPPU.DebugZ("Write to NAMETABLES").
-		Uint16("num", ntnum).
-		Hex8("val", p.NameTables.Data[memaddr]).
 		Hex16("addr", addr).
 		End()
 }
@@ -315,15 +392,15 @@ func (p *PPU) WritePPUMASK(old, val uint8) {
 }
 
 // PPUSTATUS: $2002
-func (ppu *PPU) ReadPPUSTATUS(val uint8) uint8 {
-	ppu.writeLatch = false
+func (p *PPU) ReadPPUSTATUS(val uint8) uint8 {
+	p.writeLatch = false
 
 	ppustatus := ppustatus(val)
 	ppustatus.setSpriteOverflow(true)
 	ppustatus.setSpriteHit(true)
 	ppustatus.setVblank(true)
 
-	ppu.CPU.clearNMIflag()
+	p.CPU.clearNMIflag()
 	// TODO: emulate open bus?
 	return uint8(ppustatus)
 }
@@ -334,17 +411,15 @@ func (p *PPU) WritePPUSCROLL(old, val uint8) {
 
 	if !p.writeLatch { // first write
 		p.bg.finex = val & 0b111
-		p.vramTmp.setCoarsex(val >> 3)
+		p.vramTmp.setCoarsex(uint16(val) >> 3)
 	} else { // second write
 		p.vramTmp.setFiney(uint16(val))
-		p.vramTmp.setCoarsey(val >> 3)
+		p.vramTmp.setCoarsey(uint16(val) >> 3)
 	}
 
 	p.writeLatch = !p.writeLatch
 }
 
-// To read/write VRAM from CPU, PPUADDR is set to the address of the operation.
-// It's a 16-bit register so 2 writes are necessary.
 // PPUADDR: $2006
 func (p *PPU) WritePPUADDR(old, val uint8) {
 	if !p.writeLatch { //first write
@@ -374,7 +449,7 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 		p.ppuDataRbuf = val
 	}
 
-	p.incVRAMaddr()
+	p.vramIncr()
 	log.ModPPU.DebugZ("VRAM read").
 		Hex16("addr", p.vramAddr.addr()).
 		Hex8("val", val).
@@ -385,7 +460,7 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 // PPUDATA: $2007
 func (p *PPU) WritePPUDATA(old, val uint8) {
 	p.Bus.Write8(p.vramAddr.addr(), val)
-	p.incVRAMaddr()
+	p.vramIncr()
 
 	log.ModPPU.DebugZ("VRAM write").
 		Hex16("addr", p.vramAddr.addr()).
@@ -393,17 +468,11 @@ func (p *PPU) WritePPUDATA(old, val uint8) {
 		End()
 }
 
-// After each i/o on PPUDATA, PPPUADDR is incremented.
-func (p *PPU) incVRAMaddr() {
-	if p.Scanline < 240 {
-		return
-	}
-
-	// Increment VRAM address.
+func (p *PPU) vramIncr() {
 	ppuctrl := ppuctrl(p.PPUCTRL.Value)
-	incr := uint16(1)
+	var incr uint16 = 1
 	if ppuctrl.incr() {
-		p.vramAddr += 32
+		incr = 32 // Increment by 32 if increment mode is set.
 	}
-	p.vramAddr.setVal(uint16(p.vramAddr) + incr)
+	p.vramAddr.setAddr(uint16(p.vramAddr.addr()) + incr)
 }
