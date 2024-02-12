@@ -341,28 +341,9 @@ func (p *PPU) renderPixel() {
 	// atShiftH = (atShiftH << 1) | atLatchH
 }
 
-var nesPalette = [...]uint32{
-	0xFF7C7C7C, 0xFF0000FC, 0xFF0000BC, 0xFF4428BC, 0xFF940084, 0xFFA80020, 0xFFA81000, 0xFF881400,
-	0xFF503000, 0xFF007800, 0xFF006800, 0xFF005800, 0xFF004058, 0xFF000000, 0xFF000000, 0xFF000000,
-	0xFFBCBCBC, 0xFF0078F8, 0xFF0058F8, 0xFF6844FC, 0xFFD800CC, 0xFFE40058, 0xFFF83800, 0xFFE45C10,
-	0xFFAC7C00, 0xFF00B800, 0xFF00A800, 0xFF00A844, 0xFF008888, 0xFF000000, 0xFF000000, 0xFF000000,
-	0xFFF8F8F8, 0xFF3CBCFC, 0xFF6888FC, 0xFF9878F8, 0xFFF878F8, 0xFFF85898, 0xFFF87858, 0xFFFCA044,
-	0xFFF8B800, 0xFFB8F818, 0xFF58D854, 0xFF58F898, 0xFF00E8D8, 0xFF787878, 0xFF000000, 0xFF000000,
-	0xFFFCFCFC, 0xFFA4E4FC, 0xFFB8B8F8, 0xFFD8B8F8, 0xFFF8B8F8, 0xFFF8A4C0, 0xFFF0D0B0, 0xFFFCE0A8,
-	0xFFF8D878, 0xFFD8F878, 0xFFB8F8B8, 0xFFB8F8D8, 0xFF00FCFC, 0xFFF8D8F8, 0xFF000000, 0xFF000000,
-}
-
 func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
 	log.ModPPU.DebugZ("Write to PATTERNTABLES").
 		Hex8("val", p.PatternTables.Data[addr]).
-		Hex16("addr", addr).
-		End()
-}
-
-func (p *PPU) WritePALETTES(addr uint16, n int) {
-	memaddr := addr & 0x01F
-	log.ModPPU.DebugZ("Write to PALETTES").
-		Hex8("val", p.Palettes.Data[memaddr]).
 		Hex16("addr", addr).
 		End()
 }
@@ -444,8 +425,9 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 		val = data
 	default: // $3F00-3FFF
 		// Reading palette data is immediate.
-		val = p.Bus.Read8(p.vramAddr.addr())
+		// val = p.Bus.Read8(p.vramAddr.addr())
 		// Still it overwrites the read buffer.
+		val = p.readPalette(p.vramAddr.addr())
 		p.ppuDataRbuf = val
 	}
 
@@ -455,6 +437,56 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 		Hex8("val", val).
 		End()
 	return val
+}
+
+var nesPalette = [...]uint32{
+	0xFF7C7C7C, 0xFF0000FC, 0xFF0000BC, 0xFF4428BC, 0xFF940084, 0xFFA80020, 0xFFA81000, 0xFF881400,
+	0xFF503000, 0xFF007800, 0xFF006800, 0xFF005800, 0xFF004058, 0xFF000000, 0xFF000000, 0xFF000000,
+	0xFFBCBCBC, 0xFF0078F8, 0xFF0058F8, 0xFF6844FC, 0xFFD800CC, 0xFFE40058, 0xFFF83800, 0xFFE45C10,
+	0xFFAC7C00, 0xFF00B800, 0xFF00A800, 0xFF00A844, 0xFF008888, 0xFF000000, 0xFF000000, 0xFF000000,
+	0xFFF8F8F8, 0xFF3CBCFC, 0xFF6888FC, 0xFF9878F8, 0xFFF878F8, 0xFFF85898, 0xFFF87858, 0xFFFCA044,
+	0xFFF8B800, 0xFFB8F818, 0xFF58D854, 0xFF58F898, 0xFF00E8D8, 0xFF787878, 0xFF000000, 0xFF000000,
+	0xFFFCFCFC, 0xFFA4E4FC, 0xFFB8B8F8, 0xFFD8B8F8, 0xFFF8B8F8, 0xFFF8A4C0, 0xFFF0D0B0, 0xFFFCE0A8,
+	0xFFF8D878, 0xFFD8F878, 0xFFB8F8B8, 0xFFB8F8D8, 0xFF00FCFC, 0xFFF8D8F8, 0xFF000000, 0xFF000000,
+}
+
+func (p *PPU) WritePALETTES(addr uint16, n int) {
+	memaddr := addr & 0x01F
+	val := p.Palettes.Data[memaddr]
+	p.writePalette(addr, val)
+	log.ModPPU.DebugZ("Write to PALETTES").
+		Hex8("val", val).
+		Hex16("addr", addr).
+		End()
+}
+
+func (p *PPU) readPalette(addr uint16) uint8 {
+	addr &= 0x1F
+	if addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1C {
+		addr &^= 0x10
+	}
+	return p.Palettes.Data[addr]
+}
+
+func (p *PPU) writePalette(addr uint16, val uint8) {
+	val &= 0x3F
+	addr &= 0x1F
+	switch addr {
+	case 0x00, 0x10:
+		p.Palettes.Data[0x00] = val
+		p.Palettes.Data[0x10] = val
+	case 0x04, 0x14:
+		p.Palettes.Data[0x04] = val
+		p.Palettes.Data[0x14] = val
+	case 0x08, 0x18:
+		p.Palettes.Data[0x08] = val
+		p.Palettes.Data[0x18] = val
+	case 0x0C, 0x1C:
+		p.Palettes.Data[0x0C] = val
+		p.Palettes.Data[0x1C] = val
+	default:
+		p.Palettes.Data[addr] = val
+	}
 }
 
 // PPUDATA: $2007
