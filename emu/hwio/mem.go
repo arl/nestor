@@ -3,7 +3,7 @@ package hwio
 import (
 	"unsafe"
 
-	log "nestor/emu/logger"
+	"nestor/emu/log"
 )
 
 // 16-bit / 32-bit access to memory with correct unalignment

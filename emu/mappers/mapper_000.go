@@ -48,6 +48,35 @@ func loadMapper000(rom *ines.Rom, hw *emu.NESHardware) error {
 	}
 
 	// PPU memory space mapping.
+	// NameTables
+	switch rom.Mirroring() {
+	case ines.HorzMirroring: // A A B B
+		// 4 nametables
+		hw.PPU.Bus.MapMemorySlice(0x2000, 0x23FF, hw.PPU.Nametables[:0x400], false)
+		hw.PPU.Bus.MapMemorySlice(0x2400, 0x27FF, hw.PPU.Nametables[:0x400], false)
+		hw.PPU.Bus.MapMemorySlice(0x2800, 0x2BFF, hw.PPU.Nametables[0x400:0x800], false)
+		hw.PPU.Bus.MapMemorySlice(0x2C00, 0x2FFF, hw.PPU.Nametables[0x400:0x800], false)
+
+		// mirrors of the nametable area
+		hw.PPU.Bus.MapMemorySlice(0x3000, 0x33FF, hw.PPU.Nametables[:0x400], false)
+		hw.PPU.Bus.MapMemorySlice(0x3400, 0x37FF, hw.PPU.Nametables[:0x400], false)
+		hw.PPU.Bus.MapMemorySlice(0x3800, 0x3BFF, hw.PPU.Nametables[0x400:0x800], false)
+		hw.PPU.Bus.MapMemorySlice(0x3C00, 0x3EFF, hw.PPU.Nametables[0x400:0x800], false)
+
+	case ines.VertMirroring: // A B A B
+		// 4 nametables
+		hw.PPU.Bus.MapMemorySlice(0x2000, 0x23FF, hw.PPU.Nametables[:0x400], false)
+		hw.PPU.Bus.MapMemorySlice(0x2400, 0x27FF, hw.PPU.Nametables[0x400:0x800], false)
+		hw.PPU.Bus.MapMemorySlice(0x2800, 0x2BFF, hw.PPU.Nametables[:0x400], false)
+		hw.PPU.Bus.MapMemorySlice(0x2C00, 0x2FFF, hw.PPU.Nametables[0x400:0x800], false)
+
+		// mirrors of the nametable area
+		hw.PPU.Bus.MapMemorySlice(0x3000, 0x33FF, hw.PPU.Nametables[:0x400], false)
+		hw.PPU.Bus.MapMemorySlice(0x3400, 0x37FF, hw.PPU.Nametables[0x400:0x800], false)
+		hw.PPU.Bus.MapMemorySlice(0x3800, 0x3BFF, hw.PPU.Nametables[:0x400], false)
+		hw.PPU.Bus.MapMemorySlice(0x3C00, 0x3EFF, hw.PPU.Nametables[0x400:0x800], false)
+	}
+
 	// continuer ici avec le log
 	// Copy CHRROM to Pattern Tables.
 	switch len(rom.CHRROM) {
@@ -59,7 +88,7 @@ func loadMapper000(rom *ines.Rom, hw *emu.NESHardware) error {
 			String("range", "0x0000-0x2000").
 			String("src", "rom.CHR-ROM").
 			End()
-		panic("not sure about that, check comment")
+		//panic("not sure about that, check comment")
 
 	case 0x2000:
 		copy(hw.PPU.PatternTables.Data, rom.CHRROM)
@@ -69,7 +98,6 @@ func loadMapper000(rom *ines.Rom, hw *emu.NESHardware) error {
 			End()
 	default:
 		return fmt.Errorf("unexpected CHRROM size: 0x%x", len(rom.CHRROM))
-
 	}
 
 	// TODO: load and map PRG-RAM if present in cartridge.

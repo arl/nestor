@@ -9,8 +9,11 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 )
+
+const pkgname = "hw"
 
 type opdef struct {
 	i uint8  // opcode value (same as index into 'defs')
@@ -62,7 +65,7 @@ var defs = [256]opdef{
 	{i: 0x1D, n: "ORA", d: "r  x  ", m: "abx"},
 	{i: 0x1E, n: "ASL", d: "rw    ", m: "abx"},
 	{i: 0x1F, n: "SLO", d: "rw   i", m: "abx"},
-	{i: 0x20, n: "JSR", d: "      ", m: "imp"}, // special case. should be 'abs' but handle it as 'implied'
+	{i: 0x20, n: "JSR", d: "      ", m: "abs"},
 	{i: 0x21, n: "AND", d: "r     ", m: "izx"},
 	{i: 0x22, n: "JAM", d: "     i", m: "imm"},
 	{i: 0x23, n: "RLA", d: "rw   i", m: "izx"},
@@ -290,24 +293,54 @@ var defs = [256]opdef{
 
 type addrmode struct {
 	human string // human readable name
+	n     int    // number of bytes
 	f     func(g *Generator, details string)
 }
 
 var addrModes = map[string]addrmode{
-	"imp": {f: nil, human: `implied addressing.`},
-	"acc": {f: nil, human: `adressing accumulator.`},
-	"rel": {f: rel, human: `relative addressing.`},
-	"abs": {f: abs, human: `absolute addressing.`},
-	"abx": {f: abx, human: `absolute indexed X.`},
-	"aby": {f: aby, human: `absolute indexed Y.`},
-	"imm": {f: imm, human: `immediate addressing.`},
-	"ind": {f: ind, human: `indirect addressing.`},
-	"izx": {f: izx, human: `indexed addressing (abs, X).`},
-	"izy": {f: izy, human: `indexed addressing (abs),Y.`},
-	"zpg": {f: zpg, human: `zero page addressing.`},
-	"zpx": {f: zpx, human: `indexed addressing: zeropage,X.`},
-	"zpy": {f: zpy, human: `indexed addressing: zeropage,Y.`},
+	"imp": {f: nil, n: 1, human: `implied addressing.`},
+	"acc": {f: nil, n: 1, human: `adressing accumulator.`},
+	"rel": {f: rel, n: 2, human: `relative addressing.`},
+	"abs": {f: abs, n: 3, human: `absolute addressing.`},
+	"abx": {f: abx, n: 3, human: `absolute indexed X.`},
+	"aby": {f: aby, n: 3, human: `absolute indexed Y.`},
+	"imm": {f: imm, n: 2, human: `immediate addressing.`},
+	"ind": {f: ind, n: 3, human: `indirect addressing.`},
+	"izx": {f: izx, n: 2, human: `indexed addressing (abs, X).`},
+	"izy": {f: izy, n: 2, human: `indexed addressing (abs),Y.`},
+	"zpg": {f: zpg, n: 2, human: `zero page addressing.`},
+	"zpx": {f: zpx, n: 2, human: `indexed addressing: zeropage,X.`},
+	"zpy": {f: zpy, n: 2, human: `indexed addressing: zeropage,Y.`},
 }
+
+//
+// Process status flag constants
+//
+
+const (
+	Carry = iota
+	Zero
+	IntDisable
+	Decimal
+	Break
+	Unused
+	Overflow
+	Negative
+)
+
+var flagOps = [8][2]string{
+	{"carry", "setCarry"},
+	{"zero", "setZero"},
+	{"intDisable", "setIntDisable"},
+	{"decimal", "setDecimal"},
+	{"b", "setB"},
+	{"unused", "setUnused"},
+	{"overflow", "setOverflow"},
+	{"negative", "setNegative"},
+}
+
+func pget(i uint) string { return flagOps[i][0] }
+func pset(i uint) string { return flagOps[i][1] }
 
 //
 // addressing modes
@@ -436,6 +469,13 @@ func pull16(g *Generator, v string) {
 	g.printf(`%s = cpu.pull16()`, v)
 }
 
+func carrybit(g *Generator) {
+	g.printf(`var carry uint16`)
+	g.printf(`if cpu.P.%s() {`, pget(Carry))
+	g.printf(`	carry = 1`)
+	g.printf(`}`)
+}
+
 // read 16 bytes from the zero page, handling page wrap.
 func r16zpwrap(g *Generator) {
 	g.printf(`// read 16 bytes from the zero page, handling page wrap`)
@@ -446,7 +486,11 @@ func r16zpwrap(g *Generator) {
 
 func branch(ibit int, val bool) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`if cpu.P.bit(%d) == %t { // do branch`, ibit, val)
+		neg := ""
+		if !val {
+			neg = "!"
+		}
+		g.printf(`if %scpu.P.%s() { // do branch`, neg, pget(uint(ibit)))
 		g.printf(`// A taken non-page-crossing branch ignores IRQ/NMI during its last`)
 		g.printf(`// clock, so that next instruction executes before the IRQ.`)
 		g.printf(`// Fixes 'branch_delays_irq' test.`)
@@ -481,7 +525,7 @@ func copybits(dst, src, mask string) string {
 //
 
 func (g *Generator) ADC(_ opdef) {
-	g.printf(`carry := cpu.P.ibit(pbitC)`)
+	carrybit(g)
 	g.printf(`sum := uint16(cpu.A) + uint16(val) + uint16(carry)`)
 	g.printf(`cpu.P.checkCV(cpu.A, val, sum)`)
 	g.printf(`cpu.A = uint8(sum)`)
@@ -494,12 +538,12 @@ func (g *Generator) ALR(_ opdef) {
 	g.printf(`carry := cpu.A & 0x01 // carry is bit 0`)
 	g.printf(`cpu.A = (cpu.A >> 1) & 0x7f`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
-	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
+	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
 }
 
 func (g *Generator) ANC(def opdef) {
 	g.AND(def)
-	g.printf(`cpu.P.writeBit(pbitC, cpu.P.N())`)
+	g.printf(`cpu.P.%s(cpu.P.%s())`, pset(Carry), pget(Negative))
 }
 
 func (g *Generator) AND(_ opdef) {
@@ -510,12 +554,12 @@ func (g *Generator) AND(_ opdef) {
 func (g *Generator) ARR(_ opdef) {
 	g.printf(`cpu.A &= val`)
 	g.printf(`cpu.A >>= 1`)
-	g.printf(`cpu.P.writeBit(pbitV, (cpu.A>>6)^(cpu.A>>5)&0x01 != 0)`)
-	g.printf(`if cpu.P.C() {`)
+	g.printf(`cpu.P.%s((cpu.A>>6)^(cpu.A>>5)&0x01 != 0)`, pset(Overflow))
+	g.printf(`if cpu.P.%s() {`, pget(Carry))
 	g.printf(`	cpu.A |= 1 << 7`)
 	g.printf(`}`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
-	g.printf(`cpu.P.writeBit(pbitC, cpu.A&(1<<6) != 0)`)
+	g.printf(`cpu.P.%s(cpu.A&(1<<6) != 0)`, pset(Carry))
 }
 
 func (g *Generator) ASL(_ opdef) {
@@ -523,7 +567,7 @@ func (g *Generator) ASL(_ opdef) {
 	g.printf(`val = (val << 1) & 0xfe`)
 	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
+	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
 }
 
 func (g *Generator) BIT(_ opdef) {
@@ -536,9 +580,9 @@ func (g *Generator) BRK(_ opdef) {
 	tick(g)
 	push16(g, `cpu.PC+1`)
 	g.printf(`p := cpu.P`)
-	g.printf(`p.setBit(pbitB)`)
+	g.printf(`p.%s(true)`, pset(Break))
 	push8(g, `uint8(p)`)
-	g.printf(`cpu.P.setBit(pbitI)`)
+	g.printf(`cpu.P.%s(true)`, pset(IntDisable))
 	g.printf(`cpu.PC = cpu.Read16(CpuIRQvector)`)
 }
 
@@ -569,9 +613,8 @@ func (g *Generator) JMP(_ opdef) {
 }
 
 func (g *Generator) JSR(_ opdef) {
-	g.printf(`oper := cpu.Read16(cpu.PC)`)
 	tick(g)
-	push16(g, `cpu.PC+1`)
+	push16(g, `cpu.PC-1`)
 	g.printf(`cpu.PC = oper`)
 }
 
@@ -588,7 +631,7 @@ func (g *Generator) LSR(_ opdef) {
 	g.printf(`val = (val >> 1)&0x7f`)
 	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
+	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
 	g.printf(`}`)
 }
 
@@ -609,7 +652,8 @@ func (g *Generator) PHA(_ opdef) {
 func (g *Generator) PHP(_ opdef) {
 	tick(g)
 	g.printf(`p := cpu.P`)
-	g.printf(`p |= (1 << pbitB) | (1 << pbitU)`)
+	g.printf(`p.%s(true)`, pset(Break))
+	g.printf(`p.%s(true)`, pset(Unused))
 	push8(g, `uint8(p)`)
 }
 
@@ -637,24 +681,24 @@ func (g *Generator) RLA(def opdef) {
 func (g *Generator) ROL(_ opdef) {
 	g.printf(`carry := val & 0x80`)
 	g.printf(`val <<= 1`)
-	g.printf(`if cpu.P.C() {`)
+	g.printf(`if cpu.P.%s() {`, pget(Carry))
 	g.printf(`	val |= 1 << 0`)
 	g.printf(`}`)
 	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
+	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
 }
 
 func (g *Generator) ROR(_ opdef) {
 	g.printf(`{`)
 	g.printf(`carry := val & 0x01`)
 	g.printf(`val >>= 1`)
-	g.printf(`if cpu.P.C() {`)
+	g.printf(`if cpu.P.%s() {`, pget(Carry))
 	g.printf(`	val |= 1 << 7`)
 	g.printf(`}`)
 	tick(g)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P.writeBit(pbitC, carry != 0)`)
+	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
 	g.printf(`}`)
 }
 
@@ -687,7 +731,7 @@ func (g *Generator) SAX(_ opdef) {
 
 func (g *Generator) SBC(def opdef) {
 	g.printf(`val ^= 0xff`)
-	g.printf(`carry := cpu.P.ibit(pbitC)`)
+	carrybit(g)
 	g.printf(`sum := uint16(cpu.A) + uint16(val) + uint16(carry)`)
 	g.printf(`cpu.P.checkCV(cpu.A, val, sum)`)
 	g.printf(`cpu.A = uint8(sum)`)
@@ -698,7 +742,7 @@ func (g *Generator) SBX(def opdef) {
 	g.printf(`ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)`)
 	g.printf(`cpu.X = uint8(ival)`)
 	g.printf(`cpu.P.checkNZ(uint8(ival))`)
-	g.printf(`cpu.P.writeBit(pbitC, ival >= 0)`)
+	g.printf(`cpu.P.%s(ival >= 0)`, pset(Carry))
 }
 
 func (g *Generator) SLO(def opdef) {
@@ -735,7 +779,7 @@ func cmp(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		v = regOrMem(v)
 		g.printf(`cpu.P.checkNZ(%s - val)`, v)
-		g.printf(`cpu.P.writeBit(pbitC, val <= %s)`, v)
+		g.printf(`cpu.P.%s(val <= %s)`, pset(Carry), v)
 	}
 }
 
@@ -779,14 +823,14 @@ func dec(v string) func(g *Generator, _ opdef) {
 
 func clear(ibit uint) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.P.clearBit(%d)`, ibit)
+		g.printf(`cpu.P.%s(false)`, pset(ibit))
 		tick(g)
 	}
 }
 
 func set(ibit uint) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.P.setBit(%d)`, ibit)
+		g.printf(`cpu.P.%s(true)`, pset(ibit))
 		tick(g)
 	}
 }
@@ -803,17 +847,15 @@ func insertPanic(g *Generator, msg string) {
 
 type Generator struct {
 	io.Writer
-	outbuf bytes.Buffer
-	out    io.Writer
-
 	unstable []uint8
 }
 
 func (g *Generator) header() {
 	g.printf(`// Code generated by cpugen/gen_nes6502.go. DO NOT EDIT.`)
-	g.printf(`package hw`)
+	g.printf(`package %s`, pkgname)
 	g.printf(`import (`)
 	g.printf(`"fmt"`)
+	g.printf(`"bytes"`)
 	g.printf(`)`)
 }
 
@@ -865,19 +907,90 @@ func (g *Generator) opcodeFooter(code uint8) {
 
 func (g *Generator) opcodes() {
 	for _, def := range defs {
-		if def.dontgen {
-			continue
+		if !def.dontgen {
+			g.opcodeHeader(def.i)
+			if def.f != nil {
+				def.f(g, def)
+			} else {
+				f := reflect.ValueOf(g).MethodByName(def.n)
+				f.Call([]reflect.Value{reflect.ValueOf(def)})
+			}
+
+			g.opcodeFooter(def.i)
+			g.printf("\n")
 		}
-		g.opcodeHeader(def.i)
-		if def.f != nil {
-			def.f(g, def)
-		} else {
-			f := reflect.ValueOf(g).MethodByName(def.n)
-			f.Call([]reflect.Value{reflect.ValueOf(def)})
+		g.disasmOpcode(def)
+	}
+}
+
+func (g *Generator) disasmAddrModes() {
+	// order alphabetically to get deterministic output.
+	var modes []string
+	for k := range addrModes {
+		modes = append(modes, k)
+	}
+	sort.Strings(modes)
+	for _, name := range modes {
+		am := addrModes[name]
+		fname := strings.ToUpper(name[:1]) + name[1:]
+		g.printf(`func disasm%s(cpu*CPU, pc uint16, opname string) []byte {`, fname)
+		g.printf(`var bb bytes.Buffer`)
+		g.printf(`fmt.Fprintf(&bb, "%%04X  ", pc)`)
+
+		for n := 0; n < am.n; n++ {
+			g.printf(`oper%d := cpu.Bus.Peek8(pc+%d)`, n, n)
+		}
+		for n := 0; n < am.n; n++ {
+			g.printf(`fmt.Fprintf(&bb, "%%02X ", oper%d)`, n)
+		}
+		g.printf(`fmt.Fprintf(&bb, "%%*s", %d, "")`, 9-3*am.n)
+		if am.n == 3 {
+			g.printf(`oper16 := uint16(oper1)|uint16(oper2)<<8`)
 		}
 
-		g.opcodeFooter(def.i)
+		g.printf(`bb.WriteString(opname)`)
+
+		switch name {
+		case "imp":
+		case "acc":
+			g.printf(`fmt.Fprintf(&bb, " A")`)
+		case "rel":
+			g.printf(`off := int16(int8(oper1))`)
+			g.printf(`oper := uint16(int16(pc+2) + off)`)
+			g.printf(`fmt.Fprintf(&bb, " $%%04X", oper)`)
+		case "ind":
+			g.printf(`fmt.Fprintf(&bb, " ($%%04X)", oper16)`)
+		case "abs":
+			g.printf(`fmt.Fprintf(&bb, " $%%04X", oper16)`)
+		case "abx":
+			g.printf(`fmt.Fprintf(&bb, " $%%04X,X", oper16)`)
+		case "aby":
+			g.printf(`fmt.Fprintf(&bb, " $%%04X,Y", oper16)`)
+		case "imm":
+			g.printf(`fmt.Fprintf(&bb, " #$%%02X", oper1)`)
+		case "zpx", "zpy", "zp", "zpg":
+			g.printf(`fmt.Fprintf(&bb, " $%%02X", oper1)`)
+		case "izx":
+			g.printf(`fmt.Fprintf(&bb, " ($%%02X,X)", oper1)`)
+		case "izy":
+			g.printf(`fmt.Fprintf(&bb, " ($%%02X),Y", oper1)`)
+		}
+		g.printf(`return bb.Bytes()`)
+		g.printf(`}`)
+		g.printf(``)
 	}
+}
+
+func (g *Generator) disasmOpcode(def opdef) {
+	g.printf(`func disasmOpcode%02X(cpu*CPU, pc uint16) []byte {`, def.i)
+	opname := ""
+	if has(def.d, 'i') {
+		opname = "*" + def.n
+	} else {
+		opname = " " + def.n
+	}
+	g.printf(`return disasm%s(cpu, pc, "%s")`, strings.ToUpper(def.m[:1])+def.m[1:], opname)
+	g.printf(`}`)
 }
 
 func (g *Generator) opcodesTable() {
@@ -898,6 +1011,34 @@ func (g *Generator) opcodesTable() {
 	g.printf(bb.String())
 	g.printf(`}`)
 	g.printf(``)
+}
+
+func (g *Generator) disasmTable() {
+	bb := &strings.Builder{}
+	for i := 0; i < 16; i++ {
+		for j := 0; j < 16; j++ {
+			opcode := i*16 + j
+			fmt.Fprintf(bb, "disasmOpcode%02X, ", opcode)
+		}
+		bb.WriteByte('\n')
+	}
+	g.printf(`// nes 6502 opcodes disassembly table`)
+	g.printf(`var disasmOps = [256]func(*CPU, uint16) []byte {`)
+	g.printf(bb.String())
+	g.printf(`}`)
+	g.printf(``)
+}
+
+func (g *Generator) opcodeNamesTable() {
+	var names [256]string
+	for i := range names {
+		names[i] = `"` + defs[i].n + `"`
+	}
+	g.printf(`var opcodeNames = [256]string{`)
+	for i := 0; i < 16; i++ {
+		g.printf("%s,", strings.Join(names[i*16:i*16+16], ", "))
+	}
+	g.printf(`}`)
 }
 
 func (g *Generator) unstableOpcodes() {
@@ -923,8 +1064,11 @@ func main() {
 
 	g.header()
 	g.opcodes()
-	g.opcodesTable()
 	g.unstableOpcodes()
+	g.opcodesTable()
+	g.disasmAddrModes()
+	g.disasmTable()
+	g.opcodeNamesTable()
 
 	buf, err := format.Source(bb.Bytes())
 	if err != nil {

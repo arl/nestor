@@ -18,14 +18,17 @@ jobs:
         run: >-
           sudo apt-get update &&
           sudo apt-get install
-          bc
           gcc
-          libgl1-mesa-dev
+          libegl1-mesa-dev
+          libffi-dev
+          libgles2-mesa-dev
+          libvulkan-dev
           libwayland-dev
           libx11-dev
-          libxkbcommon-dev
-          xorg-dev
-          xvfb
+          libx11-xcb-dev
+          libxcursor-dev
+          libxkbcommon-x11-dev
+          pkg-config
 
       - name: Run tests
         run: go test -race -shuffle=on ./...

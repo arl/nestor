@@ -100,6 +100,7 @@ func testOpcodes(op string) func(t *testing.T) {
 				defer putSlice(slice)
 
 				cpu := NewCPU(NewPPU())
+				cpu.ppuAbsent = true
 				cpu.A = uint8(tt.Initial.A)
 				cpu.X = uint8(tt.Initial.X)
 				cpu.Y = uint8(tt.Initial.Y)
@@ -252,7 +253,7 @@ func TestROR(t *testing.T) {
 FFFC: 00 01`
 		cpu := loadCPUWith(t, dump)
 		cpu.A = 0x80
-		cpu.P.writeBit(pbitC, true)
+		cpu.P.setCarry(true)
 		runAndCheckState(t, cpu, 5,
 			"Pn", 1,
 			"Pc", 1,

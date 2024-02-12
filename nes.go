@@ -31,7 +31,7 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 	if err != nil {
 		return fmt.Errorf("mapper failed to map cartridge: %s", err)
 	}
-
+	nes.Hw.PPU.CreateScreen()
 	nes.Reset()
 	return nil
 }
@@ -53,7 +53,7 @@ func (nes *NES) Reset() {
 	nes.Hw.CPU.Reset()
 }
 
-func (nes *NES) AttachScreen() <-chan *image.RGBA {
+func (nes *NES) FrameEvents() <-chan *image.RGBA {
 	if nes.screenCh != nil {
 		panic("screen already attached")
 	}

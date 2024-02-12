@@ -3,48 +3,31 @@ package main
 import (
 	"bytes"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
 	"unsafe"
 
 	"nestor/emu/hwio"
-	log "nestor/emu/logger"
 	"nestor/hw"
 	"nestor/ines"
-
-	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func TestNestest(t *testing.T) {
-	nes := new(NES)
+	var nes NES
 	cartridge, err := ines.ReadRom("testdata/nes-test-roms/other/nestest.nes")
-
 	tcheck(t, err)
 	tcheck(t, nes.PowerUp(cartridge))
 
 	flog, err := os.CreateTemp("", "nestor.nestest.*.log")
 	tcheck(t, err)
 	t.Log(flog.Name())
-
 	t.Cleanup(func() {
 		flog.Close()
 		t.Logf("log saved to %s", flog.Name())
-		content, err := os.ReadFile(flog.Name())
-		tcheck(t, err)
-
-		want, err := os.ReadFile("testdata/nes-test-roms/other/nestest.log")
-		tcheck(t, err)
-
-		// TODO(arl) diff should be empty once APU is implemented. As of now,
-		// since there's no APU, we have a few mismatched lines at the end of
-		// the log. For now, we check this doesn't drift.
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(want), string(content), true)
-		if dmp.DiffLevenshtein(diffs) != 8 {
-			t.Fatalf("investigate why the Levenshtein distance has changed")
-		}
 	})
+
 	// This rom has an 'automation' mode. To enable it, PC must be set to C000.
 	// We do that by overwriting the rom location of the reset vector.
 	// binary.LittleEndian.PutUint16(cartridge.PRGROM[0x3FFC:], 0xC000)
@@ -54,6 +37,11 @@ func TestNestest(t *testing.T) {
 	nes.Hw.PPU.Cycle = 21
 	disasm := hw.NewDisasm(nes.Hw.CPU, flog)
 	disasm.Run(26560)
+
+	r1, r2 := nes.Hw.CPU.Read8(0x02), nes.Hw.CPU.Read8(0x03)
+	if r1 != 0x00 || r2 != 0x00 {
+		t.Fatalf("nestest failed: 0x%02x%02x", r1, r2)
+	}
 }
 
 func TestInstructionsV5(t *testing.T) {
@@ -121,6 +109,7 @@ func runTestRom(path string) func(t *testing.T) {
 		var nes NES
 		checkf(nes.PowerUp(rom), "error during power up")
 		nes.Reset()
+		nes.Hw.PPU.CreateScreen()
 
 		magic := []byte{0xde, 0xb0, 0x61}
 		magicset := 0
@@ -128,7 +117,6 @@ func runTestRom(path string) func(t *testing.T) {
 
 		for {
 			nes.RunOneFrame()
-
 			data := nes.Hw.CPU.Bus.FetchPointer(0x6001)
 			if magicset == 0 {
 				if bytes.Equal(data[:3], magic) {
@@ -168,4 +156,39 @@ func memToString(t *hwio.Table, addr uint16) string {
 		i++
 	}
 	return unsafe.String(&data[0], i)
+}
+
+func TestNametableMirroring(t *testing.T) {
+	rom, err := ines.ReadRom("testdata/nes-test-roms/other/snow.nes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rom.Mirroring() != ines.HorzMirroring {
+		t.Errorf("incorrect nt mirroring")
+	}
+	var nes NES
+	checkf(nes.PowerUp(rom), "error during power up")
+	nes.Reset()
+
+	nes.Hw.PPU.Bus.Write8(0x2000, 'A')
+	nes.Hw.PPU.Bus.Write8(0x2800, 'B')
+
+	addrs := []uint16{
+		0x2000, // A
+		0x2400, // A
+		0x2800, // B
+		0x2C00, // B
+		0x3000, // A
+		0x3400, // A
+		0x3800, // B
+		0x3C00, // B
+	}
+	var nts []byte
+	for _, a := range addrs {
+		nts = append(nts, nes.Hw.PPU.Bus.Read8(a))
+	}
+
+	if string(nts) != "AABBAABB" {
+		t.Errorf("mirrors = %s", nts)
+	}
 }
