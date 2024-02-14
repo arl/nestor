@@ -95,7 +95,7 @@ func main() {
 		}
 	}()
 
-	ui := newGUI(&nes)
+	ui := newEmulator(&nes)
 	ui.run()
 }
 

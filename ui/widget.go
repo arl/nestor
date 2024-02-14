@@ -1,0 +1,44 @@
+package ui
+
+import (
+	"gioui.org/font/gofont"
+	"gioui.org/io/system"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/text"
+	"gioui.org/widget/material"
+)
+
+type C = layout.Context
+type D = layout.Dimensions
+
+// WidgetView allows to use layout.Widget as a view.
+type WidgetView func(gtx C, th *material.Theme) D
+
+// Run displays the widget with default handling.
+func (view WidgetView) Run(w *Window) error {
+	var ops op.Ops
+
+	th := material.NewTheme()
+	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
+
+	go func() {
+		<-w.App.Context.Done()
+		w.Perform(system.ActionClose)
+	}()
+	for {
+		switch e := w.NextEvent().(type) {
+		case system.DestroyEvent:
+			return e.Err
+		case system.FrameEvent:
+			gtx := layout.NewContext(&ops, e)
+			view(gtx, th)
+			e.Frame(gtx.Ops)
+		}
+	}
+}
+
+func Center(label material.LabelStyle) material.LabelStyle {
+	label.Alignment = text.Middle
+	return label
+}

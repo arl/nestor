@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image"
+	"nestor/ui"
 
 	"gioui.org/io/event"
 	"gioui.org/io/key"
@@ -22,7 +23,7 @@ func NewScreenWindow(nes *NES) *ScreenWindow {
 	return &ScreenWindow{nes: nes}
 }
 
-func (sw *ScreenWindow) Run(w *Window) error {
+func (sw *ScreenWindow) Run(w *ui.Window) error {
 	go func() {
 		<-w.App.Context.Done()
 		w.Perform(system.ActionClose)

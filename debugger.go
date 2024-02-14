@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"nestor/hw"
+	"nestor/ui"
 
 	"gioui.org/font/gofont"
 	"gioui.org/io/event"
@@ -32,8 +33,7 @@ func NewDebuggerWindow(nes *NES) *DebuggerWindow {
 	}
 }
 
-// Run handles window loop for the log.
-func (dw *DebuggerWindow) Run(w *Window) error {
+func (dw *DebuggerWindow) Run(w *ui.Window) error {
 	var ops op.Ops
 
 	th := material.NewTheme()
@@ -59,6 +59,8 @@ func (dw *DebuggerWindow) Run(w *Window) error {
 	}()
 	for {
 		select {
+		// TODO: continue here by removing this and adding the disassembly
+
 		// listen to new lines from Printf and add them to our lines.
 		case line := <-dw.addLine:
 			dw.lines = append(dw.lines, line)
@@ -78,7 +80,7 @@ func (dw *DebuggerWindow) Run(w *Window) error {
 	}
 }
 
-func (dw *DebuggerWindow) Layout(w *Window, th *material.Theme, gtx C) {
+func (dw *DebuggerWindow) Layout(w *ui.Window, th *material.Theme, gtx C) {
 	// This is here to demonstrate programmatic closing of a window,
 	// however it's probably better to use OS close button instead.
 	for dw.close.Clicked(gtx) {
@@ -116,7 +118,6 @@ func (pt patternsTable) render(ptbuf []byte) *image.RGBA {
 		for col := uint16(0); col < 128; col++ {
 			addr := (row / 8 * 0x100) + (row % 8) + (col/8)*0x10
 			pixel := uint8((ptbuf[addr]>>(7-(col%8)))&1) + ((ptbuf[addr+8]>>(7-(col%8)))&1)*2
-
 			gray := pixel * 64
 			img.Pix[(row*128*4)+(col*4)] = gray
 			img.Pix[(row*128*4)+(col*4)+1] = gray
