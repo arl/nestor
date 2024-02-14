@@ -12,6 +12,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/widget"
+	"gioui.org/widget/material"
 
 	"nestor/ui"
 )
@@ -64,7 +65,7 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 					Keys: key.NameEscape,
 				}.Add(gtx.Ops)
 
-				// check for presses of the escape key and close the window if we find them.
+				// Check for presses of the escape key and close the window if we find them.
 				for _, event := range gtx.Events(w) {
 					switch event := event.(type) {
 					case key.Event:
@@ -75,7 +76,6 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 				}
 
 				sw.Layout(gtx, frame)
-
 				area.Pop()
 
 				// Pass drawing operations to the gpu
@@ -96,14 +96,25 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 }
 
 func (sw *ScreenWindow) Layout(gtx C, frame *image.RGBA) D {
-	size := image.Pt(ScreenWidth, ScreenHeight)
-	// gtx.Constraints = layout.Exact(size)
+	return layout.Flex{
+		Axis:      layout.Horizontal,
+		Alignment: layout.Start,
+	}.Layout(gtx,
+		layout.Rigid(func(gtx C) D {
+			return ui.Surface{Gray: 24, FitSize: false}.Layout(gtx,
+				widget.Image{
+					Src:      paint.NewImageOp(frame),
+					Fit:      widget.Contain,
+					Position: layout.Center,
+				}.Layout)
+		}),
 
-	gtx.Constraints.Min = size
-
-	return widget.Image{
-		Src: paint.NewImageOp(frame),
-		Fit: widget.Contain,
-		// Scale: 0.5,
-	}.Layout(gtx)
+		layout.Rigid(func(gtx C) D {
+			return layout.NW.Layout(gtx, func(gtx C) D {
+				return ui.Surface{Gray: 24, FitSize: true}.Layout(gtx,
+					material.H2(ui.Theme, "Header").Layout,
+				)
+			})
+		}),
+	)
 }

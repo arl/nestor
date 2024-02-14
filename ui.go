@@ -7,6 +7,7 @@ import (
 
 	"gioui.org/app"
 	"gioui.org/layout"
+	"gioui.org/unit"
 	"gioui.org/widget/material"
 
 	"nestor/ui"
@@ -37,13 +38,19 @@ func (e *emulator) run() {
 	defer stop()
 
 	go func() {
-		a := ui.NewApplication(ctx)
-
 		debugger := NewDebuggerWindow(e.nes)
 		screen := NewScreenWindow(e.nes)
 
-		a.NewWindow("Screen", screen)
+		a := ui.NewApplication(ctx)
+
+		minw := unit.Dp(2*ScreenWidth + 200)
+		minh := unit.Dp(2 * ScreenHeight)
+		a.NewWindow("Screen", screen,
+			app.MinSize(minw, minh),
+			app.Size(minw, minh),
+		)
 		a.NewWindow("Debugger", debugger)
+
 		a.Wait()
 		os.Exit(0)
 	}()
