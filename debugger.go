@@ -2,8 +2,6 @@ package main
 
 import (
 	"image"
-	"nestor/hw"
-	"nestor/ui"
 
 	"gioui.org/font/gofont"
 	"gioui.org/io/event"
@@ -14,6 +12,9 @@ import (
 	"gioui.org/text"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+
+	"nestor/hw"
+	"nestor/ui"
 )
 
 type DebuggerWindow struct {
@@ -87,18 +88,21 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, th *material.Theme, gtx C) {
 		w.Window.Perform(system.ActionClose)
 	}
 
-	pt := patternsTable{ppu: dw.nes.Hw.PPU}
-
 	layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		layout.Rigid(material.Button(th, &dw.close, "Close").Layout),
+		layout.Rigid(func(gtx C) D {
+			return material.Button(th, &dw.close, "Close").Layout(gtx)
+		}),
 		layout.Flexed(1, func(gtx C) D {
 			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Alignment(layout.NW), Spacing: layout.SpaceEnd}.Layout(gtx,
-				layout.Rigid(pt.Layout),
+				layout.Rigid(
+					patternsTable{ppu: dw.nes.Hw.PPU}.Layout,
+				),
 				layout.Flexed(1, func(gtx C) D {
 					return material.List(th, &dw.list).Layout(gtx, len(dw.lines), func(gtx C, i int) D {
 						return material.Body1(th, dw.lines[i]).Layout(gtx)
 					})
-				}))
+				}),
+			)
 		}),
 	)
 }

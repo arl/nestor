@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"nestor/ui"
 	"os"
 	"os/signal"
 
 	"gioui.org/app"
 	"gioui.org/layout"
 	"gioui.org/widget/material"
+
+	"nestor/ui"
 )
 
 const (

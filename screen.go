@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"image"
-	"nestor/ui"
 
 	"gioui.org/io/event"
 	"gioui.org/io/key"
@@ -13,6 +12,8 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/widget"
+
+	"nestor/ui"
 )
 
 type ScreenWindow struct {
@@ -72,16 +73,9 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 						}
 					}
 				}
-				size := image.Pt(ScreenWidth, ScreenHeight)
-				gtx.Constraints = layout.Exact(size)
 
-				widget.Image{
-					Src:   paint.NewImageOp(frame),
-					Fit:   widget.Contain,
-					Scale: 0.5,
-				}.Layout(gtx)
+				sw.Layout(gtx, frame)
 
-				// sw.Layout(gtx, frame)
 				area.Pop()
 
 				// Pass drawing operations to the gpu
@@ -99,4 +93,17 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 			w.Invalidate()
 		}
 	}
+}
+
+func (sw *ScreenWindow) Layout(gtx C, frame *image.RGBA) D {
+	size := image.Pt(ScreenWidth, ScreenHeight)
+	// gtx.Constraints = layout.Exact(size)
+
+	gtx.Constraints.Min = size
+
+	return widget.Image{
+		Src: paint.NewImageOp(frame),
+		Fit: widget.Contain,
+		// Scale: 0.5,
+	}.Layout(gtx)
 }
