@@ -18,11 +18,12 @@ import (
 )
 
 type ScreenWindow struct {
-	nes *NES
+	emu      *emulator
+	debugBtn widget.Clickable
 }
 
-func NewScreenWindow(nes *NES) *ScreenWindow {
-	return &ScreenWindow{nes: nes}
+func NewScreenWindow(emu *emulator) *ScreenWindow {
+	return &ScreenWindow{emu: emu}
 }
 
 func (sw *ScreenWindow) Run(w *ui.Window) error {
@@ -36,7 +37,7 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 	events := make(chan event.Event)
 	acks := make(chan struct{})
 
-	frameCh := sw.nes.FrameEvents()
+	frameCh := sw.emu.nes.FrameEvents()
 	var frame *image.RGBA
 
 	go func() {
@@ -111,9 +112,10 @@ func (sw *ScreenWindow) Layout(gtx C, frame *image.RGBA) D {
 
 		layout.Rigid(func(gtx C) D {
 			return layout.NW.Layout(gtx, func(gtx C) D {
-				return ui.Surface{Gray: 24, FitSize: true}.Layout(gtx,
-					material.H2(ui.Theme, "Header").Layout,
-				)
+				if sw.debugBtn.Clicked(gtx) {
+					sw.emu.showDebugger()
+				}
+				return material.Button(ui.Theme, &sw.debugBtn, "Debug").Layout(gtx)
 			})
 		}),
 	)
