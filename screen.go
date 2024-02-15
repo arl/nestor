@@ -27,9 +27,14 @@ func NewScreenWindow(emu *emulator) *ScreenWindow {
 }
 
 func (sw *ScreenWindow) Run(w *ui.Window) error {
+	quit := make(chan struct{})
 	go func() {
-		<-w.App.Context.Done()
-		w.Perform(system.ActionClose)
+		select {
+		case <-quit:
+			sw.emu.app.Shutdown()
+		case <-w.App.Context.Done():
+			w.Perform(system.ActionClose)
+		}
 	}()
 
 	var ops op.Ops
@@ -85,6 +90,7 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 			case system.DestroyEvent:
 				fmt.Println("destroy event")
 				acks <- struct{}{}
+				close(quit)
 				return e.Err
 			}
 			acks <- struct{}{}

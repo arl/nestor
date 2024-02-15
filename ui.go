@@ -23,10 +23,14 @@ type D = layout.Dimensions
 
 var th = material.NewTheme()
 
+const (
+	debuggerTitle = "Debugger"
+	screenTitle   = "Screen"
+)
+
 type emulator struct {
-	nes      *NES
-	app      *ui.Application
-	debugger *DebuggerWindow
+	nes *NES
+	app *ui.Application
 }
 
 func newEmulator(nes *NES) *emulator {
@@ -36,11 +40,10 @@ func newEmulator(nes *NES) *emulator {
 }
 
 func (e *emulator) showDebugger() {
-	if e.debugger != nil {
-		panic("debugger already open")
+	if e.app.HasWindow(debuggerTitle) {
+		return
 	}
-	e.debugger = NewDebuggerWindow(e.nes)
-	e.app.NewWindow("Debugger", e.debugger)
+	e.app.NewWindow(debuggerTitle, NewDebuggerWindow(e))
 }
 
 func (e *emulator) run() {
@@ -54,7 +57,7 @@ func (e *emulator) run() {
 
 		minw := unit.Dp(2*ScreenWidth + 200)
 		minh := unit.Dp(2 * ScreenHeight)
-		e.app.NewWindow("Screen", screen,
+		e.app.NewWindow(screenTitle, screen,
 			app.MinSize(minw, minh),
 			app.Size(minw, minh),
 		)
@@ -64,4 +67,9 @@ func (e *emulator) run() {
 	}()
 
 	app.Main()
+}
+
+func (e *emulator) stop() {
+	e.app.Shutdown()
+	e.app.Wait()
 }

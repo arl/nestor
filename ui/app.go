@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"gioui.org/app"
+	"gioui.org/io/system"
 	"gioui.org/widget/material"
 )
 
@@ -21,6 +22,9 @@ type Application struct {
 	// active keeps track the open windows, such that application
 	// can shut down, when all of them are closed.
 	active sync.WaitGroup
+
+	mu      sync.Mutex
+	windows map[string]*Window
 }
 
 func NewApplication(ctx context.Context) *Application {
@@ -28,6 +32,7 @@ func NewApplication(ctx context.Context) *Application {
 	return &Application{
 		Context:  ctx,
 		Shutdown: cancel,
+		windows:  make(map[string]*Window),
 	}
 }
 
@@ -43,11 +48,39 @@ func (a *Application) NewWindow(title string, view View, opts ...app.Option) {
 		App:    a,
 		Window: app.NewWindow(opts...),
 	}
+
+	a.mu.Lock()
+	if a.windows[title] != nil {
+		panic("window already exists: " + title)
+	}
+	a.windows[title] = w
+	a.mu.Unlock()
+
 	a.active.Add(1)
 	go func() {
 		defer a.active.Done()
 		view.Run(w)
 	}()
+}
+
+func (a *Application) HasWindow(title string) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if _, ok := a.windows[title]; ok {
+		return true
+	}
+	return false
+}
+
+func (a *Application) CloseWindow(title string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if w, ok := a.windows[title]; ok {
+		w.Window.Perform(system.ActionClose)
+		delete(a.windows, title)
+	}
 }
 
 // Window holds window state.

@@ -19,6 +19,7 @@ import (
 
 type DebuggerWindow struct {
 	nes     *NES
+	emu     *emulator
 	addLine chan string
 	lines   []string
 
@@ -26,9 +27,10 @@ type DebuggerWindow struct {
 	list  widget.List
 }
 
-func NewDebuggerWindow(nes *NES) *DebuggerWindow {
+func NewDebuggerWindow(emu *emulator) *DebuggerWindow {
 	return &DebuggerWindow{
-		nes:     nes,
+		emu:     emu,
+		nes:     emu.nes,
 		addLine: make(chan string, 100),
 		list:    widget.List{List: layout.List{Axis: layout.Vertical}},
 	}
@@ -70,6 +72,7 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 			switch e := e.(type) {
 			case system.DestroyEvent:
 				acks <- struct{}{}
+				dw.emu.app.CloseWindow(debuggerTitle)
 				return e.Err
 			case system.FrameEvent:
 				gtx := layout.NewContext(&ops, e)
@@ -82,12 +85,6 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 }
 
 func (dw *DebuggerWindow) Layout(w *ui.Window, th *material.Theme, gtx C) {
-	// This is here to demonstrate programmatic closing of a window,
-	// however it's probably better to use OS close button instead.
-	for dw.close.Clicked(gtx) {
-		w.Window.Perform(system.ActionClose)
-	}
-
 	layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return material.Button(th, &dw.close, "Close").Layout(gtx)

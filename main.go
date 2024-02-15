@@ -68,16 +68,6 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		<-c
-		if cpuprofile != "" {
-			pprof.StopCPUProfile()
-			log.ModEmu.Infof("CPU profile written to %s", cpuprofile)
-		}
-		os.Exit(1)
-	}()
 
 	var nes NES
 	checkf(nes.PowerUp(rom), "error during power up")
@@ -96,6 +86,17 @@ func main() {
 	}()
 
 	ui := newEmulator(&nes)
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		<-c
+		if cpuprofile != "" {
+			pprof.StopCPUProfile()
+			log.ModEmu.Infof("CPU profile written to %s", cpuprofile)
+		}
+	}()
+
 	ui.run()
 }
 
