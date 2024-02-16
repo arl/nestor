@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 
+	"gioui.org/app"
 	"gioui.org/font/gofont"
 	"gioui.org/io/event"
 	"gioui.org/io/system"
@@ -55,7 +56,7 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 			ev := w.NextEvent()
 			events <- ev
 			<-acks
-			if _, ok := ev.(system.DestroyEvent); ok {
+			if _, ok := ev.(app.DestroyEvent); ok {
 				return
 			}
 		}
@@ -70,12 +71,12 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 			w.Invalidate()
 		case e := <-events:
 			switch e := e.(type) {
-			case system.DestroyEvent:
+			case app.DestroyEvent:
 				acks <- struct{}{}
 				dw.emu.app.CloseWindow(debuggerTitle)
 				return e.Err
-			case system.FrameEvent:
-				gtx := layout.NewContext(&ops, e)
+			case app.FrameEvent:
+				gtx := app.NewContext(&ops, e)
 				dw.Layout(w, th, gtx)
 				e.Frame(gtx.Ops)
 			}
@@ -108,7 +109,8 @@ type patternsTable struct {
 	ppu *hw.PPU
 }
 
-func (pt patternsTable) render(ptbuf []byte) *image.RGBA {
+func (pt patternsTable) render(ppu *hw.PPU) *image.RGBA {
+	ptbuf := ppu.Bus.FetchPointer(0x0000)
 	img := image.NewRGBA(image.Rect(0, 0, 128, 256))
 
 	// A pattern table is 0x1000 bytes so 0x8000 bits.
@@ -133,12 +135,11 @@ func (pt patternsTable) Layout(gtx C) D {
 	size := image.Pt(128, 256)
 	gtx.Constraints = layout.Exact(size)
 
-	ptbuf := pt.ppu.Bus.FetchPointer(0x0000)
-	img := pt.render(ptbuf)
+	img := pt.render(pt.ppu)
 
 	return widget.Image{
 		Src:   paint.NewImageOp(img),
 		Fit:   widget.Contain,
-		Scale: 0.5,
+		Scale: 1,
 	}.Layout(gtx)
 }

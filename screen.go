@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 
+	"gioui.org/app"
 	"gioui.org/io/event"
 	"gioui.org/io/key"
 	"gioui.org/io/system"
@@ -50,7 +51,7 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 			ev := w.NextEvent()
 			events <- ev
 			<-acks
-			if _, ok := ev.(system.DestroyEvent); ok {
+			if _, ok := ev.(app.DestroyEvent); ok {
 				return
 			}
 		}
@@ -60,25 +61,27 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 		select {
 		case e := <-events:
 			switch e := e.(type) {
-			case system.FrameEvent:
-				gtx := layout.NewContext(&ops, e)
+			case app.FrameEvent:
+				gtx := app.NewContext(&ops, e)
 
-				// Register a global key listener for the escape key wrapping
-				// our entire window.
 				area := clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops)
-				key.InputOp{
-					Tag:  w,
-					Keys: key.NameEscape,
-				}.Add(gtx.Ops)
-
-				// Check for presses of the escape key and close the window if we find them.
-				for _, event := range gtx.Events(w) {
-					switch event := event.(type) {
-					case key.Event:
-						if event.Name == key.NameEscape {
-							return nil
-						}
+				event.Op(gtx.Ops, w)
+				for {
+					event, ok := gtx.Event(
+						key.Filter{
+							Name: key.NameEscape,
+						},
+						key.Filter{
+							Name: key.NameEnter,
+						},
+					)
+					if !ok {
+						break
 					}
+					if _, ok := event.(key.Event); !ok {
+						continue
+					}
+					return nil
 				}
 
 				sw.Layout(gtx, frame)
@@ -87,7 +90,7 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 				// Pass drawing operations to the gpu
 				e.Frame(gtx.Ops)
 
-			case system.DestroyEvent:
+			case app.DestroyEvent:
 				fmt.Println("destroy event")
 				acks <- struct{}{}
 				close(quit)
