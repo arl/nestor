@@ -919,7 +919,6 @@ func (g *Generator) opcodes() {
 			g.opcodeFooter(def.i)
 			g.printf("\n")
 		}
-		g.disasmOpcode(def)
 	}
 }
 
@@ -948,6 +947,8 @@ func (g *Generator) disasmAddrModes() {
 		}
 
 		g.printf(`return DisasmOp{`)
+		g.printf(`PC: pc,`)
+		g.printf(`Opcode: opcodeNames[oper0],`)
 		g.printf(`Bytes: []byte{%s},`, strings.Join(bytes, ","))
 		switch name {
 		case "imp":
@@ -978,20 +979,6 @@ func (g *Generator) disasmAddrModes() {
 	}
 }
 
-func (g *Generator) disasmOpcode(def opdef) {
-	g.printf(`func disasmOpcode%02X(cpu*CPU, pc uint16) DisasmOp {`, def.i)
-	opname := ""
-	if has(def.d, 'i') {
-		opname = "*" + def.n
-	} else {
-		opname = " " + def.n
-	}
-	g.printf(`ds := disasm%s(cpu, pc)`, strings.ToUpper(def.m[:1])+def.m[1:])
-	g.printf(`ds.Op = "%s"`, opname)
-	g.printf(`return ds`)
-	g.printf(`}`)
-}
-
 func (g *Generator) opcodesTable() {
 	bb := &strings.Builder{}
 	for i := 0; i < 16; i++ {
@@ -1016,8 +1003,8 @@ func (g *Generator) disasmTable() {
 	bb := &strings.Builder{}
 	for i := 0; i < 16; i++ {
 		for j := 0; j < 16; j++ {
-			opcode := i*16 + j
-			fmt.Fprintf(bb, "disasmOpcode%02X, ", opcode)
+			name := defs[i*16+j].m
+			fmt.Fprintf(bb, "disasm%s, ", strings.ToUpper(name[:1])+name[1:])
 		}
 		bb.WriteByte('\n')
 	}
@@ -1030,8 +1017,12 @@ func (g *Generator) disasmTable() {
 
 func (g *Generator) opcodeNamesTable() {
 	var names [256]string
-	for i := range names {
-		names[i] = `"` + defs[i].n + `"`
+	for i, def := range defs {
+		if has(def.d, 'i') {
+			names[i] = `"` + "*" + def.n + `"`
+		} else {
+			names[i] = `"` + " " + def.n + `"`
+		}
 	}
 	g.printf(`var opcodeNames = [256]string{`)
 	for i := 0; i < 16; i++ {
