@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -855,7 +856,6 @@ func (g *Generator) header() {
 	g.printf(`package %s`, pkgname)
 	g.printf(`import (`)
 	g.printf(`"fmt"`)
-	g.printf(`"bytes"`)
 	g.printf(`)`)
 }
 
@@ -929,67 +929,66 @@ func (g *Generator) disasmAddrModes() {
 	for k := range addrModes {
 		modes = append(modes, k)
 	}
+
 	sort.Strings(modes)
 	for _, name := range modes {
 		am := addrModes[name]
 		fname := strings.ToUpper(name[:1]) + name[1:]
-		g.printf(`func disasm%s(cpu*CPU, pc uint16, opname string) []byte {`, fname)
-		g.printf(`var bb bytes.Buffer`)
-		g.printf(`fmt.Fprintf(&bb, "%%04X  ", pc)`)
-
+		g.printf(`func disasm%s(cpu*CPU, pc uint16) DisasmOp {`, fname)
 		for n := 0; n < am.n; n++ {
 			g.printf(`oper%d := cpu.Bus.Peek8(pc+%d)`, n, n)
 		}
+		var bytes []string
 		for n := 0; n < am.n; n++ {
-			g.printf(`fmt.Fprintf(&bb, "%%02X ", oper%d)`, n)
+			bytes = append(bytes, "oper"+strconv.Itoa(n))
 		}
-		g.printf(`fmt.Fprintf(&bb, "%%*s", %d, "")`, 9-3*am.n)
+		oper16 := ""
 		if am.n == 3 {
-			g.printf(`oper16 := uint16(oper1)|uint16(oper2)<<8`)
+			oper16 = `uint16(oper1)|uint16(oper2)<<8`
 		}
 
-		g.printf(`bb.WriteString(opname)`)
-
+		g.printf(`return DisasmOp{`)
+		g.printf(`Bytes: []byte{%s},`, strings.Join(bytes, ","))
 		switch name {
 		case "imp":
 		case "acc":
-			g.printf(`fmt.Fprintf(&bb, " A")`)
+			g.printf(`Oper: "A",`)
 		case "rel":
-			g.printf(`off := int16(int8(oper1))`)
-			g.printf(`oper := uint16(int16(pc+2) + off)`)
-			g.printf(`fmt.Fprintf(&bb, " $%%04X", oper)`)
+			g.printf(`Oper: fmt.Sprintf("$%%04X", uint16(int16(pc+2) + int16(int8(oper1)))),`)
 		case "ind":
-			g.printf(`fmt.Fprintf(&bb, " ($%%04X)", oper16)`)
+			g.printf(`Oper: fmt.Sprintf("($%%04X)", %s),`, oper16)
 		case "abs":
-			g.printf(`fmt.Fprintf(&bb, " $%%04X", oper16)`)
+			g.printf(`Oper: fmt.Sprintf("$%%04X", %s),`, oper16)
 		case "abx":
-			g.printf(`fmt.Fprintf(&bb, " $%%04X,X", oper16)`)
+			g.printf(`Oper: fmt.Sprintf("$%%04X,X", %s),`, oper16)
 		case "aby":
-			g.printf(`fmt.Fprintf(&bb, " $%%04X,Y", oper16)`)
+			g.printf(`Oper: fmt.Sprintf("$%%04X,Y", %s),`, oper16)
 		case "imm":
-			g.printf(`fmt.Fprintf(&bb, " #$%%02X", oper1)`)
+			g.printf(`Oper: fmt.Sprintf("#$%%02X", oper1),`)
 		case "zpx", "zpy", "zp", "zpg":
-			g.printf(`fmt.Fprintf(&bb, " $%%02X", oper1)`)
+			g.printf(`Oper: fmt.Sprintf("$%%02X", oper1),`)
 		case "izx":
-			g.printf(`fmt.Fprintf(&bb, " ($%%02X,X)", oper1)`)
+			g.printf(`Oper: fmt.Sprintf("($%%02X,X)", oper1),`)
 		case "izy":
-			g.printf(`fmt.Fprintf(&bb, " ($%%02X),Y", oper1)`)
+			g.printf(`Oper: fmt.Sprintf("($%%02X),Y", oper1),`)
 		}
-		g.printf(`return bb.Bytes()`)
+		g.printf(`}`)
 		g.printf(`}`)
 		g.printf(``)
 	}
 }
 
 func (g *Generator) disasmOpcode(def opdef) {
-	g.printf(`func disasmOpcode%02X(cpu*CPU, pc uint16) []byte {`, def.i)
+	g.printf(`func disasmOpcode%02X(cpu*CPU, pc uint16) DisasmOp {`, def.i)
 	opname := ""
 	if has(def.d, 'i') {
 		opname = "*" + def.n
 	} else {
 		opname = " " + def.n
 	}
-	g.printf(`return disasm%s(cpu, pc, "%s")`, strings.ToUpper(def.m[:1])+def.m[1:], opname)
+	g.printf(`ds := disasm%s(cpu, pc)`, strings.ToUpper(def.m[:1])+def.m[1:])
+	g.printf(`ds.Op = "%s"`, opname)
+	g.printf(`return ds`)
 	g.printf(`}`)
 }
 
@@ -1023,7 +1022,7 @@ func (g *Generator) disasmTable() {
 		bb.WriteByte('\n')
 	}
 	g.printf(`// nes 6502 opcodes disassembly table`)
-	g.printf(`var disasmOps = [256]func(*CPU, uint16) []byte {`)
+	g.printf(`var disasmOps = [256]func(*CPU, uint16) DisasmOp {`)
 	g.printf(bb.String())
 	g.printf(`}`)
 	g.printf(``)

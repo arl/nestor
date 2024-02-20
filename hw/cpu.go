@@ -3,7 +3,9 @@ package hw
 //go:generate go run ./cpugen/gen_nes6502.go -out ./opcodes.go
 
 import (
+	"fmt"
 	"nestor/emu/hwio"
+	"strings"
 )
 
 // Locations reserved for vector pointers.
@@ -235,4 +237,25 @@ func (c *CPU) IRQ() {
 		c.PC = c.Read16(CpuIRQvector)
 		// TODO inform the debugger we just had an IRQ
 	}
+}
+
+type DisasmOp struct {
+	PC    uint16
+	Op    string
+	Bytes []byte
+	Oper  string
+}
+
+func (d DisasmOp) String() string {
+	// C000  4C F5 C5  JMP $C5F5
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "%04X ", d.PC)
+	for _, b := range d.Bytes {
+		fmt.Fprintf(&sb, " %02X ", b)
+	}
+	sb.WriteByte(' ')
+	sb.WriteString(d.Op)
+	sb.WriteByte(' ')
+	sb.WriteString(d.Oper)
+	return sb.String()
 }
