@@ -32,6 +32,7 @@ func (d *disasm) Run(until int64) {
 		d.prevPPUScanline = d.cpu.ppu.Scanline
 
 		pc := d.cpu.PC
+		d.cpu.dbg.Trace(pc)
 		opcode := d.cpu.Read8(d.cpu.PC)
 		d.cpu.PC++
 		d.op(pc)
@@ -59,13 +60,12 @@ func (d *disasm) op(pc uint16) {
 	// Write disassembly.
 	opcode := d.read8(pc)
 	dis := disasmOps[opcode](d.cpu, pc)
-	d.bb.WriteString(dis.String())
 
 	// Write CPU state.
 	// fmt.Fprintf(&d.bb, "%-*s A:%02X X:%02X Y:%02X P:%02X SP:%02X", 40-len(dis), "",
 	// 	d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP)
-	fmt.Fprintf(&d.bb, "%-40s A:%02X X:%02X Y:%02X P:%02X SP:%02X",
-		dis, d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP)
+	fmt.Fprintf(&d.bb, "%-30s A:%02X X:%02X Y:%02X P:%02X SP:%02X",
+		dis.String(), d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP)
 
 	// Write PPU state.
 	fmt.Fprintf(&d.bb, " PPU:%3d,%3d CYC:%d",

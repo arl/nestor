@@ -12,17 +12,20 @@ import (
 )
 
 type NES struct {
-	Hw emu.NESHardware
-
+	Hw       emu.NESHardware
+	Debugger *debugger
 	screenCh chan *image.RGBA
 }
 
 func (nes *NES) PowerUp(rom *ines.Rom) error {
+	nes.Hw.Rom = rom
 	nes.Hw.PPU = hw.NewPPU()
 	nes.Hw.PPU.InitBus()
 
 	nes.Hw.CPU = hw.NewCPU(nes.Hw.PPU)
 	nes.Hw.CPU.InitBus()
+
+	nes.Debugger = newDebugger(nes.Hw.CPU)
 
 	nes.Hw.PPU.CPU = nes.Hw.CPU
 

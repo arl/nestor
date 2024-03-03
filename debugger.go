@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"sync/atomic"
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
@@ -18,30 +19,110 @@ import (
 	"nestor/ui"
 )
 
+// a debugger is always present and associated to the CPU when running, however
+// it is only active when the debugger window is opened.
+type debugger struct {
+	active   atomic.Bool
+	state    atomic.Int32
+	cpuBlock chan struct{}
+
+	cpu *hw.CPU
+}
+
+type dbgState int32
+
+const (
+	running dbgState = iota
+	paused
+	stepping
+)
+
+func newDebugger(cpu *hw.CPU) *debugger {
+	dbg := &debugger{
+		cpu:      cpu,
+		cpuBlock: make(chan struct{}),
+	}
+	cpu.SetDebugger(dbg)
+	dbg.setState(running)
+	return dbg
+}
+
+func (dbg *debugger) getState() dbgState {
+	return dbgState(dbg.state.Load())
+}
+
+func (dbg *debugger) setState(s dbgState) {
+	dbg.state.Store(int32(s))
+}
+
+func (dbg *debugger) unblock() {
+	dbg.cpuBlock <- struct{}{}
+}
+
+func (dbg *debugger) detach() {
+	dbg.active.Store(false)
+	dbg.cpuBlock <- struct{}{}
+}
+
+// Trace must be called before each opcode is executed. This is the main entry
+// point for debugging activity, as the debug can stop the CPU execution by
+// making this function blocking until user interaction finishes.
+func (d *debugger) Trace(pc uint16) {
+	if !d.active.Load() {
+		return
+	}
+	switch d.getState() {
+	case running:
+		break
+	case paused:
+		<-d.cpuBlock
+	case stepping:
+		<-d.cpuBlock
+	}
+}
+func (d *debugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
+}
+func (d *debugger) WatchRead(addr uint16) {
+}
+func (d *debugger) WatchWrite(addr uint16, val uint16) {
+}
+// Break can be called by the CPU core to force breaking into the debugger.
+func (d *debugger) Break(msg string) {
+}
 type DebuggerWindow struct {
 	nes     *NES
 	emu     *emulator
+	dbg     *debugger
 	addLine chan string
 	lines   []string
 
-	close widget.Clickable
-	list  widget.List
+	start widget.Clickable
+	pause widget.Clickable
+	step  widget.Clickable
+
+	list widget.List
 }
 
 func NewDebuggerWindow(emu *emulator) *DebuggerWindow {
 	return &DebuggerWindow{
 		emu:     emu,
 		nes:     emu.nes,
+		dbg:     emu.nes.Debugger,
 		addLine: make(chan string, 100),
 		list:    widget.List{List: layout.List{Axis: layout.Vertical}},
 	}
 }
 
 func (dw *DebuggerWindow) Run(w *ui.Window) error {
+	defer dw.dbg.detach()
+
 	var ops op.Ops
 
 	th := material.NewTheme()
 	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
+
+	dw.dbg.active.Store(true)
+	dw.dbg.setState(paused)
 
 	go func() {
 		<-w.App.Context.Done()
@@ -86,21 +167,63 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 }
 
 func (dw *DebuggerWindow) Layout(w *ui.Window, th *material.Theme, gtx C) {
+	switch dw.dbg.getState() {
+	case running:
+		if dw.pause.Clicked(gtx) {
+			dw.dbg.setState(paused)
+		}
+	case paused:
+		if dw.start.Clicked(gtx) {
+			dw.dbg.setState(running)
+			dw.dbg.unblock()
+		}
+		if dw.step.Clicked(gtx) {
+			dw.dbg.setState(stepping)
+			dw.dbg.unblock()
+		}
+	case stepping:
+		if dw.start.Clicked(gtx) {
+			dw.dbg.setState(running)
+			dw.dbg.unblock()
+		}
+		if dw.step.Clicked(gtx) {
+			dw.dbg.unblock()
+		}
+	}
+
+	btnSize := layout.Exact(image.Point{X: 70, Y: 35})
+
 	layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
-			return material.Button(th, &dw.close, "Close").Layout(gtx)
-		}),
-		layout.Flexed(1, func(gtx C) D {
-			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Alignment(layout.NW), Spacing: layout.SpaceEnd}.Layout(gtx,
-				layout.Rigid(
-					patternsTable{ppu: dw.nes.Hw.PPU}.Layout,
-				),
-				layout.Flexed(1, func(gtx C) D {
-					return material.List(th, &dw.list).Layout(gtx, len(dw.lines), func(gtx C, i int) D {
-						return material.Body1(th, dw.lines[i]).Layout(gtx)
-					})
+			return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceEnd, Alignment: layout.Start}.Layout(gtx,
+				layout.Rigid(func(gtx C) D {
+					gtx.Constraints = btnSize
+					if dw.dbg.getState() == running {
+						gtx = gtx.Disabled()
+					}
+					return material.Button(th, &dw.start, "Start").Layout(gtx)
+				}),
+				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
+
+				layout.Rigid(func(gtx C) D {
+					gtx.Constraints = btnSize
+					if dw.dbg.getState() != running {
+						gtx = gtx.Disabled()
+					}
+					return material.Button(th, &dw.pause, "Pause").Layout(gtx)
+				}),
+				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
+				layout.Rigid(func(gtx C) D {
+					gtx.Constraints = btnSize
+					if dw.dbg.getState() == running {
+						gtx = gtx.Disabled()
+					}
+					return material.Button(th, &dw.step, "Step").Layout(gtx)
 				}),
 			)
+		}),
+		layout.Rigid(func(gtx C) D {
+			return material.H6(th, "Patterns table").Layout(gtx)
 		}),
 	)
 }

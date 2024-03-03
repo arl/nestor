@@ -39,7 +39,7 @@ func newEmulator(nes *NES) *emulator {
 	}
 }
 
-func (e *emulator) showDebugger() {
+func (e *emulator) showDebuggerWindow() {
 	if e.app.HasWindow(debuggerTitle) {
 		return
 	}

@@ -33,6 +33,8 @@ type CPU struct {
 	needNmi, prevNeedNmi bool
 	runIRQ, prevRunIRQ   bool
 	irqFlag              bool
+
+	dbg Debugger
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -95,6 +97,7 @@ func (c *CPU) clearNMIflag() { c.nmiFlag = false }
 
 func (c *CPU) Run(until int64) {
 	for c.Clock < until {
+		c.dbg.Trace(c.PC)
 		opcode := c.Read8(c.PC)
 		c.PC++
 		ops[opcode](c)
@@ -219,6 +222,7 @@ func (c *CPU) IRQ() {
 	c.tick()
 	c.tick()
 
+	prevpc := c.PC
 	c.push16(c.PC)
 
 	if c.needNmi {
@@ -228,22 +232,31 @@ func (c *CPU) IRQ() {
 		c.push8(uint8(p))
 		c.P.setIntDisable(true)
 		c.PC = c.Read16(CpuNMIvector)
-		// TODO inform the debugger we just had an NMI
+		c.dbg.Interrupt(prevpc, c.PC, true)
 	} else {
 		p := c.P
 		p.setB(true)
 		c.push8(uint8(p))
 		c.P.setIntDisable(true)
 		c.PC = c.Read16(CpuIRQvector)
-		// TODO inform the debugger we just had an IRQ
+		c.dbg.Interrupt(prevpc, c.PC, false)
 	}
 }
 
+func (cpu *CPU) SetDebugger(dbg Debugger) {
+	cpu.dbg = dbg
+}
+
+func (cpu *CPU) Disasm(pc uint16) DisasmOp {
+	opcode := cpu.Bus.Peek8(pc)
+	return disasmOps[opcode](cpu, pc)
+}
+
 type DisasmOp struct {
-	PC    uint16
-	Op    string
-	Bytes []byte
-	Oper  string
+	PC     uint16
+	Opcode string
+	Bytes  []byte
+	Oper   string
 }
 
 func (d DisasmOp) String() string {
@@ -253,8 +266,8 @@ func (d DisasmOp) String() string {
 	for _, b := range d.Bytes {
 		fmt.Fprintf(&sb, " %02X ", b)
 	}
-	sb.WriteByte(' ')
-	sb.WriteString(d.Op)
+	fmt.Fprintf(&sb, "%*s", 17-sb.Len(), "")
+	sb.WriteString(d.Opcode)
 	sb.WriteByte(' ')
 	sb.WriteString(d.Oper)
 	return sb.String()

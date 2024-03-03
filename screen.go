@@ -39,10 +39,8 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 	}()
 
 	var ops op.Ops
-
 	events := make(chan event.Event)
 	acks := make(chan struct{})
-
 	frameCh := sw.emu.nes.FrameEvents()
 	var frame *image.RGBA
 
@@ -87,7 +85,6 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 				sw.Layout(gtx, frame)
 				area.Pop()
 
-				// Pass drawing operations to the gpu
 				e.Frame(gtx.Ops)
 
 			case app.DestroyEvent:
@@ -122,7 +119,7 @@ func (sw *ScreenWindow) Layout(gtx C, frame *image.RGBA) D {
 		layout.Rigid(func(gtx C) D {
 			return layout.NW.Layout(gtx, func(gtx C) D {
 				if sw.debugBtn.Clicked(gtx) {
-					sw.emu.showDebugger()
+					sw.emu.showDebuggerWindow()
 				}
 				return material.Button(ui.Theme, &sw.debugBtn, "Debug").Layout(gtx)
 			})
