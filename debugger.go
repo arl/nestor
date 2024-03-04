@@ -12,6 +12,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/op/paint"
 	"gioui.org/text"
+	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 
@@ -27,6 +28,8 @@ type debugger struct {
 	cpuBlock chan struct{}
 
 	cpu *hw.CPU
+
+	cstack callStack
 }
 
 type dbgState int32
@@ -68,16 +71,25 @@ func (dbg *debugger) detach() {
 // point for debugging activity, as the debug can stop the CPU execution by
 // making this function blocking until user interaction finishes.
 func (d *debugger) Trace(pc uint16) {
+	d.updateStack(pc, sffNone)
 	if !d.active.Load() {
 		return
 	}
 	switch d.getState() {
 	case running:
-		break
+		return
 	case paused:
 		<-d.cpuBlock
 	case stepping:
 		<-d.cpuBlock
+	}
+}
+func (d *debugger) updateStack(dstPc uint16, sff stackFrameFlag) {
+	switch d.prevOpcode {
+	case 0x20: // JSR
+		d.cstack.push(d.prevPC, dstPc, (d.prevPC+3)&0xFFFF, sff)
+	case 0x40, 0x60: // RTS RTI
+		d.cstack.pop()
 	}
 }
 func (d *debugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
@@ -96,6 +108,8 @@ type DebuggerWindow struct {
 	addLine chan string
 	lines   []string
 
+	callstack callStackViewer
+
 	start widget.Clickable
 	pause widget.Clickable
 	step  widget.Clickable
@@ -110,7 +124,11 @@ func NewDebuggerWindow(emu *emulator) *DebuggerWindow {
 		dbg:     emu.nes.Debugger,
 		addLine: make(chan string, 100),
 		list:    widget.List{List: layout.List{Axis: layout.Vertical}},
+ackViewer(),
 	}
+}
+
+func (dw *Debugg	}
 }
 
 func (dw *DebuggerWindow) Run(w *ui.Window) error {
@@ -225,7 +243,15 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, th *material.Theme, gtx C) {
 		layout.Rigid(func(gtx C) D {
 			return material.H6(th, "Patterns table").Layout(gtx)
 		}),
-	)
+c(gtx C) D {
+			return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceEnd}.Layout(gtx,
+				layout.Rigid(
+					patternsTable{ppu: dw.nes.Hw.PPU}.Layout,
+				),
+				layout.Rigid(func(gtx C) D {
+					return dw.callstack.Layout(gtx, dw.dbg.cpu.PC, dw.dbg.cstack.frames)
+				}),
+				// layout.Flexed(1patternsTab	)
 }
 
 type patternsTable struct {
@@ -266,3 +292,108 @@ func (pt patternsTable) Layout(gtx C) D {
 		Scale: 1,
 	}.Layout(gtx)
 }
+ {
+	frames []stackFrame
+}
+
+func (cs *callStack) push(src, dst, ret uint16, flag stackFrameFlag) {
+	cs.frames = append(cs.frames, stackFrame{src: src, target: dst, ret: ret})
+}
+
+func (cs *callStack) pop() {
+	if len(cs.frames) == 0 {
+		return
+	}
+	popped := cs.frames[len(cs.frames)-1]
+	_ = popped
+	cs.frames = cs.frames[:len(cs.frames)-1]
+}
+
+func (cs *callStack) Print() string {
+	var frames []string
+	for _, f := range cs.frames {
+		frames = append(frames, fmt.Sprintf("src: %04X, target: %04X, ret: %04X", f.src, f.target, f.ret))
+	}
+	return strings.Join(frames, "\n")
+}
+
+type stackFrame struct {
+	src    uint16
+	target uint16
+	ret    uint16
+	flags  stackFrameFlag
+}
+
+type stackFrameFlag uint8
+
+const (
+	sffNone stackFrameFlag = iota
+	sffNMI
+	sffIRQ
+)
+
+type callStackViewer struct {
+	stack widget.List
+	table ui.Table
+}
+
+func newCallStackViewer() callStackViewer {
+	return callStackViewer{
+		stack: widget.List{List: layout.List{Axis: layout.Vertical}},
+		table: ui.Table{Cols: 2, ColBorder: 1, RowBorder: 1},
+	}
+}
+
+func (cs *callStackViewer) Layout(gtx C, pc uint16, frames []stackFrame) D {
+	type frameInfo [2]string
+	var items []frameInfo
+
+	var curf *stackFrame
+	for i, f := range frames {
+		if i > 0 {
+			curf = &frames[i-1]
+		}
+		// item := fmt.Sprintf("func: %20s pc: %04X",
+		// 	callStackViewer{}.entryPoint(curf), f.src)
+		items = slices.Insert(items, 0, frameInfo{cs.entryPoint(curf), fmt.Sprintf("%04X", f.src)})
+	}
+
+	// Current frame
+	curf = nil
+	if len(frames) > 0 {
+		curf = &frames[len(frames)-1]
+	}
+
+	// item := fmt.Sprintf("func: %20s pc: %04X",
+	// 	callStackViewer{}.entryPoint(curf), pc)
+	items = slices.Insert(items, 0, frameInfo{cs.entryPoint(curf), fmt.Sprintf("%04X", pc)})
+
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		layout.Rigid(func(gtx C) D {
+			return material.H6(th, "Call Stack").Layout(gtx)
+		}),
+		layout.Rigid(func(gtx C) D {
+			return cs.table.Layout(gtx, len(items), func(gtx ui.C, i, j int) D {
+				return layout.UniformInset(unit.Dp(1)).Layout(gtx, func(gtx C) D {
+					return layout.UniformInset(unit.Dp(2)).Layout(gtx, func(gtx C) D {
+						return material.Body1(th, items[j][i]).Layout(gtx)
+					})
+				})
+			})
+		}),
+	)
+}
+
+func (callStackViewer) entryPoint(f *stackFrame) string {
+	if f == nil {
+		return "[bottom of stack]"
+	}
+	switch f.flags {
+	case sffNMI:
+		return "[nmi] $" + fmt.Sprintf("%04X", f.target)
+	case sffIRQ:
+		return "[irq] $" + fmt.Sprintf("%04X", f.target)
+	}
+	return fmt.Sprintf("$%04X", f.target)
+}
+                      
