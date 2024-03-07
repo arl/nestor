@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -62,11 +63,13 @@ func main() {
 
 	if cpuprofile != "" {
 		f, err := os.Create(cpuprofile)
-		if err != nil {
-			log.ModEmu.FatalZ(err.Error())
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
+		checkf(err, "failed to create cpu profile file")
+		checkf(pprof.StartCPUProfile(f), "failed to start cpu profile")
+		Defer(func() {
+			pprof.StopCPUProfile()
+			f.Close()
+			fmt.Println("CPU profile written to", cpuprofile)
+		})
 	}
 
 	var nes NES
@@ -85,19 +88,8 @@ func main() {
 		}
 	}()
 
-	ui := newEmulator(&nes)
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		<-c
-		if cpuprofile != "" {
-			pprof.StopCPUProfile()
-			log.ModEmu.Infof("CPU profile written to %s", cpuprofile)
-		}
-	}()
-
-	ui.run()
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
+	runEmulator(ctx, &nes)
 }
 
 func check(err error) {

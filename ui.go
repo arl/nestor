@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os"
-	"os/signal"
 
 	"gioui.org/app"
 	"gioui.org/layout"
@@ -33,12 +32,6 @@ type emulator struct {
 	app *ui.Application
 }
 
-func newEmulator(nes *NES) *emulator {
-	return &emulator{
-		nes: nes,
-	}
-}
-
 func (e *emulator) showDebuggerWindow() {
 	if e.app.HasWindow(debuggerTitle) {
 		return
@@ -46,13 +39,16 @@ func (e *emulator) showDebuggerWindow() {
 	e.app.NewWindow(debuggerTitle, NewDebuggerWindow(e))
 }
 
-func (e *emulator) run() {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
+func runEmulator(ctx context.Context, nes *NES) {
+	ctx, cancel := context.WithCancel(ctx)
 
-	e.app = ui.NewApplication(ctx)
+	e := &emulator{
+		app: ui.NewApplication(ctx),
+		nes: nes,
+	}
 
 	go func() {
+		defer cancel()
 		screen := NewScreenWindow(e)
 
 		minw := unit.Dp(2*ScreenWidth + 200)
@@ -63,7 +59,11 @@ func (e *emulator) run() {
 		)
 
 		e.app.Wait()
-		os.Exit(0)
+	}()
+
+	go func() {
+		<-ctx.Done()
+		e.stop()
 	}()
 
 	app.Main()
@@ -72,4 +72,21 @@ func (e *emulator) run() {
 func (e *emulator) stop() {
 	e.app.Shutdown()
 	e.app.Wait()
+	runDefered()
+	os.Exit(0)
+}
+
+var deferred []func()
+
+// Defer allows to defer functions to be called at the end of the program. Defer
+// can be called multiple times, as `defer` the functions are called in reverse
+// order.
+func Defer(f func()) {
+	deferred = append(deferred, f)
+}
+
+func runDefered() {
+	for i := len(deferred) - 1; i >= 0; i-- {
+		deferred[i]()
+	}
 }
