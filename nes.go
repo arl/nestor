@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"time"
 
 	"nestor/emu"
 	"nestor/emu/mappers"
@@ -64,12 +65,19 @@ func (nes *NES) FrameEvents() <-chan *image.RGBA {
 	return nes.screenCh
 }
 
+var nframes int
+var start time.Time
+var totalTime time.Duration
+
 func (nes *NES) Run() {
+	start = time.Now()
 	for {
 		nes.RunOneFrame()
 		if nes.screenCh != nil {
 			nes.screenCh <- nes.Hw.PPU.Output()
 		}
+		nes.Debugger.FrameEnd()
+		nframes++
 	}
 }
 

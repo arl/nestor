@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	gioui.org v0.5.0
+	gioui.org/x v0.5.0
 	github.com/google/go-cmp v0.6.0
 	gopkg.in/Sirupsen/logrus.v0 v0.11.5
 )

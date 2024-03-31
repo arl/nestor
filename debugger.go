@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"image"
+	"image/color"
 	"sync/atomic"
 
 	"gioui.org/app"
+	"gioui.org/font"
 	"gioui.org/font/gofont"
 	"gioui.org/io/event"
 	"gioui.org/io/system"
@@ -15,6 +18,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"gioui.org/x/component"
 
 	"nestor/hw"
 	"nestor/ui"
@@ -23,67 +27,110 @@ import (
 // a debugger is always present and associated to the CPU when running, however
 // it is only active when the debugger window is opened.
 type debugger struct {
-	active   atomic.Bool
-	state    atomic.Int32
-	cpuBlock chan struct{}
+	active atomic.Bool
+	status atomic.Int32
+
+	cpuBlock  chan status
+	blockAcks chan struct{}
 
 	cpu *hw.CPU
+
+	prevPC     uint16
+	prevOpcode uint8
+	prevOpSize uint8
 
 	cstack callStack
 }
 
-type dbgState int32
+type status struct {
+	stat   dbgStatus
+	pc     uint16
+	frames []frameInfo
+}
+
+func (s status) String() string {
+	str := ""
+	switch s.stat {
+	case running:
+		str = "running"
+	case paused:
+		str = "paused"
+	case stepping:
+		str = "stepping"
+	}
+	return fmt.Sprintf("pc: $%04X, stat: %s, frames: %+v", s.pc, str, s.frames)
+}
+
+type dbgStatus int32
 
 const (
-	running dbgState = iota
+	running dbgStatus = iota
 	paused
 	stepping
 )
 
 func newDebugger(cpu *hw.CPU) *debugger {
 	dbg := &debugger{
-		cpu:      cpu,
-		cpuBlock: make(chan struct{}),
+		cpu:       cpu,
+		cpuBlock:  make(chan status),
+		blockAcks: make(chan struct{}),
 	}
 	cpu.SetDebugger(dbg)
-	dbg.setState(running)
+	dbg.setStatus(running)
 	return dbg
 }
 
-func (dbg *debugger) getState() dbgState {
-	return dbgState(dbg.state.Load())
+func (dbg *debugger) getStatus() dbgStatus {
+	return dbgStatus(dbg.status.Load())
 }
 
-func (dbg *debugger) setState(s dbgState) {
-	dbg.state.Store(int32(s))
-}
-
-func (dbg *debugger) unblock() {
-	dbg.cpuBlock <- struct{}{}
+func (dbg *debugger) setStatus(s dbgStatus) {
+	dbg.status.Store(int32(s))
 }
 
 func (dbg *debugger) detach() {
 	dbg.active.Store(false)
-	dbg.cpuBlock <- struct{}{}
 }
 
 // Trace must be called before each opcode is executed. This is the main entry
 // point for debugging activity, as the debug can stop the CPU execution by
 // making this function blocking until user interaction finishes.
 func (d *debugger) Trace(pc uint16) {
+	if pc == 0xc79e {
+		// XXX: Donly kong reset vector?
+		// runtime.Breakpoint()
+	}
+	if pc == 0xf50d {
+		// XXX: Donly kong reset vector?
+		// runtime.Breakpoint()
+	}
+
 	d.updateStack(pc, sffNone)
 	if !d.active.Load() {
 		return
 	}
-	switch d.getState() {
+
+	// disasm := d.cpu.Disasm(pc)
+	// d.prevOpSize = uint8(len(disasm.Bytes))
+	opcode := d.cpu.Bus.Read8(pc)
+	d.prevPC = pc
+	d.prevOpcode = opcode
+
+	switch st := d.getStatus(); st {
 	case running:
 		return
-	case paused:
-		<-d.cpuBlock
-	case stepping:
-		<-d.cpuBlock
+	case paused, stepping:
+		sta := status{
+			pc:     pc,
+			stat:   st,
+			frames: d.cstack.build(pc),
+		}
+		// fmt.Printf("Trace, blocking with %+v\n", sta)
+		d.cpuBlock <- sta
+		<-d.blockAcks
 	}
 }
+
 func (d *debugger) updateStack(dstPc uint16, sff stackFrameFlag) {
 	switch d.prevOpcode {
 	case 0x20: // JSR
@@ -92,29 +139,47 @@ func (d *debugger) updateStack(dstPc uint16, sff stackFrameFlag) {
 		d.cstack.pop()
 	}
 }
+
+func (d *debugger) FrameEnd() {
+	d.cstack.reset()
+}
+
 func (d *debugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
+	flag := sffIRQ
+	if isNMI {
+		flag = sffNMI
+	}
+	d.updateStack(prevpc, flag)
+	d.prevOpcode = 0xFF
+
+	d.cstack.push(d.prevPC, curpc, prevpc, flag)
 }
+
 func (d *debugger) WatchRead(addr uint16) {
+
 }
+
 func (d *debugger) WatchWrite(addr uint16, val uint16) {
+
 }
+
 // Break can be called by the CPU core to force breaking into the debugger.
 func (d *debugger) Break(msg string) {
 }
+
 type DebuggerWindow struct {
-	nes     *NES
-	emu     *emulator
-	dbg     *debugger
+	nes *NES
+	emu *emulator
+	dbg *debugger
+
 	addLine chan string
 	lines   []string
 
-	callstack callStackViewer
+	stackFramesViewer callstackViewer
 
 	start widget.Clickable
 	pause widget.Clickable
 	step  widget.Clickable
-
-	list widget.List
 }
 
 func NewDebuggerWindow(emu *emulator) *DebuggerWindow {
@@ -124,11 +189,7 @@ func NewDebuggerWindow(emu *emulator) *DebuggerWindow {
 		dbg:     emu.nes.Debugger,
 		addLine: make(chan string, 100),
 		list:    widget.List{List: layout.List{Axis: layout.Vertical}},
-ackViewer(),
 	}
-}
-
-func (dw *Debugg	}
 }
 
 func (dw *DebuggerWindow) Run(w *ui.Window) error {
@@ -140,7 +201,6 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
 
 	dw.dbg.active.Store(true)
-	dw.dbg.setState(paused)
 
 	go func() {
 		<-w.App.Context.Done()
@@ -160,13 +220,16 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 			}
 		}
 	}()
+
+	stat := status{stat: running}
 	for {
 		select {
-		// TODO: continue here by removing this and adding the disassembly
-
 		// listen to new lines from Printf and add them to our lines.
 		case line := <-dw.addLine:
 			dw.lines = append(dw.lines, line)
+			w.Invalidate()
+
+		case stat = <-dw.dbg.cpuBlock:
 			w.Invalidate()
 		case e := <-events:
 			switch e := e.(type) {
@@ -176,7 +239,37 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 				return e.Err
 			case app.FrameEvent:
 				gtx := app.NewContext(&ops, e)
-				dw.Layout(w, th, gtx)
+
+				switch stat.stat {
+				case running:
+					if dw.pause.Clicked(gtx) {
+						dw.dbg.setStatus(paused)
+					}
+				case paused:
+					if dw.start.Clicked(gtx) {
+						dw.dbg.setStatus(running)
+						stat.stat = running
+						dw.dbg.blockAcks <- struct{}{}
+					}
+					if dw.step.Clicked(gtx) {
+						dw.dbg.setStatus(stepping)
+						stat.stat = stepping
+						dw.dbg.blockAcks <- struct{}{}
+					}
+				case stepping:
+					if dw.start.Clicked(gtx) {
+						dw.dbg.setStatus(running)
+						stat.stat = running
+						dw.dbg.blockAcks <- struct{}{}
+					}
+					if dw.step.Clicked(gtx) {
+						dw.dbg.setStatus(stepping)
+						stat.stat = stepping
+						dw.dbg.blockAcks <- struct{}{}
+					}
+				}
+
+				dw.Layout(w, stat, gtx)
 				e.Frame(gtx.Ops)
 			}
 			acks <- struct{}{}
@@ -184,39 +277,16 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 	}
 }
 
-func (dw *DebuggerWindow) Layout(w *ui.Window, th *material.Theme, gtx C) {
-	switch dw.dbg.getState() {
-	case running:
-		if dw.pause.Clicked(gtx) {
-			dw.dbg.setState(paused)
-		}
-	case paused:
-		if dw.start.Clicked(gtx) {
-			dw.dbg.setState(running)
-			dw.dbg.unblock()
-		}
-		if dw.step.Clicked(gtx) {
-			dw.dbg.setState(stepping)
-			dw.dbg.unblock()
-		}
-	case stepping:
-		if dw.start.Clicked(gtx) {
-			dw.dbg.setState(running)
-			dw.dbg.unblock()
-		}
-		if dw.step.Clicked(gtx) {
-			dw.dbg.unblock()
-		}
-	}
-
+func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 	btnSize := layout.Exact(image.Point{X: 70, Y: 35})
+	// listing := &listing{nes: dw.nes, list: &dw.list}
 
 	layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceEnd, Alignment: layout.Start}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
 					gtx.Constraints = btnSize
-					if dw.dbg.getState() == running {
+					if status.stat == running {
 						gtx = gtx.Disabled()
 					}
 					return material.Button(th, &dw.start, "Start").Layout(gtx)
@@ -225,7 +295,7 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, th *material.Theme, gtx C) {
 
 				layout.Rigid(func(gtx C) D {
 					gtx.Constraints = btnSize
-					if dw.dbg.getState() != running {
+					if status.stat != running {
 						gtx = gtx.Disabled()
 					}
 					return material.Button(th, &dw.pause, "Pause").Layout(gtx)
@@ -233,7 +303,7 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, th *material.Theme, gtx C) {
 				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
 				layout.Rigid(func(gtx C) D {
 					gtx.Constraints = btnSize
-					if dw.dbg.getState() == running {
+					if status.stat == running {
 						gtx = gtx.Disabled()
 					}
 					return material.Button(th, &dw.step, "Step").Layout(gtx)
@@ -243,15 +313,18 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, th *material.Theme, gtx C) {
 		layout.Rigid(func(gtx C) D {
 			return material.H6(th, "Patterns table").Layout(gtx)
 		}),
-c(gtx C) D {
+		layout.Flexed(1, func(gtx C) D {
 			return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceEnd}.Layout(gtx,
 				layout.Rigid(
 					patternsTable{ppu: dw.nes.Hw.PPU}.Layout,
 				),
 				layout.Rigid(func(gtx C) D {
-					return dw.callstack.Layout(gtx, dw.dbg.cpu.PC, dw.dbg.cstack.frames)
+					return dw.stackFramesViewer.Layout(th, gtx, status)
 				}),
-				// layout.Flexed(1patternsTab	)
+				// layout.Flexed(1, listing.Layout),
+			)
+		}),
+	)
 }
 
 type patternsTable struct {
@@ -292,108 +365,96 @@ func (pt patternsTable) Layout(gtx C) D {
 		Scale: 1,
 	}.Layout(gtx)
 }
- {
-	frames []stackFrame
+
+type DebuggerState struct {
+	cpu *hw.CPU
+
+	curpc   uint16
+	curline int
+	offsets []uint16
+	lines   []string
 }
 
-func (cs *callStack) push(src, dst, ret uint16, flag stackFrameFlag) {
-	cs.frames = append(cs.frames, stackFrame{src: src, target: dst, ret: ret})
-}
-
-func (cs *callStack) pop() {
-	if len(cs.frames) == 0 {
-		return
-	}
-	popped := cs.frames[len(cs.frames)-1]
-	_ = popped
-	cs.frames = cs.frames[:len(cs.frames)-1]
-}
-
-func (cs *callStack) Print() string {
-	var frames []string
-	for _, f := range cs.frames {
-		frames = append(frames, fmt.Sprintf("src: %04X, target: %04X, ret: %04X", f.src, f.target, f.ret))
-	}
-	return strings.Join(frames, "\n")
-}
-
-type stackFrame struct {
-	src    uint16
-	target uint16
-	ret    uint16
-	flags  stackFrameFlag
-}
-
-type stackFrameFlag uint8
-
-const (
-	sffNone stackFrameFlag = iota
-	sffNMI
-	sffIRQ
-)
-
-type callStackViewer struct {
-	stack widget.List
-	table ui.Table
-}
-
-func newCallStackViewer() callStackViewer {
-	return callStackViewer{
-		stack: widget.List{List: layout.List{Axis: layout.Vertical}},
-		table: ui.Table{Cols: 2, ColBorder: 1, RowBorder: 1},
+func (ds *DebuggerState) refresh() {
+	ds.offsets = []uint16{}
+	ds.lines = []string{}
+	ds.curpc = ds.cpu.PC
+	for i := 0; i < 10; i++ {
+		ds.offsets = append(ds.offsets, ds.curpc)
+		ds.curpc += uint16(len(ds.cpu.Disasm(ds.curpc).Bytes))
+		ds.lines = append(ds.lines, ds.cpu.Disasm(ds.offsets[i]).String())
 	}
 }
 
-func (cs *callStackViewer) Layout(gtx C, pc uint16, frames []stackFrame) D {
-	type frameInfo [2]string
-	var items []frameInfo
+type callstackViewer struct {
+	grid component.GridState
+}
 
-	var curf *stackFrame
-	for i, f := range frames {
-		if i > 0 {
-			curf = &frames[i-1]
-		}
-		// item := fmt.Sprintf("func: %20s pc: %04X",
-		// 	callStackViewer{}.entryPoint(curf), f.src)
-		items = slices.Insert(items, 0, frameInfo{cs.entryPoint(curf), fmt.Sprintf("%04X", f.src)})
+var callstackHeadings = []string{"Function", "PC"}
+
+func (v *callstackViewer) Layout(th *material.Theme, gtx C, status status) D {
+	// Configure width based on available space and a minimum size.
+	minSize := gtx.Dp(unit.Dp(100))
+	border := widget.Border{
+		Color: color.NRGBA{A: 255},
+		Width: unit.Dp(1),
 	}
 
-	// Current frame
-	curf = nil
-	if len(frames) > 0 {
-		curf = &frames[len(frames)-1]
-	}
+	inset := layout.UniformInset(unit.Dp(2))
 
-	// item := fmt.Sprintf("func: %20s pc: %04X",
-	// 	callStackViewer{}.entryPoint(curf), pc)
-	items = slices.Insert(items, 0, frameInfo{cs.entryPoint(curf), fmt.Sprintf("%04X", pc)})
+	// Configure a label styled to be a heading.
+	headingLabel := material.Body1(th, "")
+	headingLabel.Font.Weight = font.Bold
+	headingLabel.Alignment = text.Middle
+	headingLabel.MaxLines = 1
+	headingLabel.TextSize = unit.Sp(11)
 
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		layout.Rigid(func(gtx C) D {
-			return material.H6(th, "Call Stack").Layout(gtx)
-		}),
-		layout.Rigid(func(gtx C) D {
-			return cs.table.Layout(gtx, len(items), func(gtx ui.C, i, j int) D {
-				return layout.UniformInset(unit.Dp(1)).Layout(gtx, func(gtx C) D {
-					return layout.UniformInset(unit.Dp(2)).Layout(gtx, func(gtx C) D {
-						return material.Body1(th, items[j][i]).Layout(gtx)
-					})
+	// Configure a label styled to be a data element.
+	dataLabel := material.Body1(th, "")
+	dataLabel.Font.Typeface = "Go Mono"
+	dataLabel.MaxLines = 1
+	dataLabel.Alignment = text.End
+	dataLabel.TextSize = unit.Sp(12)
+
+	// Measure the height of a heading row.
+	orig := gtx.Constraints
+	gtx.Constraints.Min = image.Point{}
+	macro := op.Record(gtx.Ops)
+	dims := inset.Layout(gtx, headingLabel.Layout)
+	_ = macro.Stop()
+	gtx.Constraints = orig
+
+	const numCols = 2
+	return component.Table(th, &v.grid).Layout(gtx, len(status.frames), numCols,
+		func(axis layout.Axis, index, constraint int) int {
+			widthUnit := max(int(float32(constraint)/3), minSize)
+			switch axis {
+			case layout.Horizontal:
+				switch index {
+				case 0, 1:
+					return int(widthUnit)
+				case 2, 3:
+					return int(widthUnit / 2)
+				default:
+					return 0
+				}
+			default:
+				return dims.Size.Y
+			}
+		},
+		func(gtx C, col int) D {
+			return border.Layout(gtx, func(gtx C) D {
+				return inset.Layout(gtx, func(gtx C) D {
+					headingLabel.Text = callstackHeadings[col]
+					return headingLabel.Layout(gtx)
 				})
 			})
-		}),
+		},
+		func(gtx C, row, col int) D {
+			return inset.Layout(gtx, func(gtx C) D {
+				dataLabel.Text = status.frames[row][col]
+				return dataLabel.Layout(gtx)
+			})
+		},
 	)
 }
-
-func (callStackViewer) entryPoint(f *stackFrame) string {
-	if f == nil {
-		return "[bottom of stack]"
-	}
-	switch f.flags {
-	case sffNMI:
-		return "[nmi] $" + fmt.Sprintf("%04X", f.target)
-	case sffIRQ:
-		return "[irq] $" + fmt.Sprintf("%04X", f.target)
-	}
-	return fmt.Sprintf("$%04X", f.target)
-}
-                      

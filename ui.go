@@ -39,7 +39,7 @@ func (e *emulator) showDebuggerWindow() {
 	e.app.NewWindow(debuggerTitle, NewDebuggerWindow(e))
 }
 
-func runEmulator(ctx context.Context, nes *NES) {
+func runEmulator(ctx context.Context, nes *NES, dbgOn bool) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	e := &emulator{
@@ -57,6 +57,10 @@ func runEmulator(ctx context.Context, nes *NES) {
 			app.MinSize(minw, minh),
 			app.Size(minw, minh),
 		)
+
+		if dbgOn {
+			e.showDebuggerWindow()
+		}
 
 		e.app.Wait()
 	}()
