@@ -19,8 +19,8 @@ type Application struct {
 	// Shutdown shuts down all windows.
 	Shutdown func()
 
-	// active keeps track the open windows, such that application
-	// can shut down, when all of them are closed.
+	// active keeps track of all open windows so that application can shut down,
+	// when all of them are closed.
 	active sync.WaitGroup
 
 	mu      sync.Mutex

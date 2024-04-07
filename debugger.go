@@ -96,15 +96,6 @@ func (dbg *debugger) detach() {
 // point for debugging activity, as the debug can stop the CPU execution by
 // making this function blocking until user interaction finishes.
 func (d *debugger) Trace(pc uint16) {
-	if pc == 0xc79e {
-		// XXX: Donly kong reset vector?
-		// runtime.Breakpoint()
-	}
-	if pc == 0xf50d {
-		// XXX: Donly kong reset vector?
-		// runtime.Breakpoint()
-	}
-
 	d.updateStack(pc, sffNone)
 	if !d.active.Load() {
 		return
@@ -125,7 +116,6 @@ func (d *debugger) Trace(pc uint16) {
 			stat:   st,
 			frames: d.cstack.build(pc),
 		}
-		// fmt.Printf("Trace, blocking with %+v\n", sta)
 		d.cpuBlock <- sta
 		<-d.blockAcks
 	}
@@ -165,17 +155,15 @@ func (d *debugger) WatchWrite(addr uint16, val uint16) {
 
 // Break can be called by the CPU core to force breaking into the debugger.
 func (d *debugger) Break(msg string) {
+	d.setStatus(paused)
 }
 
 type DebuggerWindow struct {
-	nes *NES
 	emu *emulator
 	dbg *debugger
 
-	addLine chan string
-	lines   []string
-
-	stackFramesViewer callstackViewer
+	csviewer callstackViewer
+	ptviewer patternsTable
 
 	start widget.Clickable
 	pause widget.Clickable
@@ -184,11 +172,9 @@ type DebuggerWindow struct {
 
 func NewDebuggerWindow(emu *emulator) *DebuggerWindow {
 	return &DebuggerWindow{
-		emu:     emu,
-		nes:     emu.nes,
-		dbg:     emu.nes.Debugger,
-		addLine: make(chan string, 100),
-		list:    widget.List{List: layout.List{Axis: layout.Vertical}},
+		emu:      emu,
+		dbg:      emu.nes.Debugger,
+		ptviewer: patternsTable{ppu: emu.nes.Hw.PPU},
 	}
 }
 
@@ -224,11 +210,6 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 	stat := status{stat: running}
 	for {
 		select {
-		// listen to new lines from Printf and add them to our lines.
-		case line := <-dw.addLine:
-			dw.lines = append(dw.lines, line)
-			w.Invalidate()
-
 		case stat = <-dw.dbg.cpuBlock:
 			w.Invalidate()
 		case e := <-events:
@@ -315,11 +296,9 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 		}),
 		layout.Flexed(1, func(gtx C) D {
 			return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceEnd}.Layout(gtx,
-				layout.Rigid(
-					patternsTable{ppu: dw.nes.Hw.PPU}.Layout,
-				),
+				layout.Rigid(dw.ptviewer.Layout),
 				layout.Rigid(func(gtx C) D {
-					return dw.stackFramesViewer.Layout(th, gtx, status)
+					return dw.csviewer.Layout(th, gtx, status)
 				}),
 				// layout.Flexed(1, listing.Layout),
 			)
@@ -364,26 +343,6 @@ func (pt patternsTable) Layout(gtx C) D {
 		Fit:   widget.Contain,
 		Scale: 1,
 	}.Layout(gtx)
-}
-
-type DebuggerState struct {
-	cpu *hw.CPU
-
-	curpc   uint16
-	curline int
-	offsets []uint16
-	lines   []string
-}
-
-func (ds *DebuggerState) refresh() {
-	ds.offsets = []uint16{}
-	ds.lines = []string{}
-	ds.curpc = ds.cpu.PC
-	for i := 0; i < 10; i++ {
-		ds.offsets = append(ds.offsets, ds.curpc)
-		ds.curpc += uint16(len(ds.cpu.Disasm(ds.curpc).Bytes))
-		ds.lines = append(ds.lines, ds.cpu.Disasm(ds.offsets[i]).String())
-	}
 }
 
 type callstackViewer struct {
