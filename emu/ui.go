@@ -1,4 +1,4 @@
-package main
+package emu
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"gioui.org/app"
 	"gioui.org/layout"
 	"gioui.org/unit"
-	"gioui.org/widget/material"
 
+	"nestor/emu/debugger"
 	"nestor/ui"
 )
 
@@ -20,7 +20,7 @@ const (
 type C = layout.Context
 type D = layout.Dimensions
 
-var th = material.NewTheme()
+var th = ui.Theme
 
 const (
 	debuggerTitle = "Debugger"
@@ -36,10 +36,10 @@ func (e *emulator) showDebuggerWindow() {
 	if e.app.HasWindow(debuggerTitle) {
 		return
 	}
-	e.app.NewWindow(debuggerTitle, NewDebuggerWindow(e))
+	e.app.NewWindow(debuggerTitle, debugger.NewDebuggerWindow(e.nes.Debugger, e.nes.Hw.PPU))
 }
 
-func runEmulator(ctx context.Context, nes *NES, dbgOn bool) {
+func RunEmulator(ctx context.Context, nes *NES, dbgOn bool) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	e := &emulator{

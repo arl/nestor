@@ -1,4 +1,4 @@
-package main
+package emu
 
 import (
 	"fmt"
@@ -6,15 +6,15 @@ import (
 	"io"
 	"time"
 
-	"nestor/emu"
-	"nestor/emu/mappers"
+	"nestor/emu/debugger"
 	"nestor/hw"
+	"nestor/hw/mappers"
 	"nestor/ines"
 )
 
 type NES struct {
-	Hw       emu.NESHardware
-	Debugger *debugger
+	Hw       NESHardware
+	Debugger hw.Debugger
 	screenCh chan *image.RGBA
 }
 
@@ -26,7 +26,7 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 	nes.Hw.CPU = hw.NewCPU(nes.Hw.PPU)
 	nes.Hw.CPU.InitBus()
 
-	nes.Debugger = newDebugger(nes.Hw.CPU)
+	nes.Debugger = debugger.NewDebugger(nes.Hw.CPU)
 
 	nes.Hw.PPU.CPU = nes.Hw.CPU
 
@@ -40,13 +40,13 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 	return nil
 }
 
-func mapCartridge(rom *ines.Rom, hw *emu.NESHardware) error {
+func mapCartridge(rom *ines.Rom, hw *NESHardware) error {
 	mapper, ok := mappers.All[rom.Mapper()]
 	if !ok {
 		return fmt.Errorf("unsupported mapper %03d", rom.Mapper())
 	}
 
-	if err := mapper.Load(rom, hw); err != nil {
+	if err := mapper.Load(rom, hw.CPU, hw.PPU); err != nil {
 		return fmt.Errorf("failed to load mapper %03d (%s): %s", rom.Mapper(), mapper.Name, err)
 	}
 	return nil

@@ -1,4 +1,4 @@
-package main
+package emu
 
 import (
 	"bytes"
@@ -15,13 +15,20 @@ import (
 )
 
 func TestNestest(t *testing.T) {
-	var nes NES
-	cartridge, err := ines.ReadRom("testdata/nes-test-roms/other/nestest.nes")
-	tcheck(t, err)
-	tcheck(t, nes.PowerUp(cartridge))
+	nes := new(NES)
+	romPath := filepath.Join("..", "testdata", "nes-test-roms", "other", "nestest.nes")
+	rom, err := ines.ReadRom(romPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := nes.PowerUp(rom); err != nil {
+		t.Fatal(err)
+	}
 
 	flog, err := os.CreateTemp("", "nestor.nestest.*.log")
-	tcheck(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Log(flog.Name())
 	t.Cleanup(func() {
 		flog.Close()
@@ -45,7 +52,7 @@ func TestNestest(t *testing.T) {
 }
 
 func TestInstructionsV5(t *testing.T) {
-	dir := filepath.Join("testdata", "nes-test-roms", "instr_test-v5", "rom_singles")
+	dir := filepath.Join("..", "testdata", "nes-test-roms", "instr_test-v5", "rom_singles")
 	files := []string{
 		"01-basics.nes",
 		"02-implied.nes",
@@ -106,8 +113,10 @@ func runTestRom(path string) func(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var nes NES
-		checkf(nes.PowerUp(rom), "error during power up")
+		nes := new(NES)
+		if err := nes.PowerUp(rom); err != nil {
+			t.Fatal(err)
+		}
 		nes.Reset()
 		nes.Hw.PPU.CreateScreen()
 
@@ -159,15 +168,18 @@ func memToString(t *hwio.Table, addr uint16) string {
 }
 
 func TestNametableMirroring(t *testing.T) {
-	rom, err := ines.ReadRom("testdata/nes-test-roms/other/snow.nes")
+	romPath := filepath.Join("..", "testdata", "nes-test-roms", "other", "snow.nes")
+	rom, err := ines.ReadRom(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if rom.Mirroring() != ines.HorzMirroring {
 		t.Errorf("incorrect nt mirroring")
 	}
-	var nes NES
-	checkf(nes.PowerUp(rom), "error during power up")
+	nes := new(NES)
+	if err := nes.PowerUp(rom); err != nil {
+		t.Fatal(err)
+	}
 	nes.Reset()
 
 	nes.Hw.PPU.Bus.Write8(0x2000, 'A')

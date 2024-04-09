@@ -56,6 +56,7 @@ func (dummyDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {}
 func (dummyDebugger) WatchRead(addr uint16)                      {}
 func (dummyDebugger) WatchWrite(addr uint16, val uint16)         {}
 func (dummyDebugger) Break(msg string)                           {}
+func (dummyDebugger) FrameEnd()                                  {}
 
 type runner interface {
 	Run(int64)

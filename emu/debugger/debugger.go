@@ -1,4 +1,4 @@
-package main
+package debugger
 
 import (
 	"fmt"
@@ -23,6 +23,11 @@ import (
 	"nestor/hw"
 	"nestor/ui"
 )
+
+type C = layout.Context
+type D = layout.Dimensions
+
+var th = ui.Theme
 
 // a debugger is always present and associated to the CPU when running, however
 // it is only active when the debugger window is opened.
@@ -69,7 +74,7 @@ const (
 	stepping
 )
 
-func newDebugger(cpu *hw.CPU) *debugger {
+func NewDebugger(cpu *hw.CPU) *debugger {
 	dbg := &debugger{
 		cpu:       cpu,
 		cpuBlock:  make(chan status),
@@ -159,7 +164,6 @@ func (d *debugger) Break(msg string) {
 }
 
 type DebuggerWindow struct {
-	emu *emulator
 	dbg *debugger
 
 	csviewer callstackViewer
@@ -170,11 +174,10 @@ type DebuggerWindow struct {
 	step  widget.Clickable
 }
 
-func NewDebuggerWindow(emu *emulator) *DebuggerWindow {
+func NewDebuggerWindow(dbg hw.Debugger, ppu *hw.PPU) *DebuggerWindow {
 	return &DebuggerWindow{
-		emu:      emu,
-		dbg:      emu.nes.Debugger,
-		ptviewer: patternsTable{ppu: emu.nes.Hw.PPU},
+		dbg:      dbg.(*debugger),
+		ptviewer: patternsTable{ppu: ppu},
 	}
 }
 
@@ -216,7 +219,8 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 			switch e := e.(type) {
 			case app.DestroyEvent:
 				acks <- struct{}{}
-				dw.emu.app.CloseWindow(debuggerTitle)
+				// TODO(arl) see if this is really necessary
+				// dw.emu.app.CloseWindow(debuggerTitle)
 				return e.Err
 			case app.FrameEvent:
 				gtx := app.NewContext(&ops, e)

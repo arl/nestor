@@ -1,12 +1,12 @@
 package mappers
 
 import (
-	"nestor/emu"
 	"nestor/emu/log"
+	"nestor/hw"
 )
 
 var modMapper = log.NewModule("mapper")
 
-var All = map[uint16]emu.MapperDesc{
+var All = map[uint16]hw.MapperDesc{
 	0: NROM,
 }

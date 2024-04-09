@@ -10,6 +10,7 @@ import (
 	"runtime/pprof"
 	"strings"
 
+	"nestor/emu"
 	"nestor/emu/hwio"
 	"nestor/emu/log"
 	"nestor/hw"
@@ -71,14 +72,14 @@ func main() {
 		f, err := os.Create(cpuprofile)
 		checkf(err, "failed to create cpu profile file")
 		checkf(pprof.StartCPUProfile(f), "failed to start cpu profile")
-		Defer(func() {
+		emu.Defer(func() {
 			pprof.StopCPUProfile()
 			f.Close()
 			fmt.Println("CPU profile written to", cpuprofile)
 		})
 	}
 
-	var nes NES
+	var nes emu.NES
 	checkf(nes.PowerUp(rom), "error during power up")
 	if resetVector != -1 {
 		hwio.Write16(nes.Hw.CPU.Bus, hw.CpuResetVector, uint16(resetVector))
@@ -95,7 +96,7 @@ func main() {
 	}()
 
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
-	runEmulator(ctx, &nes, dbgOn)
+	emu.RunEmulator(ctx, &nes, dbgOn)
 }
 
 func check(err error) {

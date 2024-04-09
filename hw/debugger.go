@@ -22,4 +22,7 @@ type Debugger interface {
 
 	// Break can be called by the CPU core to force breaking into the debugger.
 	Break(msg string)
+
+	// FrameEnd signals the debugger the end of the current frame.
+	FrameEnd()
 }

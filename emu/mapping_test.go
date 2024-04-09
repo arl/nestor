@@ -1,4 +1,4 @@
-package main
+package emu
 
 import (
 	"testing"
@@ -27,9 +27,13 @@ func firstNonZero(b []byte) int {
 func TestMapper000(t *testing.T) {
 	// Check that mapper 000 correctly maps ROM to the hardware.
 	nes := new(NES)
-	cartridge, err := ines.ReadRom("testdata/nes-test-roms/other/nestest.nes")
-	tcheck(t, err)
-	tcheck(t, nes.PowerUp(cartridge))
+	cartridge, err := ines.ReadRom("../testdata/nes-test-roms/other/nestest.nes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := nes.PowerUp(cartridge); err != nil {
+		t.Fatal(err)
+	}
 
 	/* CPU mapping */
 
@@ -68,9 +72,13 @@ func TestPPURegisterMapping(t *testing.T) {
 	// Check that PPU registers are correctly mapped
 	// and mirrored into the CPU memory space.
 	nes := new(NES)
-	cartridge, err := ines.ReadRom("testdata/nes-test-roms/other/nestest.nes")
-	tcheck(t, err)
-	tcheck(t, nes.PowerUp(cartridge))
+	cartridge, err := ines.ReadRom("../testdata/nes-test-roms/other/nestest.nes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := nes.PowerUp(cartridge); err != nil {
+		t.Fatal(err)
+	}
 
 	nes.Hw.CPU.Bus.Write8(0x2000, 0x27)
 	if nes.Hw.PPU.PPUCTRL.Value != 0x27 {
