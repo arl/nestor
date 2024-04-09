@@ -49,6 +49,14 @@ func wantMem(t *testing.T, cpu *CPU, dl dumpline) {
 	}
 }
 
+type dummyDebugger struct{}
+
+func (dummyDebugger) Trace(pc uint16)                            {}
+func (dummyDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {}
+func (dummyDebugger) WatchRead(addr uint16)                      {}
+func (dummyDebugger) WatchWrite(addr uint16, val uint16)         {}
+func (dummyDebugger) Break(msg string)                           {}
+
 type runner interface {
 	Run(int64)
 }
@@ -83,6 +91,7 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 	if testing.Verbose() {
 		r = NewDisasm(cpu, tbwriter{t})
 	}
+	cpu.SetDebugger(dummyDebugger{})
 
 	r.Run(cpu.Clock + ncycles)
 
