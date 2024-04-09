@@ -99,15 +99,6 @@ func main() {
 	emu.RunEmulator(ctx, &nes, dbgOn)
 }
 
-func check(err error) {
-	if err == nil {
-		return
-	}
-	fmt.Fprintf(os.Stderr, "fatal error:")
-	fmt.Fprintf(os.Stderr, "\n\t%s\n", err)
-	os.Exit(1)
-}
-
 func checkf(err error, format string, args ...any) {
 	if err == nil {
 		return

@@ -48,12 +48,6 @@ func (d *disasm) read8(addr uint16) uint8 {
 	return d.cpu.Bus.Peek8(addr)
 }
 
-func (d *disasm) read16(addr uint16) uint16 {
-	lo := d.read8(addr)
-	hi := d.read8(addr + 1)
-	return uint16(lo) | uint16(hi)<<8
-}
-
 func (d *disasm) op(pc uint16) {
 	d.bb.Reset()
 

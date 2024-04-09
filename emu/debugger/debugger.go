@@ -42,7 +42,6 @@ type debugger struct {
 
 	prevPC     uint16
 	prevOpcode uint8
-	prevOpSize uint8
 
 	cstack callStack
 }

@@ -11,17 +11,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func hasPanicked(f func()) (yes bool, msg any) {
-	defer func() {
-		msg = recover()
-		if msg != nil {
-			yes = true
-		}
-	}()
-	f()
-	return yes, msg
-}
-
 /* cpu specific testing helpers */
 
 func wantMem8(t *testing.T, cp *CPU, addr uint16, want uint8) {

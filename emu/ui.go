@@ -20,8 +20,6 @@ const (
 type C = layout.Context
 type D = layout.Dimensions
 
-var th = ui.Theme
-
 const (
 	debuggerTitle = "Debugger"
 	screenTitle   = "Screen"
