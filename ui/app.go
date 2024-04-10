@@ -6,10 +6,7 @@ import (
 
 	"gioui.org/app"
 	"gioui.org/io/system"
-	"gioui.org/widget/material"
 )
-
-var Theme = material.NewTheme()
 
 // Application keeps track of all the windows and global state.
 type Application struct {

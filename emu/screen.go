@@ -1,7 +1,6 @@
 package emu
 
 import (
-	"fmt"
 	"image"
 
 	"gioui.org/app"
@@ -19,12 +18,17 @@ import (
 )
 
 type ScreenWindow struct {
-	emu      *emulator
+	emu   *emulator
+	theme *material.Theme
+
 	debugBtn widget.Clickable
 }
 
 func NewScreenWindow(emu *emulator) *ScreenWindow {
-	return &ScreenWindow{emu: emu}
+	return &ScreenWindow{
+		emu:   emu,
+		theme: material.NewTheme(),
+	}
 }
 
 func (sw *ScreenWindow) Run(w *ui.Window) error {
@@ -88,7 +92,6 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 				e.Frame(gtx.Ops)
 
 			case app.DestroyEvent:
-				fmt.Println("destroy event")
 				acks <- struct{}{}
 				close(quit)
 				return e.Err
@@ -121,7 +124,7 @@ func (sw *ScreenWindow) Layout(gtx C, frame *image.RGBA) D {
 				if sw.debugBtn.Clicked(gtx) {
 					sw.emu.showDebuggerWindow()
 				}
-				return material.Button(ui.Theme, &sw.debugBtn, "Debug").Layout(gtx)
+				return material.Button(sw.theme, &sw.debugBtn, "Debug").Layout(gtx)
 			})
 		}),
 	)

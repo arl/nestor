@@ -27,8 +27,6 @@ import (
 type C = layout.Context
 type D = layout.Dimensions
 
-var th = ui.Theme
-
 // a debugger is always present and associated to the CPU when running, however
 // it is only active when the debugger window is opened.
 type debugger struct {
@@ -165,6 +163,8 @@ func (d *debugger) Break(msg string) {
 type DebuggerWindow struct {
 	dbg *debugger
 
+	theme *material.Theme
+
 	csviewer callstackViewer
 	ptviewer patternsTable
 
@@ -177,6 +177,7 @@ func NewDebuggerWindow(dbg hw.Debugger, ppu *hw.PPU) *DebuggerWindow {
 	return &DebuggerWindow{
 		dbg:      dbg.(*debugger),
 		ptviewer: patternsTable{ppu: ppu},
+		theme:    material.NewTheme(),
 	}
 }
 
@@ -218,8 +219,6 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 			switch e := e.(type) {
 			case app.DestroyEvent:
 				acks <- struct{}{}
-				// TODO(arl) see if this is really necessary
-				// dw.emu.app.CloseWindow(debuggerTitle)
 				return e.Err
 			case app.FrameEvent:
 				gtx := app.NewContext(&ops, e)
@@ -273,7 +272,7 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 					if status.stat == running {
 						gtx = gtx.Disabled()
 					}
-					return material.Button(th, &dw.start, "Start").Layout(gtx)
+					return material.Button(dw.theme, &dw.start, "Start").Layout(gtx)
 				}),
 				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
 
@@ -282,7 +281,7 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 					if status.stat != running {
 						gtx = gtx.Disabled()
 					}
-					return material.Button(th, &dw.pause, "Pause").Layout(gtx)
+					return material.Button(dw.theme, &dw.pause, "Pause").Layout(gtx)
 				}),
 				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
 				layout.Rigid(func(gtx C) D {
@@ -290,18 +289,18 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 					if status.stat == running {
 						gtx = gtx.Disabled()
 					}
-					return material.Button(th, &dw.step, "Step").Layout(gtx)
+					return material.Button(dw.theme, &dw.step, "Step").Layout(gtx)
 				}),
 			)
 		}),
 		layout.Rigid(func(gtx C) D {
-			return material.H6(th, "Patterns table").Layout(gtx)
+			return material.H6(dw.theme, "Patterns table").Layout(gtx)
 		}),
 		layout.Flexed(1, func(gtx C) D {
 			return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceEnd}.Layout(gtx,
 				layout.Rigid(dw.ptviewer.Layout),
 				layout.Rigid(func(gtx C) D {
-					return dw.csviewer.Layout(th, gtx, status)
+					return dw.csviewer.Layout(dw.theme, gtx, status)
 				}),
 				// layout.Flexed(1, listing.Layout),
 			)
