@@ -12,48 +12,43 @@ import (
 )
 
 type NES struct {
-	Hw       NESHardware
+	CPU *hw.CPU
+	PPU *hw.PPU
+	Rom *ines.Rom
+
 	Debugger hw.Debugger
 	screenCh chan *image.RGBA
 }
 
 func (nes *NES) PowerUp(rom *ines.Rom) error {
-	nes.Hw.Rom = rom
-	nes.Hw.PPU = hw.NewPPU()
-	nes.Hw.PPU.InitBus()
+	nes.Rom = rom
+	nes.PPU = hw.NewPPU()
+	nes.PPU.InitBus()
 
-	nes.Hw.CPU = hw.NewCPU(nes.Hw.PPU)
-	nes.Hw.CPU.InitBus()
+	nes.CPU = hw.NewCPU(nes.PPU)
+	nes.CPU.InitBus()
 
-	nes.Debugger = debugger.NewDebugger(nes.Hw.CPU)
+	nes.Debugger = debugger.NewDebugger(nes.CPU)
 
-	nes.Hw.PPU.CPU = nes.Hw.CPU
+	nes.PPU.CPU = nes.CPU
 
-	// Map cartridge memory and hardware based on mapper.
-	err := mapCartridge(rom, &nes.Hw)
-	if err != nil {
-		return fmt.Errorf("mapper failed to map cartridge: %s", err)
-	}
-	nes.Hw.PPU.CreateScreen()
-	nes.Reset()
-	return nil
-}
-
-func mapCartridge(rom *ines.Rom, hw *NESHardware) error {
+	// Load mapper, and ap cartridge memory and hardware based on mapper.
 	mapper, ok := mappers.All[rom.Mapper()]
 	if !ok {
 		return fmt.Errorf("unsupported mapper %03d", rom.Mapper())
 	}
-
-	if err := mapper.Load(rom, hw.CPU, hw.PPU); err != nil {
-		return fmt.Errorf("failed to load mapper %03d (%s): %s", rom.Mapper(), mapper.Name, err)
+	if err := mapper.Load(rom, nes.CPU, nes.PPU); err != nil {
+		return fmt.Errorf("error while loading mapper %03d (%s): %s", rom.Mapper(), mapper.Name, err)
 	}
+
+	nes.PPU.CreateScreen()
+	nes.Reset()
 	return nil
 }
 
 func (nes *NES) Reset() {
-	nes.Hw.PPU.Reset()
-	nes.Hw.CPU.Reset()
+	nes.PPU.Reset()
+	nes.CPU.Reset()
 }
 
 func (nes *NES) FrameEvents() <-chan *image.RGBA {
@@ -68,21 +63,21 @@ func (nes *NES) Run() {
 	for {
 		nes.RunOneFrame()
 		if nes.screenCh != nil {
-			nes.screenCh <- nes.Hw.PPU.Output()
+			nes.screenCh <- nes.PPU.Output()
 		}
 		nes.Debugger.FrameEnd()
 	}
 }
 
 func (nes *NES) RunOneFrame() {
-	nes.Hw.CPU.Run(29781)
-	nes.Hw.CPU.Clock -= 29781
+	nes.CPU.Run(29781)
+	nes.CPU.Clock -= 29781
 }
 
 func (nes *NES) RunDisasm(out io.Writer) {
-	d := hw.NewDisasm(nes.Hw.CPU, out)
+	d := hw.NewDisasm(nes.CPU, out)
 	for {
 		d.Run(29781)
-		nes.Hw.CPU.Clock -= 29781
+		nes.CPU.Clock -= 29781
 	}
 }

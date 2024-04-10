@@ -34,7 +34,7 @@ func (e *emulator) showDebuggerWindow() {
 	if e.app.HasWindow(debuggerTitle) {
 		return
 	}
-	e.app.NewWindow(debuggerTitle, debugger.NewDebuggerWindow(e.nes.Debugger, e.nes.Hw.PPU))
+	e.app.NewWindow(debuggerTitle, debugger.NewDebuggerWindow(e.nes.Debugger, e.nes.PPU))
 }
 
 func RunEmulator(ctx context.Context, nes *NES, dbgOn bool) {

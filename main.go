@@ -82,7 +82,7 @@ func main() {
 	var nes emu.NES
 	checkf(nes.PowerUp(rom), "error during power up")
 	if resetVector != -1 {
-		hwio.Write16(nes.Hw.CPU.Bus, hw.CpuResetVector, uint16(resetVector))
+		hwio.Write16(nes.CPU.Bus, hw.ResetVector, uint16(resetVector))
 	}
 	nes.Reset()
 

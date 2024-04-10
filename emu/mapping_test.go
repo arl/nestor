@@ -38,16 +38,16 @@ func TestMapper000(t *testing.T) {
 	/* CPU mapping */
 
 	// Check that PRGROM is mapped to CPU memory.
-	checkedRead8(t, nes.Hw.CPU.Bus, 0x8000, cartridge.PRGROM[0x0000])
+	checkedRead8(t, nes.CPU.Bus, 0x8000, cartridge.PRGROM[0x0000])
 
 	switch len(cartridge.PRGROM) {
 	case 0x4000:
 		// Check the 64 first bytes are mirrored.
 		for i := uint16(0); i < 64; i++ {
-			checkedRead8(t, nes.Hw.CPU.Bus, 0x8000+i, cartridge.PRGROM[0x0000+i])
+			checkedRead8(t, nes.CPU.Bus, 0x8000+i, cartridge.PRGROM[0x0000+i])
 		}
 	case 0x8000:
-		checkedRead8(t, nes.Hw.CPU.Bus, 0x8000, cartridge.PRGROM[0x4000])
+		checkedRead8(t, nes.CPU.Bus, 0x8000, cartridge.PRGROM[0x4000])
 	}
 
 	/* PPU mapping */
@@ -57,15 +57,15 @@ func TestMapper000(t *testing.T) {
 	if idx == -1 {
 		panic("rom not adapted to this test")
 	}
-	checkedRead8(t, nes.Hw.PPU.Bus, uint16(idx), cartridge.CHRROM[idx])
+	checkedRead8(t, nes.PPU.Bus, uint16(idx), cartridge.CHRROM[idx])
 
 	// Write into nametable, read from mirror.
-	nes.Hw.PPU.Bus.Write8(0x2EFF, 0x27)
-	checkedRead8(t, nes.Hw.PPU.Bus, 0x2EFF, 0x27)
+	nes.PPU.Bus.Write8(0x2EFF, 0x27)
+	checkedRead8(t, nes.PPU.Bus, 0x2EFF, 0x27)
 
 	// Write into palette ram, read from mirror.
-	nes.Hw.PPU.Bus.Write8(0x3F1F, 0x23)
-	checkedRead8(t, nes.Hw.PPU.Bus, 0x3F1F, 0x23)
+	nes.PPU.Bus.Write8(0x3F1F, 0x23)
+	checkedRead8(t, nes.PPU.Bus, 0x3F1F, 0x23)
 }
 
 func TestPPURegisterMapping(t *testing.T) {
@@ -80,18 +80,18 @@ func TestPPURegisterMapping(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nes.Hw.CPU.Bus.Write8(0x2000, 0x27)
-	if nes.Hw.PPU.PPUCTRL.Value != 0x27 {
-		t.Errorf("PPUCTRL should be 0x27, got 0x%02X", nes.Hw.PPU.PPUCTRL.Value)
+	nes.CPU.Bus.Write8(0x2000, 0x27)
+	if nes.PPU.PPUCTRL.Value != 0x27 {
+		t.Errorf("PPUCTRL should be 0x27, got 0x%02X", nes.PPU.PPUCTRL.Value)
 	}
 
-	nes.Hw.CPU.Bus.Write8(0x3456, 0x18)
-	if nes.Hw.PPU.PPUADDR.Value != 0x18 {
-		t.Errorf("PPUADDR should be 0x18, got 0x%02X", nes.Hw.PPU.PPUADDR.Value)
+	nes.CPU.Bus.Write8(0x3456, 0x18)
+	if nes.PPU.PPUADDR.Value != 0x18 {
+		t.Errorf("PPUADDR should be 0x18, got 0x%02X", nes.PPU.PPUADDR.Value)
 	}
 
-	nes.Hw.CPU.Bus.Write8(0x3FFF, 0xF5)
-	if nes.Hw.PPU.PPUDATA.Value != 0xF5 {
-		t.Errorf("PPUDATA should be 0xF5, got 0x%02X", nes.Hw.PPU.PPUDATA.Value)
+	nes.CPU.Bus.Write8(0x3FFF, 0xF5)
+	if nes.PPU.PPUDATA.Value != 0xF5 {
+		t.Errorf("PPUDATA should be 0xF5, got 0x%02X", nes.PPU.PPUDATA.Value)
 	}
 }

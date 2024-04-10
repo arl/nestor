@@ -38,14 +38,14 @@ func TestNestest(t *testing.T) {
 	// This rom has an 'automation' mode. To enable it, PC must be set to C000.
 	// We do that by overwriting the rom location of the reset vector.
 	// binary.LittleEndian.PutUint16(cartridge.PRGROM[0x3FFC:], 0xC000)
-	nes.Hw.CPU.PC = 0xC000
-	nes.Hw.CPU.P = hw.P(0x24)
-	nes.Hw.CPU.Clock = 7
-	nes.Hw.PPU.Cycle = 21
-	disasm := hw.NewDisasm(nes.Hw.CPU, flog)
+	nes.CPU.PC = 0xC000
+	nes.CPU.P = hw.P(0x24)
+	nes.CPU.Clock = 7
+	nes.PPU.Cycle = 21
+	disasm := hw.NewDisasm(nes.CPU, flog)
 	disasm.Run(26560)
 
-	r1, r2 := nes.Hw.CPU.Read8(0x02), nes.Hw.CPU.Read8(0x03)
+	r1, r2 := nes.CPU.Read8(0x02), nes.CPU.Read8(0x03)
 	if r1 != 0x00 || r2 != 0x00 {
 		t.Fatalf("nestest failed: 0x%02x%02x", r1, r2)
 	}
@@ -118,7 +118,7 @@ func runTestRom(path string) func(t *testing.T) {
 			t.Fatal(err)
 		}
 		nes.Reset()
-		nes.Hw.PPU.CreateScreen()
+		nes.PPU.CreateScreen()
 
 		magic := []byte{0xde, 0xb0, 0x61}
 		magicset := 0
@@ -126,7 +126,7 @@ func runTestRom(path string) func(t *testing.T) {
 
 		for {
 			nes.RunOneFrame()
-			data := nes.Hw.CPU.Bus.FetchPointer(0x6001)
+			data := nes.CPU.Bus.FetchPointer(0x6001)
 			if magicset == 0 {
 				if bytes.Equal(data[:3], magic) {
 					magicset = 1
@@ -139,7 +139,7 @@ func runTestRom(path string) func(t *testing.T) {
 			if !bytes.Equal(data[:3], magic) {
 				t.Fatalf("corrupted memory")
 			}
-			result = nes.Hw.CPU.Read8(0x6000)
+			result = nes.CPU.Read8(0x6000)
 			if result <= 0x7F {
 				break
 			}
@@ -152,7 +152,7 @@ func runTestRom(path string) func(t *testing.T) {
 			}
 		}
 		if result != 0x00 {
-			txt := memToString(nes.Hw.CPU.Bus, 0x6004)
+			txt := memToString(nes.CPU.Bus, 0x6004)
 			t.Fatalf("test failed:\ncode 0x%02x\ntext %s", result, txt)
 		}
 	}
@@ -182,8 +182,8 @@ func TestNametableMirroring(t *testing.T) {
 	}
 	nes.Reset()
 
-	nes.Hw.PPU.Bus.Write8(0x2000, 'A')
-	nes.Hw.PPU.Bus.Write8(0x2800, 'B')
+	nes.PPU.Bus.Write8(0x2000, 'A')
+	nes.PPU.Bus.Write8(0x2800, 'B')
 
 	addrs := []uint16{
 		0x2000, // A
@@ -197,7 +197,7 @@ func TestNametableMirroring(t *testing.T) {
 	}
 	var nts []byte
 	for _, a := range addrs {
-		nts = append(nts, nes.Hw.PPU.Bus.Read8(a))
+		nts = append(nts, nes.PPU.Bus.Read8(a))
 	}
 
 	if string(nts) != "AABBAABB" {
