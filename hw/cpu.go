@@ -10,9 +10,9 @@ import (
 
 // Locations reserved for vector pointers.
 const (
-	CpuNMIvector   = uint16(0xFFFA) // Non-Maskable Interrupt
-	CpuResetVector = uint16(0xFFFC) // Reset
-	CpuIRQvector   = uint16(0xFFFE) // Interrupt Request
+	NMIVector   = uint16(0xFFFA) // Non-Maskable Interrupt
+	ResetVector = uint16(0xFFFC) // Reset
+	IRQVector   = uint16(0xFFFE) // Interrupt Request
 )
 
 type CPU struct {
@@ -82,7 +82,7 @@ func (c *CPU) Reset() {
 	c.runIRQ = false
 	c.Clock = -1
 	// Directly read from the bus to prevent clock ticks.
-	c.PC = hwio.Read16(c.Bus, CpuResetVector)
+	c.PC = hwio.Read16(c.Bus, ResetVector)
 
 	// The CPU takes 8 cycles before it starts executing the ROM's code
 	// after a reset/power up
@@ -206,11 +206,11 @@ func BRK(cpu *CPU) {
 		cpu.needNmi = false
 		cpu.push8(uint8(p))
 		cpu.P.setIntDisable(true)
-		cpu.PC = cpu.Read16(CpuNMIvector)
+		cpu.PC = cpu.Read16(NMIVector)
 	} else {
 		cpu.push8(uint8(p))
 		cpu.P.setIntDisable(true)
-		cpu.PC = cpu.Read16(CpuIRQvector)
+		cpu.PC = cpu.Read16(IRQVector)
 	}
 
 	// Ensure we don't start an NMI right after running a BRK instruction (first
@@ -231,14 +231,14 @@ func (c *CPU) IRQ() {
 		p.setB(true)
 		c.push8(uint8(p))
 		c.P.setIntDisable(true)
-		c.PC = c.Read16(CpuNMIvector)
+		c.PC = c.Read16(NMIVector)
 		c.dbg.Interrupt(prevpc, c.PC, true)
 	} else {
 		p := c.P
 		p.setB(true)
 		c.push8(uint8(p))
 		c.P.setIntDisable(true)
-		c.PC = c.Read16(CpuIRQvector)
+		c.PC = c.Read16(IRQVector)
 		c.dbg.Interrupt(prevpc, c.PC, false)
 	}
 }
