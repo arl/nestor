@@ -45,8 +45,6 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 	var ops op.Ops
 	events := make(chan event.Event)
 	acks := make(chan struct{})
-	frameCh := sw.emu.nes.FrameEvents()
-	var frame *image.RGBA
 
 	go func() {
 		for {
@@ -59,6 +57,7 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 		}
 	}()
 
+	var frame image.RGBA
 	for {
 		select {
 		case e := <-events:
@@ -86,7 +85,7 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 					return nil
 				}
 
-				sw.Layout(gtx, frame)
+				sw.Layout(gtx, &frame)
 				area.Pop()
 
 				e.Frame(gtx.Ops)
@@ -98,8 +97,7 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 			}
 			acks <- struct{}{}
 
-		case img := <-frameCh:
-			frame = img
+		case frame = <-sw.emu.nes.Frames:
 			w.Invalidate()
 		}
 	}

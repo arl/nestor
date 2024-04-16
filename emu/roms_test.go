@@ -118,7 +118,6 @@ func runTestRom(path string) func(t *testing.T) {
 			t.Fatal(err)
 		}
 		nes.Reset()
-		nes.PPU.CreateScreen()
 
 		magic := []byte{0xde, 0xb0, 0x61}
 		magicset := 0

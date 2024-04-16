@@ -1,7 +1,6 @@
 package hw
 
 import (
-	"image"
 	"unsafe"
 
 	"nestor/emu/hwio"
@@ -12,6 +11,10 @@ const (
 	NumScanlines = 262 // Number of scanlines per frame.
 	NumCycles    = 341 // Number of PPU cycles per scanline.
 )
+
+// Throwaway frame buffer for the first PPU cycles, before an actual one for the
+// actual output.
+var tmpFramebuf = make([]uint32, 256*240)
 
 type PPU struct {
 	Bus *hwio.Table
@@ -49,9 +52,7 @@ type PPU struct {
 
 	// OAMDMA hwio.Reg8 `hwio:"bank=2,writeonly,wcb"`
 
-	screen *image.RGBA
-	pixels []uint32 // Video buffer.
-
+	framebuf []uint32 // RGBA framebuffer
 	oddFrame bool
 
 	// VRAM read/write
@@ -67,18 +68,13 @@ type PPU struct {
 
 func NewPPU() *PPU {
 	return &PPU{
-		Bus: hwio.NewTable("ppu"),
+		Bus:      hwio.NewTable("ppu"),
+		framebuf: tmpFramebuf,
 	}
 }
 
-func (p *PPU) CreateScreen() {
-	p.screen = image.NewRGBA(image.Rect(0, 0, 256, 224))
-	p.pixels = make([]uint32, 256*240)
-}
-
-func (p *PPU) Output() *image.RGBA {
-	p.screen.Pix = unsafe.Slice((*byte)(unsafe.Pointer(&p.pixels[0])), len(p.pixels)*4)
-	return p.screen
+func (p *PPU) SetFrameBuffer(framebuf []byte) {
+	p.framebuf = unsafe.Slice((*uint32)(unsafe.Pointer(&framebuf[0])), len(framebuf)/4)
 }
 
 func (p *PPU) InitBus() {
@@ -337,7 +333,7 @@ func (p *PPU) renderPixel() {
 			paddr += uint16(palette)
 		}
 		pidx := p.Read8(paddr)
-		p.pixels[p.Scanline*256+x] = nesPalette[pidx]
+		p.framebuf[p.Scanline*256+x] = nesPalette[pidx]
 	}
 
 	// Perform background shifts:

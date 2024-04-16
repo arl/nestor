@@ -16,8 +16,8 @@ type NES struct {
 	PPU *hw.PPU
 	Rom *ines.Rom
 
+	Frames   chan image.RGBA
 	Debugger hw.Debugger
-	screenCh chan *image.RGBA
 }
 
 func (nes *NES) PowerUp(rom *ines.Rom) error {
@@ -41,7 +41,6 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 		return fmt.Errorf("error while loading mapper %03d (%s): %s", rom.Mapper(), mapper.Name, err)
 	}
 
-	nes.PPU.CreateScreen()
 	nes.Reset()
 	return nil
 }
@@ -51,21 +50,13 @@ func (nes *NES) Reset() {
 	nes.CPU.Reset()
 }
 
-func (nes *NES) FrameEvents() <-chan *image.RGBA {
-	if nes.screenCh != nil {
-		panic("screen already attached")
-	}
-	nes.screenCh = make(chan *image.RGBA)
-	return nes.screenCh
-}
-
-func (nes *NES) Run() {
+func (nes *NES) Run(out *hw.Output) {
 	for {
+		screen := out.BeginFrame()
+		nes.PPU.SetFrameBuffer(screen)
 		nes.RunOneFrame()
-		if nes.screenCh != nil {
-			nes.screenCh <- nes.PPU.Output()
-		}
 		nes.Debugger.FrameEnd()
+		out.EndFrame(screen)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"image"
 	"io"
 	"os"
 	"os/signal"
@@ -85,13 +86,21 @@ func main() {
 		hwio.Write16(nes.CPU.Bus, hw.ResetVector, uint16(resetVector))
 	}
 	nes.Reset()
+	nes.Frames = make(chan image.RGBA)
+
+	out := hw.NewOutput(hw.OutputConfig{
+		Width:           256,
+		Height:          240,
+		NumVideoBuffers: 2,
+		FrameOutCh:      nes.Frames,
+	})
 
 	go func() {
 		if traceLog.w != nil {
 			defer traceLog.Close()
 			nes.RunDisasm(traceLog)
 		} else {
-			nes.Run()
+			nes.Run(out)
 		}
 	}()
 
