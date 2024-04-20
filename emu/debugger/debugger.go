@@ -87,6 +87,10 @@ func (dbg *debugger) setStatus(s dbgStatus) {
 
 func (dbg *debugger) detach() {
 	dbg.active.Store(false)
+	if dbg.getStatus() != running {
+		dbg.blockAcks <- struct{}{}
+		dbg.setStatus(running)
+	}
 }
 
 // Trace must be called before each opcode is executed. This is the main entry
