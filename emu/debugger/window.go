@@ -14,6 +14,7 @@ import (
 	"gioui.org/text"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"golang.org/x/exp/shiny/materialdesign/icons"
 )
 
 type DebuggerWindow struct {
@@ -117,8 +118,21 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 }
 
 func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
-	btnSize := layout.Exact(image.Point{X: 70, Y: 35})
+	btnSize := layout.Exact(image.Point{X: 25, Y: 25})
 	// listing := &listing{nes: dw.nes, list: &dw.list}
+
+	startIcon, err := widget.NewIcon(icons.AVPlayArrow)
+	if err != nil {
+		panic(err)
+	}
+	pauseIcon, err := widget.NewIcon(icons.AVPause)
+	if err != nil {
+		panic(err)
+	}
+	stepIcon, err := widget.NewIcon(icons.NavigationArrowForward)
+	if err != nil {
+		panic(err)
+	}
 
 	layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
@@ -128,7 +142,7 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 					if status.stat == running {
 						gtx = gtx.Disabled()
 					}
-					return material.Button(dw.theme, &dw.start, "Start").Layout(gtx)
+					return ui.SmallSquareIconButton(dw.theme, &dw.start, startIcon, "Start").Layout(gtx)
 				}),
 				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
 
@@ -137,7 +151,7 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 					if status.stat != running {
 						gtx = gtx.Disabled()
 					}
-					return material.Button(dw.theme, &dw.pause, "Pause").Layout(gtx)
+					return ui.SmallSquareIconButton(dw.theme, &dw.pause, pauseIcon, "Pause").Layout(gtx)
 				}),
 				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
 				layout.Rigid(func(gtx C) D {
@@ -145,7 +159,7 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 					if status.stat == running {
 						gtx = gtx.Disabled()
 					}
-					return material.Button(dw.theme, &dw.step, "Step").Layout(gtx)
+					return ui.SmallSquareIconButton(dw.theme, &dw.step, stepIcon, "Step").Layout(gtx)
 				}),
 			)
 		}),
