@@ -2,7 +2,18 @@ package debugger
 
 import (
 	"fmt"
+	"image"
+	"image/color"
 	"slices"
+
+	"gioui.org/font"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/text"
+	"gioui.org/unit"
+	"gioui.org/widget"
+	"gioui.org/widget/material"
+	"gioui.org/x/component"
 )
 
 type stackFrameFlag uint8
@@ -88,4 +99,77 @@ func (callStack) entryPoint(f *stackFrame) string {
 	default:
 		return str
 	}
+}
+
+type callstackViewer struct {
+	grid component.GridState
+}
+
+var callstackHeadings = []string{"Function", "PC"}
+
+func (v *callstackViewer) Layout(th *material.Theme, gtx C, status status) D {
+	// Configure width based on available space and a minimum size.
+	minSize := gtx.Dp(unit.Dp(100))
+	border := widget.Border{
+		Color: color.NRGBA{A: 255},
+		Width: unit.Dp(1),
+	}
+
+	inset := layout.UniformInset(unit.Dp(2))
+
+	// Configure a label styled to be a heading.
+	headingLabel := material.Body1(th, "")
+	headingLabel.Font.Weight = font.Bold
+	headingLabel.Alignment = text.Middle
+	headingLabel.MaxLines = 1
+	headingLabel.TextSize = unit.Sp(11)
+
+	// Configure a label styled to be a data element.
+	dataLabel := material.Body1(th, "")
+	dataLabel.Font.Typeface = "Go Mono"
+	dataLabel.MaxLines = 1
+	dataLabel.Alignment = text.End
+	dataLabel.TextSize = unit.Sp(12)
+
+	// Measure the height of a heading row.
+	orig := gtx.Constraints
+	gtx.Constraints.Min = image.Point{}
+	macro := op.Record(gtx.Ops)
+	dims := inset.Layout(gtx, headingLabel.Layout)
+	_ = macro.Stop()
+	gtx.Constraints = orig
+
+	const numCols = 2
+	return component.Table(th, &v.grid).Layout(gtx, len(status.frames), numCols,
+		func(axis layout.Axis, index, constraint int) int {
+			widthUnit := max(int(float32(constraint)/3), minSize)
+			switch axis {
+			case layout.Horizontal:
+				switch index {
+				case 0, 1:
+					return int(widthUnit)
+				case 2, 3:
+					return int(widthUnit / 2)
+				default:
+					return 0
+				}
+			default:
+				return dims.Size.Y
+			}
+		},
+		func(gtx C, col int) D {
+			return border.Layout(gtx, func(gtx C) D {
+				return inset.Layout(gtx, func(gtx C) D {
+					headingLabel.Text = callstackHeadings[col]
+					return headingLabel.Layout(gtx)
+				})
+			})
+		},
+		func(gtx C, row, col int) D {
+			return inset.Layout(gtx, func(gtx C) D {
+				dataLabel.Text = status.frames[row][col]
+				return dataLabel.Layout(gtx)
+			})
+		},
+	)
 }

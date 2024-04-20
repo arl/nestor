@@ -3,22 +3,17 @@ package debugger
 import (
 	"fmt"
 	"image"
-	"image/color"
 	"sync/atomic"
 
 	"gioui.org/app"
-	"gioui.org/font"
 	"gioui.org/font/gofont"
 	"gioui.org/io/event"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
-	"gioui.org/op/paint"
 	"gioui.org/text"
-	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
-	"gioui.org/x/component"
 
 	"nestor/hw"
 	"nestor/ui"
@@ -305,117 +300,5 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 				// layout.Flexed(1, listing.Layout),
 			)
 		}),
-	)
-}
-
-type patternsTable struct {
-	ppu *hw.PPU
-}
-
-func (pt patternsTable) render(ppu *hw.PPU) *image.RGBA {
-	ptbuf := ppu.Bus.FetchPointer(0x0000)
-	img := image.NewRGBA(image.Rect(0, 0, 128, 256))
-
-	// A pattern table is 0x1000 bytes so 0x8000 bits.
-	// One pixel requires 2 bits (4 colors), so there are 0x4000 pixels to draw.
-	// That's a square of 128 x 128 pixels
-	// Each tile is 8 x 8 pixels, that 's 16 x 16 tiles.
-	for row := uint16(0); row < 256; row++ {
-		for col := uint16(0); col < 128; col++ {
-			addr := (row / 8 * 0x100) + (row % 8) + (col/8)*0x10
-			pixel := uint8((ptbuf[addr]>>(7-(col%8)))&1) + ((ptbuf[addr+8]>>(7-(col%8)))&1)*2
-			gray := pixel * 64
-			img.Pix[(row*128*4)+(col*4)] = gray
-			img.Pix[(row*128*4)+(col*4)+1] = gray
-			img.Pix[(row*128*4)+(col*4)+2] = gray
-			img.Pix[(row*128*4)+(col*4)+3] = 255
-		}
-	}
-	return img
-}
-
-func (pt patternsTable) Layout(gtx C) D {
-	size := image.Pt(128, 256)
-	gtx.Constraints = layout.Exact(size)
-
-	img := pt.render(pt.ppu)
-
-	return widget.Image{
-		Src:   paint.NewImageOp(img),
-		Fit:   widget.Contain,
-		Scale: 1,
-	}.Layout(gtx)
-}
-
-type callstackViewer struct {
-	grid component.GridState
-}
-
-var callstackHeadings = []string{"Function", "PC"}
-
-func (v *callstackViewer) Layout(th *material.Theme, gtx C, status status) D {
-	// Configure width based on available space and a minimum size.
-	minSize := gtx.Dp(unit.Dp(100))
-	border := widget.Border{
-		Color: color.NRGBA{A: 255},
-		Width: unit.Dp(1),
-	}
-
-	inset := layout.UniformInset(unit.Dp(2))
-
-	// Configure a label styled to be a heading.
-	headingLabel := material.Body1(th, "")
-	headingLabel.Font.Weight = font.Bold
-	headingLabel.Alignment = text.Middle
-	headingLabel.MaxLines = 1
-	headingLabel.TextSize = unit.Sp(11)
-
-	// Configure a label styled to be a data element.
-	dataLabel := material.Body1(th, "")
-	dataLabel.Font.Typeface = "Go Mono"
-	dataLabel.MaxLines = 1
-	dataLabel.Alignment = text.End
-	dataLabel.TextSize = unit.Sp(12)
-
-	// Measure the height of a heading row.
-	orig := gtx.Constraints
-	gtx.Constraints.Min = image.Point{}
-	macro := op.Record(gtx.Ops)
-	dims := inset.Layout(gtx, headingLabel.Layout)
-	_ = macro.Stop()
-	gtx.Constraints = orig
-
-	const numCols = 2
-	return component.Table(th, &v.grid).Layout(gtx, len(status.frames), numCols,
-		func(axis layout.Axis, index, constraint int) int {
-			widthUnit := max(int(float32(constraint)/3), minSize)
-			switch axis {
-			case layout.Horizontal:
-				switch index {
-				case 0, 1:
-					return int(widthUnit)
-				case 2, 3:
-					return int(widthUnit / 2)
-				default:
-					return 0
-				}
-			default:
-				return dims.Size.Y
-			}
-		},
-		func(gtx C, col int) D {
-			return border.Layout(gtx, func(gtx C) D {
-				return inset.Layout(gtx, func(gtx C) D {
-					headingLabel.Text = callstackHeadings[col]
-					return headingLabel.Layout(gtx)
-				})
-			})
-		},
-		func(gtx C, row, col int) D {
-			return inset.Layout(gtx, func(gtx C) D {
-				dataLabel.Text = status.frames[row][col]
-				return dataLabel.Layout(gtx)
-			})
-		},
 	)
 }
