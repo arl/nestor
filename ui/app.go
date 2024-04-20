@@ -55,8 +55,9 @@ func (a *Application) NewWindow(title string, view View, opts ...app.Option) {
 
 	a.active.Add(1)
 	go func() {
-		defer a.active.Done()
 		view.Run(w)
+		a.CloseWindow(title)
+		a.active.Done()
 	}()
 }
 
