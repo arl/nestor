@@ -2,8 +2,6 @@ package debugger
 
 import (
 	"image"
-	"nestor/hw"
-	"nestor/ui"
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
@@ -15,7 +13,18 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"golang.org/x/exp/shiny/materialdesign/icons"
+
+	"nestor/hw"
+	"nestor/ui"
 )
+
+func mustNewIcon(data []byte) *widget.Icon {
+	icon, err := widget.NewIcon(data)
+	if err != nil {
+		panic(err)
+	}
+	return icon
+}
 
 type DebuggerWindow struct {
 	dbg *debugger
@@ -28,13 +37,20 @@ type DebuggerWindow struct {
 	start widget.Clickable
 	pause widget.Clickable
 	step  widget.Clickable
+
+	startIcon *widget.Icon
+	pauseIcon *widget.Icon
+	stepIcon  *widget.Icon
 }
 
 func NewDebuggerWindow(dbg hw.Debugger, ppu *hw.PPU) *DebuggerWindow {
 	return &DebuggerWindow{
-		dbg:      dbg.(*debugger),
-		ptviewer: patternsTable{ppu: ppu},
-		theme:    material.NewTheme(),
+		dbg:       dbg.(*debugger),
+		ptviewer:  patternsTable{ppu: ppu},
+		theme:     material.NewTheme(),
+		startIcon: mustNewIcon(icons.AVPlayArrow),
+		pauseIcon: mustNewIcon(icons.AVPause),
+		stepIcon:  mustNewIcon(icons.NavigationArrowForward),
 	}
 }
 
@@ -121,19 +137,6 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 	btnSize := layout.Exact(image.Point{X: 25, Y: 25})
 	// listing := &listing{nes: dw.nes, list: &dw.list}
 
-	startIcon, err := widget.NewIcon(icons.AVPlayArrow)
-	if err != nil {
-		panic(err)
-	}
-	pauseIcon, err := widget.NewIcon(icons.AVPause)
-	if err != nil {
-		panic(err)
-	}
-	stepIcon, err := widget.NewIcon(icons.NavigationArrowForward)
-	if err != nil {
-		panic(err)
-	}
-
 	layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceEnd, Alignment: layout.Start}.Layout(gtx,
@@ -142,7 +145,7 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 					if status.stat == running {
 						gtx = gtx.Disabled()
 					}
-					return ui.SmallSquareIconButton(dw.theme, &dw.start, startIcon, "Start").Layout(gtx)
+					return ui.SmallSquareIconButton(dw.theme, &dw.start, dw.startIcon, "Start").Layout(gtx)
 				}),
 				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
 
@@ -151,7 +154,7 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 					if status.stat != running {
 						gtx = gtx.Disabled()
 					}
-					return ui.SmallSquareIconButton(dw.theme, &dw.pause, pauseIcon, "Pause").Layout(gtx)
+					return ui.SmallSquareIconButton(dw.theme, &dw.pause, dw.pauseIcon, "Pause").Layout(gtx)
 				}),
 				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
 				layout.Rigid(func(gtx C) D {
@@ -159,7 +162,7 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 					if status.stat == running {
 						gtx = gtx.Disabled()
 					}
-					return ui.SmallSquareIconButton(dw.theme, &dw.step, stepIcon, "Step").Layout(gtx)
+					return ui.SmallSquareIconButton(dw.theme, &dw.step, dw.stepIcon, "Step").Layout(gtx)
 				}),
 			)
 		}),
