@@ -1,6 +1,7 @@
 package debugger
 
 import (
+	"context"
 	"image"
 
 	"gioui.org/app"
@@ -12,7 +13,6 @@ import (
 	"gioui.org/text"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
-	"gioui.org/x/component"
 	"golang.org/x/exp/shiny/materialdesign/icons"
 
 	"nestor/hw"
@@ -55,8 +55,15 @@ func NewDebuggerWindow(dbg hw.Debugger, ppu *hw.PPU) *DebuggerWindow {
 	}
 }
 
-func (dw *DebuggerWindow) Run(w *ui.Window) error {
-	defer dw.dbg.detach()
+func (dw *DebuggerWindow) Run(ctx context.Context, w *ui.Window) error {
+	// defer dw.dbg.detach()
+	viewCtx, cancel := context.WithCancel(ctx)
+
+	go func() {
+		<-viewCtx.Done()
+		w.Perform(system.ActionClose)
+		dw.dbg.detach()
+	}()
 
 	var ops op.Ops
 
@@ -65,17 +72,12 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 
 	dw.dbg.active.Store(true)
 
-	go func() {
-		<-w.App.Context.Done()
-		w.Perform(system.ActionClose)
-	}()
-
 	events := make(chan event.Event)
 	acks := make(chan struct{})
 
 	go func() {
 		for {
-			ev := w.NextEvent()
+			ev := w.Event()
 			events <- ev
 			<-acks
 			if _, ok := ev.(app.DestroyEvent); ok {
@@ -93,6 +95,7 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 			switch e := e.(type) {
 			case app.DestroyEvent:
 				acks <- struct{}{}
+				cancel()
 				return e.Err
 			case app.FrameEvent:
 				gtx := app.NewContext(&ops, e)
@@ -134,10 +137,6 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 	}
 }
 
-
-store this tipArea somewhere else
-var tipArea component.TipArea
-
 func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 	btnSize := layout.Exact(image.Point{X: 25, Y: 25})
 	// listing := &listing{nes: dw.nes, list: &dw.list}
@@ -151,10 +150,7 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 						gtx = gtx.Disabled()
 					}
 
-					tooltip := component.DesktopTooltip(dw.theme, "some tooltip")
-					return tipArea.Layout(gtx, tooltip, ui.SmallSquareIconButton(dw.theme, &dw.start, dw.startIcon, "Start").Layout)
-
-					// return ui.SmallSquareIconButton(dw.theme, &dw.start, dw.startIcon, "Start").Layout(gtx)
+					return ui.SmallSquareIconButton(dw.theme, &dw.start, dw.startIcon, "Start").Layout(gtx)
 				}),
 				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
 

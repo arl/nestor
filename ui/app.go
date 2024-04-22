@@ -2,93 +2,109 @@ package ui
 
 import (
 	"context"
+	"errors"
+	"os"
 	"sync"
 
 	"gioui.org/app"
-	"gioui.org/io/system"
 )
 
-// Application keeps track of all the windows and global state.
 type Application struct {
-	// Context is used to broadcast application shutdown.
-	Context context.Context
+	mu   sync.Mutex
+	wins map[string]*Window
 
-	// Shutdown shuts down all windows.
-	Shutdown func()
+	stack []func()
 
-	// active keeps track of all open windows so that application can shut down,
-	// when all of them are closed.
-	active sync.WaitGroup
-
-	mu      sync.Mutex
-	windows map[string]*Window
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
-func NewApplication(ctx context.Context) *Application {
-	ctx, cancel := context.WithCancel(ctx)
-	return &Application{
-		Context:  ctx,
-		Shutdown: cancel,
-		windows:  make(map[string]*Window),
+func NewApplication(title string, main View, opts ...app.Option) *Application {
+	ctx, cancel := context.WithCancel(context.Background())
+	a := &Application{
+		ctx:    ctx,
+		cancel: cancel,
+		wins:   make(map[string]*Window),
 	}
+
+	mainWindow, err := a.newWindow(true, title, main)
+	if err != nil {
+		panic(err)
+	}
+	_ = mainWindow
+	return a
 }
 
-// Wait waits for all windows to close.
-func (a *Application) Wait() {
-	a.active.Wait()
+var ErrWindowTitleExists = errors.New("window title already exists")
+
+func (a *Application) NewWindow(title string, v View, opts ...app.Option) (*Window, error) {
+	return a.newWindow(false, title, v, opts...)
 }
 
-// NewWindow creates a new tracked window.
-func (a *Application) NewWindow(title string, view View, opts ...app.Option) {
+func (a *Application) newWindow(isMain bool, title string, v View, opts ...app.Option) (*Window, error) {
+	if a.WindowExists(title) {
+		return nil, ErrWindowTitleExists
+	}
+
+	w := Window{App: a}
 	opts = append(opts, app.Title(title))
-	w := &Window{
-		App:    a,
-		Window: app.NewWindow(opts...),
-	}
+	w.Window.Option(opts...)
 
 	a.mu.Lock()
-	if a.windows[title] != nil {
-		panic("window already exists: " + title)
-	}
-	a.windows[title] = w
+	a.wins[title] = &w
 	a.mu.Unlock()
 
-	a.active.Add(1)
 	go func() {
-		view.Run(w)
-		a.CloseWindow(title)
-		a.active.Done()
+		v.Run(a.ctx, &w)
+		a.mu.Lock()
+		delete(a.wins, title)
+		a.mu.Unlock()
+		if isMain {
+			a.cancel()
+		}
 	}()
+
+	return &w, nil
 }
 
-func (a *Application) HasWindow(title string) bool {
+func (a *Application) Defer(f func()) {
+	a.stack = append(a.stack, f)
+}
+
+func (a *Application) Wait() {
+	go func() {
+		<-a.ctx.Done()
+		// Run defer stack before exiting
+		for i := len(a.stack) - 1; i >= 0; i-- {
+			a.stack[i]()
+		}
+		os.Exit(0)
+	}()
+
+	app.Main()
+}
+
+func (a *Application) Shutdown() {
+	a.cancel()
+}
+
+func (a *Application) WindowExists(title string) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if _, ok := a.windows[title]; ok {
-		return true
-	}
-	return false
-}
-
-func (a *Application) CloseWindow(title string) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	if w, ok := a.windows[title]; ok {
-		w.Window.Perform(system.ActionClose)
-		delete(a.windows, title)
-	}
+	_, ok := a.wins[title]
+	return ok
 }
 
 // Window holds window state.
 type Window struct {
 	App *Application
-	*app.Window
+	app.Window
 }
 
 // A View handles the event loop for a Window.
 type View interface {
-	// Run handles the window event loop.
-	Run(w *Window) error
+	// Run handles the window event loop. When the context is done, the view
+	// should exit from the main loop.
+	Run(ctx context.Context, w *Window) error
 }

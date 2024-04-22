@@ -69,18 +69,20 @@ func main() {
 		log.EnableDebugModules(modmask)
 	}
 
+	var nes emu.NES
+	emulator := emu.NewEmulator(&nes)
+
 	if cpuprofile != "" {
 		f, err := os.Create(cpuprofile)
 		checkf(err, "failed to create cpu profile file")
 		checkf(pprof.StartCPUProfile(f), "failed to start cpu profile")
-		emu.Defer(func() {
+		emulator.Defer(func() {
 			pprof.StopCPUProfile()
 			f.Close()
 			fmt.Println("CPU profile written to", cpuprofile)
 		})
 	}
 
-	var nes emu.NES
 	checkf(nes.PowerUp(rom), "error during power up")
 	if resetVector != -1 {
 		hwio.Write16(nes.CPU.Bus, hw.ResetVector, uint16(resetVector))
@@ -105,7 +107,7 @@ func main() {
 	}()
 
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
-	emu.RunEmulator(ctx, &nes, dbgOn)
+	emulator.Run(ctx, &nes, dbgOn)
 }
 
 func checkf(err error, format string, args ...any) {

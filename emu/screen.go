@@ -1,6 +1,7 @@
 package emu
 
 import (
+	"context"
 	"image"
 
 	"gioui.org/app"
@@ -18,28 +19,26 @@ import (
 )
 
 type ScreenWindow struct {
-	emu   *emulator
-	theme *material.Theme
+	nes *NES
 
+	theme    *material.Theme
 	debugBtn widget.Clickable
 }
 
-func NewScreenWindow(emu *emulator) *ScreenWindow {
+func NewScreenWindow(nes *NES) *ScreenWindow {
 	return &ScreenWindow{
-		emu:   emu,
+		nes:   nes,
 		theme: material.NewTheme(),
 	}
 }
 
-func (sw *ScreenWindow) Run(w *ui.Window) error {
-	quit := make(chan struct{})
+func (sw *ScreenWindow) Run(ctx context.Context, w *ui.Window) error {
+	viewCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	go func() {
-		select {
-		case <-quit:
-			sw.emu.app.Shutdown()
-		case <-w.App.Context.Done():
-			w.Perform(system.ActionClose)
-		}
+		<-viewCtx.Done()
+		w.Perform(system.ActionClose)
 	}()
 
 	var ops op.Ops
@@ -48,7 +47,7 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 
 	go func() {
 		for {
-			ev := w.NextEvent()
+			ev := w.Event()
 			events <- ev
 			<-acks
 			if _, ok := ev.(app.DestroyEvent); ok {
@@ -85,6 +84,10 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 					return nil
 				}
 
+				if sw.debugBtn.Clicked(gtx) {
+					ShowDebuggerWindow(w.App, sw.nes)
+				}
+
 				sw.Layout(gtx, &frame)
 				area.Pop()
 
@@ -92,12 +95,12 @@ func (sw *ScreenWindow) Run(w *ui.Window) error {
 
 			case app.DestroyEvent:
 				acks <- struct{}{}
-				close(quit)
+				cancel()
 				return e.Err
 			}
 			acks <- struct{}{}
 
-		case frame = <-sw.emu.nes.Frames:
+		case frame = <-sw.nes.Frames:
 			w.Invalidate()
 		}
 	}
@@ -119,9 +122,6 @@ func (sw *ScreenWindow) Layout(gtx C, frame *image.RGBA) D {
 
 		layout.Rigid(func(gtx C) D {
 			return layout.NW.Layout(gtx, func(gtx C) D {
-				if sw.debugBtn.Clicked(gtx) {
-					sw.emu.showDebuggerWindow()
-				}
 				return material.Button(sw.theme, &sw.debugBtn, "Debug").Layout(gtx)
 			})
 		}),

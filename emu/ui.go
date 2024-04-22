@@ -2,7 +2,6 @@ package emu
 
 import (
 	"context"
-	"os"
 
 	"gioui.org/app"
 	"gioui.org/layout"
@@ -25,70 +24,40 @@ const (
 	screenTitle   = "Screen"
 )
 
-type emulator struct {
+func ShowDebuggerWindow(a *ui.Application, nes *NES) {
+	a.NewWindow(debuggerTitle, debugger.NewDebuggerWindow(nes.Debugger, nes.PPU))
+}
+
+// TODO(arl) merge with NES struct
+type Emulator struct {
 	nes *NES
 	app *ui.Application
 }
 
-func (e *emulator) showDebuggerWindow() {
-	if e.app.HasWindow(debuggerTitle) {
-		return
-	}
-	e.app.NewWindow(debuggerTitle, debugger.NewDebuggerWindow(e.nes.Debugger, e.nes.PPU))
+func NewEmulator(nes *NES) *Emulator {
+	return &Emulator{nes: nes}
 }
 
-func RunEmulator(ctx context.Context, nes *NES, dbgOn bool) {
-	ctx, cancel := context.WithCancel(ctx)
-
-	e := &emulator{
-		app: ui.NewApplication(ctx),
-		nes: nes,
-	}
-
-	go func() {
-		defer cancel()
-		screen := NewScreenWindow(e)
-
-		minw := unit.Dp(2*ScreenWidth + 200)
-		minh := unit.Dp(2 * ScreenHeight)
-		e.app.NewWindow(screenTitle, screen,
-			app.MinSize(minw, minh),
-			app.Size(minw, minh),
-		)
-
-		if dbgOn {
-			e.showDebuggerWindow()
-		}
-
-		e.app.Wait()
-	}()
+func (e *Emulator) Run(ctx context.Context, nes *NES, dbgOn bool) {
+	screen := NewScreenWindow(nes)
+	minw := unit.Dp(2*ScreenWidth + 200)
+	minh := unit.Dp(2 * ScreenHeight)
+	app := ui.NewApplication("NEStor", screen,
+		app.MinSize(minw, minh),
+		app.Size(minw, minh),
+	)
 
 	go func() {
 		<-ctx.Done()
-		e.stop()
+		app.Shutdown()
 	}()
 
-	app.Main()
+	app.Wait()
 }
-
-func (e *emulator) stop() {
-	e.app.Shutdown()
-	e.app.Wait()
-	runDefered()
-	os.Exit(0)
-}
-
-var deferred []func()
 
 // Defer allows to defer functions to be called at the end of the program. Defer
 // can be called multiple times, as `defer` the functions are called in reverse
 // order.
-func Defer(f func()) {
-	deferred = append(deferred, f)
-}
-
-func runDefered() {
-	for i := len(deferred) - 1; i >= 0; i-- {
-		deferred[i]()
-	}
+func (e *Emulator) Defer(f func()) {
+	e.app.Defer(f)
 }

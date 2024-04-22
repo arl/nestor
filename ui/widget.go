@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"context"
+
 	"gioui.org/app"
 	"gioui.org/font/gofont"
 	"gioui.org/io/system"
@@ -17,19 +19,21 @@ type D = layout.Dimensions
 type WidgetView func(gtx C, th *material.Theme) D
 
 // Run displays the widget with default handling.
-func (view WidgetView) Run(w *Window) error {
+func (view WidgetView) Run(ctx context.Context, w *Window) error {
+	viewCtx, cancel := context.WithCancel(ctx)
 	var ops op.Ops
 
 	th := material.NewTheme()
 	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
 
 	go func() {
-		<-w.App.Context.Done()
+		<-viewCtx.Done()
 		w.Perform(system.ActionClose)
 	}()
 	for {
-		switch e := w.NextEvent().(type) {
+		switch e := w.Event().(type) {
 		case app.DestroyEvent:
+			cancel()
 			return e.Err
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
