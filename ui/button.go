@@ -23,6 +23,7 @@ func SmallSquareIconButton(th *material.Theme, button *widget.Clickable, icon *w
 		Inset:       layout.UniformInset(4),
 		Button:      button,
 		Description: description,
+		Theme:       th,
 	}
 }
 
@@ -35,6 +36,7 @@ func IconButton(th *material.Theme, button *widget.Clickable, icon *widget.Icon,
 		Inset:       layout.UniformInset(12),
 		Button:      button,
 		Description: description,
+		Theme:       th,
 	}
 }
 
@@ -48,6 +50,8 @@ type IconButtonStyle struct {
 	Inset       layout.Inset
 	Button      *widget.Clickable
 	Description string
+
+	Theme *material.Theme
 }
 
 func (b IconButtonStyle) Layout(gtx layout.Context) layout.Dimensions {
@@ -92,6 +96,7 @@ func (b IconButtonStyle) Layout(gtx layout.Context) layout.Dimensions {
 	// bounds := image.Rectangle{Max: dims.Size}
 	// defer clip.Ellipse(bounds).Push(gtx.Ops).Pop()
 	c.Add(gtx.Ops)
+
 	return dims
 }
 

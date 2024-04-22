@@ -12,6 +12,7 @@ import (
 	"gioui.org/text"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"gioui.org/x/component"
 	"golang.org/x/exp/shiny/materialdesign/icons"
 
 	"nestor/hw"
@@ -133,6 +134,10 @@ func (dw *DebuggerWindow) Run(w *ui.Window) error {
 	}
 }
 
+
+store this tipArea somewhere else
+var tipArea component.TipArea
+
 func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 	btnSize := layout.Exact(image.Point{X: 25, Y: 25})
 	// listing := &listing{nes: dw.nes, list: &dw.list}
@@ -145,7 +150,11 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 					if status.stat == running {
 						gtx = gtx.Disabled()
 					}
-					return ui.SmallSquareIconButton(dw.theme, &dw.start, dw.startIcon, "Start").Layout(gtx)
+
+					tooltip := component.DesktopTooltip(dw.theme, "some tooltip")
+					return tipArea.Layout(gtx, tooltip, ui.SmallSquareIconButton(dw.theme, &dw.start, dw.startIcon, "Start").Layout)
+
+					// return ui.SmallSquareIconButton(dw.theme, &dw.start, dw.startIcon, "Start").Layout(gtx)
 				}),
 				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
 
