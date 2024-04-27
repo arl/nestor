@@ -2,7 +2,6 @@ package debugger
 
 import (
 	"context"
-	"image"
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
@@ -11,21 +10,12 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/text"
-	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"golang.org/x/exp/shiny/materialdesign/icons"
 
 	"nestor/hw"
 	"nestor/ui"
 )
-
-func mustNewIcon(data []byte) *widget.Icon {
-	icon, err := widget.NewIcon(data)
-	if err != nil {
-		panic(err)
-	}
-	return icon
-}
 
 type DebuggerWindow struct {
 	dbg *debugger
@@ -35,23 +25,20 @@ type DebuggerWindow struct {
 	csviewer callstackViewer
 	ptviewer patternsTable
 
-	start widget.Clickable
-	pause widget.Clickable
-	step  widget.Clickable
-
-	startIcon *widget.Icon
-	pauseIcon *widget.Icon
-	stepIcon  *widget.Icon
+	start ui.SmallSquareIconButton
+	pause ui.SmallSquareIconButton
+	step  ui.SmallSquareIconButton
 }
 
 func NewDebuggerWindow(dbg hw.Debugger, ppu *hw.PPU) *DebuggerWindow {
+	theme := material.NewTheme()
 	return &DebuggerWindow{
-		dbg:       dbg.(*debugger),
-		ptviewer:  patternsTable{ppu: ppu},
-		theme:     material.NewTheme(),
-		startIcon: mustNewIcon(icons.AVPlayArrow),
-		pauseIcon: mustNewIcon(icons.AVPause),
-		stepIcon:  mustNewIcon(icons.NavigationArrowForward),
+		dbg:      dbg.(*debugger),
+		ptviewer: patternsTable{ppu: ppu},
+		theme:    theme,
+		start:    ui.NewSmallSquareIconButton(theme, icons.AVPlayArrow, "Start"),
+		pause:    ui.NewSmallSquareIconButton(theme, icons.AVPause, "Pause"),
+		step:     ui.NewSmallSquareIconButton(theme, icons.NavigationArrowForward, "Step"),
 	}
 }
 
@@ -138,36 +125,22 @@ func (dw *DebuggerWindow) Run(ctx context.Context, w *ui.Window) error {
 }
 
 func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
-	btnSize := layout.Exact(image.Point{X: 25, Y: 25})
 	// listing := &listing{nes: dw.nes, list: &dw.list}
 
 	layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceEnd, Alignment: layout.Start}.Layout(gtx,
 				layout.Rigid(func(gtx C) D {
-					gtx.Constraints = btnSize
-					if status.stat == running {
-						gtx = gtx.Disabled()
-					}
-
-					return ui.SmallSquareIconButton(dw.theme, &dw.start, dw.startIcon, "Start").Layout(gtx)
+					return dw.start.Layout(gtx, status.stat != running)
 				}),
 				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
 
 				layout.Rigid(func(gtx C) D {
-					gtx.Constraints = btnSize
-					if status.stat != running {
-						gtx = gtx.Disabled()
-					}
-					return ui.SmallSquareIconButton(dw.theme, &dw.pause, dw.pauseIcon, "Pause").Layout(gtx)
+					return dw.pause.Layout(gtx, status.stat == running)
 				}),
 				layout.Rigid(func(gtx C) D { return layout.Spacer{Width: 5}.Layout(gtx) }),
 				layout.Rigid(func(gtx C) D {
-					gtx.Constraints = btnSize
-					if status.stat == running {
-						gtx = gtx.Disabled()
-					}
-					return ui.SmallSquareIconButton(dw.theme, &dw.step, dw.stepIcon, "Step").Layout(gtx)
+					return dw.step.Layout(gtx, status.stat != running)
 				}),
 			)
 		}),

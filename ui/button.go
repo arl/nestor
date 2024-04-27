@@ -12,35 +12,59 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"gioui.org/x/component"
 )
 
-func SmallSquareIconButton(th *material.Theme, button *widget.Clickable, icon *widget.Icon, description string) IconButtonStyle {
-	return IconButtonStyle{
+type SmallSquareIconButton struct {
+	*widget.Clickable
+	tooltip component.Tooltip
+	style   SquareIconButtonStyle
+	tipArea component.TipArea
+}
+
+func NewSmallSquareIconButton(th *material.Theme, icon []byte, tooltip string) SmallSquareIconButton {
+	btn := SmallSquareIconButton{
+		tooltip:   component.PlatformTooltip(th, tooltip),
+		Clickable: new(widget.Clickable),
+	}
+	btn.style = SquareIconButtonStyle{
 		Background:  th.Palette.ContrastBg,
 		Color:       th.Palette.ContrastFg,
-		Icon:        icon,
+		Icon:        mustNewIcon(icon),
 		Size:        20,
 		Inset:       layout.UniformInset(4),
-		Button:      button,
-		Description: description,
-		Theme:       th,
+		Button:      btn.Clickable,
+		Description: tooltip,
 	}
+
+	return btn
 }
 
-func IconButton(th *material.Theme, button *widget.Clickable, icon *widget.Icon, description string) IconButtonStyle {
-	return IconButtonStyle{
-		Background:  th.Palette.ContrastBg,
-		Color:       th.Palette.ContrastFg,
-		Icon:        icon,
-		Size:        24,
-		Inset:       layout.UniformInset(12),
-		Button:      button,
-		Description: description,
-		Theme:       th,
-	}
+func (b *SmallSquareIconButton) Layout(gtx layout.Context, enabled bool) layout.Dimensions {
+	// We don't use gtx.Disabled when drawing the tooltip or else it would not
+	// disappear correctly.
+	return b.tipArea.Layout(gtx, b.tooltip, func(gtx C) D {
+		if !enabled {
+			gtx = gtx.Disabled()
+		}
+		return b.style.Layout(gtx)
+	})
 }
 
-type IconButtonStyle struct {
+func mustNewIcon(data []byte) *widget.Icon {
+	icon, err := widget.NewIcon(data)
+	if err != nil {
+		panic(err)
+	}
+	return icon
+}
+
+/* code copied from the Gio project material.IconButtonStyle
+with the following license:
+// SPDX-License-Identifier: Unlicense OR MIT
+*/
+
+type SquareIconButtonStyle struct {
 	Background color.NRGBA
 	// Color is the icon color.
 	Color color.NRGBA
@@ -54,7 +78,7 @@ type IconButtonStyle struct {
 	Theme *material.Theme
 }
 
-func (b IconButtonStyle) Layout(gtx layout.Context) layout.Dimensions {
+func (b SquareIconButtonStyle) Layout(gtx layout.Context) layout.Dimensions {
 	m := op.Record(gtx.Ops)
 	dims := b.Button.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		semantic.Button.Add(gtx.Ops)
