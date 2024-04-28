@@ -7,12 +7,8 @@ import (
 )
 
 type disasm struct {
-	cpu             *CPU
-	prevPC          uint16
-	prevClock       int64
-	prevPPUCycle    int
-	prevPPUScanline int
-	bb              bytes.Buffer
+	cpu *CPU
+	bb  bytes.Buffer
 
 	w io.Writer
 }
@@ -24,18 +20,35 @@ func NewDisasm(cpu *CPU, w io.Writer) *disasm {
 	}
 }
 
+type cpuState struct {
+	A, X, Y uint8
+	P       P
+	SP      uint8
+	PC      uint16
+
+	Clock    int64
+	PPUCycle int
+	Scanline int
+}
+
 func (d *disasm) Run(until int64) {
 	for d.cpu.Clock < until {
-		d.prevPC = d.cpu.PC
-		d.prevClock = d.cpu.Clock
-		d.prevPPUCycle = d.cpu.ppu.Cycle
-		d.prevPPUScanline = d.cpu.ppu.Scanline
+		state := cpuState{
+			A:        d.cpu.A,
+			X:        d.cpu.X,
+			Y:        d.cpu.Y,
+			P:        d.cpu.P,
+			SP:       d.cpu.SP,
+			Clock:    d.cpu.Clock,
+			PPUCycle: d.cpu.ppu.Cycle,
+			Scanline: d.cpu.ppu.Scanline,
+			PC:       d.cpu.PC,
+		}
 
-		pc := d.cpu.PC
-		d.cpu.dbg.Trace(pc)
+		d.cpu.dbg.Trace(d.cpu.PC)
 		opcode := d.cpu.Read8(d.cpu.PC)
 		d.cpu.PC++
-		d.op(pc)
+		d.op(state)
 		ops[opcode](d.cpu)
 
 		if d.cpu.prevRunIRQ || d.cpu.prevNeedNmi {
@@ -48,23 +61,15 @@ func (d *disasm) read8(addr uint16) uint8 {
 	return d.cpu.Bus.Peek8(addr)
 }
 
-func (d *disasm) op(pc uint16) {
+func (d *disasm) op(state cpuState) {
 	d.bb.Reset()
 
 	// Write disassembly.
-	opcode := d.read8(pc)
-	dis := disasmOps[opcode](d.cpu, pc)
+	opcode := d.read8(state.PC)
+	dis := disasmOps[opcode](d.cpu, state.PC)
 
-	// Write CPU state.
-	// fmt.Fprintf(&d.bb, "%-*s A:%02X X:%02X Y:%02X P:%02X SP:%02X", 40-len(dis), "",
-	// 	d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP)
-	fmt.Fprintf(&d.bb, "%-30s A:%02X X:%02X Y:%02X P:%02X SP:%02X",
-		dis.String(), d.cpu.A, d.cpu.X, d.cpu.Y, byte(d.cpu.P), d.cpu.SP)
-
-	// Write PPU state.
-	fmt.Fprintf(&d.bb, " PPU:%3d,%3d CYC:%d",
-		d.prevPPUScanline, d.prevPPUCycle, d.prevClock)
-
-	d.bb.WriteByte('\n')
+	fmt.Fprintf(&d.bb, "%-30s A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3d,%3d CYC:%d\n",
+		dis.String(), state.A, state.X, state.Y, byte(state.P), state.SP,
+		state.Scanline, state.PPUCycle, state.Clock)
 	d.w.Write(d.bb.Bytes())
 }
