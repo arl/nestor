@@ -21,15 +21,14 @@ import (
 func main() {
 	ftraceLog := &outfile{}
 	romInfos := false
-	dbgOn := false
 	logflag := ""
 	nologflag := false
 	cpuprofile := ""
 	resetVector := int64(-1)
 
 	flag.BoolVar(&romInfos, "rominfos", false, "print infos about the iNes rom and exit")
-	flag.BoolVar(&dbgOn, "dbg", false, "start NEStor with debugger shown")
 	flag.StringVar(&logflag, "log", "", "enable logging for specified modules")
+	// TODO(arl) replace with log=no
 	flag.BoolVar(&nologflag, "nolog", false, "disable all logging")
 	flag.Var(ftraceLog, "trace", "write cpu trace log to [file|stdout|stderr] (warning: quickly gets very big)")
 	flag.Int64Var(&resetVector, "reset", -1, "overwrite CPU reset vector with (default: rom-defined)")
@@ -106,7 +105,7 @@ func main() {
 	}()
 
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
-	emulator.Run(ctx, &nes, dbgOn)
+	emulator.Run(ctx, &nes)
 }
 
 func checkf(err error, format string, args ...any) {
