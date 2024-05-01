@@ -18,6 +18,9 @@ import (
 	"nestor/ui"
 )
 
+type C = layout.Context
+type D = layout.Dimensions
+
 type ScreenWindow struct {
 	nes *NES
 

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"gioui.org/app"
-	"gioui.org/layout"
 	"gioui.org/unit"
 
 	"nestor/emu/debugger"
@@ -16,16 +15,8 @@ const (
 	ScreenHeight = 224
 )
 
-type C = layout.Context
-type D = layout.Dimensions
-
-const (
-	debuggerTitle = "Debugger"
-	screenTitle   = "Screen"
-)
-
 func ShowDebuggerWindow(a *ui.Application, nes *NES) {
-	a.NewWindow(debuggerTitle, debugger.NewDebuggerWindow(nes.Debugger, nes.PPU))
+	a.NewWindow("Debugger", debugger.NewDebuggerWindow(nes.Debugger, nes.PPU))
 }
 
 // TODO(arl) merge with NES struct
@@ -35,10 +26,6 @@ type Emulator struct {
 }
 
 func NewEmulator(nes *NES) *Emulator {
-	return &Emulator{nes: nes}
-}
-
-func (e *Emulator) Run(ctx context.Context, nes *NES, dbgOn bool) {
 	screen := NewScreenWindow(nes)
 	minw := unit.Dp(2*ScreenWidth + 200)
 	minh := unit.Dp(2 * ScreenHeight)
@@ -47,12 +34,16 @@ func (e *Emulator) Run(ctx context.Context, nes *NES, dbgOn bool) {
 		app.Size(minw, minh),
 	)
 
+	return &Emulator{nes: nes, app: app}
+}
+
+func (e *Emulator) Run(ctx context.Context, nes *NES) {
 	go func() {
 		<-ctx.Done()
-		app.Shutdown()
+		e.app.Shutdown()
 	}()
 
-	app.Wait()
+	e.app.Wait()
 }
 
 // Defer allows to defer functions to be called at the end of the program. Defer
