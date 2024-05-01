@@ -15,6 +15,13 @@ import (
 )
 
 func TestNestest(t *testing.T) {
+	const (
+		numCycles      = 26560
+		pStart         = 0x24
+		clockStart     = 7
+		ppuCyclesStart = 21
+	)
+
 	nes := new(NES)
 	romPath := filepath.Join("..", "testdata", "nes-test-roms", "other", "nestest.nes")
 	rom, err := ines.ReadRom(romPath)
@@ -39,11 +46,11 @@ func TestNestest(t *testing.T) {
 	// We do that by overwriting the rom location of the reset vector.
 	// binary.LittleEndian.PutUint16(cartridge.PRGROM[0x3FFC:], 0xC000)
 	nes.CPU.PC = 0xC000
-	nes.CPU.P = hw.P(0x24)
-	nes.CPU.Clock = 7
-	nes.PPU.Cycle = 21
-	disasm := hw.NewDisasm(nes.CPU, flog)
-	disasm.Run(26560)
+	nes.CPU.P = hw.P(pStart)
+	nes.CPU.Clock = clockStart
+	nes.PPU.Cycle = ppuCyclesStart
+	nes.CPU.SetTraceOutput(flog)
+	nes.CPU.Run(numCycles)
 
 	r1, r2 := nes.CPU.Read8(0x02), nes.CPU.Read8(0x03)
 	if r1 != 0x00 || r2 != 0x00 {

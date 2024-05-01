@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	traceLog := &outfile{}
+	ftraceLog := &outfile{}
 	romInfos := false
 	dbgOn := false
 	logflag := ""
@@ -31,7 +31,7 @@ func main() {
 	flag.BoolVar(&dbgOn, "dbg", false, "start NEStor with debugger shown")
 	flag.StringVar(&logflag, "log", "", "enable logging for specified modules")
 	flag.BoolVar(&nologflag, "nolog", false, "disable all logging")
-	flag.Var(traceLog, "trace", "write cpu trace log to [file|stdout|stderr] (warning: quickly gets very big)")
+	flag.Var(ftraceLog, "trace", "write cpu trace log to [file|stdout|stderr] (warning: quickly gets very big)")
 	flag.Int64Var(&resetVector, "reset", -1, "overwrite CPU reset vector with (default: rom-defined)")
 	flag.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
 
@@ -98,12 +98,11 @@ func main() {
 	})
 
 	go func() {
-		if traceLog.w != nil {
-			defer traceLog.Close()
-			nes.RunDisasm(traceLog)
-		} else {
-			nes.Run(out)
+		if ftraceLog.w != nil {
+			emulator.Defer(func() { ftraceLog.Close() })
+			nes.CPU.SetTraceOutput(ftraceLog)
 		}
+		nes.Run(out)
 	}()
 
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)

@@ -47,10 +47,6 @@ func (dummyDebugger) WatchWrite(addr uint16, val uint16)         {}
 func (dummyDebugger) Break(msg string)                           {}
 func (dummyDebugger) FrameEnd()                                  {}
 
-type runner interface {
-	Run(int64)
-}
-
 func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 	t.Helper()
 
@@ -77,13 +73,11 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 		}
 	}
 
-	var r runner = cpu
 	if testing.Verbose() {
-		r = NewDisasm(cpu, tbwriter{t})
+		cpu.SetTraceOutput(tbwriter{t})
 	}
-	cpu.SetDebugger(dummyDebugger{})
-
-	r.Run(cpu.Clock + ncycles)
+	cpu.SetDebugger(noopDebugger{})
+	cpu.Run(cpu.Clock + ncycles)
 
 	for i := 0; i < len(states); i += 2 {
 		s := states[i].(string)

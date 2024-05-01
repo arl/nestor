@@ -3,7 +3,9 @@ package hw
 //go:generate go run ./cpugen/gen_nes6502.go -out ./opcodes.go
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"nestor/emu/hwio"
 	"strings"
 )
@@ -35,6 +37,9 @@ type CPU struct {
 	irqFlag              bool
 
 	dbg Debugger
+
+	// Non-nil when execution tracing is enabled.
+	tracer *tracer
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -50,6 +55,10 @@ func NewCPU(ppu *PPU) *CPU {
 		ppu: ppu,
 	}
 	return cpu
+}
+
+func (c *CPU) SetTraceOutput(w io.Writer) {
+	c.tracer = &tracer{w: w, cpu: c}
 }
 
 func (c *CPU) InitBus() {
@@ -100,6 +109,11 @@ func (c *CPU) Run(until int64) {
 		c.dbg.Trace(c.PC)
 		opcode := c.Read8(c.PC)
 		c.PC++
+
+		if c.tracer != nil {
+			c.tracer.write()
+		}
+
 		ops[opcode](c)
 
 		if c.prevRunIRQ || c.prevNeedNmi {
@@ -179,7 +193,7 @@ func (c *CPU) handleInterrupts() {
 	c.prevNeedNmi = c.needNmi
 
 	// This edge detector polls the status of the NMI line during φ2 of each CPU
-	// cycle (i.e., during the second half of each cycle) and raises an internal
+	// cycle (i.e. during the second half of each cycle) and raises an internal
 	// signal if the input goes from being high during one cycle to being low
 	// during the next.
 	if !c.prevNmiFlag && c.nmiFlag {
@@ -250,6 +264,46 @@ func (cpu *CPU) SetDebugger(dbg Debugger) {
 func (cpu *CPU) Disasm(pc uint16) DisasmOp {
 	opcode := cpu.Bus.Peek8(pc)
 	return disasmOps[opcode](cpu, pc)
+}
+
+// cpuState stores the CPU state for the execution trace.
+type cpuState struct {
+	A, X, Y uint8
+	P       P
+	SP      uint8
+	PC      uint16
+
+	Clock    int64
+	PPUCycle int
+	Scanline int
+}
+
+type tracer struct {
+	cpu *CPU
+	w   io.Writer
+	buf bytes.Buffer
+}
+
+// write the execution trace for current cycle.
+func (t *tracer) write() {
+	state := cpuState{
+		A:        t.cpu.A,
+		X:        t.cpu.X,
+		Y:        t.cpu.Y,
+		P:        t.cpu.P,
+		SP:       t.cpu.SP,
+		Clock:    t.cpu.Clock,
+		PPUCycle: t.cpu.ppu.Cycle,
+		Scanline: t.cpu.ppu.Scanline,
+		PC:       t.cpu.PC - 1,
+	}
+
+	dis := t.cpu.Disasm(state.PC)
+	fmt.Fprintf(&t.buf, "%-30s A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3d,%3d CYC:%d\n",
+		dis.String(), state.A, state.X, state.Y, byte(state.P), state.SP,
+		state.Scanline, state.PPUCycle, state.Clock)
+
+	t.buf.WriteTo(t.w) // WriteTo also resets the buffer.
 }
 
 type DisasmOp struct {

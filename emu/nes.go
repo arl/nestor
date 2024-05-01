@@ -3,7 +3,6 @@ package emu
 import (
 	"fmt"
 	"image"
-	"io"
 
 	"nestor/emu/debugger"
 	"nestor/hw"
@@ -63,12 +62,4 @@ func (nes *NES) Run(out *hw.Output) {
 func (nes *NES) RunOneFrame() {
 	nes.CPU.Run(29781)
 	nes.CPU.Clock -= 29781
-}
-
-func (nes *NES) RunDisasm(out io.Writer) {
-	d := hw.NewDisasm(nes.CPU, out)
-	for {
-		d.Run(29781)
-		nes.CPU.Clock -= 29781
-	}
 }
