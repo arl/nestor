@@ -38,14 +38,14 @@ func wantMem(t *testing.T, cpu *CPU, dl dumpline) {
 	}
 }
 
-type dummyDebugger struct{}
+type noopDebugger struct{}
 
-func (dummyDebugger) Trace(pc uint16)                            {}
-func (dummyDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {}
-func (dummyDebugger) WatchRead(addr uint16)                      {}
-func (dummyDebugger) WatchWrite(addr uint16, val uint16)         {}
-func (dummyDebugger) Break(msg string)                           {}
-func (dummyDebugger) FrameEnd()                                  {}
+func (noopDebugger) Trace(pc uint16)                            {}
+func (noopDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {}
+func (noopDebugger) WatchRead(addr uint16)                      {}
+func (noopDebugger) WatchWrite(addr uint16, val uint16)         {}
+func (noopDebugger) Break(msg string)                           {}
+func (noopDebugger) FrameEnd()                                  {}
 
 func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 	t.Helper()
