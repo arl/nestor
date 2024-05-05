@@ -31,7 +31,7 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 
 	nes.PPU.CPU = nes.CPU
 
-	// Load mapper, and ap cartridge memory and hardware based on mapper.
+	// Load mapper, applying cartridge memory and hardware based on mapper.
 	mapper, ok := mappers.All[rom.Mapper()]
 	if !ok {
 		return fmt.Errorf("unsupported mapper %03d", rom.Mapper())
