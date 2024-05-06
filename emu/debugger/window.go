@@ -43,7 +43,6 @@ func NewDebuggerWindow(dbg hw.Debugger, ppu *hw.PPU) *DebuggerWindow {
 }
 
 func (dw *DebuggerWindow) Run(ctx context.Context, w *ui.Window) error {
-	// defer dw.dbg.detach()
 	viewCtx, cancel := context.WithCancel(ctx)
 
 	go func() {
@@ -51,11 +50,6 @@ func (dw *DebuggerWindow) Run(ctx context.Context, w *ui.Window) error {
 		w.Perform(system.ActionClose)
 		dw.dbg.detach()
 	}()
-
-	var ops op.Ops
-
-	th := material.NewTheme()
-	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
 
 	dw.dbg.active.Store(true)
 
@@ -73,7 +67,21 @@ func (dw *DebuggerWindow) Run(ctx context.Context, w *ui.Window) error {
 		}
 	}()
 
+	ops := op.Ops{}
 	stat := status{stat: running}
+
+	setRunning := func() {
+		dw.dbg.setStatus(running)
+		stat.stat = running
+		dw.dbg.blockAcks <- struct{}{}
+	}
+
+	setStepping := func() {
+		dw.dbg.setStatus(stepping)
+		stat.stat = stepping
+		dw.dbg.blockAcks <- struct{}{}
+	}
+
 	for {
 		select {
 		case stat = <-dw.dbg.cpuBlock:
@@ -92,27 +100,12 @@ func (dw *DebuggerWindow) Run(ctx context.Context, w *ui.Window) error {
 					if dw.pause.Clicked(gtx) {
 						dw.dbg.setStatus(paused)
 					}
-				case paused:
+				case paused, stepping:
 					if dw.start.Clicked(gtx) {
-						dw.dbg.setStatus(running)
-						stat.stat = running
-						dw.dbg.blockAcks <- struct{}{}
+						setRunning()
 					}
 					if dw.step.Clicked(gtx) {
-						dw.dbg.setStatus(stepping)
-						stat.stat = stepping
-						dw.dbg.blockAcks <- struct{}{}
-					}
-				case stepping:
-					if dw.start.Clicked(gtx) {
-						dw.dbg.setStatus(running)
-						stat.stat = running
-						dw.dbg.blockAcks <- struct{}{}
-					}
-					if dw.step.Clicked(gtx) {
-						dw.dbg.setStatus(stepping)
-						stat.stat = stepping
-						dw.dbg.blockAcks <- struct{}{}
+						setStepping()
 					}
 				}
 
