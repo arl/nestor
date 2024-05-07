@@ -2,6 +2,9 @@ package hw
 
 // A Debugger controls and monitors a CPU.
 type Debugger interface {
+	// Reset informs the debugger the CPU has been reset.
+	Reset()
+
 	// Trace must be called before each opcode is executed. This is the main
 	// entry point for debugging activity, as the debug can stop the CPU
 	// execution by making this function blocking until user interaction

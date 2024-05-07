@@ -40,6 +40,7 @@ func wantMem(t *testing.T, cpu *CPU, dl dumpline) {
 
 type noopDebugger struct{}
 
+func (noopDebugger) Reset()                                     {}
 func (noopDebugger) Trace(pc uint16)                            {}
 func (noopDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {}
 func (noopDebugger) WatchRead(addr uint16)                      {}
@@ -203,6 +204,7 @@ func loadCPUWith(tb testing.TB, dump string) *CPU {
 	tb.Helper()
 
 	cpu := NewCPU(NewPPU())
+	cpu.SetDebugger(noopDebugger{})
 	cpu.ppuAbsent = true
 	lines := loadDump(tb, dump)
 	for _, line := range lines {

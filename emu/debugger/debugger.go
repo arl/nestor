@@ -27,6 +27,7 @@ type debugger struct {
 
 	prevPC     uint16
 	prevOpcode uint8
+	resetPC    uint16
 
 	cstack callStack
 }
@@ -66,6 +67,11 @@ func NewDebugger(cpu *hw.CPU) *debugger {
 	cpu.SetDebugger(dbg)
 	dbg.setStatus(running)
 	return dbg
+}
+
+func (dbg *debugger) Reset() {
+	// Reads PC at reset vector.
+	dbg.resetPC = dbg.cpu.PC
 }
 
 func (dbg *debugger) getStatus() status {
