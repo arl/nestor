@@ -86,7 +86,6 @@ func main() {
 	if resetVector != -1 {
 		hwio.Write16(nes.CPU.Bus, hw.ResetVector, uint16(resetVector))
 	}
-	nes.Reset()
 	nes.Frames = make(chan image.RGBA)
 
 	out := hw.NewOutput(hw.OutputConfig{
