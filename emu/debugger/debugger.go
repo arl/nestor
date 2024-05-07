@@ -12,13 +12,15 @@ import (
 type C = layout.Context
 type D = layout.Dimensions
 
-// a debugger is always present and associated to the CPU when running, however
-// it is only active when the debugger window is opened.
+// a debugger holds the state of the CPU debugger. In order to be able to debug
+// a program at any moment, the debugger has to keep track of the CPU state,
+// even when inactive. The state to keep track of is kept to the minimum, that
+// is the current PC and stack frames.
 type debugger struct {
 	active atomic.Bool
 	status atomic.Int32
 
-	cpuBlock  chan status
+	cpuBlock  chan debuggerState
 	blockAcks chan struct{}
 
 	cpu *hw.CPU
@@ -29,12 +31,12 @@ type debugger struct {
 	cstack callStack
 }
 
-type status struct {
-	stat dbgStatus
+type debuggerState struct {
+	stat status
 	pc   uint16
 }
 
-func (s status) String() string {
+func (s debuggerState) String() string {
 	str := ""
 	switch s.stat {
 	case running:
@@ -47,10 +49,10 @@ func (s status) String() string {
 	return fmt.Sprintf("pc: $%04X, stat: %s", s.pc, str)
 }
 
-type dbgStatus int32
+type status int32
 
 const (
-	running dbgStatus = iota
+	running status = iota
 	paused
 	stepping
 )
@@ -58,7 +60,7 @@ const (
 func NewDebugger(cpu *hw.CPU) *debugger {
 	dbg := &debugger{
 		cpu:       cpu,
-		cpuBlock:  make(chan status),
+		cpuBlock:  make(chan debuggerState),
 		blockAcks: make(chan struct{}),
 	}
 	cpu.SetDebugger(dbg)
@@ -66,11 +68,11 @@ func NewDebugger(cpu *hw.CPU) *debugger {
 	return dbg
 }
 
-func (dbg *debugger) getStatus() dbgStatus {
-	return dbgStatus(dbg.status.Load())
+func (dbg *debugger) getStatus() status {
+	return status(dbg.status.Load())
 }
 
-func (dbg *debugger) setStatus(s dbgStatus) {
+func (dbg *debugger) setStatus(s status) {
 	dbg.status.Store(int32(s))
 }
 
@@ -101,7 +103,7 @@ func (d *debugger) Trace(pc uint16) {
 	case running:
 		break
 	case paused, stepping:
-		d.cpuBlock <- status{
+		d.cpuBlock <- debuggerState{
 			pc:   pc,
 			stat: st,
 		}

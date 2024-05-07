@@ -69,7 +69,7 @@ func (dw *DebuggerWindow) Run(ctx context.Context, w *ui.Window) error {
 	}()
 
 	ops := op.Ops{}
-	stat := status{stat: running}
+	stat := debuggerState{stat: running}
 
 	setRunning := func() {
 		dw.dbg.setStatus(running)
