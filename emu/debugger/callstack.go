@@ -102,12 +102,18 @@ func (callStack) entryPoint(f *stackFrame) string {
 }
 
 type callstackViewer struct {
-	grid component.GridState
+	theme  *material.Theme
+	grid   component.GridState
+	frames []frameInfo
 }
 
 var callstackHeadings = []string{"Function", "PC"}
 
-func (v *callstackViewer) Layout(th *material.Theme, gtx C, status status) D {
+func (v *callstackViewer) update(cs callStack, pc uint16) {
+	v.frames = cs.build(pc)
+}
+
+func (v *callstackViewer) Layout(gtx C) D {
 	// Configure width based on available space and a minimum size.
 	minSize := gtx.Dp(unit.Dp(100))
 	border := widget.Border{
@@ -118,14 +124,14 @@ func (v *callstackViewer) Layout(th *material.Theme, gtx C, status status) D {
 	inset := layout.UniformInset(unit.Dp(2))
 
 	// Configure a label styled to be a heading.
-	headingLabel := material.Body1(th, "")
+	headingLabel := material.Body1(v.theme, "")
 	headingLabel.Font.Weight = font.Bold
 	headingLabel.Alignment = text.Middle
 	headingLabel.MaxLines = 1
 	headingLabel.TextSize = unit.Sp(11)
 
 	// Configure a label styled to be a data element.
-	dataLabel := material.Body1(th, "")
+	dataLabel := material.Body1(v.theme, "")
 	dataLabel.Font.Typeface = "Go Mono"
 	dataLabel.MaxLines = 1
 	dataLabel.Alignment = text.End
@@ -140,7 +146,7 @@ func (v *callstackViewer) Layout(th *material.Theme, gtx C, status status) D {
 	gtx.Constraints = orig
 
 	const numCols = 2
-	return component.Table(th, &v.grid).Layout(gtx, len(status.frames), numCols,
+	return component.Table(v.theme, &v.grid).Layout(gtx, len(v.frames), numCols,
 		func(axis layout.Axis, index, constraint int) int {
 			widthUnit := max(int(float32(constraint)/3), minSize)
 			switch axis {
@@ -167,7 +173,7 @@ func (v *callstackViewer) Layout(th *material.Theme, gtx C, status status) D {
 		},
 		func(gtx C, row, col int) D {
 			return inset.Layout(gtx, func(gtx C) D {
-				dataLabel.Text = status.frames[row][col]
+				dataLabel.Text = v.frames[row][col]
 				return dataLabel.Layout(gtx)
 			})
 		},

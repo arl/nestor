@@ -30,9 +30,8 @@ type debugger struct {
 }
 
 type status struct {
-	stat   dbgStatus
-	pc     uint16
-	frames []frameInfo
+	stat dbgStatus
+	pc   uint16
 }
 
 func (s status) String() string {
@@ -45,7 +44,7 @@ func (s status) String() string {
 	case stepping:
 		str = "stepping"
 	}
-	return fmt.Sprintf("pc: $%04X, stat: %s, frames: %+v", s.pc, str, s.frames)
+	return fmt.Sprintf("pc: $%04X, stat: %s", s.pc, str)
 }
 
 type dbgStatus int32
@@ -100,14 +99,12 @@ func (d *debugger) Trace(pc uint16) {
 
 	switch st := d.getStatus(); st {
 	case running:
-		return
+		break
 	case paused, stepping:
-		sta := status{
-			pc:     pc,
-			stat:   st,
-			frames: d.cstack.build(pc),
+		d.cpuBlock <- status{
+			pc:   pc,
+			stat: st,
 		}
-		d.cpuBlock <- sta
 		<-d.blockAcks
 	}
 }

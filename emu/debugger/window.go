@@ -35,6 +35,7 @@ func NewDebuggerWindow(dbg hw.Debugger, ppu *hw.PPU) *DebuggerWindow {
 	return &DebuggerWindow{
 		dbg:      dbg.(*debugger),
 		ptviewer: patternsTable{ppu: ppu},
+		csviewer: callstackViewer{theme: theme},
 		theme:    theme,
 		start:    ui.NewSmallSquareIconButton(theme, icons.AVPlayArrow, "Start"),
 		pause:    ui.NewSmallSquareIconButton(theme, icons.AVPause, "Pause"),
@@ -85,6 +86,7 @@ func (dw *DebuggerWindow) Run(ctx context.Context, w *ui.Window) error {
 	for {
 		select {
 		case stat = <-dw.dbg.cpuBlock:
+			dw.csviewer.update(dw.dbg.cstack, stat.pc)
 			w.Invalidate()
 		case e := <-events:
 			switch e := e.(type) {
@@ -144,7 +146,7 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 			return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceEnd}.Layout(gtx,
 				layout.Rigid(dw.ptviewer.Layout),
 				layout.Rigid(func(gtx C) D {
-					return dw.csviewer.Layout(dw.theme, gtx, status)
+					return dw.csviewer.Layout(gtx)
 				}),
 				// layout.Flexed(1, listing.Layout),
 			)
