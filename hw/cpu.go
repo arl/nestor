@@ -90,8 +90,10 @@ func (c *CPU) Reset() {
 	c.P.setIntDisable(true)
 	c.runIRQ = false
 	c.Clock = -1
-	// Directly read from the bus to prevent clock ticks.
+
+	// Directly read from the bus to prevent ticking the clock.
 	c.PC = hwio.Read16(c.Bus, ResetVector)
+	c.dbg.Reset()
 
 	// The CPU takes 8 cycles before it starts executing the ROM's code
 	// after a reset/power up
@@ -106,14 +108,13 @@ func (c *CPU) clearNMIflag() { c.nmiFlag = false }
 
 func (c *CPU) Run(until int64) {
 	for c.Clock < until {
-		c.dbg.Trace(c.PC)
 		opcode := c.Read8(c.PC)
-		c.PC++
 
 		if c.tracer != nil {
 			c.tracer.write()
 		}
-
+		c.dbg.Trace(c.PC)
+		c.PC++
 		ops[opcode](c)
 
 		if c.prevRunIRQ || c.prevNeedNmi {
@@ -295,7 +296,7 @@ func (t *tracer) write() {
 		Clock:    t.cpu.Clock,
 		PPUCycle: t.cpu.ppu.Cycle,
 		Scanline: t.cpu.ppu.Scanline,
-		PC:       t.cpu.PC - 1,
+		PC:       t.cpu.PC,
 	}
 
 	dis := t.cpu.Disasm(state.PC)
