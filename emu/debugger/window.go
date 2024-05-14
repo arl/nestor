@@ -24,16 +24,22 @@ type DebuggerWindow struct {
 
 	csviewer callstackViewer
 	ptviewer patternsTable
+	listing  listing
 
 	start ui.SmallSquareIconButton
 	pause ui.SmallSquareIconButton
 	step  ui.SmallSquareIconButton
 }
 
-func NewDebuggerWindow(dbg hw.Debugger, ppu *hw.PPU) *DebuggerWindow {
+func NewDebuggerWindow(idbg hw.Debugger, cpu *hw.CPU, ppu *hw.PPU) *DebuggerWindow {
 	theme := material.NewTheme()
+	theme.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
+
+	dbg := idbg.(*debugger)
+
 	return &DebuggerWindow{
-		dbg:      dbg.(*debugger),
+		dbg:      dbg,
+		listing:  newListing(dbg, theme, cpu),
 		ptviewer: patternsTable{ppu: ppu},
 		csviewer: callstackViewer{theme: theme},
 		theme:    theme,
@@ -87,6 +93,7 @@ func (dw *DebuggerWindow) Run(ctx context.Context, w *ui.Window) error {
 		select {
 		case stat = <-dw.dbg.cpuBlock:
 			dw.csviewer.update(dw.dbg.cstack, stat.pc)
+			dw.listing.update(dw.dbg.cstack, stat)
 			w.Invalidate()
 		case e := <-events:
 			switch e := e.(type) {
@@ -119,9 +126,7 @@ func (dw *DebuggerWindow) Run(ctx context.Context, w *ui.Window) error {
 	}
 }
 
-func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
-	// listing := &listing{nes: dw.nes, list: &dw.list}
-
+func (dw *DebuggerWindow) Layout(w *ui.Window, status debuggerState, gtx C) {
 	layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceEnd, Alignment: layout.Start}.Layout(gtx,
@@ -148,8 +153,8 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status status, gtx C) {
 				layout.Rigid(func(gtx C) D {
 					return dw.csviewer.Layout(gtx)
 				}),
-				// layout.Flexed(1, listing.Layout),
 			)
 		}),
+		layout.Flexed(1, dw.listing.Layout),
 	)
 }

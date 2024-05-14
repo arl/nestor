@@ -16,7 +16,7 @@ const (
 )
 
 func ShowDebuggerWindow(a *ui.Application, nes *NES) {
-	a.NewWindow("Debugger", debugger.NewDebuggerWindow(nes.Debugger, nes.PPU))
+	a.NewWindow("Debugger", debugger.NewDebuggerWindow(nes.Debugger, nes.CPU, nes.PPU))
 }
 
 // TODO(arl) merge with NES struct
