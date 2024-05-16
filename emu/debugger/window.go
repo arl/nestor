@@ -155,6 +155,8 @@ func (dw *DebuggerWindow) Layout(w *ui.Window, status debuggerState, gtx C) {
 				}),
 			)
 		}),
-		layout.Flexed(1, dw.listing.Layout),
+		layout.Flexed(1, func(gtx C) D {
+			return dw.listing.Layout(gtx, status.stat)
+		}),
 	)
 }

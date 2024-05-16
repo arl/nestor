@@ -308,10 +308,10 @@ func (t *tracer) write() {
 }
 
 type DisasmOp struct {
-	PC     uint16
 	Opcode string
-	Bytes  []byte
 	Oper   string
+	Bytes  []byte
+	PC     uint16
 }
 
 func (d DisasmOp) String() string {
