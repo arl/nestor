@@ -2,6 +2,8 @@ package emu
 
 import (
 	"bytes"
+	"image"
+	_ "image/png"
 	"io"
 	"log"
 	"os"
@@ -209,4 +211,34 @@ func TestNametableMirroring(t *testing.T) {
 	if string(nts) != "AABBAABB" {
 		t.Errorf("mirrors = %s", nts)
 	}
+}
+
+func TestBlarggPPUtests(t *testing.T) {
+	romPath := "../testdata/nes-test-roms/blargg_ppu_tests_2005.09.15b/palette_ram.nes"
+	rom, err := ines.ReadRom(romPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var nes NES
+	if err := nes.PowerUp(rom); err != nil {
+		t.Fatal(err)
+	}
+	nes.Reset()
+
+	frames := make(chan image.RGBA)
+	out := hw.NewOutput(hw.OutputConfig{
+		Width:           256,
+		Height:          240,
+		NumVideoBuffers: 2,
+		FrameOutCh:      frames,
+	})
+
+	go nes.Run(out)
+
+	paths, err := saveFrames(frames, romPath, 5)
+	if err != nil {
+		t.Fatalf("failed to save frames: %v", err)
+	}
+
+	diffFrames(t, paths)
 }
