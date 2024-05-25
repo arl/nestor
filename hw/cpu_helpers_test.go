@@ -11,17 +11,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func hasPanicked(f func()) (yes bool, msg any) {
-	defer func() {
-		msg = recover()
-		if msg != nil {
-			yes = true
-		}
-	}()
-	f()
-	return yes, msg
-}
-
 /* cpu specific testing helpers */
 
 func wantMem8(t *testing.T, cp *CPU, addr uint16, want uint8) {
@@ -49,9 +38,15 @@ func wantMem(t *testing.T, cpu *CPU, dl dumpline) {
 	}
 }
 
-type runner interface {
-	Run(int64)
-}
+type noopDebugger struct{}
+
+func (noopDebugger) Reset()                                     {}
+func (noopDebugger) Trace(pc uint16)                            {}
+func (noopDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {}
+func (noopDebugger) WatchRead(addr uint16)                      {}
+func (noopDebugger) WatchWrite(addr uint16, val uint16)         {}
+func (noopDebugger) Break(msg string)                           {}
+func (noopDebugger) FrameEnd()                                  {}
 
 func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 	t.Helper()
@@ -79,12 +74,11 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 		}
 	}
 
-	var r runner = cpu
 	if testing.Verbose() {
-		r = NewDisasm(cpu, tbwriter{t})
+		cpu.SetTraceOutput(tbwriter{t})
 	}
-
-	r.Run(cpu.Clock + ncycles)
+	cpu.SetDebugger(noopDebugger{})
+	cpu.Run(cpu.Clock + ncycles)
 
 	for i := 0; i < len(states); i += 2 {
 		s := states[i].(string)
@@ -210,6 +204,7 @@ func loadCPUWith(tb testing.TB, dump string) *CPU {
 	tb.Helper()
 
 	cpu := NewCPU(NewPPU())
+	cpu.SetDebugger(noopDebugger{})
 	cpu.ppuAbsent = true
 	lines := loadDump(tb, dump)
 	for _, line := range lines {

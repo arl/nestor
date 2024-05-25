@@ -1,7 +1,9 @@
-package main
+package emu
 
 import (
 	"bytes"
+	"image"
+	_ "image/png"
 	"io"
 	"log"
 	"os"
@@ -15,13 +17,27 @@ import (
 )
 
 func TestNestest(t *testing.T) {
-	var nes NES
-	cartridge, err := ines.ReadRom("testdata/nes-test-roms/other/nestest.nes")
-	tcheck(t, err)
-	tcheck(t, nes.PowerUp(cartridge))
+	const (
+		numCycles      = 26560
+		pStart         = 0x24
+		clockStart     = 7
+		ppuCyclesStart = 21
+	)
+
+	nes := new(NES)
+	romPath := filepath.Join("..", "testdata", "nes-test-roms", "other", "nestest.nes")
+	rom, err := ines.ReadRom(romPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := nes.PowerUp(rom); err != nil {
+		t.Fatal(err)
+	}
 
 	flog, err := os.CreateTemp("", "nestor.nestest.*.log")
-	tcheck(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Log(flog.Name())
 	t.Cleanup(func() {
 		flog.Close()
@@ -31,21 +47,21 @@ func TestNestest(t *testing.T) {
 	// This rom has an 'automation' mode. To enable it, PC must be set to C000.
 	// We do that by overwriting the rom location of the reset vector.
 	// binary.LittleEndian.PutUint16(cartridge.PRGROM[0x3FFC:], 0xC000)
-	nes.Hw.CPU.PC = 0xC000
-	nes.Hw.CPU.P = hw.P(0x24)
-	nes.Hw.CPU.Clock = 7
-	nes.Hw.PPU.Cycle = 21
-	disasm := hw.NewDisasm(nes.Hw.CPU, flog)
-	disasm.Run(26560)
+	nes.CPU.PC = 0xC000
+	nes.CPU.P = hw.P(pStart)
+	nes.CPU.Clock = clockStart
+	nes.PPU.Cycle = ppuCyclesStart
+	nes.CPU.SetTraceOutput(flog)
+	nes.CPU.Run(numCycles)
 
-	r1, r2 := nes.Hw.CPU.Read8(0x02), nes.Hw.CPU.Read8(0x03)
+	r1, r2 := nes.CPU.Read8(0x02), nes.CPU.Read8(0x03)
 	if r1 != 0x00 || r2 != 0x00 {
 		t.Fatalf("nestest failed: 0x%02x%02x", r1, r2)
 	}
 }
 
 func TestInstructionsV5(t *testing.T) {
-	dir := filepath.Join("testdata", "nes-test-roms", "instr_test-v5", "rom_singles")
+	dir := filepath.Join("..", "testdata", "nes-test-roms", "instr_test-v5", "rom_singles")
 	files := []string{
 		"01-basics.nes",
 		"02-implied.nes",
@@ -106,10 +122,11 @@ func runTestRom(path string) func(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var nes NES
-		checkf(nes.PowerUp(rom), "error during power up")
+		nes := new(NES)
+		if err := nes.PowerUp(rom); err != nil {
+			t.Fatal(err)
+		}
 		nes.Reset()
-		nes.Hw.PPU.CreateScreen()
 
 		magic := []byte{0xde, 0xb0, 0x61}
 		magicset := 0
@@ -117,7 +134,7 @@ func runTestRom(path string) func(t *testing.T) {
 
 		for {
 			nes.RunOneFrame()
-			data := nes.Hw.CPU.Bus.FetchPointer(0x6001)
+			data := nes.CPU.Bus.FetchPointer(0x6001)
 			if magicset == 0 {
 				if bytes.Equal(data[:3], magic) {
 					magicset = 1
@@ -130,7 +147,7 @@ func runTestRom(path string) func(t *testing.T) {
 			if !bytes.Equal(data[:3], magic) {
 				t.Fatalf("corrupted memory")
 			}
-			result = nes.Hw.CPU.Read8(0x6000)
+			result = nes.CPU.Read8(0x6000)
 			if result <= 0x7F {
 				break
 			}
@@ -143,7 +160,7 @@ func runTestRom(path string) func(t *testing.T) {
 			}
 		}
 		if result != 0x00 {
-			txt := memToString(nes.Hw.CPU.Bus, 0x6004)
+			txt := memToString(nes.CPU.Bus, 0x6004)
 			t.Fatalf("test failed:\ncode 0x%02x\ntext %s", result, txt)
 		}
 	}
@@ -159,19 +176,22 @@ func memToString(t *hwio.Table, addr uint16) string {
 }
 
 func TestNametableMirroring(t *testing.T) {
-	rom, err := ines.ReadRom("testdata/nes-test-roms/other/snow.nes")
+	romPath := filepath.Join("..", "testdata", "nes-test-roms", "other", "snow.nes")
+	rom, err := ines.ReadRom(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if rom.Mirroring() != ines.HorzMirroring {
 		t.Errorf("incorrect nt mirroring")
 	}
-	var nes NES
-	checkf(nes.PowerUp(rom), "error during power up")
+	nes := new(NES)
+	if err := nes.PowerUp(rom); err != nil {
+		t.Fatal(err)
+	}
 	nes.Reset()
 
-	nes.Hw.PPU.Bus.Write8(0x2000, 'A')
-	nes.Hw.PPU.Bus.Write8(0x2800, 'B')
+	nes.PPU.Bus.Write8(0x2000, 'A')
+	nes.PPU.Bus.Write8(0x2800, 'B')
 
 	addrs := []uint16{
 		0x2000, // A
@@ -185,10 +205,40 @@ func TestNametableMirroring(t *testing.T) {
 	}
 	var nts []byte
 	for _, a := range addrs {
-		nts = append(nts, nes.Hw.PPU.Bus.Read8(a))
+		nts = append(nts, nes.PPU.Bus.Read8(a))
 	}
 
 	if string(nts) != "AABBAABB" {
 		t.Errorf("mirrors = %s", nts)
 	}
+}
+
+func TestBlarggPPUtests(t *testing.T) {
+	romPath := "../testdata/nes-test-roms/blargg_ppu_tests_2005.09.15b/palette_ram.nes"
+	rom, err := ines.ReadRom(romPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var nes NES
+	if err := nes.PowerUp(rom); err != nil {
+		t.Fatal(err)
+	}
+	nes.Reset()
+
+	frames := make(chan image.RGBA)
+	out := hw.NewOutput(hw.OutputConfig{
+		Width:           256,
+		Height:          240,
+		NumVideoBuffers: 2,
+		FrameOutCh:      frames,
+	})
+
+	go nes.Run(out)
+
+	paths, err := saveFrames(frames, romPath, 5)
+	if err != nil {
+		t.Fatalf("failed to save frames: %v", err)
+	}
+
+	diffFrames(t, paths)
 }

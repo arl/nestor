@@ -10,7 +10,6 @@ func TestPPUScroll(t *testing.T) {
 	cpu := NewCPU(ppu)
 	cpu.InitBus()
 	ppu.CPU = cpu
-	ppu.CreateScreen()
 
 	ppu.vramTmp = 0xffff
 

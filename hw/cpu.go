@@ -3,14 +3,18 @@ package hw
 //go:generate go run ./cpugen/gen_nes6502.go -out ./opcodes.go
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"nestor/emu/hwio"
+	"strings"
 )
 
 // Locations reserved for vector pointers.
 const (
-	CpuNMIvector   = uint16(0xFFFA) // Non-Maskable Interrupt
-	CpuResetVector = uint16(0xFFFC) // Reset
-	CpuIRQvector   = uint16(0xFFFE) // Interrupt Request
+	NMIVector   = uint16(0xFFFA) // Non-Maskable Interrupt
+	ResetVector = uint16(0xFFFC) // Reset
+	IRQVector   = uint16(0xFFFE) // Interrupt Request
 )
 
 type CPU struct {
@@ -31,6 +35,11 @@ type CPU struct {
 	needNmi, prevNeedNmi bool
 	runIRQ, prevRunIRQ   bool
 	irqFlag              bool
+
+	dbg Debugger
+
+	// Non-nil when execution tracing is enabled.
+	tracer *tracer
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -46,6 +55,10 @@ func NewCPU(ppu *PPU) *CPU {
 		ppu: ppu,
 	}
 	return cpu
+}
+
+func (c *CPU) SetTraceOutput(w io.Writer) {
+	c.tracer = &tracer{w: w, cpu: c}
 }
 
 func (c *CPU) InitBus() {
@@ -77,8 +90,10 @@ func (c *CPU) Reset() {
 	c.P.setIntDisable(true)
 	c.runIRQ = false
 	c.Clock = -1
-	// Directly read from the bus to prevent clock ticks.
-	c.PC = hwio.Read16(c.Bus, CpuResetVector)
+
+	// Directly read from the bus to prevent ticking the clock.
+	c.PC = hwio.Read16(c.Bus, ResetVector)
+	c.dbg.Reset()
 
 	// The CPU takes 8 cycles before it starts executing the ROM's code
 	// after a reset/power up
@@ -94,6 +109,11 @@ func (c *CPU) clearNMIflag() { c.nmiFlag = false }
 func (c *CPU) Run(until int64) {
 	for c.Clock < until {
 		opcode := c.Read8(c.PC)
+
+		if c.tracer != nil {
+			c.tracer.write()
+		}
+		c.dbg.Trace(c.PC)
 		c.PC++
 		ops[opcode](c)
 
@@ -174,7 +194,7 @@ func (c *CPU) handleInterrupts() {
 	c.prevNeedNmi = c.needNmi
 
 	// This edge detector polls the status of the NMI line during φ2 of each CPU
-	// cycle (i.e., during the second half of each cycle) and raises an internal
+	// cycle (i.e. during the second half of each cycle) and raises an internal
 	// signal if the input goes from being high during one cycle to being low
 	// during the next.
 	if !c.prevNmiFlag && c.nmiFlag {
@@ -201,11 +221,11 @@ func BRK(cpu *CPU) {
 		cpu.needNmi = false
 		cpu.push8(uint8(p))
 		cpu.P.setIntDisable(true)
-		cpu.PC = cpu.Read16(CpuNMIvector)
+		cpu.PC = cpu.Read16(NMIVector)
 	} else {
 		cpu.push8(uint8(p))
 		cpu.P.setIntDisable(true)
-		cpu.PC = cpu.Read16(CpuIRQvector)
+		cpu.PC = cpu.Read16(IRQVector)
 	}
 
 	// Ensure we don't start an NMI right after running a BRK instruction (first
@@ -217,6 +237,7 @@ func (c *CPU) IRQ() {
 	c.tick()
 	c.tick()
 
+	prevpc := c.PC
 	c.push16(c.PC)
 
 	if c.needNmi {
@@ -225,14 +246,84 @@ func (c *CPU) IRQ() {
 		p.setB(true)
 		c.push8(uint8(p))
 		c.P.setIntDisable(true)
-		c.PC = c.Read16(CpuNMIvector)
-		// TODO inform the debugger we just had an NMI
+		c.PC = c.Read16(NMIVector)
+		c.dbg.Interrupt(prevpc, c.PC, true)
 	} else {
 		p := c.P
 		p.setB(true)
 		c.push8(uint8(p))
 		c.P.setIntDisable(true)
-		c.PC = c.Read16(CpuIRQvector)
-		// TODO inform the debugger we just had an IRQ
+		c.PC = c.Read16(IRQVector)
+		c.dbg.Interrupt(prevpc, c.PC, false)
 	}
+}
+
+func (cpu *CPU) SetDebugger(dbg Debugger) {
+	cpu.dbg = dbg
+}
+
+func (cpu *CPU) Disasm(pc uint16) DisasmOp {
+	opcode := cpu.Bus.Peek8(pc)
+	return disasmOps[opcode](cpu, pc)
+}
+
+// cpuState stores the CPU state for the execution trace.
+type cpuState struct {
+	A, X, Y uint8
+	P       P
+	SP      uint8
+	PC      uint16
+
+	Clock    int64
+	PPUCycle int
+	Scanline int
+}
+
+type tracer struct {
+	cpu *CPU
+	w   io.Writer
+	buf bytes.Buffer
+}
+
+// write the execution trace for current cycle.
+func (t *tracer) write() {
+	state := cpuState{
+		A:        t.cpu.A,
+		X:        t.cpu.X,
+		Y:        t.cpu.Y,
+		P:        t.cpu.P,
+		SP:       t.cpu.SP,
+		Clock:    t.cpu.Clock,
+		PPUCycle: t.cpu.ppu.Cycle,
+		Scanline: t.cpu.ppu.Scanline,
+		PC:       t.cpu.PC,
+	}
+
+	dis := t.cpu.Disasm(state.PC)
+	fmt.Fprintf(&t.buf, "%-30s A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3d,%3d CYC:%d\n",
+		dis.String(), state.A, state.X, state.Y, byte(state.P), state.SP,
+		state.Scanline, state.PPUCycle, state.Clock)
+
+	t.buf.WriteTo(t.w) // WriteTo also resets the buffer.
+}
+
+type DisasmOp struct {
+	Opcode string
+	Oper   string
+	Bytes  []byte
+	PC     uint16
+}
+
+func (d DisasmOp) String() string {
+	// C000  4C F5 C5  JMP $C5F5
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "%04X ", d.PC)
+	for _, b := range d.Bytes {
+		fmt.Fprintf(&sb, " %02X ", b)
+	}
+	fmt.Fprintf(&sb, "%*s", 17-sb.Len(), "")
+	sb.WriteString(d.Opcode)
+	sb.WriteByte(' ')
+	sb.WriteString(d.Oper)
+	return sb.String()
 }

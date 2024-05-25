@@ -3,22 +3,22 @@ package mappers
 import (
 	"fmt"
 
-	"nestor/emu"
+	"nestor/hw"
 	"nestor/ines"
 )
 
-var NROM = emu.MapperDesc{
+var NROM = hw.MapperDesc{
 	Name: "NROM",
 	Load: loadMapper000,
 }
 
-func loadMapper000(rom *ines.Rom, hw *emu.NESHardware) error {
+func loadMapper000(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
 	// CPU memory space mapping.
 	//
 
 	// PRG-RAM (always provide it, though it should only be for 'Family basic').
 	PRGRAM := make([]uint8, 0x2000)
-	hw.CPU.Bus.MapMemorySlice(0x6000, 0x7FFF, PRGRAM, false)
+	cpu.Bus.MapMemorySlice(0x6000, 0x7FFF, PRGRAM, false)
 	modMapper.DebugZ("map PRG-RAM to cpu").
 		String("range", "0x6000-0x7FFF").
 		String("src", "slice").
@@ -26,13 +26,13 @@ func loadMapper000(rom *ines.Rom, hw *emu.NESHardware) error {
 
 	switch len(rom.PRGROM) {
 	case 0x4000:
-		hw.CPU.Bus.MapMemorySlice(0x8000, 0xBFFF, rom.PRGROM, true)
+		cpu.Bus.MapMemorySlice(0x8000, 0xBFFF, rom.PRGROM, true)
 		modMapper.DebugZ("map PRG-ROM to cpu").
 			String("range", "0x8000-0xBFFF").
 			String("src", "rom.PRG-ROM").
 			End()
 
-		hw.CPU.Bus.MapMemorySlice(0xC000, 0xFFFF, rom.PRGROM, true) // mirror
+		cpu.Bus.MapMemorySlice(0xC000, 0xFFFF, rom.PRGROM, true) // mirror
 		modMapper.DebugZ("map PRG-ROM to cpu").
 			String("range", "0xC000-0xFFFF").
 			String("src", "rom.PRG-ROM").
@@ -42,7 +42,7 @@ func loadMapper000(rom *ines.Rom, hw *emu.NESHardware) error {
 			String("range", "0x8000-0xFFFF").
 			String("src", "rom.PRG-ROM").
 			End()
-		hw.CPU.Bus.MapMemorySlice(0x8000, 0xFFFF, rom.PRGROM, true)
+		cpu.Bus.MapMemorySlice(0x8000, 0xFFFF, rom.PRGROM, true)
 	default:
 		return fmt.Errorf("unexpected PRGROM size: 0x%x", len(rom.CHRROM))
 	}
@@ -52,29 +52,29 @@ func loadMapper000(rom *ines.Rom, hw *emu.NESHardware) error {
 	switch rom.Mirroring() {
 	case ines.HorzMirroring: // A A B B
 		// 4 nametables
-		hw.PPU.Bus.MapMemorySlice(0x2000, 0x23FF, hw.PPU.Nametables[:0x400], false)
-		hw.PPU.Bus.MapMemorySlice(0x2400, 0x27FF, hw.PPU.Nametables[:0x400], false)
-		hw.PPU.Bus.MapMemorySlice(0x2800, 0x2BFF, hw.PPU.Nametables[0x400:0x800], false)
-		hw.PPU.Bus.MapMemorySlice(0x2C00, 0x2FFF, hw.PPU.Nametables[0x400:0x800], false)
+		ppu.Bus.MapMemorySlice(0x2000, 0x23FF, ppu.Nametables[:0x400], false)
+		ppu.Bus.MapMemorySlice(0x2400, 0x27FF, ppu.Nametables[:0x400], false)
+		ppu.Bus.MapMemorySlice(0x2800, 0x2BFF, ppu.Nametables[0x400:0x800], false)
+		ppu.Bus.MapMemorySlice(0x2C00, 0x2FFF, ppu.Nametables[0x400:0x800], false)
 
 		// mirrors of the nametable area
-		hw.PPU.Bus.MapMemorySlice(0x3000, 0x33FF, hw.PPU.Nametables[:0x400], false)
-		hw.PPU.Bus.MapMemorySlice(0x3400, 0x37FF, hw.PPU.Nametables[:0x400], false)
-		hw.PPU.Bus.MapMemorySlice(0x3800, 0x3BFF, hw.PPU.Nametables[0x400:0x800], false)
-		hw.PPU.Bus.MapMemorySlice(0x3C00, 0x3EFF, hw.PPU.Nametables[0x400:0x800], false)
+		ppu.Bus.MapMemorySlice(0x3000, 0x33FF, ppu.Nametables[:0x400], false)
+		ppu.Bus.MapMemorySlice(0x3400, 0x37FF, ppu.Nametables[:0x400], false)
+		ppu.Bus.MapMemorySlice(0x3800, 0x3BFF, ppu.Nametables[0x400:0x800], false)
+		ppu.Bus.MapMemorySlice(0x3C00, 0x3EFF, ppu.Nametables[0x400:0x800], false)
 
 	case ines.VertMirroring: // A B A B
 		// 4 nametables
-		hw.PPU.Bus.MapMemorySlice(0x2000, 0x23FF, hw.PPU.Nametables[:0x400], false)
-		hw.PPU.Bus.MapMemorySlice(0x2400, 0x27FF, hw.PPU.Nametables[0x400:0x800], false)
-		hw.PPU.Bus.MapMemorySlice(0x2800, 0x2BFF, hw.PPU.Nametables[:0x400], false)
-		hw.PPU.Bus.MapMemorySlice(0x2C00, 0x2FFF, hw.PPU.Nametables[0x400:0x800], false)
+		ppu.Bus.MapMemorySlice(0x2000, 0x23FF, ppu.Nametables[:0x400], false)
+		ppu.Bus.MapMemorySlice(0x2400, 0x27FF, ppu.Nametables[0x400:0x800], false)
+		ppu.Bus.MapMemorySlice(0x2800, 0x2BFF, ppu.Nametables[:0x400], false)
+		ppu.Bus.MapMemorySlice(0x2C00, 0x2FFF, ppu.Nametables[0x400:0x800], false)
 
 		// mirrors of the nametable area
-		hw.PPU.Bus.MapMemorySlice(0x3000, 0x33FF, hw.PPU.Nametables[:0x400], false)
-		hw.PPU.Bus.MapMemorySlice(0x3400, 0x37FF, hw.PPU.Nametables[0x400:0x800], false)
-		hw.PPU.Bus.MapMemorySlice(0x3800, 0x3BFF, hw.PPU.Nametables[:0x400], false)
-		hw.PPU.Bus.MapMemorySlice(0x3C00, 0x3EFF, hw.PPU.Nametables[0x400:0x800], false)
+		ppu.Bus.MapMemorySlice(0x3000, 0x33FF, ppu.Nametables[:0x400], false)
+		ppu.Bus.MapMemorySlice(0x3400, 0x37FF, ppu.Nametables[0x400:0x800], false)
+		ppu.Bus.MapMemorySlice(0x3800, 0x3BFF, ppu.Nametables[:0x400], false)
+		ppu.Bus.MapMemorySlice(0x3C00, 0x3EFF, ppu.Nametables[0x400:0x800], false)
 	}
 
 	// continuer ici avec le log
@@ -83,7 +83,7 @@ func loadMapper000(rom *ines.Rom, hw *emu.NESHardware) error {
 	case 0x0000:
 		// Some roms have no CHR-ROM, allocate mem anyway.
 		// XXX: not sure about that
-		copy(hw.PPU.PatternTables.Data, make([]uint8, 0x2000))
+		copy(ppu.PatternTables.Data, make([]uint8, 0x2000))
 		modMapper.DebugZ("map CHR-ROM to pattern tables").
 			String("range", "0x0000-0x2000").
 			String("src", "rom.CHR-ROM").
@@ -91,7 +91,7 @@ func loadMapper000(rom *ines.Rom, hw *emu.NESHardware) error {
 		//panic("not sure about that, check comment")
 
 	case 0x2000:
-		copy(hw.PPU.PatternTables.Data, rom.CHRROM)
+		copy(ppu.PatternTables.Data, rom.CHRROM)
 		modMapper.DebugZ("map CHR-ROM to pattern tables").
 			String("range", "0x0000-0x2000").
 			String("src", "rom.CHR-ROM").

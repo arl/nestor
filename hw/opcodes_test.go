@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -20,11 +18,6 @@ func TestAllOpcodesAreImplemented(t *testing.T) {
 			t.Errorf("opcode %02x not implemented", opcode)
 		}
 	}
-}
-
-func funcname(temp any) string {
-	strs := strings.Split((runtime.FuncForPC(reflect.ValueOf(temp).Pointer()).Name()), ".")
-	return strs[len(strs)-1]
 }
 
 func TestOpcodes(t *testing.T) {
@@ -312,32 +305,4 @@ func TestStackSmall(t *testing.T) {
 		"SP", 0xFF,
 		"Pn", 1,
 	)
-}
-
-type mapbus struct {
-	t testing.TB
-	m map[uint16]uint8
-}
-
-func (b *mapbus) Reset() {
-	b.m = make(map[uint16]uint8)
-}
-
-func (b *mapbus) Read8(addr uint16) uint8 {
-	val := b.m[addr]
-	if b.t != nil && testing.Verbose() {
-		b.t.Logf("read8:  addr[0x%04x] -> 0x%02x\n", addr, val)
-	}
-	return val
-}
-
-func (b *mapbus) Write8(addr uint16, val uint8) {
-	if b.t != nil && testing.Verbose() {
-		b.t.Logf("write8: addr[0x%04x] <- 0x%02x\n", addr, val)
-	}
-	b.m[addr] = val
-}
-
-func (b *mapbus) MapSlice(addr, end uint16, buf []byte) {
-	panic("not implemented")
 }

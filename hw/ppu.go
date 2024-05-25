@@ -1,7 +1,6 @@
 package hw
 
 import (
-	"image"
 	"unsafe"
 
 	"nestor/emu/hwio"
@@ -12,6 +11,10 @@ const (
 	NumScanlines = 262 // Number of scanlines per frame.
 	NumCycles    = 341 // Number of PPU cycles per scanline.
 )
+
+// Throwaway frame buffer for the first PPU cycles, before an actual one for the
+// actual output.
+var tmpFramebuf = make([]uint32, 256*240)
 
 type PPU struct {
 	Bus *hwio.Table
@@ -45,13 +48,11 @@ type PPU struct {
 	// OAMDATA   hwio.Reg8 `hwio:"bank=1,offset=0x4"`
 	PPUSCROLL hwio.Reg8 `hwio:"bank=1,offset=0x5,writeonly,wcb"`
 	PPUADDR   hwio.Reg8 `hwio:"bank=1,offset=0x6,writeonly,wcb"`
-	PPUDATA   hwio.Reg8 `hwio:"bank=1,offset=0x7,rcb,wcb,"`
+	PPUDATA   hwio.Reg8 `hwio:"bank=1,offset=0x7,rcb,wcb"`
 
 	// OAMDMA hwio.Reg8 `hwio:"bank=2,writeonly,wcb"`
 
-	screen *image.RGBA
-	pixels []uint32 // Video buffer.
-
+	framebuf []uint32 // RGBA framebuffer
 	oddFrame bool
 
 	// VRAM read/write
@@ -60,24 +61,20 @@ type PPU struct {
 	writeLatch bool
 
 	ppuDataRbuf uint8 // only used for PPUDATA reads
+	busAddr     uint16
 
 	bg bgregs
 }
 
 func NewPPU() *PPU {
 	return &PPU{
-		Bus: hwio.NewTable("ppu"),
+		Bus:      hwio.NewTable("ppu"),
+		framebuf: tmpFramebuf,
 	}
 }
 
-func (p *PPU) CreateScreen() {
-	p.screen = image.NewRGBA(image.Rect(0, 0, 256, 224))
-	p.pixels = make([]uint32, 256*240)
-}
-
-func (p *PPU) Output() *image.RGBA {
-	p.screen.Pix = unsafe.Slice((*byte)(unsafe.Pointer(&p.pixels[0])), len(p.pixels)*4)
-	return p.screen
+func (p *PPU) SetFrameBuffer(framebuf []byte) {
+	p.framebuf = unsafe.Slice((*uint32)(unsafe.Pointer(&framebuf[0])), len(framebuf)/4)
 }
 
 func (p *PPU) InitBus() {
@@ -144,10 +141,15 @@ func (p *PPU) doScanline(sm scanlineMode) {
 		}
 	case postRender:
 		// nothing to do
+		if p.Cycle == 1 {
+			// At the start of vblank, the bus address is set back to
+			// VideoRamAddr.
+			p.busAddr = p.vramAddr.addr()
+		}
+
 	case preRender, renderMode:
 		if p.Cycle == 1 {
 			if sm == preRender {
-				// Clear vblank, sprite0Hit and spriteOverflow
 				ppustatus := ppustatus(p.PPUSTATUS.Value)
 				ppustatus.setSpriteHit(false)
 				ppustatus.setSpriteOverflow(false)
@@ -166,13 +168,13 @@ func (p *PPU) doScanline(sm scanlineMode) {
 				p.bg.addrLatch = p.ntAddr()
 				p.refillShifters()
 			case 2:
-				p.bg.nt = p.Bus.Read8(p.bg.addrLatch)
+				p.bg.nt = p.Read8(p.bg.addrLatch)
 
 			// attribute table
 			case 3:
 				p.bg.addrLatch = p.atAddr()
 			case 4:
-				p.bg.at = p.Bus.Read8(p.bg.addrLatch)
+				p.bg.at = p.Read8(p.bg.addrLatch)
 				if p.vramAddr.coarsey()&2 != 0 {
 					p.bg.at >>= 4
 				}
@@ -184,18 +186,18 @@ func (p *PPU) doScanline(sm scanlineMode) {
 			case 5:
 				p.bg.addrLatch = p.bgAddr()
 			case 6:
-				p.bg.bglo = p.Bus.Read8(p.bg.addrLatch)
+				p.bg.bglo = p.Read8(p.bg.addrLatch)
 
 			// high background byte
 			case 7:
 				p.bg.addrLatch += 8
 			case 0:
-				p.bg.bghi = p.Bus.Read8(p.bg.addrLatch)
+				p.bg.bghi = p.Read8(p.bg.addrLatch)
 				p.horzScroll()
 			}
 		case p.Cycle == 256:
 			p.renderPixel()
-			p.bg.bghi = p.Bus.Read8(p.bg.addrLatch)
+			p.bg.bghi = p.Read8(p.bg.addrLatch)
 			p.vertScroll()
 		case p.Cycle == 257:
 			p.renderPixel()
@@ -221,9 +223,9 @@ func (p *PPU) doScanline(sm scanlineMode) {
 
 		// 'garbage' fetches
 		case p.Cycle == 338:
-			p.bg.nt = p.Bus.Read8(p.bg.addrLatch)
+			p.bg.nt = p.Read8(p.bg.addrLatch)
 		case p.Cycle == 340:
-			p.bg.nt = p.Bus.Read8(p.bg.addrLatch)
+			p.bg.nt = p.Read8(p.bg.addrLatch)
 			if sm == preRender && p.renderingEnabled() && p.oddFrame {
 				p.Cycle++
 			}
@@ -330,8 +332,8 @@ func (p *PPU) renderPixel() {
 		if p.renderingEnabled() {
 			paddr += uint16(palette)
 		}
-		pidx := p.Bus.Read8(paddr)
-		p.pixels[p.Scanline*256+x] = nesPalette[pidx]
+		pidx := p.Read8(paddr)
+		p.framebuf[p.Scanline*256+x] = nesPalette[pidx]
 	}
 
 	// Perform background shifts:
@@ -341,28 +343,9 @@ func (p *PPU) renderPixel() {
 	// atShiftH = (atShiftH << 1) | atLatchH
 }
 
-var nesPalette = [...]uint32{
-	0xFF7C7C7C, 0xFF0000FC, 0xFF0000BC, 0xFF4428BC, 0xFF940084, 0xFFA80020, 0xFFA81000, 0xFF881400,
-	0xFF503000, 0xFF007800, 0xFF006800, 0xFF005800, 0xFF004058, 0xFF000000, 0xFF000000, 0xFF000000,
-	0xFFBCBCBC, 0xFF0078F8, 0xFF0058F8, 0xFF6844FC, 0xFFD800CC, 0xFFE40058, 0xFFF83800, 0xFFE45C10,
-	0xFFAC7C00, 0xFF00B800, 0xFF00A800, 0xFF00A844, 0xFF008888, 0xFF000000, 0xFF000000, 0xFF000000,
-	0xFFF8F8F8, 0xFF3CBCFC, 0xFF6888FC, 0xFF9878F8, 0xFFF878F8, 0xFFF85898, 0xFFF87858, 0xFFFCA044,
-	0xFFF8B800, 0xFFB8F818, 0xFF58D854, 0xFF58F898, 0xFF00E8D8, 0xFF787878, 0xFF000000, 0xFF000000,
-	0xFFFCFCFC, 0xFFA4E4FC, 0xFFB8B8F8, 0xFFD8B8F8, 0xFFF8B8F8, 0xFFF8A4C0, 0xFFF0D0B0, 0xFFFCE0A8,
-	0xFFF8D878, 0xFFD8F878, 0xFFB8F8B8, 0xFFB8F8D8, 0xFF00FCFC, 0xFFF8D8F8, 0xFF000000, 0xFF000000,
-}
-
 func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
 	log.ModPPU.DebugZ("Write to PATTERNTABLES").
 		Hex8("val", p.PatternTables.Data[addr]).
-		Hex16("addr", addr).
-		End()
-}
-
-func (p *PPU) WritePALETTES(addr uint16, n int) {
-	memaddr := addr & 0x01F
-	log.ModPPU.DebugZ("Write to PALETTES").
-		Hex8("val", p.Palettes.Data[memaddr]).
 		Hex16("addr", addr).
 		End()
 }
@@ -434,19 +417,16 @@ func (p *PPU) WritePPUADDR(old, val uint8) {
 
 // PPUDATA: $2007
 func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
-	var val uint8
-	switch {
-	case p.vramAddr < 0x3EFF:
-		// Reading VRAM is too slow so the actual data
-		// will be returned at the next read.
-		data := p.ppuDataRbuf
-		p.ppuDataRbuf = p.Bus.Read8(p.vramAddr.addr())
-		val = data
-	default: // $3F00-3FFF
+	// Reading VRAM is too slow so the actual data
+	// will be returned at the next read.
+	val := p.ppuDataRbuf
+	p.ppuDataRbuf = p.Read8(p.vramAddr.addr())
+
+	if p.busAddr >= 0x3F00 {
 		// Reading palette data is immediate.
-		val = p.Bus.Read8(p.vramAddr.addr())
+		// val = p.Read8(p.vramAddr.addr())
 		// Still it overwrites the read buffer.
-		p.ppuDataRbuf = val
+		val = p.readPalette(p.busAddr)
 	}
 
 	p.vramIncr()
@@ -459,7 +439,7 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 
 // PPUDATA: $2007
 func (p *PPU) WritePPUDATA(old, val uint8) {
-	p.Bus.Write8(p.vramAddr.addr(), val)
+	p.Write8(p.vramAddr.addr(), val)
 	p.vramIncr()
 
 	log.ModPPU.DebugZ("VRAM write").
@@ -475,4 +455,64 @@ func (p *PPU) vramIncr() {
 		incr = 32 // Increment by 32 if increment mode is set.
 	}
 	p.vramAddr.setAddr(uint16(p.vramAddr.addr()) + incr)
+}
+
+func (p *PPU) Read8(addr uint16) uint8 {
+	p.busAddr = addr
+	return p.Bus.Read8(addr)
+}
+
+func (p *PPU) Write8(addr uint16, val uint8) {
+	p.busAddr = addr
+	p.Bus.Write8(addr, val)
+}
+
+var nesPalette = [...]uint32{
+	0xFF7C7C7C, 0xFF0000FC, 0xFF0000BC, 0xFF4428BC, 0xFF940084, 0xFFA80020, 0xFFA81000, 0xFF881400,
+	0xFF503000, 0xFF007800, 0xFF006800, 0xFF005800, 0xFF004058, 0xFF000000, 0xFF000000, 0xFF000000,
+	0xFFBCBCBC, 0xFF0078F8, 0xFF0058F8, 0xFF6844FC, 0xFFD800CC, 0xFFE40058, 0xFFF83800, 0xFFE45C10,
+	0xFFAC7C00, 0xFF00B800, 0xFF00A800, 0xFF00A844, 0xFF008888, 0xFF000000, 0xFF000000, 0xFF000000,
+	0xFFF8F8F8, 0xFF3CBCFC, 0xFF6888FC, 0xFF9878F8, 0xFFF878F8, 0xFFF85898, 0xFFF87858, 0xFFFCA044,
+	0xFFF8B800, 0xFFB8F818, 0xFF58D854, 0xFF58F898, 0xFF00E8D8, 0xFF787878, 0xFF000000, 0xFF000000,
+	0xFFFCFCFC, 0xFFA4E4FC, 0xFFB8B8F8, 0xFFD8B8F8, 0xFFF8B8F8, 0xFFF8A4C0, 0xFFF0D0B0, 0xFFFCE0A8,
+	0xFFF8D878, 0xFFD8F878, 0xFFB8F8B8, 0xFFB8F8D8, 0xFF00FCFC, 0xFFF8D8F8, 0xFF000000, 0xFF000000,
+}
+
+func (p *PPU) WritePALETTES(addr uint16, n int) {
+	memaddr := addr & 0x01F
+	val := p.Palettes.Data[memaddr]
+	p.writePalette(addr, val)
+	log.ModPPU.DebugZ("Write to PALETTES").
+		Hex8("val", val).
+		Hex16("addr", addr).
+		End()
+}
+
+func (p *PPU) readPalette(addr uint16) uint8 {
+	addr &= 0x1F
+	if addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1C {
+		addr &^= 0x10
+	}
+	return p.Palettes.Data[addr]
+}
+
+func (p *PPU) writePalette(addr uint16, val uint8) {
+	val &= 0x3F
+	addr &= 0x1F
+	switch addr {
+	case 0x00, 0x10:
+		p.Palettes.Data[0x00] = val
+		p.Palettes.Data[0x10] = val
+	case 0x04, 0x14:
+		p.Palettes.Data[0x04] = val
+		p.Palettes.Data[0x14] = val
+	case 0x08, 0x18:
+		p.Palettes.Data[0x08] = val
+		p.Palettes.Data[0x18] = val
+	case 0x0C, 0x1C:
+		p.Palettes.Data[0x0C] = val
+		p.Palettes.Data[0x1C] = val
+	default:
+		p.Palettes.Data[addr] = val
+	}
 }
