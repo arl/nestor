@@ -29,7 +29,7 @@ func NewEmulator(nes *NES) *Emulator {
 	screen := NewScreenWindow(nes)
 	minw := unit.Dp(2*ScreenWidth + 200)
 	minh := unit.Dp(2 * ScreenHeight)
-	app := ui.NewApplication("NEStor", screen,
+	app := ui.NewApplication("Nestor", screen,
 		app.MinSize(minw, minh),
 		app.Size(minw, minh),
 	)
