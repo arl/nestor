@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { WebSocketManager, NestorData } from './Websocket';
 
 // Define the DebuggerState enum
 enum DebuggerState {
@@ -23,6 +24,12 @@ const Button: React.FC<ButtonProps> = ({ onClick, disabled, children }) => (
 
 // Debugger component
 const Debugger: React.FC = () => {
+    const [message, setMessage] = React.useState<NestorData | null>(null);
+
+    const handleNewMessage = (newMessage: NestorData) => {
+        setMessage(newMessage);
+    };
+
     const [debuggerState, setDebuggerState] = useState<DebuggerState>(DebuggerState.Paused);
 
     const handleStart = () => setDebuggerState(DebuggerState.Running);
@@ -31,6 +38,7 @@ const Debugger: React.FC = () => {
 
     return (
         <div>
+            <WebSocketManager onMessage={handleNewMessage} />
             <Button onClick={handleStart} disabled={debuggerState === DebuggerState.Running}>
                 Start
             </Button>
