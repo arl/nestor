@@ -58,6 +58,19 @@ const (
 	stepping
 )
 
+func (s status) String() string {
+	str := ""
+	switch s {
+	case running:
+		str = "running"
+	case paused:
+		str = "paused"
+	case stepping:
+		str = "stepping"
+	}
+	return str
+}
+
 func NewDebugger(cpu *hw.CPU) *debugger {
 	dbg := &debugger{
 		cpu:       cpu,

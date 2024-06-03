@@ -25,6 +25,7 @@ func main() {
 	nologflag := false
 	cpuprofile := ""
 	resetVector := int64(-1)
+	dbgAddr := ""
 
 	flag.BoolVar(&romInfos, "rominfos", false, "print infos about the iNes rom and exit")
 	flag.StringVar(&logflag, "log", "", "enable logging for specified modules")
@@ -33,6 +34,7 @@ func main() {
 	flag.Var(ftraceLog, "trace", "write cpu trace log to [file|stdout|stderr] (warning: quickly gets very big)")
 	flag.Int64Var(&resetVector, "reset", -1, "overwrite CPU reset vector with (default: rom-defined)")
 	flag.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
+	flag.StringVar(&dbgAddr, "dbg", "", "connect to debugger at [host]:port (default: disabled)")
 
 	flag.Parse()
 	if len(flag.Args()) < 1 {
@@ -82,7 +84,7 @@ func main() {
 		})
 	}
 
-	checkf(nes.PowerUp(rom), "error during power up")
+	checkf(nes.PowerUp(rom, dbgAddr), "error during power up")
 	if resetVector != -1 {
 		hwio.Write16(nes.CPU.Bus, hw.ResetVector, uint16(resetVector))
 	}

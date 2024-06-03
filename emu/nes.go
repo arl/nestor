@@ -15,11 +15,13 @@ type NES struct {
 	PPU *hw.PPU
 	Rom *ines.Rom
 
-	Frames   chan image.RGBA
+	Frames chan image.RGBA
+
+	// TODO: remove when react-debugger is at feature parity.
 	Debugger hw.Debugger
 }
 
-func (nes *NES) PowerUp(rom *ines.Rom) error {
+func (nes *NES) PowerUp(rom *ines.Rom, dbgAddr string) error {
 	nes.Rom = rom
 	nes.PPU = hw.NewPPU()
 	nes.PPU.InitBus()
@@ -27,7 +29,8 @@ func (nes *NES) PowerUp(rom *ines.Rom) error {
 	nes.CPU = hw.NewCPU(nes.PPU)
 	nes.CPU.InitBus()
 
-	nes.Debugger = debugger.NewDebugger(nes.CPU)
+	// nes.Debugger = debugger.NewDebugger(nes.CPU)
+	nes.Debugger = debugger.NewReactDebugger(nes.CPU, dbgAddr)
 
 	nes.PPU.CPU = nes.CPU
 
