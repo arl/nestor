@@ -11,7 +11,7 @@ Nestor is a work in progress NES/Famicom emulator written in Go.
 Uses [Gio](gioui.org), a crossplatform GUI for Go, so you first need to install its dependencies.
 Please refer to [gioui.org/doc/install](https://gioui.org/doc/install).
 
-### Nesto
+### Nestor
 
 Requires at least go1.22.
 
@@ -48,4 +48,5 @@ Options:
  - [x] PPU (background)
  - [ ] PPU (sprites)
  - [ ] APU (sound)
- - [ ] debugger
+ - [ ] debugger (WIP)
+ - [ ] Mappers (currently only NROM works)
