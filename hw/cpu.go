@@ -24,6 +24,7 @@ type CPU struct {
 
 	ppu       *PPU
 	ppuAbsent bool // allow to disconnect PPU during CPU tests
+	ppuDMA    ppuDMA
 
 	// cpu registers
 	A, X, Y, SP uint8
@@ -44,7 +45,7 @@ type CPU struct {
 
 // NewCPU creates a new CPU at power-up state.
 func NewCPU(ppu *PPU) *CPU {
-	cpu := &CPU{
+	return &CPU{
 		Bus: hwio.NewTable("cpu"),
 		A:   0x00,
 		X:   0x00,
@@ -54,7 +55,6 @@ func NewCPU(ppu *PPU) *CPU {
 		PC:  0x0000,
 		ppu: ppu,
 	}
-	return cpu
 }
 
 func (c *CPU) SetTraceOutput(w io.Writer) {
@@ -73,6 +73,10 @@ func (c *CPU) InitBus() {
 		c.Bus.MapBank(i, c.ppu, 1)
 	}
 
+	// Map PPU OAMDMA register.
+	c.ppuDMA.InitBus(c.Bus, c.ppu.oam[:])
+	c.Bus.MapBank(0x4014, &c.ppuDMA, 0)
+
 	// 0x4000-0x4017 -> APU and IO registers.
 	// TODO
 	// 0x4018-0x401F -> APU and IO registers (test mode).
@@ -90,6 +94,8 @@ func (c *CPU) Reset() {
 	c.P.setIntDisable(true)
 	c.runIRQ = false
 	c.Clock = -1
+
+	c.ppuDMA.reset()
 
 	// Directly read from the bus to prevent ticking the clock.
 	c.PC = hwio.Read16(c.Bus, ResetVector)
@@ -129,6 +135,8 @@ func (c *CPU) tick() {
 		c.Clock++
 		return
 	}
+
+	c.processDMA()
 
 	c.ppu.Tick()
 	c.ppu.Tick()
@@ -185,6 +193,12 @@ func (c *CPU) pull16() uint16 {
 	lo := c.pull8()
 	hi := c.pull8()
 	return uint16(hi)<<8 | uint16(lo)
+}
+
+/* DMA */
+
+func (c *CPU) processDMA() {
+	c.ppuDMA.process(c.Clock)
 }
 
 /* interrupt handling */
