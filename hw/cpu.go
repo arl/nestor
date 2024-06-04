@@ -106,7 +106,8 @@ func (c *CPU) Reset() {
 func (c *CPU) setNMIflag()   { c.nmiFlag = true }
 func (c *CPU) clearNMIflag() { c.nmiFlag = false }
 
-func (c *CPU) Run(until int64) {
+func (c *CPU) Run(ncycles int64) {
+	until := c.Clock + ncycles
 	for c.Clock < until {
 		opcode := c.Read8(c.PC)
 
