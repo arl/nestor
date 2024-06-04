@@ -38,16 +38,6 @@ func wantMem(t *testing.T, cpu *CPU, dl dumpline) {
 	}
 }
 
-type noopDebugger struct{}
-
-func (noopDebugger) Reset()                                     {}
-func (noopDebugger) Trace(pc uint16)                            {}
-func (noopDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {}
-func (noopDebugger) WatchRead(addr uint16)                      {}
-func (noopDebugger) WatchWrite(addr uint16, val uint16)         {}
-func (noopDebugger) Break(msg string)                           {}
-func (noopDebugger) FrameEnd()                                  {}
-
 func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 	t.Helper()
 
@@ -77,7 +67,7 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 	if testing.Verbose() {
 		cpu.SetTraceOutput(tbwriter{t})
 	}
-	cpu.SetDebugger(noopDebugger{})
+	cpu.SetDebugger(NopDebugger{})
 	cpu.Run(cpu.Clock + ncycles)
 
 	for i := 0; i < len(states); i += 2 {
@@ -204,7 +194,7 @@ func loadCPUWith(tb testing.TB, dump string) *CPU {
 	tb.Helper()
 
 	cpu := NewCPU(NewPPU())
-	cpu.SetDebugger(noopDebugger{})
+	cpu.SetDebugger(NopDebugger{})
 	cpu.ppuAbsent = true
 	lines := loadDump(tb, dump)
 	for _, line := range lines {

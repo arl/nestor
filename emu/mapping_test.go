@@ -31,7 +31,7 @@ func TestMapper000(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := nes.PowerUp(cartridge); err != nil {
+	if err := nes.PowerUp(cartridge, NoDebugger); err != nil {
 		t.Fatal(err)
 	}
 
@@ -76,7 +76,7 @@ func TestPPURegisterMapping(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := nes.PowerUp(cartridge); err != nil {
+	if err := nes.PowerUp(cartridge, NoDebugger); err != nil {
 		t.Fatal(err)
 	}
 

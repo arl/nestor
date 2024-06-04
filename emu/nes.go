@@ -21,6 +21,10 @@ type NES struct {
 	Debugger hw.Debugger
 }
 
+const NoDebugger = ""
+
+// PowerUp initializes the NES with the given ROM, and optionally attach a
+// remote debugger at the given address (leave empty to disable).
 func (nes *NES) PowerUp(rom *ines.Rom, dbgAddr string) error {
 	nes.Rom = rom
 	nes.PPU = hw.NewPPU()
@@ -29,8 +33,13 @@ func (nes *NES) PowerUp(rom *ines.Rom, dbgAddr string) error {
 	nes.CPU = hw.NewCPU(nes.PPU)
 	nes.CPU.InitBus()
 
-	// nes.Debugger = debugger.NewDebugger(nes.CPU)
-	nes.Debugger = debugger.NewReactDebugger(nes.CPU, dbgAddr)
+	if dbgAddr == "" {
+		nes.Debugger = hw.NopDebugger{}
+		nes.CPU.SetDebugger(nes.Debugger)
+	} else {
+		// nes.Debugger = debugger.NewDebugger(nes.CPU)
+		nes.Debugger = debugger.NewReactDebugger(nes.CPU, dbgAddr)
+	}
 
 	nes.PPU.CPU = nes.CPU
 

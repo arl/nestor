@@ -29,3 +29,15 @@ type Debugger interface {
 	// FrameEnd signals the debugger the end of the current frame.
 	FrameEnd()
 }
+
+// NopDebugger is a no-op Debugger implementation, the default when no debugger
+// has been configured.
+type NopDebugger struct{}
+
+func (NopDebugger) Reset()                                     {}
+func (NopDebugger) Trace(pc uint16)                            {}
+func (NopDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {}
+func (NopDebugger) WatchRead(addr uint16)                      {}
+func (NopDebugger) WatchWrite(addr uint16, val uint16)         {}
+func (NopDebugger) Break(msg string)                           {}
+func (NopDebugger) FrameEnd()                                  {}

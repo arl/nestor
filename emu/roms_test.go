@@ -30,7 +30,7 @@ func TestNestest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := nes.PowerUp(rom); err != nil {
+	if err := nes.PowerUp(rom, NoDebugger); err != nil {
 		t.Fatal(err)
 	}
 
@@ -123,7 +123,7 @@ func runTestRom(path string) func(t *testing.T) {
 			t.Fatal(err)
 		}
 		nes := new(NES)
-		if err := nes.PowerUp(rom); err != nil {
+		if err := nes.PowerUp(rom, NoDebugger); err != nil {
 			t.Fatal(err)
 		}
 		nes.Reset()
@@ -185,7 +185,7 @@ func TestNametableMirroring(t *testing.T) {
 		t.Errorf("incorrect nt mirroring")
 	}
 	nes := new(NES)
-	if err := nes.PowerUp(rom); err != nil {
+	if err := nes.PowerUp(rom, NoDebugger); err != nil {
 		t.Fatal(err)
 	}
 	nes.Reset()
@@ -220,7 +220,7 @@ func TestBlarggPPUtests(t *testing.T) {
 		t.Fatal(err)
 	}
 	var nes NES
-	if err := nes.PowerUp(rom); err != nil {
+	if err := nes.PowerUp(rom, NoDebugger); err != nil {
 		t.Fatal(err)
 	}
 	nes.Reset()
