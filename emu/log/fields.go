@@ -1,6 +1,7 @@
 package log
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"time"
@@ -66,7 +67,7 @@ func (f *ZField) Value() string {
 	case FieldTypeStringer:
 		return f.Interface.(fmt.Stringer).String()
 	case FieldTypeBlob:
-		return fmt.Sprintf("%x", f.Blob)
+		return hex.Dump(f.Blob)
 	}
 	return ""
 }
