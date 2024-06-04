@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 
@@ -43,28 +44,35 @@ func (a *Application) NewWindow(title string, v View, opts ...app.Option) (*Wind
 
 func (a *Application) newWindow(isMain bool, title string, v View, opts ...app.Option) (*Window, error) {
 	if a.WindowExists(title) {
+		fmt.Println("WindowExists", title)
 		return nil, ErrWindowTitleExists
 	}
 
-	w := Window{App: a}
-	opts = append(opts, app.Title(title))
-	w.Window.Option(opts...)
-
-	a.mu.Lock()
-	a.wins[title] = &w
-	a.mu.Unlock()
+	chw := make(chan *Window)
 
 	go func() {
+		w := Window{App: a}
+		opts = append(opts, app.Title(title))
+		w.Window.Option(opts...)
+
+		a.mu.Lock()
+		a.wins[title] = &w
+		a.mu.Unlock()
+
+		chw <- &w
+
 		v.Run(a.ctx, &w)
+
 		a.mu.Lock()
 		delete(a.wins, title)
 		a.mu.Unlock()
+
 		if isMain {
 			a.cancel()
 		}
 	}()
 
-	return &w, nil
+	return <-chw, nil
 }
 
 func (a *Application) Defer(f func()) {
