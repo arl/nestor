@@ -44,8 +44,13 @@ type PPU struct {
 	PPUCTRL   hwio.Reg8 `hwio:"bank=1,offset=0x0,writeonly,wcb"`
 	PPUMASK   hwio.Reg8 `hwio:"bank=1,offset=0x1,writeonly,wcb"`
 	PPUSTATUS hwio.Reg8 `hwio:"bank=1,offset=0x2,readonly,rcb"`
-	// OAMADDR   hwio.Reg8 `hwio:"bank=1,offset=0x3,writeonly,wcb"`
-	// OAMDATA   hwio.Reg8 `hwio:"bank=1,offset=0x4"`
+
+	// Object attribute memory
+	OAMADDR hwio.Reg8 `hwio:"bank=1,offset=0x3,writeonly,wcb"`
+	OAMDATA hwio.Reg8 `hwio:"bank=1,offset=0x4,rcb,wcb"`
+	oam     [0x100]byte
+	oamAddr byte
+
 	PPUSCROLL hwio.Reg8 `hwio:"bank=1,offset=0x5,writeonly,wcb"`
 	PPUADDR   hwio.Reg8 `hwio:"bank=1,offset=0x6,writeonly,wcb"`
 	PPUDATA   hwio.Reg8 `hwio:"bank=1,offset=0x7,rcb,wcb"`
@@ -91,8 +96,13 @@ func (p *PPU) Reset() {
 	p.PPUMASK.Value = 0
 	p.PPUSTATUS.Value = 0
 	p.oddFrame = false
+
 	for i := range p.Nametables {
 		p.Nametables[i] = 0xff
+	}
+
+	for i := range p.oam {
+		p.oam[i] = 0x00
 	}
 }
 
@@ -515,4 +525,26 @@ func (p *PPU) writePalette(addr uint16, val uint8) {
 	default:
 		p.Palettes.Data[addr] = val
 	}
+}
+
+// OAM
+
+// OAMADDR: $2003
+func (p *PPU) WriteOAMADDR(_, val uint8) {
+	log.ModPPU.DebugZ("Write to OAMADDR").Hex8("val", val).End()
+	p.oamAddr = val
+}
+
+// OAMDATA: $2004
+func (p *PPU) ReadOAMDATA(_ uint8) uint8 {
+	val := p.oam[p.oamAddr]
+	log.ModPPU.DebugZ("Read from OAMDATA").Hex8("val", val).End()
+	return val
+}
+
+// OAMDATA: $2004
+func (p *PPU) WriteOAMDATA(_, val uint8) {
+	log.ModPPU.DebugZ("Write to OAMDATA").Hex8("val", val).End()
+	p.oam[p.oamAddr] = val
+	p.oamAddr++
 }
