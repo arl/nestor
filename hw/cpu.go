@@ -74,7 +74,7 @@ func (c *CPU) InitBus() {
 	}
 
 	// Map PPU OAMDMA register.
-	c.ppuDMA.InitBus(c.Bus, c.ppu.oam[:])
+	c.ppuDMA.InitBus(c.Bus, c.ppu.oamMem[:])
 	c.Bus.MapBank(0x4014, &c.ppuDMA, 0)
 
 	// 0x4000-0x4017 -> APU and IO registers.
