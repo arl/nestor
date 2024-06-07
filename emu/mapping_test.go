@@ -1,10 +1,12 @@
 package emu
 
 import (
+	"path/filepath"
 	"testing"
 
 	"nestor/emu/hwio"
 	"nestor/ines"
+	"nestor/tests"
 )
 
 func checkedRead8(tb testing.TB, bus *hwio.Table, addr uint16, want uint8) {
@@ -26,8 +28,10 @@ func firstNonZero(b []byte) int {
 
 func TestMapper000(t *testing.T) {
 	// Check that mapper 000 correctly maps ROM to the hardware.
+
 	nes := new(NES)
-	cartridge, err := ines.ReadRom("../testdata/nes-test-roms/other/nestest.nes")
+	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
+	cartridge, err := ines.ReadRom(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,8 +75,10 @@ func TestMapper000(t *testing.T) {
 func TestPPURegisterMapping(t *testing.T) {
 	// Check that PPU registers are correctly mapped
 	// and mirrored into the CPU memory space.
+
 	nes := new(NES)
-	cartridge, err := ines.ReadRom("../testdata/nes-test-roms/other/nestest.nes")
+	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
+	cartridge, err := ines.ReadRom(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}

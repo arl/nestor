@@ -3,10 +3,13 @@ package ines
 import (
 	"path/filepath"
 	"testing"
+
+	"nestor/tests"
 )
 
 func TestRomOpen(t *testing.T) {
-	dir := filepath.Join("..", "testdata", "nes-test-roms", "instr_test-v5", "rom_singles")
+	romsDir := filepath.Join(tests.RomsPath(t), "instr_test-v5", "rom_singles")
+
 	paths := []string{
 		"01-basics.nes",
 		"02-implied.nes",
@@ -28,7 +31,7 @@ func TestRomOpen(t *testing.T) {
 
 	for _, path := range paths {
 		t.Run(path, func(t *testing.T) {
-			rom, err := ReadRom(filepath.Join(dir, path))
+			rom, err := ReadRom(filepath.Join(romsDir, path))
 			if err != nil {
 				t.Fatal(err)
 			}
