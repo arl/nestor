@@ -14,6 +14,7 @@ import (
 	"nestor/emu/hwio"
 	"nestor/hw"
 	"nestor/ines"
+	"nestor/tests"
 )
 
 func TestNestest(t *testing.T) {
@@ -25,7 +26,7 @@ func TestNestest(t *testing.T) {
 	)
 
 	nes := new(NES)
-	romPath := filepath.Join("..", "testdata", "nes-test-roms", "other", "nestest.nes")
+	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
 	rom, err := ines.ReadRom(romPath)
 	if err != nil {
 		t.Fatal(err)
@@ -61,7 +62,9 @@ func TestNestest(t *testing.T) {
 }
 
 func TestInstructionsV5(t *testing.T) {
-	dir := filepath.Join("..", "testdata", "nes-test-roms", "instr_test-v5", "rom_singles")
+	romsDir := filepath.Join(tests.RomsPath(t))
+
+	dir := filepath.Join(romsDir, "instr_test-v5", "rom_singles")
 	files := []string{
 		"01-basics.nes",
 		"02-implied.nes",
@@ -89,7 +92,10 @@ func TestInstructionsV5(t *testing.T) {
 
 func TestInterruptsV2(t *testing.T) {
 	t.Skip("all failing for now")
-	dir := filepath.Join("..", "testdata", "nes-test-roms", "cpu_interrupts_v2", "rom_singles")
+
+	romsDir := filepath.Join(tests.RomsPath(t))
+	dir := filepath.Join(romsDir, "cpu_interrupts_v2", "rom_singles")
+
 	files := []string{
 		"1-cli_latency.nes", // APU should generate IRQ when $4017 = $00
 		"2-nmi_and_brk.nes",
@@ -105,10 +111,10 @@ func TestInterruptsV2(t *testing.T) {
 }
 
 func TestOAMRead(t *testing.T) {
-	path := filepath.Join("..", "testdata", "nes-test-roms", "oam_read", "oam_read.nes")
+	romPath := filepath.Join(tests.RomsPath(t), "oam_read", "oam_read.nes")
 
 	log.SetOutput(io.Discard)
-	t.Run(path, runTestRom(path))
+	runTestRom(romPath)(t)
 }
 
 func runTestRom(path string) func(t *testing.T) {
@@ -183,7 +189,7 @@ func memToString(t *hwio.Table, addr uint16) string {
 }
 
 func TestNametableMirroring(t *testing.T) {
-	romPath := filepath.Join("..", "testdata", "nes-test-roms", "other", "snow.nes")
+	romPath := filepath.Join(tests.RomsPath(t), "other", "snow.nes")
 	rom, err := ines.ReadRom(romPath)
 	if err != nil {
 		t.Fatal(err)
@@ -221,7 +227,8 @@ func TestNametableMirroring(t *testing.T) {
 }
 
 func TestBlarggPPUtests(t *testing.T) {
-	romPath := "../testdata/nes-test-roms/blargg_ppu_tests_2005.09.15b/palette_ram.nes"
+	romPath := filepath.Join(tests.RomsPath(t), "blargg_ppu_tests_2005.09.15b", "palette_ram.nes")
+
 	rom, err := ines.ReadRom(romPath)
 	if err != nil {
 		t.Fatal(err)
