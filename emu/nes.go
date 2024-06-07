@@ -61,5 +61,4 @@ func (nes *NES) Run(out *hw.Output) {
 
 func (nes *NES) RunOneFrame() {
 	nes.CPU.Run(29781)
-	nes.CPU.Clock -= 29781
 }
