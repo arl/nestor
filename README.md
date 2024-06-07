@@ -13,7 +13,7 @@ Please refer to [gioui.org/doc/install](https://gioui.org/doc/install).
 
 ### Nestor
 
-Requires at least go1.22.
+Requires at least go1.22
 
 Then you can directly download, build and install `nestor` in your $PATH with:
 
@@ -46,7 +46,8 @@ Options:
 
  - [x] CPU
  - [x] PPU (background)
- - [ ] PPU (sprites)
+ - [x] PPU (sprites)
+ - [ ] gamepad/keyboard input
  - [ ] APU (sound)
  - [ ] debugger (WIP)
- - [ ] Mappers (currently only NROM works)
+ - [ ] mappers (currently only NROM works)
