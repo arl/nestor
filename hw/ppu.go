@@ -44,8 +44,14 @@ type PPU struct {
 	PPUCTRL   hwio.Reg8 `hwio:"bank=1,offset=0x0,writeonly,wcb"`
 	PPUMASK   hwio.Reg8 `hwio:"bank=1,offset=0x1,writeonly,wcb"`
 	PPUSTATUS hwio.Reg8 `hwio:"bank=1,offset=0x2,readonly,rcb"`
-	// OAMADDR   hwio.Reg8 `hwio:"bank=1,offset=0x3,writeonly,wcb"`
-	// OAMDATA   hwio.Reg8 `hwio:"bank=1,offset=0x4"`
+
+	// Object attribute memory
+	OAMADDR   hwio.Reg8 `hwio:"bank=1,offset=0x3,writeonly,wcb"`
+	OAMDATA   hwio.Reg8 `hwio:"bank=1,offset=0x4,rcb,wcb"`
+	oamMem    [0x100]byte
+	oamAddr   byte
+	oam, oam2 [8]sprite
+
 	PPUSCROLL hwio.Reg8 `hwio:"bank=1,offset=0x5,writeonly,wcb"`
 	PPUADDR   hwio.Reg8 `hwio:"bank=1,offset=0x6,writeonly,wcb"`
 	PPUDATA   hwio.Reg8 `hwio:"bank=1,offset=0x7,rcb,wcb"`
@@ -91,8 +97,13 @@ func (p *PPU) Reset() {
 	p.PPUMASK.Value = 0
 	p.PPUSTATUS.Value = 0
 	p.oddFrame = false
+
 	for i := range p.Nametables {
 		p.Nametables[i] = 0xff
+	}
+
+	for i := range p.oamMem {
+		p.oamMem[i] = 0x00
 	}
 }
 
@@ -148,13 +159,19 @@ func (p *PPU) doScanline(sm scanlineMode) {
 		}
 
 	case preRender, renderMode:
-		if p.Cycle == 1 {
+		switch p.Cycle {
+		case 1:
+			p.clearOAM()
 			if sm == preRender {
 				ppustatus := ppustatus(p.PPUSTATUS.Value)
 				ppustatus.setSpriteHit(false)
 				ppustatus.setSpriteOverflow(false)
 				p.PPUSTATUS.Value = uint8(ppustatus)
 			}
+		case 257:
+			p.evalSprites()
+		case 321:
+			p.loadSprites()
 		}
 
 		switch {
@@ -245,8 +262,10 @@ type bgregs struct {
 	// latches for background rendering.
 	nt, at, bglo, bghi uint8
 
-	// shift registers.
+	// shift registers/latches.
 	bgShiftlo, bgShifthi uint16
+	atShiftlo, atShifthi uint8
+	atLatchlo, atLatchhi bool
 }
 
 func (p *PPU) ntAddr() uint16 {
@@ -317,17 +336,70 @@ func (p *PPU) renderingEnabled() bool {
 	return mask.bg() || mask.sprites()
 }
 
+func (p *PPU) spriteHeight() int {
+	ctrl := ppuctrl(p.PPUCTRL.Value)
+	if ctrl.spriteSize() {
+		return 16
+	}
+	return 8
+}
+
 func (p *PPU) renderPixel() {
 	var palette uint8
+	var objPalette uint8
+	objPriority := false
 	var x = p.Cycle - 2
 
 	mask := ppumask(p.PPUMASK.Value)
 	if p.Scanline < 240 && p.Cycle >= 0 && p.Cycle < 256 {
-		if mask.bg() {
+
+		// Background
+		if mask.bg() && (!mask.bgLeft() || x >= 8) {
 			hibit := uint8(p.bg.bgShifthi>>(15-p.bg.finex)) & 1
 			lobit := uint8(p.bg.bgShiftlo>>(15-p.bg.finex)) & 1
 			palette = (hibit << 1) | lobit
+			if palette != 0 {
+				palette |= ((((p.bg.atShifthi)>>(7-p.bg.finex))&1)<<1 |
+					((p.bg.atShiftlo) >> (7 - p.bg.finex))) << 2
+			}
 		}
+
+		// Sprites
+		if mask.sprites() && (!mask.spriteLeft() || x >= 8) {
+			for i := 7; i >= 0; i-- {
+				if p.oam[i].id == 64 {
+					continue // Void entry.
+				}
+				sprX := x - int(p.oam[i].x)
+				if sprX >= 8 {
+					continue // Not in range.
+				}
+				if p.oam[i].attr&0x40 != 0 {
+					sprX ^= 7 // Horizontal flip.
+				}
+
+				sprPalette := ((((p.oam[i].dataH) >> (7 - sprX)) & 1) << 1) |
+					(((p.oam[i].dataL) >> (7 - sprX)) & 1)
+				if sprPalette == 0 {
+					continue // Transparent pixel.
+				}
+
+				if p.oam[i].id == 0 && palette != 0 && x != 255 {
+					ppustat := ppustatus(p.PPUSTATUS.Value)
+					ppustat.setSpriteHit(true)
+					p.PPUSTATUS.Value = uint8(ppustat)
+				}
+				sprPalette |= (p.oam[i].attr & 3) << 2
+				objPalette = sprPalette + 16
+				objPriority = (p.oam[i].attr & 0x20) != 0
+			}
+		}
+
+		// Sprites priority
+		if objPalette != 0 && (palette == 0 || !objPriority) {
+			palette = objPalette
+		}
+
 		paddr := uint16(0x3f00)
 		if p.renderingEnabled() {
 			paddr += uint16(palette)
@@ -339,8 +411,22 @@ func (p *PPU) renderPixel() {
 	// Perform background shifts:
 	p.bg.bgShiftlo <<= 1
 	p.bg.bgShifthi <<= 1
-	// atShiftL = (atShiftL << 1) | atLatchL
-	// atShiftH = (atShiftH << 1) | atLatchH
+	p.bg.atShiftlo = (p.bg.atShiftlo << 1) | b2u8(p.bg.atLatchlo)
+	p.bg.atShifthi = (p.bg.atShifthi << 1) | b2u8(p.bg.atLatchhi)
+}
+
+func b2u8(b bool) uint8 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func b2u16(b bool) uint16 {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
@@ -514,5 +600,106 @@ func (p *PPU) writePalette(addr uint16, val uint8) {
 		p.Palettes.Data[0x1C] = val
 	default:
 		p.Palettes.Data[addr] = val
+	}
+}
+
+// OAM
+
+// OAMADDR: $2003
+func (p *PPU) WriteOAMADDR(_, val uint8) {
+	log.ModPPU.DebugZ("Write to OAMADDR").Hex8("val", val).End()
+	p.oamAddr = val
+}
+
+// OAMDATA: $2004
+func (p *PPU) ReadOAMDATA(_ uint8) uint8 {
+	val := p.oamMem[p.oamAddr]
+	log.ModPPU.DebugZ("Read from OAMDATA").Hex8("val", val).End()
+	return val
+}
+
+// OAMDATA: $2004
+func (p *PPU) WriteOAMDATA(_, val uint8) {
+	log.ModPPU.DebugZ("Write to OAMDATA").Hex8("val", val).End()
+	p.oamMem[p.oamAddr] = val
+	p.oamAddr++
+}
+
+type sprite struct {
+	id    uint8 // index in OAM
+	x     uint8
+	y     uint8
+	tile  uint8 // tile index
+	attr  uint8
+	dataL uint8
+	dataH uint8
+}
+
+func (p *PPU) clearOAM() {
+	for i := 0; i < 8; i++ {
+		p.oam2[i].id = 64
+		p.oam2[i].y = 0xFF
+		p.oam2[i].tile = 0xFF
+		p.oam2[i].attr = 0xFF
+		p.oam2[i].x = 0xFF
+		p.oam2[i].dataL = 0
+		p.oam2[i].dataH = 0
+	}
+}
+
+// Prepare sprites info in secondary OAM for next scanline
+func (p *PPU) evalSprites() {
+	n := 0
+	for i := 0; i < 64; i++ {
+		line := p.Scanline
+		if p.Scanline == 261 {
+			line = -1
+		}
+		line -= int(p.oamMem[i*4+0])
+
+		// If the sprite is in the scanline, copy its properties into secondary OAM
+		if line >= 0 && line < p.spriteHeight() {
+			p.oam2[n].id = uint8(i)
+			p.oam2[n].y = p.oamMem[i*4+0]
+			p.oam2[n].tile = p.oamMem[i*4+1]
+			p.oam2[n].attr = p.oamMem[i*4+2]
+			p.oam2[n].x = p.oamMem[i*4+3]
+
+			n++
+			if n >= 8 {
+				status := ppustatus(p.PPUSTATUS.Value)
+				status.setSpriteOverflow(true)
+				p.PPUSTATUS.Value = uint8(status)
+				break
+			}
+		}
+	}
+}
+
+// Load sprite info into OAM and fetch their tile data
+func (p *PPU) loadSprites() {
+	var addr uint16
+	for i := 0; i < 8; i++ {
+		p.oam[i] = p.oam2[i] // Copy secondary OAM into primary.
+
+		// Different address modes depending on the sprite height:
+		if p.spriteHeight() == 16 {
+			addr = ((uint16(p.oam[i].tile) & 1) * 0x1000) + ((uint16(p.oam[i].tile) & ^uint16(1)) * 16)
+		} else {
+			addr = (b2u16(ppuctrl(p.PPUCTRL.Value).spriteTable()) * 0x1000) + (uint16(p.oam[i].tile) * 16)
+		}
+
+		if p.Scanline < 0 {
+			panic("unexpected")
+		}
+
+		sprY := (p.Scanline - int(p.oam[i].y)) % p.spriteHeight() // Line inside the sprite.
+		if p.oam[i].attr&0x80 != 0 {
+			sprY ^= p.spriteHeight() - 1 // Vertical flip.
+		}
+		addr += uint16(sprY + (sprY & 8)) // Select the second tile if on 8x16.
+
+		p.oam[i].dataL = p.Bus.Read8(addr)
+		p.oam[i].dataH = p.Bus.Read8(addr + 8)
 	}
 }

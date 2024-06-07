@@ -89,7 +89,7 @@ func TestInstructionsV5(t *testing.T) {
 
 func TestInterruptsV2(t *testing.T) {
 	t.Skip("all failing for now")
-	dir := filepath.Join("testdata", "nes-test-roms", "cpu_interrupts_v2", "rom_singles")
+	dir := filepath.Join("..", "testdata", "nes-test-roms", "cpu_interrupts_v2", "rom_singles")
 	files := []string{
 		"1-cli_latency.nes", // APU should generate IRQ when $4017 = $00
 		"2-nmi_and_brk.nes",
@@ -102,6 +102,13 @@ func TestInterruptsV2(t *testing.T) {
 	for _, path := range files {
 		t.Run(path, runTestRom(filepath.Join(dir, path)))
 	}
+}
+
+func TestOAMRead(t *testing.T) {
+	path := filepath.Join("..", "testdata", "nes-test-roms", "oam_read", "oam_read.nes")
+
+	log.SetOutput(io.Discard)
+	t.Run(path, runTestRom(path))
 }
 
 func runTestRom(path string) func(t *testing.T) {

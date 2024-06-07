@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"sync"
 
@@ -44,7 +43,6 @@ func (a *Application) NewWindow(title string, v View, opts ...app.Option) (*Wind
 
 func (a *Application) newWindow(isMain bool, title string, v View, opts ...app.Option) (*Window, error) {
 	if a.WindowExists(title) {
-		fmt.Println("WindowExists", title)
 		return nil, ErrWindowTitleExists
 	}
 

@@ -24,6 +24,7 @@ type CPU struct {
 
 	ppu       *PPU
 	ppuAbsent bool // allow to disconnect PPU during CPU tests
+	ppuDMA    ppuDMA
 
 	// cpu registers
 	A, X, Y, SP uint8
@@ -44,7 +45,7 @@ type CPU struct {
 
 // NewCPU creates a new CPU at power-up state.
 func NewCPU(ppu *PPU) *CPU {
-	cpu := &CPU{
+	return &CPU{
 		Bus: hwio.NewTable("cpu"),
 		A:   0x00,
 		X:   0x00,
@@ -54,7 +55,6 @@ func NewCPU(ppu *PPU) *CPU {
 		PC:  0x0000,
 		ppu: ppu,
 	}
-	return cpu
 }
 
 func (c *CPU) SetTraceOutput(w io.Writer) {
@@ -72,6 +72,10 @@ func (c *CPU) InitBus() {
 	for i := uint16(0x2000); i < 0x4000; i += 8 {
 		c.Bus.MapBank(i, c.ppu, 1)
 	}
+
+	// Map PPU OAMDMA register.
+	c.ppuDMA.InitBus(c.Bus, c.ppu.oamMem[:])
+	c.Bus.MapBank(0x4014, &c.ppuDMA, 0)
 
 	// 0x4000-0x4017 -> APU and IO registers.
 	// TODO
@@ -91,6 +95,8 @@ func (c *CPU) Reset() {
 	c.runIRQ = false
 	c.Clock = -1
 
+	c.ppuDMA.reset()
+
 	// Directly read from the bus to prevent ticking the clock.
 	c.PC = hwio.Read16(c.Bus, ResetVector)
 	c.dbg.Reset()
@@ -106,7 +112,8 @@ func (c *CPU) Reset() {
 func (c *CPU) setNMIflag()   { c.nmiFlag = true }
 func (c *CPU) clearNMIflag() { c.nmiFlag = false }
 
-func (c *CPU) Run(until int64) {
+func (c *CPU) Run(ncycles int64) {
+	until := c.Clock + ncycles
 	for c.Clock < until {
 		opcode := c.Read8(c.PC)
 
@@ -128,6 +135,8 @@ func (c *CPU) tick() {
 		c.Clock++
 		return
 	}
+
+	c.processDMA()
 
 	c.ppu.Tick()
 	c.ppu.Tick()
@@ -184,6 +193,12 @@ func (c *CPU) pull16() uint16 {
 	lo := c.pull8()
 	hi := c.pull8()
 	return uint16(hi)<<8 | uint16(lo)
+}
+
+/* DMA */
+
+func (c *CPU) processDMA() {
+	c.ppuDMA.process(c.Clock)
 }
 
 /* interrupt handling */
