@@ -19,6 +19,7 @@ const (
 	ModDMA
 	ModInput
 	ModSound
+	ModDbg
 
 	endStandardMods
 )
@@ -28,7 +29,7 @@ var modCount = endStandardMods
 var modDebugMask ModuleMask = 0
 
 var modNames = []string{
-	"<error>", "emu", "cpu", "mem", "hwio", "ppu", "dma", "input", "sound",
+	"<error>", "emu", "cpu", "mem", "hwio", "ppu", "dma", "input", "sound", "debugger",
 }
 
 func NewModule(name string) Module {

@@ -22,17 +22,14 @@ func main() {
 	ftraceLog := &outfile{}
 	romInfos := false
 	logflag := ""
-	nologflag := false
 	cpuprofile := ""
 	resetVector := int64(-1)
 	dbgAddr := ""
 
 	flag.BoolVar(&romInfos, "rominfos", false, "print infos about the iNes rom and exit")
-	flag.StringVar(&logflag, "log", "", "enable logging for specified modules")
-	// TODO(arl) replace with log=no
-	flag.BoolVar(&nologflag, "nolog", false, "disable all logging")
+	flag.StringVar(&logflag, "log", "", "enable logging for specified modules (no: disable all logging)")
 	flag.Var(ftraceLog, "trace", "write cpu trace log to [file|stdout|stderr] (warning: quickly gets very big)")
-	flag.Int64Var(&resetVector, "reset", -1, "overwrite CPU reset vector with (default: rom-defined)")
+	flag.Int64Var(&resetVector, "reset", -1, "overwrite CPU reset vector with (-1: rom-defined)")
 	flag.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
 	flag.StringVar(&dbgAddr, "dbg", "", "connect to debugger at [host]:port (default: disabled)")
 
@@ -54,7 +51,7 @@ func main() {
 		return
 	}
 
-	if nologflag {
+	if logflag == "no" {
 		log.SetOutput(io.Discard)
 	} else if logflag != "" {
 		var modmask log.ModuleMask

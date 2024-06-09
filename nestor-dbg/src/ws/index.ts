@@ -1,6 +1,6 @@
 // Dialogates with the debugger server via WebSocket
 
-import { WSMessage } from './types';
+import { WSRequest, WSResponse } from './types';
 
 const WS_URL = 'ws://localhost:7777/ws';
 const WS_RECONNECTION_TIMEOUT = 5000;
@@ -8,7 +8,7 @@ const WS_RECONNECTION_MAX_RETRIES = 5;
 
 type WSEvents = {
   connectionChange: ((open: boolean) => void)[]; // Connection status change
-  message: ((event: WSMessage['event'], data: WSMessage['data']) => void)[]; // Received message from server
+  message: ((msg: WSResponse) => void)[]; // Received response from server
 };
 
 export interface WSSettings {
@@ -86,9 +86,9 @@ class WS {
       this.events.connectionChange.forEach((cb) => cb(true));
     };
     this.socket.onmessage = (e: MessageEvent) => {
-      const { event, data } = JSON.parse(e.data) as WSMessage;
-      this.log(`Received from nestor: (${event})`, data);
-      this.events.message.forEach((cb) => cb(event, data));
+      const resp = JSON.parse(e.data) as WSResponse;
+      this.log(`Received from nestor: (${resp.event})`, resp.data);
+      this.events.message.forEach((cb) => cb(resp));
     };
     this.socket.onclose = this.onSocketClose.bind(this);
   }
@@ -123,7 +123,7 @@ class WS {
   }
 
   public onMessage(
-    callback: (event: WSMessage['event'], data: WSMessage['data']) => void,
+    callback: (event: WSRequest['event'], data: WSRequest['data']) => void,
     callImmediately = true
   ) {
     return this.addEventListener('message', callback, callImmediately);
@@ -137,20 +137,23 @@ class WS {
    * is equivalent to: nestorWS.onMessage((e, data) => { if (e === 'state') console.log('State:', data); });
    */
   public on(
-    event: WSMessage['event'],
-    callback: (data: WSMessage['data']) => void
+    event: WSResponse['event'],
+    callback: (data: WSResponse['data']) => void
   ) {
-    return this.addEventListener('message', (e, data) => {
-      if (e === event) callback(data);
+    return this.addEventListener('message', (resp) => {
+      if (resp === undefined) {
+        return;
+      }
+      if (resp.event === event) callback(resp.data);
     });
   }
 
   // Send messages
 
-  public send(event: WSMessage['event'], data: WSMessage['data']) {
-    this.log(`Sending to nestor: (${event})`, data);
-
-    this.socket?.send(JSON.stringify({ event, data }));
+  // public send(event: WSMessage['event'], data: WSMessage['data']) {
+  public send(req: WSRequest) {
+    this.log(`Sending to nestor: (${req.event})`, req.data);
+    this.socket?.send(JSON.stringify(req));
   }
 }
 

@@ -1,12 +1,20 @@
-import { CPUState } from '../types';
+import { CPUStatus } from '../types';
 
-// Types for the WebSocket communication
-export interface WSStateMessage {
-  event: 'state';
-  data: {
-    cpu: CPUState;
-  };
+// Types for the responses from the emulator to the debugger.
+export interface EmulatorStateResponse {
+  status: CPUStatus;
+  pc: number;
 }
 
-// All possible messages
-export type WSMessage = WSStateMessage /* | OtherMessage */;
+export interface WSResponse {
+  event: string;
+  data: EmulatorStateResponse /* | other response types */;
+}
+
+// Types for the requests by the debugger to the emulator.
+export type SetCPUStateRequest = string;
+
+export interface WSRequest {
+  event: string;
+  data: SetCPUStateRequest /* | other request types */;
+}

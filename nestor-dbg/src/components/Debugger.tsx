@@ -1,10 +1,7 @@
 import React from 'react';
-import { CPUState } from '../types';
+import { CPUStatus } from '../types';
+import { EmulatorStateResponse } from '../ws/types';
 import useWS from '../ws/hook';
-
-export interface DebuggerState {
-  cpu: CPUState;
-}
 
 // Define ButtonProps interface
 interface ButtonProps {
@@ -23,49 +20,52 @@ const Button: React.FC<ButtonProps> = ({ onClick, disabled, children }) => (
 // Debugger component
 function Debugger() {
   const [debuggerState, setDebuggerState] =
-    React.useState<DebuggerState | null>(null);
+    React.useState<EmulatorStateResponse | null>(null);
 
   const [ws] = useWS();
 
   React.useEffect(() => {
     if (!ws) return;
 
-    return ws.on('state', (data) => setDebuggerState(data));
+    return ws.on('state', (resp) => {
+      console.log('Debugger received state response', resp);
+      setDebuggerState(resp)
+    });
   }, [ws]);
 
   const handleStart = () => {
-    /*setDebuggerState(CPUState.Running);*/
-  };
+    ws?.send({ event: 'set-cpu-state', data: "run" });
+  }
   const handlePause = () => {
-    /*setDebuggerState(CPUState.Paused);*/
-    ws?.send('state', { cpu: CPUState.Paused });
+    ws?.send({ event: 'set-cpu-state', data: "pause" });
   };
   const handleStep = () => {
-    /*setDebuggerState(CPUState.Stepping);*/
+    ws?.send({ event: 'set-cpu-state', data: "step" });
   };
 
   return (
     <div>
       <Button
         onClick={handleStart}
-        disabled={debuggerState?.cpu === CPUState.Running}
+        disabled={debuggerState?.status === CPUStatus.Running}
       >
         Start
       </Button>
       <Button
         onClick={handlePause}
-        disabled={debuggerState?.cpu !== CPUState.Running}
+        disabled={debuggerState?.status !== CPUStatus.Running}
       >
         Pause
       </Button>
       <Button
         onClick={handleStep}
-        disabled={debuggerState?.cpu === CPUState.Running}
+        disabled={debuggerState?.status === CPUStatus.Running}
       >
         Step
       </Button>
       <div>
-        <p>Debugger state: {debuggerState?.cpu}</p>
+        <p>Debugger state: {debuggerState?.status}</p>
+        <p>Current PC: 0x{debuggerState?.pc.toString(16)}</p>
       </div>
     </div>
   );
