@@ -2,42 +2,22 @@ package debugger
 
 import (
 	"fmt"
+	"net"
+	"net/http"
 	"sync/atomic"
 
-	"gioui.org/layout"
+	"github.com/gorilla/websocket"
 
+	"nestor/emu/log"
 	"nestor/hw"
 )
 
-type C = layout.Context
-type D = layout.Dimensions
-
-// a debugger holds the state of the CPU debugger. In order to be able to debug
-// a program at any moment, the debugger has to keep track of the CPU state,
-// even when inactive. The state to keep track of is kept to the minimum, that
-// is the current PC and stack frames.
-type debugger struct {
-	active atomic.Bool
-	status atomic.Int32
-
-	cpuBlock  chan debuggerState
-	blockAcks chan struct{}
-
-	cpu *hw.CPU
-
-	prevPC     uint16
-	prevOpcode uint8
-	resetPC    uint16
-
-	cstack callStack
-}
-
-type debuggerState struct {
+type reactDebuggerState struct {
 	stat status
 	pc   uint16
 }
 
-func (s debuggerState) String() string {
+func (s reactDebuggerState) String() string {
 	str := ""
 	switch s.stat {
 	case running:
@@ -50,63 +30,105 @@ func (s debuggerState) String() string {
 	return fmt.Sprintf("pc: $%04X, stat: %s", s.pc, str)
 }
 
-type status int32
+// a debugger holds the state of the CPU debugger. In order to be able to debug
+// a program at any moment, the debugger has to keep track of the CPU state,
+// even when inactive. The state to keep track of is kept to the minimum, that
+// is the current PC and stack frames.
+type reactDebugger struct {
+	active atomic.Bool
+	status atomic.Int32
 
-const (
-	running status = iota
-	paused
-	stepping
-)
+	cpuBlock  chan reactDebuggerState
+	blockAcks chan reactDebuggerState
 
-func (s status) String() string {
-	str := ""
-	switch s {
-	case running:
-		str = "running"
-	case paused:
-		str = "paused"
-	case stepping:
-		str = "stepping"
-	}
-	return str
+	cpu *hw.CPU
+
+	prevPC     uint16
+	prevOpcode uint8
+	resetPC    uint16
+
+	cstack callStack
 }
 
-func NewDebugger(cpu *hw.CPU) *debugger {
-	dbg := &debugger{
+func NewReactDebugger(cpu *hw.CPU, addr string) (*reactDebugger, error) {
+	dbg := &reactDebugger{
 		cpu:       cpu,
-		cpuBlock:  make(chan debuggerState),
-		blockAcks: make(chan struct{}),
+		cpuBlock:  make(chan reactDebuggerState),
+		blockAcks: make(chan reactDebuggerState),
 	}
-	cpu.SetDebugger(dbg)
 	dbg.setStatus(running)
-	return dbg
+	dbg.active.Store(true)
+
+	if err := runServer(addr, dbg); err != nil {
+		return nil, fmt.Errorf("failed to start debugger server: %w", err)
+	}
+
+	cpu.SetDebugger(dbg)
+	return dbg, nil
 }
 
-func (dbg *debugger) Reset() {
+// Ws returns the WebSocket handler the debugger will connect to.
+func Ws(dbg *reactDebugger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var upgrader = websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		}
+		upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+
+		ws, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.ModDbg.FatalZ("failed to perform websocket handshake").Error("err", err).End()
+			return
+		}
+		defer ws.Close()
+
+		log.ModDbg.DebugZ("websocket handshake success").End()
+
+		if err := newWsDriver(dbg, ws).drive(); err != nil {
+			log.ModDbg.ErrorZ("connection to debugger ended").Error("err", err).End()
+		}
+	}
+}
+
+func runServer(hostport string, dbg *reactDebugger) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ws", Ws(dbg))
+
+	server := http.Server{
+		Addr:    hostport,
+		Handler: mux,
+	}
+
+	ln, err := net.Listen("tcp", hostport)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		log.ModDbg.InfoZ(fmt.Sprintf("Debugger server listening on %s", hostport)).End()
+		server.Serve(ln)
+	}()
+	return nil
+}
+
+func (dbg *reactDebugger) Reset() {
 	// Reads PC at reset vector.
 	dbg.resetPC = dbg.cpu.PC
 }
 
-func (dbg *debugger) getStatus() status {
+func (dbg *reactDebugger) getStatus() status {
 	return status(dbg.status.Load())
 }
 
-func (dbg *debugger) setStatus(s status) {
+func (dbg *reactDebugger) setStatus(s status) {
 	dbg.status.Store(int32(s))
-}
-
-func (dbg *debugger) detach() {
-	dbg.active.Store(false)
-	if dbg.getStatus() != running {
-		dbg.blockAcks <- struct{}{}
-		dbg.setStatus(running)
-	}
 }
 
 // Trace must be called before each opcode is executed. This is the main entry
 // point for debugging activity, as the debug can stop the CPU execution by
 // making this function blocking until user interaction finishes.
-func (d *debugger) Trace(pc uint16) {
+func (d *reactDebugger) Trace(pc uint16) {
 	d.updateStack(pc, sffNone)
 	if !d.active.Load() {
 		return
@@ -122,15 +144,16 @@ func (d *debugger) Trace(pc uint16) {
 	case running:
 		break
 	case paused, stepping:
-		d.cpuBlock <- debuggerState{
+		rds := reactDebuggerState{
 			pc:   pc,
 			stat: st,
 		}
-		<-d.blockAcks
+		d.cpuBlock <- rds
+		d.blockAcks <- rds
 	}
 }
 
-func (d *debugger) updateStack(dstPc uint16, sff stackFrameFlag) {
+func (d *reactDebugger) updateStack(dstPc uint16, sff stackFrameFlag) {
 	switch d.prevOpcode {
 	case 0x20: // JSR
 		d.cstack.push(d.prevPC, dstPc, (d.prevPC+3)&0xFFFF, sff)
@@ -139,11 +162,11 @@ func (d *debugger) updateStack(dstPc uint16, sff stackFrameFlag) {
 	}
 }
 
-func (d *debugger) FrameEnd() {
+func (d *reactDebugger) FrameEnd() {
 	d.cstack.reset()
 }
 
-func (d *debugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
+func (d *reactDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
 	flag := sffIRQ
 	if isNMI {
 		flag = sffNMI
@@ -154,15 +177,15 @@ func (d *debugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
 	d.cstack.push(d.prevPC, curpc, prevpc, flag)
 }
 
-func (d *debugger) WatchRead(addr uint16) {
+func (d *reactDebugger) WatchRead(addr uint16) {
 
 }
 
-func (d *debugger) WatchWrite(addr uint16, val uint16) {
+func (d *reactDebugger) WatchWrite(addr uint16, val uint16) {
 
 }
 
 // Break can be called by the CPU core to force breaking into the debugger.
-func (d *debugger) Break(msg string) {
+func (d *reactDebugger) Break(msg string) {
 	d.setStatus(paused)
 }
