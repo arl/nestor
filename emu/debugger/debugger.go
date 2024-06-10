@@ -12,24 +12,6 @@ import (
 	"nestor/hw"
 )
 
-type reactDebuggerState struct {
-	stat status
-	pc   uint16
-}
-
-func (s reactDebuggerState) String() string {
-	str := ""
-	switch s.stat {
-	case running:
-		str = "running"
-	case paused:
-		str = "paused"
-	case stepping:
-		str = "stepping"
-	}
-	return fmt.Sprintf("pc: $%04X, stat: %s", s.pc, str)
-}
-
 // a debugger holds the state of the CPU debugger. In order to be able to debug
 // a program at any moment, the debugger has to keep track of the CPU state,
 // even when inactive. The state to keep track of is kept to the minimum, that
@@ -38,8 +20,8 @@ type reactDebugger struct {
 	active atomic.Bool
 	status atomic.Int32
 
-	cpuBlock  chan reactDebuggerState
-	blockAcks chan reactDebuggerState
+	cpuBlock  chan struct{}
+	blockAcks chan struct{}
 
 	cpu *hw.CPU
 
@@ -53,8 +35,8 @@ type reactDebugger struct {
 func NewReactDebugger(cpu *hw.CPU, addr string) (*reactDebugger, error) {
 	dbg := &reactDebugger{
 		cpu:       cpu,
-		cpuBlock:  make(chan reactDebuggerState),
-		blockAcks: make(chan reactDebuggerState),
+		cpuBlock:  make(chan struct{}),
+		blockAcks: make(chan struct{}),
 	}
 	dbg.setStatus(running)
 	dbg.active.Store(true)
@@ -65,6 +47,26 @@ func NewReactDebugger(cpu *hw.CPU, addr string) (*reactDebugger, error) {
 
 	cpu.SetDebugger(dbg)
 	return dbg, nil
+}
+
+// computeState returns the current debugger state.
+func (dbg *reactDebugger) computeState() stateData {
+	var sdata stateData
+
+	switch status := dbg.getStatus(); status {
+	case running:
+		// If we're running, we have nothing else to pass to the debugger.
+		sdata = stateData{
+			Status: status.String(),
+		}
+	default:
+		sdata = stateData{
+			Status: status.String(),
+			PC:     dbg.cpu.PC,
+		}
+	}
+
+	return sdata
 }
 
 // Ws returns the WebSocket handler the debugger will connect to.
@@ -144,12 +146,8 @@ func (d *reactDebugger) Trace(pc uint16) {
 	case running:
 		break
 	case paused, stepping:
-		rds := reactDebuggerState{
-			pc:   pc,
-			stat: st,
-		}
-		d.cpuBlock <- rds
-		d.blockAcks <- rds
+		d.cpuBlock <- struct{}{}
+		d.blockAcks <- struct{}{}
 	}
 }
 
