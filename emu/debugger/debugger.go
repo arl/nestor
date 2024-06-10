@@ -16,7 +16,7 @@ import (
 // a program at any moment, the debugger has to keep track of the CPU state,
 // even when inactive. The state to keep track of is kept to the minimum, that
 // is the current PC and stack frames.
-type reactDebugger struct {
+type debugger struct {
 	active atomic.Bool
 	status atomic.Int32
 
@@ -32,8 +32,8 @@ type reactDebugger struct {
 	cstack callStack
 }
 
-func NewReactDebugger(cpu *hw.CPU, addr string) (*reactDebugger, error) {
-	dbg := &reactDebugger{
+func NewDebugger(cpu *hw.CPU, addr string) (*debugger, error) {
+	dbg := &debugger{
 		cpu:       cpu,
 		cpuBlock:  make(chan struct{}),
 		blockAcks: make(chan struct{}),
@@ -50,7 +50,7 @@ func NewReactDebugger(cpu *hw.CPU, addr string) (*reactDebugger, error) {
 }
 
 // computeState returns the current debugger state.
-func (dbg *reactDebugger) computeState() stateData {
+func (dbg *debugger) computeState() stateData {
 	var sdata stateData
 
 	switch status := dbg.getStatus(); status {
@@ -70,7 +70,7 @@ func (dbg *reactDebugger) computeState() stateData {
 }
 
 // Ws returns the WebSocket handler the debugger will connect to.
-func Ws(dbg *reactDebugger) http.HandlerFunc {
+func Ws(dbg *debugger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var upgrader = websocket.Upgrader{
 			ReadBufferSize:  1024,
@@ -93,7 +93,7 @@ func Ws(dbg *reactDebugger) http.HandlerFunc {
 	}
 }
 
-func runServer(hostport string, dbg *reactDebugger) error {
+func runServer(hostport string, dbg *debugger) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", Ws(dbg))
 
@@ -114,23 +114,23 @@ func runServer(hostport string, dbg *reactDebugger) error {
 	return nil
 }
 
-func (dbg *reactDebugger) Reset() {
+func (dbg *debugger) Reset() {
 	// Reads PC at reset vector.
 	dbg.resetPC = dbg.cpu.PC
 }
 
-func (dbg *reactDebugger) getStatus() status {
+func (dbg *debugger) getStatus() status {
 	return status(dbg.status.Load())
 }
 
-func (dbg *reactDebugger) setStatus(s status) {
+func (dbg *debugger) setStatus(s status) {
 	dbg.status.Store(int32(s))
 }
 
 // Trace must be called before each opcode is executed. This is the main entry
 // point for debugging activity, as the debug can stop the CPU execution by
 // making this function blocking until user interaction finishes.
-func (d *reactDebugger) Trace(pc uint16) {
+func (d *debugger) Trace(pc uint16) {
 	d.updateStack(pc, sffNone)
 	if !d.active.Load() {
 		return
@@ -151,7 +151,7 @@ func (d *reactDebugger) Trace(pc uint16) {
 	}
 }
 
-func (d *reactDebugger) updateStack(dstPc uint16, sff stackFrameFlag) {
+func (d *debugger) updateStack(dstPc uint16, sff stackFrameFlag) {
 	switch d.prevOpcode {
 	case 0x20: // JSR
 		d.cstack.push(d.prevPC, dstPc, (d.prevPC+3)&0xFFFF, sff)
@@ -160,11 +160,11 @@ func (d *reactDebugger) updateStack(dstPc uint16, sff stackFrameFlag) {
 	}
 }
 
-func (d *reactDebugger) FrameEnd() {
+func (d *debugger) FrameEnd() {
 	d.cstack.reset()
 }
 
-func (d *reactDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
+func (d *debugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
 	flag := sffIRQ
 	if isNMI {
 		flag = sffNMI
@@ -175,15 +175,15 @@ func (d *reactDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
 	d.cstack.push(d.prevPC, curpc, prevpc, flag)
 }
 
-func (d *reactDebugger) WatchRead(addr uint16) {
+func (d *debugger) WatchRead(addr uint16) {
 
 }
 
-func (d *reactDebugger) WatchWrite(addr uint16, val uint16) {
+func (d *debugger) WatchWrite(addr uint16, val uint16) {
 
 }
 
 // Break can be called by the CPU core to force breaking into the debugger.
-func (d *reactDebugger) Break(msg string) {
+func (d *debugger) Break(msg string) {
 	d.setStatus(paused)
 }

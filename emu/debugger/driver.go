@@ -42,7 +42,7 @@ type stateData struct {
 }
 
 type wsdriver struct {
-	dbg *reactDebugger
+	dbg *debugger
 	ws  *websocket.Conn
 
 	handlers map[string]wsHandlerFunc
@@ -50,7 +50,7 @@ type wsdriver struct {
 
 type wsHandlerFunc func(data []byte) (*WSResponse, error)
 
-func newWsDriver(dbg *reactDebugger, ws *websocket.Conn) *wsdriver {
+func newWsDriver(dbg *debugger, ws *websocket.Conn) *wsdriver {
 	drv := &wsdriver{
 		dbg:      dbg,
 		ws:       ws,

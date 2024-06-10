@@ -38,7 +38,7 @@ func (nes *NES) PowerUp(rom *ines.Rom, dbgAddr string) error {
 		nes.CPU.SetDebugger(nes.Debugger)
 	} else {
 		// nes.Debugger = debugger.NewDebugger(nes.CPU)
-		dbg, err := debugger.NewReactDebugger(nes.CPU, dbgAddr)
+		dbg, err := debugger.NewDebugger(nes.CPU, dbgAddr)
 		if err != nil {
 			return err
 		}

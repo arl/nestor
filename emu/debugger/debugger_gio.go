@@ -12,11 +12,11 @@ import (
 type C = layout.Context
 type D = layout.Dimensions
 
-// a debugger holds the state of the CPU debugger. In order to be able to debug
-// a program at any moment, the debugger has to keep track of the CPU state,
+// a gioDebugger holds the state of the CPU gioDebugger. In order to be able to debug
+// a program at any moment, the gioDebugger has to keep track of the CPU state,
 // even when inactive. The state to keep track of is kept to the minimum, that
 // is the current PC and stack frames.
-type debugger struct {
+type gioDebugger struct {
 	active atomic.Bool
 	status atomic.Int32
 
@@ -71,8 +71,8 @@ func (s status) String() string {
 	return str
 }
 
-func NewDebugger(cpu *hw.CPU) *debugger {
-	dbg := &debugger{
+func NewGioDebugger(cpu *hw.CPU) *gioDebugger {
+	dbg := &gioDebugger{
 		cpu:       cpu,
 		cpuBlock:  make(chan debuggerState),
 		blockAcks: make(chan struct{}),
@@ -82,20 +82,20 @@ func NewDebugger(cpu *hw.CPU) *debugger {
 	return dbg
 }
 
-func (dbg *debugger) Reset() {
+func (dbg *gioDebugger) Reset() {
 	// Reads PC at reset vector.
 	dbg.resetPC = dbg.cpu.PC
 }
 
-func (dbg *debugger) getStatus() status {
+func (dbg *gioDebugger) getStatus() status {
 	return status(dbg.status.Load())
 }
 
-func (dbg *debugger) setStatus(s status) {
+func (dbg *gioDebugger) setStatus(s status) {
 	dbg.status.Store(int32(s))
 }
 
-func (dbg *debugger) detach() {
+func (dbg *gioDebugger) detach() {
 	dbg.active.Store(false)
 	if dbg.getStatus() != running {
 		dbg.blockAcks <- struct{}{}
@@ -106,7 +106,7 @@ func (dbg *debugger) detach() {
 // Trace must be called before each opcode is executed. This is the main entry
 // point for debugging activity, as the debug can stop the CPU execution by
 // making this function blocking until user interaction finishes.
-func (d *debugger) Trace(pc uint16) {
+func (d *gioDebugger) Trace(pc uint16) {
 	d.updateStack(pc, sffNone)
 	if !d.active.Load() {
 		return
@@ -130,7 +130,7 @@ func (d *debugger) Trace(pc uint16) {
 	}
 }
 
-func (d *debugger) updateStack(dstPc uint16, sff stackFrameFlag) {
+func (d *gioDebugger) updateStack(dstPc uint16, sff stackFrameFlag) {
 	switch d.prevOpcode {
 	case 0x20: // JSR
 		d.cstack.push(d.prevPC, dstPc, (d.prevPC+3)&0xFFFF, sff)
@@ -139,11 +139,11 @@ func (d *debugger) updateStack(dstPc uint16, sff stackFrameFlag) {
 	}
 }
 
-func (d *debugger) FrameEnd() {
+func (d *gioDebugger) FrameEnd() {
 	d.cstack.reset()
 }
 
-func (d *debugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
+func (d *gioDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
 	flag := sffIRQ
 	if isNMI {
 		flag = sffNMI
@@ -154,15 +154,15 @@ func (d *debugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
 	d.cstack.push(d.prevPC, curpc, prevpc, flag)
 }
 
-func (d *debugger) WatchRead(addr uint16) {
+func (d *gioDebugger) WatchRead(addr uint16) {
 
 }
 
-func (d *debugger) WatchWrite(addr uint16, val uint16) {
+func (d *gioDebugger) WatchWrite(addr uint16, val uint16) {
 
 }
 
 // Break can be called by the CPU core to force breaking into the debugger.
-func (d *debugger) Break(msg string) {
+func (d *gioDebugger) Break(msg string) {
 	d.setStatus(paused)
 }

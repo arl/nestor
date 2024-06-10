@@ -18,7 +18,7 @@ import (
 )
 
 type DebuggerWindow struct {
-	dbg *debugger
+	dbg *gioDebugger
 
 	theme *material.Theme
 
@@ -35,7 +35,7 @@ func NewDebuggerWindow(idbg hw.Debugger, cpu *hw.CPU, ppu *hw.PPU) *DebuggerWind
 	theme := material.NewTheme()
 	theme.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
 
-	dbg := idbg.(*debugger)
+	dbg := idbg.(*gioDebugger)
 
 	return &DebuggerWindow{
 		dbg:      dbg,
