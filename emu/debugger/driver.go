@@ -10,9 +10,11 @@ import (
 )
 
 // Emulator and debugger communicates via a websocket connection, following this
-// simple protocol. The first ever exchanged message is sent by the emulator
-// sending its current state. After which, the emulator just waits for the
-// debugger requests (WSRequest) to which it always responds with a WSResponse..
+// simple protocol.
+//
+// The first ever exchanged message is sent by the emulator sending its current
+// state. After which, the emulator just waits for the debugger requests (i.e
+// WSRequest) to which it always has to respond (with a WSResponse).
 
 /* Debugger -> Emulator requests */
 
@@ -40,7 +42,7 @@ type stateData struct {
 }
 
 type wsdriver struct {
-	dbg *reactDebugger
+	dbg *debugger
 	ws  *websocket.Conn
 
 	handlers map[string]wsHandlerFunc
@@ -48,7 +50,7 @@ type wsdriver struct {
 
 type wsHandlerFunc func(data []byte) (*WSResponse, error)
 
-func newWsDriver(dbg *reactDebugger, ws *websocket.Conn) *wsdriver {
+func newWsDriver(dbg *debugger, ws *websocket.Conn) *wsdriver {
 	drv := &wsdriver{
 		dbg:      dbg,
 		ws:       ws,
@@ -107,10 +109,7 @@ func (d *wsdriver) drive() error {
 func (d *wsdriver) initMsg() {
 	initmsg := WSResponse{
 		Event: "state",
-		Data: stateData{
-			Status: running.String(),
-			PC:     0,
-		},
+		Data:  d.dbg.computeState(),
 	}
 
 	if err := d.ws.WriteJSON(initmsg); err != nil {
@@ -120,41 +119,32 @@ func (d *wsdriver) initMsg() {
 	log.ModDbg.DebugZ("initmsg sent").End()
 }
 
-// TODO(arl): consider converting this as a method of the debugger.
 func (d *wsdriver) handleSetCPUState(data []byte) (*WSResponse, error) {
-	var state setCPUStateData
-	if err := json.Unmarshal(data, &state); err != nil {
+	var cpuState setCPUStateData
+	if err := json.Unmarshal(data, &cpuState); err != nil {
 		return nil, err
 	}
 
-	var stateResp stateData
-
-	switch state {
+	switch cpuState {
 	case "run":
-		// Changes the CPU state and unblock it.
-		stateResp.Status = running.String()
 		d.dbg.setStatus(running)
 		<-d.dbg.blockAcks
-	case "pause":
-		// Changes CPU state then wait for it be effectively blocked.
-		d.dbg.setStatus(paused)
 
-		// TODO: this channel should probably directly return the emulator state.
-		// Wait
-		rds := <-d.dbg.cpuBlock
-		stateResp.Status = rds.stat.String()
-		stateResp.PC = rds.pc
+	case "pause":
+		d.dbg.setStatus(paused)
+		<-d.dbg.cpuBlock
+
 	case "step":
-		// Changes the CPU state and unblock it.
 		d.dbg.setStatus(stepping)
 		<-d.dbg.blockAcks
-		rds := <-d.dbg.cpuBlock
-		stateResp.Status = rds.stat.String()
-		stateResp.PC = rds.pc
+		<-d.dbg.cpuBlock
 
 	default:
-		return nil, fmt.Errorf("unexpected cpu state: %s", state)
+		return nil, fmt.Errorf("unexpected cpu state: %s", cpuState)
 	}
 
-	return &WSResponse{Event: "state", Data: stateResp}, nil
+	return &WSResponse{
+		Event: "state",
+		Data:  d.dbg.computeState(),
+	}, nil
 }

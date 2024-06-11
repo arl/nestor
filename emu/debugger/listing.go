@@ -31,7 +31,7 @@ type listing struct {
 	pos  layout.Position
 
 	cpu *hw.CPU
-	dbg *debugger
+	dbg *gioDebugger
 
 	cs      callStack
 	pc      uint16
@@ -42,7 +42,7 @@ type listing struct {
 	lblStyle material.LabelStyle
 }
 
-func newListing(dbg *debugger, theme *material.Theme, cpu *hw.CPU) listing {
+func newListing(dbg *gioDebugger, theme *material.Theme, cpu *hw.CPU) listing {
 	lblStyle := material.LabelStyle{
 		Color:          theme.Palette.Fg,
 		SelectionColor: ui.MulAlpha(theme.Palette.ContrastBg, 0x60),
