@@ -7,6 +7,7 @@ import (
 	"gioui.org/unit"
 
 	"nestor/emu/debugger"
+	"nestor/hw"
 	"nestor/ui"
 )
 
@@ -23,6 +24,8 @@ func ShowDebuggerWindow(a *ui.Application, nes *NES) {
 type Emulator struct {
 	nes *NES
 	app *ui.Application
+
+	screen *ScreenWindow
 }
 
 func NewEmulator(nes *NES) *Emulator {
@@ -34,7 +37,11 @@ func NewEmulator(nes *NES) *Emulator {
 		app.Size(minw, minh),
 	)
 
-	return &Emulator{nes: nes, app: app}
+	return &Emulator{
+		nes:    nes,
+		app:    app,
+		screen: screen,
+	}
 }
 
 func (e *Emulator) Run(ctx context.Context, nes *NES) {
@@ -51,4 +58,15 @@ func (e *Emulator) Run(ctx context.Context, nes *NES) {
 // order.
 func (e *Emulator) Defer(f func()) {
 	e.app.Defer(f)
+}
+
+type UserInput interface {
+	hw.InputDevice
+	UserInputReader
+}
+
+func (e *Emulator) ConnectInputDevice(up UserInput) {
+	e.nes.CPU.PlugInputDevice(up)
+	// Connect inputs from window to emulated input ports.
+	up.ReadUserInput(e.screen.UserInputs())
 }

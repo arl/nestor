@@ -88,6 +88,11 @@ func main() {
 		hwio.Write16(nes.CPU.Bus, hw.ResetVector, uint16(resetVector))
 	}
 
+	// Input setup
+	pads := emu.StdControllerPair{
+		Pad1Connected: true,
+	}
+	emulator.ConnectInputDevice(&pads)
 
 	// Output setup
 	nes.Frames = make(chan image.RGBA)

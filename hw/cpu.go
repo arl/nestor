@@ -26,6 +26,8 @@ type CPU struct {
 	ppuAbsent bool // allow to disconnect PPU during CPU tests
 	ppuDMA    ppuDMA
 
+	input InputPorts
+
 	// cpu registers
 	A, X, Y, SP uint8
 	PC          uint16
@@ -57,6 +59,10 @@ func NewCPU(ppu *PPU) *CPU {
 	}
 }
 
+func (c *CPU) PlugInputDevice(device InputDevice) {
+	c.input.dev = device
+}
+
 func (c *CPU) SetTraceOutput(w io.Writer) {
 	c.tracer = &tracer{w: w, cpu: c}
 }
@@ -76,6 +82,9 @@ func (c *CPU) InitBus() {
 	// Map PPU OAMDMA register.
 	c.ppuDMA.InitBus(c.Bus, c.ppu.oamMem[:])
 	c.Bus.MapBank(0x4014, &c.ppuDMA, 0)
+
+	c.input.initBus()
+	c.Bus.MapBank(0x4016, &c.input, 0)
 
 	// 0x4000-0x4017 -> APU and IO registers.
 	// TODO
