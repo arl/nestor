@@ -23,41 +23,47 @@ type NES struct {
 
 const NoDebugger = ""
 
-// PowerUp initializes the NES with the given ROM, and optionally attach a
+// PowerUp initializes a NES with the given ROM, and optionally attach a
 // remote debugger at the given address (leave empty to disable).
-func (nes *NES) PowerUp(rom *ines.Rom, dbgAddr string) error {
-	nes.Rom = rom
-	nes.PPU = hw.NewPPU()
-	nes.PPU.InitBus()
+func PowerUp(rom *ines.Rom, dbgAddr string) (*NES, error) {
+	// nes.Rom = rom
+	ppu := hw.NewPPU()
+	ppu.InitBus()
 
-	nes.CPU = hw.NewCPU(nes.PPU)
-	nes.CPU.InitBus()
+	cpu := hw.NewCPU(ppu)
+	cpu.InitBus()
 
+	ppu.CPU = cpu
+
+	var idbg hw.Debugger
 	if dbgAddr == "" {
-		nes.Debugger = hw.NopDebugger{}
-		nes.CPU.SetDebugger(nes.Debugger)
+		idbg = hw.NopDebugger{}
+		cpu.SetDebugger(idbg)
 	} else {
-		// nes.Debugger = debugger.NewDebugger(nes.CPU)
-		dbg, err := debugger.NewDebugger(nes.CPU, dbgAddr)
+		dbg, err := debugger.NewDebugger(cpu, dbgAddr)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		nes.Debugger = dbg
+		idbg = dbg
 	}
-
-	nes.PPU.CPU = nes.CPU
 
 	// Load mapper, applying cartridge memory and hardware based on mapper.
 	mapper, ok := mappers.All[rom.Mapper()]
 	if !ok {
-		return fmt.Errorf("unsupported mapper %03d", rom.Mapper())
+		return nil, fmt.Errorf("unsupported mapper %03d", rom.Mapper())
 	}
-	if err := mapper.Load(rom, nes.CPU, nes.PPU); err != nil {
-		return fmt.Errorf("error while loading mapper %03d (%s): %s", rom.Mapper(), mapper.Name, err)
+	if err := mapper.Load(rom, cpu, ppu); err != nil {
+		return nil, fmt.Errorf("error while loading mapper %03d (%s): %s", rom.Mapper(), mapper.Name, err)
 	}
 
+	nes := &NES{
+		CPU:      cpu,
+		PPU:      ppu,
+		Rom:      rom,
+		Debugger: idbg,
+	}
 	nes.Reset()
-	return nil
+	return nes, nil
 }
 
 func (nes *NES) Reset() {

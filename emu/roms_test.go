@@ -25,13 +25,14 @@ func TestNestest(t *testing.T) {
 		ppuCyclesStart = 21
 	)
 
-	nes := new(NES)
 	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
 	rom, err := ines.ReadRom(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := nes.PowerUp(rom, NoDebugger); err != nil {
+
+	nes, err := PowerUp(rom, NoDebugger)
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -135,11 +136,11 @@ func runTestRom(path string) func(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		nes := new(NES)
-		if err := nes.PowerUp(rom, NoDebugger); err != nil {
+
+		nes, err := PowerUp(rom, NoDebugger)
+		if err != nil {
 			t.Fatal(err)
 		}
-		nes.Reset()
 
 		magic := []byte{0xde, 0xb0, 0x61}
 		magicset := 0
@@ -197,11 +198,11 @@ func TestNametableMirroring(t *testing.T) {
 	if rom.Mirroring() != ines.HorzMirroring {
 		t.Errorf("incorrect nt mirroring")
 	}
-	nes := new(NES)
-	if err := nes.PowerUp(rom, NoDebugger); err != nil {
+
+	nes, err := PowerUp(rom, NoDebugger)
+	if err != nil {
 		t.Fatal(err)
 	}
-	nes.Reset()
 
 	nes.PPU.Bus.Write8(0x2000, 'A')
 	nes.PPU.Bus.Write8(0x2800, 'B')
@@ -233,11 +234,11 @@ func TestBlarggPPUtests(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var nes NES
-	if err := nes.PowerUp(rom, NoDebugger); err != nil {
+
+	nes, err := PowerUp(rom, NoDebugger)
+	if err != nil {
 		t.Fatal(err)
 	}
-	nes.Reset()
 
 	frames := make(chan image.RGBA)
 	out := hw.NewOutput(hw.OutputConfig{
