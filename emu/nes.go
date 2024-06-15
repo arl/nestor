@@ -19,29 +19,33 @@ type NES struct {
 	Debugger hw.Debugger
 }
 
-func (nes *NES) PowerUp(rom *ines.Rom) error {
-	nes.Rom = rom
-	nes.PPU = hw.NewPPU()
-	nes.PPU.InitBus()
+func PowerUp(rom *ines.Rom) (*NES, error) {
+	// nes.Rom = rom
+	ppu := hw.NewPPU()
+	ppu.InitBus()
 
-	nes.CPU = hw.NewCPU(nes.PPU)
-	nes.CPU.InitBus()
-
-	nes.Debugger = debugger.NewDebugger(nes.CPU)
-
-	nes.PPU.CPU = nes.CPU
+	cpu := hw.NewCPU(ppu)
+	cpu.InitBus()
+	dbg := debugger.NewDebugger(cpu)
+	ppu.CPU = cpu
 
 	// Load mapper, applying cartridge memory and hardware based on mapper.
 	mapper, ok := mappers.All[rom.Mapper()]
 	if !ok {
-		return fmt.Errorf("unsupported mapper %03d", rom.Mapper())
+		return nil, fmt.Errorf("unsupported mapper %03d", rom.Mapper())
 	}
-	if err := mapper.Load(rom, nes.CPU, nes.PPU); err != nil {
-		return fmt.Errorf("error while loading mapper %03d (%s): %s", rom.Mapper(), mapper.Name, err)
+	if err := mapper.Load(rom, cpu, ppu); err != nil {
+		return nil, fmt.Errorf("error while loading mapper %03d (%s): %s", rom.Mapper(), mapper.Name, err)
 	}
 
+	nes := &NES{
+		CPU:      cpu,
+		PPU:      ppu,
+		Rom:      rom,
+		Debugger: dbg,
+	}
 	nes.Reset()
-	return nil
+	return nes, nil
 }
 
 func (nes *NES) Reset() {
