@@ -3,11 +3,10 @@ import WS from '.';
 
 let globalWSInstance: WS | null;
 
-export default function useWS(
-  wsUrl: string = 'ws://localhost:7777/ws'
-): [WS | null, boolean] {
+export default function useWS(): [WS | null, boolean] {
   const [ws, setWS] = useState<WS | null>(null);
   const [ready, setReady] = useState(false);
+  const wsUrl = "ws://" + window.location.host + window.location.pathname + "ws"
 
   useEffect(() => {
     if (globalWSInstance && globalWSInstance.settings.url !== wsUrl) {
