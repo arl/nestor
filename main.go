@@ -68,8 +68,10 @@ func main() {
 		log.EnableDebugModules(modmask)
 	}
 
-	var nes emu.NES
-	emulator := emu.NewEmulator(&nes)
+	nes, err := emu.PowerUp(rom)
+	checkf(err, "error during power up")
+
+	emulator := emu.NewEmulator(nes)
 
 	if cpuprofile != "" {
 		f, err := os.Create(cpuprofile)
@@ -82,12 +84,18 @@ func main() {
 		})
 	}
 
-	checkf(nes.PowerUp(rom), "error during power up")
 	if resetVector != -1 {
 		hwio.Write16(nes.CPU.Bus, hw.ResetVector, uint16(resetVector))
 	}
-	nes.Frames = make(chan image.RGBA)
 
+	// Input setup
+	pads := emu.StdControllerPair{
+		Pad1Connected: true,
+	}
+	emulator.ConnectInputDevice(&pads)
+
+	// Output setup
+	nes.Frames = make(chan image.RGBA)
 	out := hw.NewOutput(hw.OutputConfig{
 		Width:           256,
 		Height:          240,
@@ -104,7 +112,7 @@ func main() {
 	}()
 
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
-	emulator.Run(ctx, &nes)
+	emulator.Run(ctx, nes)
 }
 
 func checkf(err error, format string, args ...any) {
