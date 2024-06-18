@@ -5,8 +5,8 @@ let globalWSInstance: WS | null;
 
 function getWsURL(): string {
   const { REACT_APP_NESTOR_ADDR } = process.env;
-  const host = REACT_APP_NESTOR_ADDR !== "" ? REACT_APP_NESTOR_ADDR : window.location.host
-  return "ws://" + host + window.location.pathname + "ws"
+  const host = REACT_APP_NESTOR_ADDR !== "" ? REACT_APP_NESTOR_ADDR : window.location.host;
+  return "ws://" + host + window.location.pathname + "ws";
 }
 
 export default function useWS(): [WS | null, boolean] {
