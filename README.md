@@ -4,6 +4,17 @@
 
 Nestor is a work in progress NES/Famicom emulator written in Go.
 
+
+- [Nestor - NES emulator](#nestor---nes-emulator)
+  - [Build from source](#build-from-source)
+    - [Gio](#gio)
+    - [Nestor](#nestor)
+  - [Usage](#usage)
+  - [Contributing to Development](#contributing-to-development)
+    - [NES Debugger UI](#nes-debugger-ui)
+  - [TODO](#todo)
+
+
 ## Build from source
 
 ### Gio
@@ -24,22 +35,34 @@ go install github.com/arl/nestor@latest
 ## Usage
 
 ```
-nestor [options] rom
+nestor [options] romfile
 
-Options:
+Usage of nestor:
   -cpuprofile string
         write cpu profile to file
+  -dbg string
+        connect to debugger at [host]:port (default: disabled)
   -log string
-        enable logging for specified modules
-  -nolog
-        disable all logging
+        enable logging for specified modules (no: disable all logging)
   -reset int
-        overwrite CPU reset vector with (default: rom-defined) (default -1)
+        overwrite CPU reset vector with (-1: rom-defined) (default -1)
   -rominfos
         print infos about the iNes rom and exit
   -trace value
         write cpu trace log to [file|stdout|stderr] (warning: quickly gets very big)
 ```
+
+## Contributing to Development
+
+### NES Debugger UI
+
+Nestor has a WIP debugger frontend running in the browser. 
+
+To run Nestor in debugging mode, you'd normally do `nestor -dbg=:8000 /path/to/rom`.
+
+But if you actually want to develop the debugger ReactJS app, you'll want to use
+`nestor -dbg=:7777 /path/to/rom` instead, since that's the hardcoded address to
+use when the fronend end is started with `run npm run start`.
 
 
 ## TODO
@@ -51,3 +74,4 @@ Options:
  - [ ] APU (sound)
  - [ ] debugger (WIP)
  - [ ] mappers (currently only NROM works)
+
