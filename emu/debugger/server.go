@@ -9,28 +9,36 @@ import (
 	"github.com/gorilla/websocket"
 
 	"nestor/emu/log"
+	"nestor/internal/browser"
 	nestor_dbg "nestor/nestor-dbg"
 )
 
-func runServer(hostport string, dbg *debugger) error {
+func runServer(addr string, dbg *debugger) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleWebsocket(dbg))
 	mux.HandleFunc("/", handleIndex())
 
 	server := http.Server{
-		Addr:    hostport,
+		Addr:    addr,
 		Handler: mux,
 	}
 
-	ln, err := net.Listen("tcp", hostport)
+	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
 	}
 
+	url := "http://" + ln.Addr().String()
+	log.ModDbg.InfoZ(fmt.Sprintf("Debugger server listening on %s", url)).End()
+
+	go server.Serve(ln)
+
 	go func() {
-		log.ModDbg.InfoZ(fmt.Sprintf("Debugger server listening on %s", hostport)).End()
-		server.Serve(ln)
+		if !browser.Open(url) {
+			log.ModDbg.WarnZ(fmt.Sprintf("Failed to open browser window. Please visit %s in your browser.", url)).End()
+		}
 	}()
+
 	return nil
 }
 
