@@ -1,4 +1,4 @@
-// Dialogates with the debugger server via WebSocket
+// Communication with the debugger server on the emulator via WebSocket.
 
 import { WSRequest, WSResponse } from './types';
 

@@ -3,10 +3,16 @@ import WS from '.';
 
 let globalWSInstance: WS | null;
 
+function getWsURL(): string {
+  const { REACT_APP_NESTOR_ADDR } = process.env;
+  const host = REACT_APP_NESTOR_ADDR !== "" ? REACT_APP_NESTOR_ADDR : window.location.host
+  return "ws://" + host + window.location.pathname + "ws"
+}
+
 export default function useWS(): [WS | null, boolean] {
   const [ws, setWS] = useState<WS | null>(null);
   const [ready, setReady] = useState(false);
-  const wsUrl = "ws://" + window.location.host + window.location.pathname + "ws"
+  const wsUrl = getWsURL()
 
   useEffect(() => {
     if (globalWSInstance && globalWSInstance.settings.url !== wsUrl) {
