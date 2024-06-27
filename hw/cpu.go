@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"nestor/emu/hwio"
-	"strings"
 )
 
 // Locations reserved for vector pointers.
@@ -338,16 +337,42 @@ type DisasmOp struct {
 	PC     uint16
 }
 
+// String returns the string representation of a DisasmOp, this is optimized
+// version, suitable for the execution tracer.
 func (d DisasmOp) String() string {
-	// C000  4C F5 C5  JMP $C5F5
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "%04X ", d.PC)
-	for _, b := range d.Bytes {
-		fmt.Fprintf(&sb, " %02X ", b)
+	const totalLen = 25
+	buf := make([]byte, totalLen)
+
+	hexEncode(buf[0:], byte(d.PC>>8))
+	hexEncode(buf[2:], byte(d.PC))
+	buf[4] = ' '
+	buf[5] = ' '
+
+	off := 6
+	for i := range d.Bytes {
+		hexEncode(buf[off:], d.Bytes[i])
+		buf[off+2] = ' '
+		off += 3
 	}
-	fmt.Fprintf(&sb, "%*s", 17-sb.Len(), "")
-	sb.WriteString(d.Opcode)
-	sb.WriteByte(' ')
-	sb.WriteString(d.Oper)
-	return sb.String()
+
+	for ; off < 15; off++ {
+		buf[off] = ' '
+	}
+
+	off += copy(buf[off:], []byte(d.Opcode))
+	buf[off] = ' '
+	off++
+
+	off += copy(buf[off:], []byte(d.Oper))
+	for ; off < totalLen; off++ {
+		buf[off] = ' '
+	}
+
+	return string(buf)
+}
+
+func hexEncode(dst []byte, v byte) {
+	const hextable = "0123456789ABCDEF"
+	dst[0] = hextable[v>>4]
+	dst[1] = hextable[v&0x0f]
 }
