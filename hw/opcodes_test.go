@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"nestor/emu/hwio"
+	"nestor/tests"
 )
 
 func TestAllOpcodesAreImplemented(t *testing.T) {
@@ -25,6 +26,8 @@ func TestOpcodes(t *testing.T) {
 		t.Skip("skipping long test")
 	}
 
+	testsDir := tests.TomHarteProcTestsPath(t)
+
 	// Run tests for all implemented opcodes.
 	for opcode := range ops {
 		opstr := fmt.Sprintf("%02x", opcode)
@@ -32,7 +35,8 @@ func TestOpcodes(t *testing.T) {
 		case unstableOps[uint8(opcode)] == 1:
 			t.Run(opstr, func(t *testing.T) { t.Skipf("skipping unsupported opcode") })
 		default:
-			t.Run(opstr, testOpcodes(opstr))
+			opfile := filepath.Join(testsDir, opstr+".json")
+			t.Run(opstr, testOpcodes(opfile))
 		}
 	}
 }
@@ -53,14 +57,14 @@ func putSlice(s *[]uint8) {
 	slicePool.Put(s)
 }
 
-// testOpcodes runs the opcode tests in testdata/<op>.json
-// these comes from github.com/TomHarte/ProcessorTests/blob/main/nes6502.
-func testOpcodes(op string) func(t *testing.T) {
+// testOpcodes runs the opcodes tests in the given json file path (should be of
+// the form tests/tomharte.processor.tests/<op>.json). These comes from
+// github.com/TomHarte/ProcessorTests/blob/main/nes6502.
+func testOpcodes(opfile string) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
 
-		path := filepath.Join("testdata", "tomharte.processor.tests", "v1", op+".json")
-		buf, err := os.ReadFile(path)
+		buf, err := os.ReadFile(opfile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -116,11 +120,7 @@ func testOpcodes(op string) func(t *testing.T) {
 				if testing.Verbose() {
 					t.Logf("initial {A=0x%02x X=0x%02x Y=0x%02x P=0x%02x(%s) SP=0x%02x PC=0x%04x}\n",
 						cpu.A, cpu.X, cpu.Y, uint8(cpu.P), cpu.P.String(), cpu.SP, cpu.PC)
-					t.Log("run:")
-				}
-
-				if testing.Verbose() {
-					t.Logf("expecting cycles:\n%s\n\n", strings.Join(prettyCycles(tt.Cycles), "\n"))
+					t.Logf("run:\nexpecting cycles:\n%s\n\n", strings.Join(prettyCycles(tt.Cycles), "\n"))
 					t.Log("test output:")
 				}
 

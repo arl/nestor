@@ -7,6 +7,7 @@ require (
 	gioui.org/x v0.6.1
 	github.com/google/go-cmp v0.6.0
 	golang.org/x/exp/shiny v0.0.0-20220827204233-334a2380cb91
+	golang.org/x/sync v0.7.0
 	gopkg.in/Sirupsen/logrus.v0 v0.11.5
 )
 
