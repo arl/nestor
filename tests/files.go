@@ -18,7 +18,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func decompress(zipFile, dest string) error {
+func decompressTestRoms(zipFile, dest string) error {
 	r, err := zip.OpenReader(zipFile)
 	if err != nil {
 		return err
@@ -66,29 +66,36 @@ func decompress(zipFile, dest string) error {
 	return nil
 }
 
-func downloadTestRoms(tb testing.TB, dest string) {
+func downloadTestRoms(dest string) error {
 	const url = `https://github.com/christopherpow/nes-test-roms/archive/refs/heads/master.zip`
 	resp, err := http.Get(url)
 	if err != nil {
-		tb.Fatal(err)
+		return err
 	}
 	defer resp.Body.Close()
 
 	tmpf, err := os.CreateTemp("", "nes-test-roms-*-.zip")
 	if err != nil {
-		tb.Fatal(err)
+		return err
 	}
 	defer tmpf.Close()
 
 	if _, err := io.Copy(tmpf, resp.Body); err != nil {
-		tb.Fatal(err)
+		return err
 	}
 
-	if err := decompress(tmpf.Name(), dest); err != nil {
-		tb.Fatalf("failed to decompress test roms: %s", err)
+	log.Println("nes test roms downloaded")
+
+	if err := decompressTestRoms(tmpf.Name(), dest); err != nil {
+		return fmt.Errorf("failed to decompress test roms: %s", err)
 	}
+
+	log.Println("nes test roms decompressed into", dest)
+	return nil
 }
 
+// RomsPath returns the path to the 'nes-test-roms' directory. If this path is
+// not found, test roms are downloaded and moved to the expected path.
 func RomsPath(tb testing.TB) string {
 	return sync.OnceValue(func() string {
 		_, b, _, _ := runtime.Caller(0)
@@ -97,21 +104,21 @@ func RomsPath(tb testing.TB) string {
 
 		if _, err := os.Stat(romsDir); errors.Is(err, fs.ErrNotExist) {
 			tb.Log("nes-test-roms directory not found, downloading it...")
-			downloadTestRoms(tb, testsDir)
+			if err := downloadTestRoms(testsDir); err != nil {
+				tb.Fatalf("failed to download test roms: %s", err)
+			}
 			tb.Log("Test roms downloaded in", romsDir)
 		}
-
 		return romsDir
 	})()
 }
 
-// download all 256 (one per opcode) Tom harte 6502 test files into dest dir.
-func downloadTomHarteProcTests(tb testing.TB, dest string) {
+func downloadTomHarteProcTests(dest string) error {
 	const urlfmt = `https://raw.githubusercontent.com/SingleStepTests/65x02/main/nes6502/v1/%s.json`
 
 	tempdir, err := os.MkdirTemp("", "tom.harte.processor.tests.*")
 	if err != nil {
-		tb.Fatal(err)
+		return err
 	}
 
 	var g errgroup.Group
@@ -138,22 +145,26 @@ func downloadTomHarteProcTests(tb testing.TB, dest string) {
 				return err
 			}
 
-			tb.Log("downloaded", url, "to", f.Name())
+			log.Println("downloaded", url, "to", f.Name())
 			return nil
 		})
 	}
 
 	if err := g.Wait(); err != nil {
-		tb.Fatalf("failed to download all files: %s", err)
+		return fmt.Errorf("failed to download all files: %s", err)
 	}
 
 	if err := os.Rename(tempdir, dest); err != nil {
-		tb.Fatal(err)
+		return err
 	}
 
-	tb.Log("renaming", tempdir, "to", dest)
+	log.Println("renaming", tempdir, "to", dest)
+	return nil
 }
 
+// TomHarteProcTestsPath returns the path that is expected to contain all 256
+// Tom Harte 6502 processor tests. If this path is not found, the expected
+// content is downloaded and moved to the expected path.
 func TomHarteProcTestsPath(tb testing.TB) string {
 	return sync.OnceValue(func() string {
 		_, b, _, _ := runtime.Caller(0)
@@ -161,10 +172,11 @@ func TomHarteProcTestsPath(tb testing.TB) string {
 
 		if _, err := os.Stat(testsDir); errors.Is(err, fs.ErrNotExist) {
 			tb.Log("tomharte.processor.tests directory not found, downloading it...")
-			downloadTomHarteProcTests(tb, testsDir)
+			if err := downloadTomHarteProcTests(testsDir); err != nil {
+				tb.Fatalf("failed to download tom harte proc tests: %s", err)
+			}
 			tb.Log("Tom Harte Processor Tests downloaded in", testsDir)
 		}
-
 		return testsDir
 	})()
 }
