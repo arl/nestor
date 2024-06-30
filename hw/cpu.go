@@ -112,7 +112,6 @@ func (c *CPU) Reset() {
 	for i := 0; i < 8; i++ {
 		c.tick()
 	}
-	c.tick()
 }
 
 func (c *CPU) setNMIflag()   { c.nmiFlag = true }
