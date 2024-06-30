@@ -447,10 +447,14 @@ func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
 func (p *PPU) WritePPUCTRL(old, val uint8) {
 	log.ModPPU.DebugZ("Write to PPUCTRL").Hex8("val", val).End()
 
+	ppuctrl := ppuctrl(val)
+
+	// Transfer the nametable bits.
+	p.vramTmp.setNametable(ppuctrl.nametable())
+
 	// By toggling the nmi bit (bit 7 of PPUCTRL) during vblank without reading
 	// PPUSTATUS, a program can cause /nmi to be pulled low multiple times,
 	// causing multiple NMIs to be generated.
-	ppuctrl := ppuctrl(val)
 	ppustatus := ppustatus(p.PPUSTATUS.Value)
 	if !ppuctrl.nmi() {
 		p.CPU.clearNMIflag()
@@ -458,8 +462,7 @@ func (p *PPU) WritePPUCTRL(old, val uint8) {
 		p.CPU.setNMIflag()
 	}
 
-	// Transfer the nametable bits.
-	p.vramTmp.setNametable(ppuctrl.nametable())
+	p.PPUCTRL.Value = uint8(ppuctrl)
 }
 
 // PPUMASK: $2001
@@ -471,14 +474,18 @@ func (p *PPU) WritePPUMASK(old, val uint8) {
 func (p *PPU) ReadPPUSTATUS(val uint8) uint8 {
 	p.writeLatch = false
 
-	ppustatus := ppustatus(val)
-	ppustatus.setSpriteOverflow(true)
-	ppustatus.setSpriteHit(true)
-	ppustatus.setVblank(true)
+	cur := ppustatus(val)
 
+	ret := ppustatus(0)
+	ret.setSpriteOverflow(cur.spriteOverflow())
+	ret.setSpriteHit(cur.spriteHit())
+	ret.setVblank(cur.vblank())
+
+
+	cur.setVblank(false)
 	p.CPU.clearNMIflag()
 	// TODO: emulate open bus?
-	return uint8(ppustatus)
+	return uint8(ret)
 }
 
 // PPUSCROLL: $2005
