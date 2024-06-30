@@ -226,31 +226,49 @@ func TestNametableMirroring(t *testing.T) {
 }
 
 func TestBlarggPPUtests(t *testing.T) {
-	romPath := filepath.Join(tests.RomsPath(t), "blargg_ppu_tests_2005.09.15b", "palette_ram.nes")
+	romsPath := tests.RomsPath(t)
 
-	rom, err := ines.ReadRom(romPath)
-	if err != nil {
-		t.Fatal(err)
+	tcases := []struct {
+		rom      string
+		frameIdx []int
+	}{
+		{
+			rom:      "palette_ram.nes",
+			frameIdx: []int{9},
+		},
+		{
+			rom:      "power_up_palette.nes",
+			frameIdx: []int{9},
+		},
 	}
-	nes, err := PowerUp(rom)
-	if err != nil {
-		t.Fatal(err)
+	for _, tt := range tcases {
+		t.Run(tt.rom, func(t *testing.T) {
+			romPath := filepath.Join(romsPath, "blargg_ppu_tests_2005.09.15b", tt.rom)
+			rom, err := ines.ReadRom(romPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			nes, err := PowerUp(rom)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			frames := make(chan image.RGBA)
+			out := hw.NewOutput(hw.OutputConfig{
+				Width:           256,
+				Height:          240,
+				NumVideoBuffers: 2,
+				FrameOutCh:      frames,
+			})
+
+			go nes.Run(out)
+
+			paths, err := saveFrames(frames, romPath, tt.frameIdx...)
+			if err != nil {
+				t.Fatalf("failed to save frames: %v", err)
+			}
+
+			diffFrames(t, paths)
+		})
 	}
-
-	frames := make(chan image.RGBA)
-	out := hw.NewOutput(hw.OutputConfig{
-		Width:           256,
-		Height:          240,
-		NumVideoBuffers: 2,
-		FrameOutCh:      frames,
-	})
-
-	go nes.Run(out)
-
-	paths, err := saveFrames(frames, romPath, 5)
-	if err != nil {
-		t.Fatalf("failed to save frames: %v", err)
-	}
-
-	diffFrames(t, paths)
 }
