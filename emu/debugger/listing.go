@@ -97,7 +97,7 @@ func (l *listing) Layout(gtx C, stat status) D {
 			// continuer here
 
 			op := l.cpu.Disasm(curpc)
-			curpc += uint16(len(op.Bytes))
+			curpc += uint16(len(op.Buf))
 
 			if l.pc == curpc {
 				l.list.Selected = i
@@ -130,7 +130,7 @@ func (l *listing) Layout(gtx C, stat status) D {
 				}),
 				layout.Rigid(func(gtx C) D {
 					var sb strings.Builder
-					for _, b := range op.Bytes {
+					for _, b := range op.Buf {
 						fmt.Fprintf(&sb, "%02X ", b)
 					}
 

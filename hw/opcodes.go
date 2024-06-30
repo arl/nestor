@@ -3655,7 +3655,7 @@ func disasmAbs(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0, oper1, oper2},
+		Buf:  []byte{oper0, oper1, oper2},
 		Oper:   fmt.Sprintf("$%04X", uint16(oper1)|uint16(oper2)<<8),
 	}
 }
@@ -3667,7 +3667,7 @@ func disasmAbx(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0, oper1, oper2},
+		Buf:  []byte{oper0, oper1, oper2},
 		Oper:   fmt.Sprintf("$%04X,X", uint16(oper1)|uint16(oper2)<<8),
 	}
 }
@@ -3679,7 +3679,7 @@ func disasmAby(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0, oper1, oper2},
+		Buf:  []byte{oper0, oper1, oper2},
 		Oper:   fmt.Sprintf("$%04X,Y", uint16(oper1)|uint16(oper2)<<8),
 	}
 }
@@ -3689,7 +3689,7 @@ func disasmAcc(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0},
+		Buf:  []byte{oper0},
 		Oper:   "A",
 	}
 }
@@ -3700,7 +3700,7 @@ func disasmImm(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0, oper1},
+		Buf:  []byte{oper0, oper1},
 		Oper:   fmt.Sprintf("#$%02X", oper1),
 	}
 }
@@ -3710,7 +3710,7 @@ func disasmImp(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0},
+		Buf:  []byte{oper0},
 	}
 }
 
@@ -3721,7 +3721,7 @@ func disasmInd(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0, oper1, oper2},
+		Buf:  []byte{oper0, oper1, oper2},
 		Oper:   fmt.Sprintf("($%04X)", uint16(oper1)|uint16(oper2)<<8),
 	}
 }
@@ -3732,7 +3732,7 @@ func disasmIzx(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0, oper1},
+		Buf:  []byte{oper0, oper1},
 		Oper:   fmt.Sprintf("($%02X,X)", oper1),
 	}
 }
@@ -3743,7 +3743,7 @@ func disasmIzy(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0, oper1},
+		Buf:  []byte{oper0, oper1},
 		Oper:   fmt.Sprintf("($%02X),Y", oper1),
 	}
 }
@@ -3754,7 +3754,7 @@ func disasmRel(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0, oper1},
+		Buf:  []byte{oper0, oper1},
 		Oper:   fmt.Sprintf("$%04X", uint16(int16(pc+2)+int16(int8(oper1)))),
 	}
 }
@@ -3765,7 +3765,7 @@ func disasmZpg(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0, oper1},
+		Buf:  []byte{oper0, oper1},
 		Oper:   fmt.Sprintf("$%02X", oper1),
 	}
 }
@@ -3776,7 +3776,7 @@ func disasmZpx(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0, oper1},
+		Buf:  []byte{oper0, oper1},
 		Oper:   fmt.Sprintf("$%02X", oper1),
 	}
 }
@@ -3787,7 +3787,7 @@ func disasmZpy(cpu *CPU, pc uint16) DisasmOp {
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Bytes:  []byte{oper0, oper1},
+		Buf:  []byte{oper0, oper1},
 		Oper:   fmt.Sprintf("$%02X", oper1),
 	}
 }
