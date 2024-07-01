@@ -522,11 +522,13 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 	val := p.ppuDataRbuf
 	p.ppuDataRbuf = p.Read8(p.vramAddr.addr())
 
-	if p.busAddr >= 0x3F00 {
-		// Reading palette data is immediate.
-		// val = p.Read8(p.vramAddr.addr())
-		// Still it overwrites the read buffer.
-		val = p.readPalette(p.busAddr)
+	if p.busAddr&0x3FFF >= 0x3F00 {
+		// This is a palette read, they're immediate but they still overwrite
+		// the read buffer, on which we apply mirroring (ignor bit 12 of the
+		// vram address). (passes Blargg's vram_access test)
+		val = (p.readPalette(p.busAddr) & 0x3F)
+		const mask uint16 = 1 << 12
+		p.ppuDataRbuf = p.Bus.Read8(p.busAddr & ^mask)
 	}
 
 	p.vramIncr()
