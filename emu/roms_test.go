@@ -239,6 +239,10 @@ func TestBlarggPPUtests(t *testing.T) {
 			rom:      "vram_access.nes",
 			frameIdx: []int{9},
 		},
+		{
+			rom:      "sprite_ram.nes",
+			frameIdx: []int{10},
+		},
 	}
 	for _, tt := range tcases {
 		t.Run(tt.rom, func(t *testing.T) {

@@ -44,7 +44,7 @@ type CPU struct {
 
 // NewCPU creates a new CPU at power-up state.
 func NewCPU(ppu *PPU) *CPU {
-	return &CPU{
+	cpu := &CPU{
 		Bus: hwio.NewTable("cpu"),
 		A:   0x00,
 		X:   0x00,
@@ -54,6 +54,8 @@ func NewCPU(ppu *PPU) *CPU {
 		PC:  0x0000,
 		ppu: ppu,
 	}
+	cpu.ppuDMA.cpu = cpu
+	return cpu
 }
 
 func (c *CPU) PlugInputDevice(device InputDevice) {
@@ -77,7 +79,7 @@ func (c *CPU) InitBus() {
 	}
 
 	// Map PPU OAMDMA register.
-	c.ppuDMA.InitBus(c.Bus, c.ppu.oamMem[:])
+	c.ppuDMA.InitBus(c.Bus)
 	c.Bus.MapBank(0x4014, &c.ppuDMA, 0)
 
 	c.input.initBus()
@@ -151,8 +153,6 @@ func (c *CPU) tick() {
 		return
 	}
 
-	c.processDMA()
-
 	c.ppu.Tick()
 	c.ppu.Tick()
 	c.ppu.Tick()
@@ -161,6 +161,7 @@ func (c *CPU) tick() {
 
 func (c *CPU) Read8(addr uint16) uint8 {
 	c.tick()
+	c.dmaTransfer()
 	val := c.Bus.Read8(addr)
 	c.handleInterrupts()
 	return val
@@ -212,7 +213,7 @@ func (c *CPU) pull16() uint16 {
 
 /* DMA */
 
-func (c *CPU) processDMA() {
+func (c *CPU) dmaTransfer() {
 	c.ppuDMA.process(c.Clock)
 }
 
