@@ -23,6 +23,8 @@ type PPU struct {
 	Cycle    int // Current cycle/pixel in scanline
 	Scanline int // Current scanline being drawn
 
+	preventVblank bool
+
 	//	$0000-$0FFF	$1000	Pattern table 0
 	//	$1000-$1FFF	$1000	Pattern table 1
 	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000,wcb"`
@@ -104,6 +106,7 @@ func (p *PPU) Reset() {
 	p.PPUMASK.Value = 0
 	p.PPUSTATUS.Value = 0
 	p.oddFrame = false
+	p.preventVblank = false
 
 	for i := range p.Nametables {
 		p.Nametables[i] = 0xff
@@ -149,13 +152,17 @@ func (p *PPU) doScanline(sm scanlineMode) {
 	switch sm {
 	case vblankNMI:
 		if p.Cycle == 1 {
-			ppustatus := ppustatus(p.PPUSTATUS.Value)
-			ppustatus.setVblank(true)
-			p.PPUSTATUS.Value = uint8(ppustatus)
-			if ppuctrl(p.PPUCTRL.Value).nmi() {
-				p.CPU.setNMIflag()
-				log.ModPPU.DebugZ("Set NMI flag").End()
+			if !p.preventVblank {
+				ppustatus := ppustatus(p.PPUSTATUS.Value)
+				ppustatus.setVblank(true)
+				p.PPUSTATUS.Value = uint8(ppustatus)
+
+				if ppuctrl(p.PPUCTRL.Value).nmi() {
+					p.CPU.setNMIflag()
+					log.ModPPU.DebugZ("Set NMI flag").End()
+				}
 			}
+			p.preventVblank = false
 		}
 	case postRender:
 		// nothing to do
@@ -481,9 +488,19 @@ func (p *PPU) ReadPPUSTATUS(val uint8) uint8 {
 	ret.setSpriteHit(cur.spriteHit())
 	ret.setVblank(cur.vblank())
 
-
 	cur.setVblank(false)
 	p.CPU.clearNMIflag()
+
+	if p.Scanline == 241 && p.Cycle == 0 {
+		// From https://www.nesdev.org/wiki/PPU_registers#PPUSTATUS (notes):
+		// Race Condition Warning: Reading PPUSTATUS within two cycles of the
+		// start of vertical blank will return 0 in bit 7 but clear the latch
+		// anyway, causing NMI to not occur that frame.
+		p.preventVblank = true
+	}
+
+	p.PPUSTATUS.Value = uint8(cur)
+
 	// TODO: emulate open bus?
 	return uint8(ret)
 }

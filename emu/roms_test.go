@@ -223,30 +223,18 @@ func TestNametableMirroring(t *testing.T) {
 func TestBlarggPPUtests(t *testing.T) {
 	romsPath := tests.RomsPath(t)
 
-	tcases := []struct {
-		rom      string
-		frameIdx []int
-	}{
-		{
-			rom:      "palette_ram.nes",
-			frameIdx: []int{9},
-		},
-		{
-			rom:      "power_up_palette.nes",
-			frameIdx: []int{9},
-		},
-		{
-			rom:      "vram_access.nes",
-			frameIdx: []int{9},
-		},
-		{
-			rom:      "sprite_ram.nes",
-			frameIdx: []int{10},
-		},
+	const frameidx = 25
+
+	roms := []string{
+		"palette_ram.nes",
+		"power_up_palette.nes",
+		"vram_access.nes",
+		"sprite_ram.nes",
+		"vbl_clear_time.nes",
 	}
-	for _, tt := range tcases {
-		t.Run(tt.rom, func(t *testing.T) {
-			romPath := filepath.Join(romsPath, "blargg_ppu_tests_2005.09.15b", tt.rom)
+	for _, rom := range roms {
+		t.Run(rom, func(t *testing.T) {
+			romPath := filepath.Join(romsPath, "blargg_ppu_tests_2005.09.15b", rom)
 			rom, err := ines.ReadRom(romPath)
 			if err != nil {
 				t.Fatal(err)
@@ -266,7 +254,7 @@ func TestBlarggPPUtests(t *testing.T) {
 
 			go nes.Run(out)
 
-			paths, err := saveFrames(frames, romPath, tt.frameIdx...)
+			paths, err := saveFrames(frames, romPath, frameidx)
 			if err != nil {
 				t.Fatalf("failed to save frames: %v", err)
 			}
