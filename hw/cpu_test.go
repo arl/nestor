@@ -57,23 +57,3 @@ func TestPString(t *testing.T) {
 		t.Errorf("got P = %s, want %s", p.String(), "nvubdIzc")
 	}
 }
-
-func BenchmarkDisasmOpString(b *testing.B) {
-	const want = `C000  4C F5 C5  JMP $C5F5`
-
-	op := DisasmOp{
-		Opcode: " JMP",
-		Oper:   "$C5F5",
-		Bytes:  []byte{0x4c, 0xf5, 0xc5},
-		PC:     0xC000,
-	}
-
-	opstr := ""
-	for range b.N {
-		opstr = op.String()
-	}
-
-	if opstr != want {
-		b.Fatalf("\ngot:  \"%s\"\nwant: \"%s\"\n", opstr, want)
-	}
-}

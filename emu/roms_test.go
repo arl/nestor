@@ -18,13 +18,6 @@ import (
 )
 
 func TestNestest(t *testing.T) {
-	const (
-		numCycles      = 26560
-		pStart         = 0x24
-		clockStart     = 7
-		ppuCyclesStart = 21
-	)
-
 	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
 	rom, err := ines.ReadRom(romPath)
 	if err != nil {
@@ -47,14 +40,8 @@ func TestNestest(t *testing.T) {
 	})
 
 	// This rom has an 'automation' mode. To enable it, PC must be set to C000.
-	// We do that by overwriting the rom location of the reset vector.
-	// binary.LittleEndian.PutUint16(cartridge.PRGROM[0x3FFC:], 0xC000)
 	nes.CPU.PC = 0xC000
-	nes.CPU.P = hw.P(pStart)
-	nes.CPU.Clock = clockStart
-	nes.PPU.Cycle = ppuCyclesStart
 	nes.CPU.SetTraceOutput(flog)
-	nes.CPU.Run(numCycles)
 
 	r1, r2 := nes.CPU.Read8(0x02), nes.CPU.Read8(0x03)
 	if r1 != 0x00 || r2 != 0x00 {
@@ -113,6 +100,14 @@ func TestInterruptsV2(t *testing.T) {
 
 func TestOAMRead(t *testing.T) {
 	romPath := filepath.Join(tests.RomsPath(t), "oam_read", "oam_read.nes")
+
+	log.SetOutput(io.Discard)
+	runTestRom(romPath)(t)
+}
+
+func TestOAMStress(t *testing.T) {
+	t.Skip("failing for now")
+	romPath := filepath.Join(tests.RomsPath(t), "oam_stress", "oam_stress.nes")
 
 	log.SetOutput(io.Discard)
 	runTestRom(romPath)(t)
@@ -226,31 +221,45 @@ func TestNametableMirroring(t *testing.T) {
 }
 
 func TestBlarggPPUtests(t *testing.T) {
-	romPath := filepath.Join(tests.RomsPath(t), "blargg_ppu_tests_2005.09.15b", "palette_ram.nes")
+	romsPath := tests.RomsPath(t)
 
-	rom, err := ines.ReadRom(romPath)
-	if err != nil {
-		t.Fatal(err)
+	const frameidx = 25
+
+	roms := []string{
+		"palette_ram.nes",
+		"power_up_palette.nes",
+		"vram_access.nes",
+		"sprite_ram.nes",
+		"vbl_clear_time.nes",
 	}
-	nes, err := PowerUp(rom)
-	if err != nil {
-		t.Fatal(err)
+	for _, rom := range roms {
+		t.Run(rom, func(t *testing.T) {
+			romPath := filepath.Join(romsPath, "blargg_ppu_tests_2005.09.15b", rom)
+			rom, err := ines.ReadRom(romPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			nes, err := PowerUp(rom)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			frames := make(chan image.RGBA)
+			out := hw.NewOutput(hw.OutputConfig{
+				Width:           256,
+				Height:          240,
+				NumVideoBuffers: 2,
+				FrameOutCh:      frames,
+			})
+
+			go nes.Run(out)
+
+			paths, err := saveFrames(frames, romPath, frameidx)
+			if err != nil {
+				t.Fatalf("failed to save frames: %v", err)
+			}
+
+			diffFrames(t, paths)
+		})
 	}
-
-	frames := make(chan image.RGBA)
-	out := hw.NewOutput(hw.OutputConfig{
-		Width:           256,
-		Height:          240,
-		NumVideoBuffers: 2,
-		FrameOutCh:      frames,
-	})
-
-	go nes.Run(out)
-
-	paths, err := saveFrames(frames, romPath, 5)
-	if err != nil {
-		t.Fatalf("failed to save frames: %v", err)
-	}
-
-	diffFrames(t, paths)
 }

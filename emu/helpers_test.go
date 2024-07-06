@@ -15,36 +15,34 @@ import (
 var updateGolden = flag.Bool("update", false, "update golden files")
 
 func diffFrames(t *testing.T, paths []string) {
-	for i := range paths {
-		got, err := os.ReadFile(paths[i])
+	for _, path := range paths {
+		got, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
 		}
 
+		ext := filepath.Ext(path)
+		golden := path[:len(path)-len(ext)] + ".golden.png"
+
 		if *updateGolden {
-			if err := os.WriteFile(paths[i]+".golden", got, 0644); err != nil {
+			if err := os.WriteFile(golden, got, 0644); err != nil {
 				t.Fatal(err)
 			}
 			return
 		}
 
-		want, err := os.ReadFile(paths[i] + ".golden")
+		want, err := os.ReadFile(golden)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if !bytes.Equal(got, want) {
-			t.Fatalf("frame %d differs. check %s", i, paths[i])
+			t.Fatalf("frame differs. check %s", path)
 		}
 
-		if err := os.Remove(paths[i]); err != nil {
-			t.Logf("failed to remove %s: %v", paths[i], err)
+		if err := os.Remove(path); err != nil {
+			t.Logf("failed to remove %s: %v", path, err)
 		}
 	}
-}
-
-func goldenPathIndex(idx int, path, ext string) string {
-	_, fn := filepath.Split(path)
-	return fmt.Sprintf("%s-%02d.%s", fn[:len(fn)-len(filepath.Ext(fn))], idx, ext)
 }
 
 // saveFrames reads the frames from the channel and saves the frames with the
@@ -60,7 +58,11 @@ func saveFrames(frames <-chan image.RGBA, path string, indices ...int) ([]string
 			continue
 		}
 
-		fn := filepath.Join("testdata", goldenPathIndex(i, path, "png"))
+		_, file := filepath.Split(path)
+		ext := filepath.Ext(file)
+		fn := fmt.Sprintf("%s.%03d.png", file[:len(file)-len(ext)], i)
+		fn = filepath.Join("testdata", fn)
+
 		f, err := os.Create(fn)
 		if err != nil {
 			return nil, err
