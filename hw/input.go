@@ -55,6 +55,13 @@ func (ip *InputPorts) regval(port uint8) uint8 {
 
 // capture state of all connected input devices.
 func (ip *InputPorts) loadstate() {
+	if ip.dev == nil {
+		// No controller is connected.
+		ip.state[0] = 0x40
+		ip.state[1] = 0x40
+		return
+	}
+
 	ip.state[0], ip.state[1] = ip.dev.LoadState()
 }
 
