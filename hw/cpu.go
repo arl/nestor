@@ -3,11 +3,8 @@ package hw
 //go:generate go run ./cpugen/gen_nes6502.go -out ./opcodes.go
 
 import (
-	"bytes"
-	"fmt"
 	"io"
 	"nestor/emu/hwio"
-	"strings"
 )
 
 // Locations reserved for vector pointers.
@@ -47,7 +44,7 @@ type CPU struct {
 
 // NewCPU creates a new CPU at power-up state.
 func NewCPU(ppu *PPU) *CPU {
-	return &CPU{
+	cpu := &CPU{
 		Bus: hwio.NewTable("cpu"),
 		A:   0x00,
 		X:   0x00,
@@ -57,6 +54,8 @@ func NewCPU(ppu *PPU) *CPU {
 		PC:  0x0000,
 		ppu: ppu,
 	}
+	cpu.ppuDMA.cpu = cpu
+	return cpu
 }
 
 func (c *CPU) PlugInputDevice(device InputDevice) {
@@ -64,7 +63,7 @@ func (c *CPU) PlugInputDevice(device InputDevice) {
 }
 
 func (c *CPU) SetTraceOutput(w io.Writer) {
-	c.tracer = &tracer{w: w, cpu: c}
+	c.tracer = &tracer{w: w, d: c}
 }
 
 func (c *CPU) InitBus() {
@@ -80,7 +79,7 @@ func (c *CPU) InitBus() {
 	}
 
 	// Map PPU OAMDMA register.
-	c.ppuDMA.InitBus(c.Bus, c.ppu.oamMem[:])
+	c.ppuDMA.InitBus(c.Bus)
 	c.Bus.MapBank(0x4014, &c.ppuDMA, 0)
 
 	c.input.initBus()
@@ -115,7 +114,6 @@ func (c *CPU) Reset() {
 	for i := 0; i < 8; i++ {
 		c.tick()
 	}
-	c.tick()
 }
 
 func (c *CPU) setNMIflag()   { c.nmiFlag = true }
@@ -127,7 +125,17 @@ func (c *CPU) Run(ncycles int64) {
 		opcode := c.Read8(c.PC)
 
 		if c.tracer != nil {
-			c.tracer.write()
+			c.tracer.write(cpuState{
+				A:        c.A,
+				X:        c.X,
+				Y:        c.Y,
+				P:        c.P,
+				SP:       c.SP,
+				Clock:    c.Clock,
+				PPUCycle: c.ppu.Cycle,
+				Scanline: c.ppu.Scanline,
+				PC:       c.PC,
+			})
 		}
 		c.dbg.Trace(c.PC)
 		c.PC++
@@ -145,8 +153,6 @@ func (c *CPU) tick() {
 		return
 	}
 
-	c.processDMA()
-
 	c.ppu.Tick()
 	c.ppu.Tick()
 	c.ppu.Tick()
@@ -155,6 +161,7 @@ func (c *CPU) tick() {
 
 func (c *CPU) Read8(addr uint16) uint8 {
 	c.tick()
+	c.dmaTransfer()
 	val := c.Bus.Read8(addr)
 	c.handleInterrupts()
 	return val
@@ -206,7 +213,7 @@ func (c *CPU) pull16() uint16 {
 
 /* DMA */
 
-func (c *CPU) processDMA() {
+func (c *CPU) dmaTransfer() {
 	c.ppuDMA.process(c.Clock)
 }
 
@@ -289,65 +296,4 @@ func (cpu *CPU) SetDebugger(dbg Debugger) {
 func (cpu *CPU) Disasm(pc uint16) DisasmOp {
 	opcode := cpu.Bus.Peek8(pc)
 	return disasmOps[opcode](cpu, pc)
-}
-
-// cpuState stores the CPU state for the execution trace.
-type cpuState struct {
-	A, X, Y uint8
-	P       P
-	SP      uint8
-	PC      uint16
-
-	Clock    int64
-	PPUCycle int
-	Scanline int
-}
-
-type tracer struct {
-	cpu *CPU
-	w   io.Writer
-	buf bytes.Buffer
-}
-
-// write the execution trace for current cycle.
-func (t *tracer) write() {
-	state := cpuState{
-		A:        t.cpu.A,
-		X:        t.cpu.X,
-		Y:        t.cpu.Y,
-		P:        t.cpu.P,
-		SP:       t.cpu.SP,
-		Clock:    t.cpu.Clock,
-		PPUCycle: t.cpu.ppu.Cycle,
-		Scanline: t.cpu.ppu.Scanline,
-		PC:       t.cpu.PC,
-	}
-
-	dis := t.cpu.Disasm(state.PC)
-	fmt.Fprintf(&t.buf, "%-30s A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3d,%3d CYC:%d\n",
-		dis.String(), state.A, state.X, state.Y, byte(state.P), state.SP,
-		state.Scanline, state.PPUCycle, state.Clock)
-
-	t.buf.WriteTo(t.w) // WriteTo also resets the buffer.
-}
-
-type DisasmOp struct {
-	Opcode string
-	Oper   string
-	Bytes  []byte
-	PC     uint16
-}
-
-func (d DisasmOp) String() string {
-	// C000  4C F5 C5  JMP $C5F5
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "%04X ", d.PC)
-	for _, b := range d.Bytes {
-		fmt.Fprintf(&sb, " %02X ", b)
-	}
-	fmt.Fprintf(&sb, "%*s", 17-sb.Len(), "")
-	sb.WriteString(d.Opcode)
-	sb.WriteByte(' ')
-	sb.WriteString(d.Oper)
-	return sb.String()
 }

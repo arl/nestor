@@ -1,6 +1,8 @@
 package hw
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestPflag(t *testing.T) {
 	p := P(0x40)

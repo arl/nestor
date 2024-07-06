@@ -23,6 +23,8 @@ type PPU struct {
 	Cycle    int // Current cycle/pixel in scanline
 	Scanline int // Current scanline being drawn
 
+	preventVblank bool
+
 	//	$0000-$0FFF	$1000	Pattern table 0
 	//	$1000-$1FFF	$1000	Pattern table 1
 	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000,wcb"`
@@ -86,6 +88,13 @@ func (p *PPU) SetFrameBuffer(framebuf []byte) {
 func (p *PPU) InitBus() {
 	hwio.MustInitRegs(p)
 	p.Bus.MapBank(0x0000, p, 0)
+
+	// At power up, palette ram is pre-filled. Use Blargg's NES values.
+	bootPalette := [0x20]byte{
+		0x09, 0x01, 0x00, 0x01, 0x00, 0x02, 0x02, 0x0D, 0x08, 0x10, 0x08, 0x24, 0x00, 0x00, 0x04, 0x2C,
+		0x09, 0x01, 0x34, 0x03, 0x00, 0x04, 0x00, 0x14, 0x08, 0x3A, 0x00, 0x02, 0x00, 0x20, 0x2C, 0x08,
+	}
+	copy(p.Palettes.Data, bootPalette[:])
 }
 
 func (p *PPU) Reset() {
@@ -97,6 +106,7 @@ func (p *PPU) Reset() {
 	p.PPUMASK.Value = 0
 	p.PPUSTATUS.Value = 0
 	p.oddFrame = false
+	p.preventVblank = false
 
 	for i := range p.Nametables {
 		p.Nametables[i] = 0xff
@@ -142,13 +152,17 @@ func (p *PPU) doScanline(sm scanlineMode) {
 	switch sm {
 	case vblankNMI:
 		if p.Cycle == 1 {
-			ppustatus := ppustatus(p.PPUSTATUS.Value)
-			ppustatus.setVblank(true)
-			p.PPUSTATUS.Value = uint8(ppustatus)
-			if ppuctrl(p.PPUCTRL.Value).nmi() {
-				p.CPU.setNMIflag()
-				log.ModPPU.DebugZ("Set NMI flag").End()
+			if !p.preventVblank {
+				ppustatus := ppustatus(p.PPUSTATUS.Value)
+				ppustatus.setVblank(true)
+				p.PPUSTATUS.Value = uint8(ppustatus)
+
+				if ppuctrl(p.PPUCTRL.Value).nmi() {
+					p.CPU.setNMIflag()
+					log.ModPPU.DebugZ("Set NMI flag").End()
+				}
 			}
+			p.preventVblank = false
 		}
 	case postRender:
 		// nothing to do
@@ -440,10 +454,14 @@ func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
 func (p *PPU) WritePPUCTRL(old, val uint8) {
 	log.ModPPU.DebugZ("Write to PPUCTRL").Hex8("val", val).End()
 
+	ppuctrl := ppuctrl(val)
+
+	// Transfer the nametable bits.
+	p.vramTmp.setNametable(ppuctrl.nametable())
+
 	// By toggling the nmi bit (bit 7 of PPUCTRL) during vblank without reading
 	// PPUSTATUS, a program can cause /nmi to be pulled low multiple times,
 	// causing multiple NMIs to be generated.
-	ppuctrl := ppuctrl(val)
 	ppustatus := ppustatus(p.PPUSTATUS.Value)
 	if !ppuctrl.nmi() {
 		p.CPU.clearNMIflag()
@@ -451,8 +469,7 @@ func (p *PPU) WritePPUCTRL(old, val uint8) {
 		p.CPU.setNMIflag()
 	}
 
-	// Transfer the nametable bits.
-	p.vramTmp.setNametable(ppuctrl.nametable())
+	p.PPUCTRL.Value = uint8(ppuctrl)
 }
 
 // PPUMASK: $2001
@@ -464,14 +481,28 @@ func (p *PPU) WritePPUMASK(old, val uint8) {
 func (p *PPU) ReadPPUSTATUS(val uint8) uint8 {
 	p.writeLatch = false
 
-	ppustatus := ppustatus(val)
-	ppustatus.setSpriteOverflow(true)
-	ppustatus.setSpriteHit(true)
-	ppustatus.setVblank(true)
+	cur := ppustatus(val)
 
+	ret := ppustatus(0)
+	ret.setSpriteOverflow(cur.spriteOverflow())
+	ret.setSpriteHit(cur.spriteHit())
+	ret.setVblank(cur.vblank())
+
+	cur.setVblank(false)
 	p.CPU.clearNMIflag()
+
+	if p.Scanline == 241 && p.Cycle == 0 {
+		// From https://www.nesdev.org/wiki/PPU_registers#PPUSTATUS (notes):
+		// Race Condition Warning: Reading PPUSTATUS within two cycles of the
+		// start of vertical blank will return 0 in bit 7 but clear the latch
+		// anyway, causing NMI to not occur that frame.
+		p.preventVblank = true
+	}
+
+	p.PPUSTATUS.Value = uint8(cur)
+
 	// TODO: emulate open bus?
-	return uint8(ppustatus)
+	return uint8(ret)
 }
 
 // PPUSCROLL: $2005
@@ -508,11 +539,13 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 	val := p.ppuDataRbuf
 	p.ppuDataRbuf = p.Read8(p.vramAddr.addr())
 
-	if p.busAddr >= 0x3F00 {
-		// Reading palette data is immediate.
-		// val = p.Read8(p.vramAddr.addr())
-		// Still it overwrites the read buffer.
-		val = p.readPalette(p.busAddr)
+	if p.busAddr&0x3FFF >= 0x3F00 {
+		// This is a palette read, they're immediate but they still overwrite
+		// the read buffer, on which we apply mirroring (ignor bit 12 of the
+		// vram address). (passes Blargg's vram_access test)
+		val = (p.readPalette(p.busAddr) & 0x3F)
+		const mask uint16 = 1 << 12
+		p.ppuDataRbuf = p.Bus.Read8(p.busAddr & ^mask)
 	}
 
 	p.vramIncr()
