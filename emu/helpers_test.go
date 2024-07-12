@@ -1,7 +1,6 @@
 package emu
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"image"
@@ -10,38 +9,58 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 var updateGolden = flag.Bool("update", false, "update golden files")
 
+func CompareFileWithGolden(t *testing.T, gotfile, filename string, update bool) {
+	got, err := os.ReadFile(gotfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	CompareWithGolden(t, string(got), filename, update)
+}
+
+func CompareWithGolden(t *testing.T, got, filename string, update bool) {
+	t.Helper()
+	if update {
+		writeGolden(t, filename, got)
+	} else {
+		want := readGolden(t, filename)
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("%s: mismatch (-want, +got):\n%s", filename, diff)
+		}
+	}
+}
+
+func writeGolden(t *testing.T, name string, data string) {
+	if err := os.WriteFile(name, []byte(data), 0644); err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("wrote %s", name)
+}
+
+func readGolden(t *testing.T, name string) string {
+	data, err := os.ReadFile(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
+}
+
 func diffFrames(t *testing.T, paths []string) {
+	t.Helper()
 	for _, path := range paths {
+		ext := filepath.Ext(path)
+		want := path[:len(path)-len(ext)] + ".golden.png"
 		got, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		ext := filepath.Ext(path)
-		golden := path[:len(path)-len(ext)] + ".golden.png"
-
-		if *updateGolden {
-			if err := os.WriteFile(golden, got, 0644); err != nil {
-				t.Fatal(err)
-			}
-			return
-		}
-
-		want, err := os.ReadFile(golden)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(got, want) {
-			t.Fatalf("frame differs. check %s", path)
-		}
-
-		if err := os.Remove(path); err != nil {
-			t.Logf("failed to remove %s: %v", path, err)
-		}
+		CompareWithGolden(t, string(got), want, *updateGolden)
+		os.Remove(path)
 	}
 }
 
