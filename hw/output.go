@@ -9,6 +9,7 @@ type OutputConfig struct {
 	Height          int
 	NumVideoBuffers int
 
+	// Headless output: leave nil to read but discard all video frames.
 	FrameOutCh chan image.RGBA
 }
 
