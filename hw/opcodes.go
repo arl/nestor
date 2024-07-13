@@ -21,13 +21,9 @@ func opcode01(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
-// JAM - immediate addressing.
+// STP - implied addressing.
 func opcode02(cpu *CPU) {
-	oper := cpu.PC
-	cpu.PC++
-	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x02) called\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	cpu.doHalt = true
 }
 
 // SLO - indexed addressing (abs, X).
@@ -230,13 +226,9 @@ func opcode11(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
-// JAM - immediate addressing.
+// STP - implied addressing.
 func opcode12(cpu *CPU) {
-	oper := cpu.PC
-	cpu.PC++
-	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x12) called\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	cpu.doHalt = true
 }
 
 // SLO - indexed addressing (abs),Y.
@@ -453,13 +445,9 @@ func opcode21(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
-// JAM - immediate addressing.
+// STP - implied addressing.
 func opcode22(cpu *CPU) {
-	oper := cpu.PC
-	cpu.PC++
-	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x22) called\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	cpu.doHalt = true
 }
 
 // RLA - indexed addressing (abs, X).
@@ -687,13 +675,9 @@ func opcode31(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
-// JAM - immediate addressing.
+// STP - implied addressing.
 func opcode32(cpu *CPU) {
-	oper := cpu.PC
-	cpu.PC++
-	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x32) called\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	cpu.doHalt = true
 }
 
 // RLA - indexed addressing (abs),Y.
@@ -929,13 +913,9 @@ func opcode41(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
-// JAM - immediate addressing.
+// STP - implied addressing.
 func opcode42(cpu *CPU) {
-	oper := cpu.PC
-	cpu.PC++
-	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x42) called\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	cpu.doHalt = true
 }
 
 // SRE - indexed addressing (abs, X).
@@ -1150,13 +1130,9 @@ func opcode51(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
-// JAM - immediate addressing.
+// STP - implied addressing.
 func opcode52(cpu *CPU) {
-	oper := cpu.PC
-	cpu.PC++
-	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x52) called\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	cpu.doHalt = true
 }
 
 // SRE - indexed addressing (abs),Y.
@@ -1390,13 +1366,9 @@ func opcode61(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
-// JAM - immediate addressing.
+// STP - implied addressing.
 func opcode62(cpu *CPU) {
-	oper := cpu.PC
-	cpu.PC++
-	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x62) called\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	cpu.doHalt = true
 }
 
 // RRA - indexed addressing (abs, X).
@@ -1678,13 +1650,9 @@ func opcode71(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
-// JAM - immediate addressing.
+// STP - implied addressing.
 func opcode72(cpu *CPU) {
-	oper := cpu.PC
-	cpu.PC++
-	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x72) called\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	cpu.doHalt = true
 }
 
 // RRA - indexed addressing (abs),Y.
@@ -2123,13 +2091,9 @@ func opcode91(cpu *CPU) {
 	cpu.Write8(oper, cpu.A)
 }
 
-// JAM - immediate addressing.
+// STP - implied addressing.
 func opcode92(cpu *CPU) {
-	oper := cpu.PC
-	cpu.PC++
-	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0x92) called\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	cpu.doHalt = true
 }
 
 // SHA - indexed addressing (abs),Y.
@@ -2481,13 +2445,9 @@ func opcodeB1(cpu *CPU) {
 	cpu.P.checkNZ(val)
 }
 
-// JAM - immediate addressing.
+// STP - implied addressing.
 func opcodeB2(cpu *CPU) {
-	oper := cpu.PC
-	cpu.PC++
-	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0xB2) called\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	cpu.doHalt = true
 }
 
 // LAX - indexed addressing (abs),Y.
@@ -2890,13 +2850,9 @@ func opcodeD1(cpu *CPU) {
 	cpu.P.setCarry(val <= cpu.A)
 }
 
-// JAM - immediate addressing.
+// STP - implied addressing.
 func opcodeD2(cpu *CPU) {
-	oper := cpu.PC
-	cpu.PC++
-	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0xD2) called\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	cpu.doHalt = true
 }
 
 // DCP - indexed addressing (abs),Y.
@@ -3116,7 +3072,7 @@ func opcodeE2(cpu *CPU) {
 	cpu.tick()
 }
 
-// ISB - indexed addressing (abs, X).
+// ISC - indexed addressing (abs, X).
 func opcodeE3(cpu *CPU) {
 	cpu.tick()
 	oper := uint16(cpu.Read8(cpu.PC))
@@ -3184,7 +3140,7 @@ func opcodeE6(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// ISB - zero page addressing.
+// ISC - zero page addressing.
 func opcodeE7(cpu *CPU) {
 	oper := uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
@@ -3292,7 +3248,7 @@ func opcodeEE(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// ISB - absolute addressing.
+// ISC - absolute addressing.
 func opcodeEF(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
 	cpu.PC += 2
@@ -3363,16 +3319,12 @@ func opcodeF1(cpu *CPU) {
 	cpu.P.checkNZ(cpu.A)
 }
 
-// JAM - immediate addressing.
+// STP - implied addressing.
 func opcodeF2(cpu *CPU) {
-	oper := cpu.PC
-	cpu.PC++
-	_ = oper
-	msg := fmt.Sprintf("Halt and catch fire!\nJAM(0xF2) called\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	cpu.doHalt = true
 }
 
-// ISB - indexed addressing (abs),Y.
+// ISC - indexed addressing (abs),Y.
 func opcodeF3(cpu *CPU) {
 	// extra cycle always
 	oper := uint16(cpu.Read8(cpu.PC))
@@ -3448,7 +3400,7 @@ func opcodeF6(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// ISB - indexed addressing: zeropage,X.
+// ISC - indexed addressing: zeropage,X.
 func opcodeF7(cpu *CPU) {
 	cpu.tick()
 	addr := cpu.Read8(cpu.PC)
@@ -3507,7 +3459,7 @@ func opcodeFA(cpu *CPU) {
 	cpu.tick()
 }
 
-// ISB - absolute indexed Y.
+// ISC - absolute indexed Y.
 func opcodeFB(cpu *CPU) {
 	// default
 	cpu.tick()
@@ -3580,7 +3532,7 @@ func opcodeFE(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// ISB - absolute indexed X.
+// ISC - absolute indexed X.
 func opcodeFF(cpu *CPU) {
 	cpu.tick()
 	oper := cpu.Read16(cpu.PC)
@@ -3607,25 +3559,25 @@ func opcodeFF(cpu *CPU) {
 
 // list of unstable opcodes (unsupported)
 var unstableOps = [256]uint8{
-	0x02: 1, // JAM
-	0x12: 1, // JAM
-	0x22: 1, // JAM
-	0x32: 1, // JAM
-	0x42: 1, // JAM
-	0x52: 1, // JAM
-	0x62: 1, // JAM
-	0x72: 1, // JAM
+	0x02: 1, // STP
+	0x12: 1, // STP
+	0x22: 1, // STP
+	0x32: 1, // STP
+	0x42: 1, // STP
+	0x52: 1, // STP
+	0x62: 1, // STP
+	0x72: 1, // STP
 	0x8B: 1, // ANE
-	0x92: 1, // JAM
+	0x92: 1, // STP
 	0x93: 1, // SHA
 	0x9B: 1, // TAS
 	0x9C: 1, // SHY
 	0x9E: 1, // SHX
 	0x9F: 1, // SHA
 	0xAB: 1, // LXA
-	0xB2: 1, // JAM
-	0xD2: 1, // JAM
-	0xF2: 1, // JAM
+	0xB2: 1, // STP
+	0xD2: 1, // STP
+	0xF2: 1, // STP
 }
 
 // nes 6502 opcodes table
@@ -3652,11 +3604,22 @@ func disasmAbs(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
 	oper1 := cpu.Bus.Peek8(pc + 1)
 	oper2 := cpu.Bus.Peek8(pc + 2)
+	operaddr := uint16(oper1) | uint16(oper2)<<8
+	oper := ""
+
+	if oper0 == 0x20 || oper0 == 0x4C {
+		// JSR / JMP
+		oper = fmt.Sprintf("$%04X", operaddr)
+	} else {
+		pointee := cpu.Bus.Peek8(operaddr)
+		oper = fmt.Sprintf("$%04X = $%02X", operaddr, pointee)
+	}
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0, oper1, oper2},
-		Oper:   fmt.Sprintf("$%04X", uint16(oper1)|uint16(oper2)<<8),
+		Buf:    []byte{oper0, oper1, oper2},
+		Oper:   oper,
 	}
 }
 
@@ -3664,11 +3627,17 @@ func disasmAbx(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
 	oper1 := cpu.Bus.Peek8(pc + 1)
 	oper2 := cpu.Bus.Peek8(pc + 2)
+	operaddr := uint16(oper1) | uint16(oper2)<<8
+	oper := ""
+
+	pointee := cpu.Bus.Peek8(operaddr + uint16(cpu.X))
+	oper = fmt.Sprintf("$%04X,X = $%02X", operaddr, pointee)
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0, oper1, oper2},
-		Oper:   fmt.Sprintf("$%04X,X", uint16(oper1)|uint16(oper2)<<8),
+		Buf:    []byte{oper0, oper1, oper2},
+		Oper:   oper,
 	}
 }
 
@@ -3676,41 +3645,58 @@ func disasmAby(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
 	oper1 := cpu.Bus.Peek8(pc + 1)
 	oper2 := cpu.Bus.Peek8(pc + 2)
+	operaddr := uint16(oper1) | uint16(oper2)<<8
+	oper := ""
+
+	pointee := cpu.Bus.Peek8(operaddr + uint16(cpu.Y))
+	oper = fmt.Sprintf("$%04X,Y = $%02X", operaddr, pointee)
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0, oper1, oper2},
-		Oper:   fmt.Sprintf("$%04X,Y", uint16(oper1)|uint16(oper2)<<8),
+		Buf:    []byte{oper0, oper1, oper2},
+		Oper:   oper,
 	}
 }
 
 func disasmAcc(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
+	oper := ""
+
+	oper = "A"
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0},
-		Oper:   "A",
+		Buf:    []byte{oper0},
+		Oper:   oper,
 	}
 }
 
 func disasmImm(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
 	oper1 := cpu.Bus.Peek8(pc + 1)
+	oper := ""
+
+	oper = fmt.Sprintf("#$%02X", oper1)
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0, oper1},
-		Oper:   fmt.Sprintf("#$%02X", oper1),
+		Buf:    []byte{oper0, oper1},
+		Oper:   oper,
 	}
 }
 
 func disasmImp(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
+	oper := ""
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0},
+		Buf:    []byte{oper0},
+		Oper:   oper,
 	}
 }
 
@@ -3718,115 +3704,168 @@ func disasmInd(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
 	oper1 := cpu.Bus.Peek8(pc + 1)
 	oper2 := cpu.Bus.Peek8(pc + 2)
+	operaddr := uint16(oper1) | uint16(oper2)<<8
+	oper := ""
+
+	lo := cpu.Bus.Peek8(operaddr)
+	// 2 bytes address wrap around
+	hi := cpu.Bus.Peek8((0xff00 & operaddr) | (0x00ff & (operaddr + 1)))
+	dest := uint16(hi)<<8 | uint16(lo)
+	pointee := cpu.Bus.Peek8(dest)
+	oper = fmt.Sprintf("($%04X) = $%02X", operaddr, pointee)
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0, oper1, oper2},
-		Oper:   fmt.Sprintf("($%04X)", uint16(oper1)|uint16(oper2)<<8),
+		Buf:    []byte{oper0, oper1, oper2},
+		Oper:   oper,
 	}
 }
 
 func disasmIzx(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
 	oper1 := cpu.Bus.Peek8(pc + 1)
+	oper := ""
+
+	addr := uint16(uint8(oper1) + cpu.X)
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Bus.Peek8(addr)
+	hi := cpu.Bus.Peek8(uint16(uint8(addr) + 1))
+	addr = uint16(hi)<<8 | uint16(lo)
+	pointee := cpu.Bus.Peek8(addr)
+	oper = fmt.Sprintf("($%02X,X) = $%02X", oper1, pointee)
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0, oper1},
-		Oper:   fmt.Sprintf("($%02X,X)", oper1),
+		Buf:    []byte{oper0, oper1},
+		Oper:   oper,
 	}
 }
 
 func disasmIzy(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
 	oper1 := cpu.Bus.Peek8(pc + 1)
+	oper := ""
+
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Bus.Peek8(uint16(oper1))
+	hi := cpu.Bus.Peek8(uint16(uint8(oper1) + 1))
+	addr := uint16(hi)<<8 | uint16(lo)
+	addr += uint16(cpu.Y)
+	pointee := cpu.Bus.Peek8(addr)
+	oper = fmt.Sprintf("($%02X),Y = $%02X", oper1, pointee)
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0, oper1},
-		Oper:   fmt.Sprintf("($%02X),Y", oper1),
+		Buf:    []byte{oper0, oper1},
+		Oper:   oper,
 	}
 }
 
 func disasmRel(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
 	oper1 := cpu.Bus.Peek8(pc + 1)
+	oper := ""
+
+	oper = fmt.Sprintf("$%04X", uint16(int16(pc+2)+int16(int8(oper1))))
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0, oper1},
-		Oper:   fmt.Sprintf("$%04X", uint16(int16(pc+2)+int16(int8(oper1)))),
+		Buf:    []byte{oper0, oper1},
+		Oper:   oper,
 	}
 }
 
 func disasmZpg(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
 	oper1 := cpu.Bus.Peek8(pc + 1)
+	oper := ""
+
+	pointee := cpu.Bus.Peek8(uint16(oper1))
+	oper = fmt.Sprintf("$%02X = $%02X", oper1, pointee)
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0, oper1},
-		Oper:   fmt.Sprintf("$%02X", oper1),
+		Buf:    []byte{oper0, oper1},
+		Oper:   oper,
 	}
 }
 
 func disasmZpx(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
 	oper1 := cpu.Bus.Peek8(pc + 1)
+	oper := ""
+
+	addr := uint16(oper1) + uint16(cpu.X)
+	addr &= 0xff
+	pointee := cpu.Bus.Peek8(addr)
+	oper = fmt.Sprintf("$%02X,X = $%02X", oper1, pointee)
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0, oper1},
-		Oper:   fmt.Sprintf("$%02X", oper1),
+		Buf:    []byte{oper0, oper1},
+		Oper:   oper,
 	}
 }
 
 func disasmZpy(cpu *CPU, pc uint16) DisasmOp {
 	oper0 := cpu.Bus.Peek8(pc + 0)
 	oper1 := cpu.Bus.Peek8(pc + 1)
+	oper := ""
+
+	addr := uint16(oper1) + uint16(cpu.Y)
+	addr &= 0xff
+	pointee := cpu.Bus.Peek8(addr)
+	oper = fmt.Sprintf("$%02X,Y = $%02X", oper1, pointee)
+
 	return DisasmOp{
 		PC:     pc,
 		Opcode: opcodeNames[oper0],
-		Buf:  []byte{oper0, oper1},
-		Oper:   fmt.Sprintf("$%02X", oper1),
+		Buf:    []byte{oper0, oper1},
+		Oper:   oper,
 	}
 }
 
 // nes 6502 opcodes disassembly table
 var disasmOps = [256]func(*CPU, uint16) DisasmOp{
-	disasmImp, disasmIzx, disasmImm, disasmIzx, disasmZpg, disasmZpg, disasmZpg, disasmZpg, disasmImp, disasmImm, disasmAcc, disasmImm, disasmAbs, disasmAbs, disasmAbs, disasmAbs,
-	disasmRel, disasmIzy, disasmImm, disasmIzy, disasmZpx, disasmZpx, disasmZpx, disasmZpx, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAbx, disasmAbx,
-	disasmAbs, disasmIzx, disasmImm, disasmIzx, disasmZpg, disasmZpg, disasmZpg, disasmZpg, disasmImp, disasmImm, disasmAcc, disasmImm, disasmAbs, disasmAbs, disasmAbs, disasmAbs,
-	disasmRel, disasmIzy, disasmImm, disasmIzy, disasmZpx, disasmZpx, disasmZpx, disasmZpx, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAbx, disasmAbx,
-	disasmImp, disasmIzx, disasmImm, disasmIzx, disasmZpg, disasmZpg, disasmZpg, disasmZpg, disasmImp, disasmImm, disasmAcc, disasmImm, disasmAbs, disasmAbs, disasmAbs, disasmAbs,
-	disasmRel, disasmIzy, disasmImm, disasmIzy, disasmZpx, disasmZpx, disasmZpx, disasmZpx, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAbx, disasmAbx,
-	disasmImp, disasmIzx, disasmImm, disasmIzx, disasmZpg, disasmZpg, disasmZpg, disasmZpg, disasmImp, disasmImm, disasmAcc, disasmImm, disasmInd, disasmAbs, disasmAbs, disasmAbs,
-	disasmRel, disasmIzy, disasmImm, disasmIzy, disasmZpx, disasmZpx, disasmZpx, disasmZpx, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAbx, disasmAbx,
+	disasmImp, disasmIzx, disasmImp, disasmIzx, disasmZpg, disasmZpg, disasmZpg, disasmZpg, disasmImp, disasmImm, disasmAcc, disasmImm, disasmAbs, disasmAbs, disasmAbs, disasmAbs,
+	disasmRel, disasmIzy, disasmImp, disasmIzy, disasmZpx, disasmZpx, disasmZpx, disasmZpx, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAbx, disasmAbx,
+	disasmAbs, disasmIzx, disasmImp, disasmIzx, disasmZpg, disasmZpg, disasmZpg, disasmZpg, disasmImp, disasmImm, disasmAcc, disasmImm, disasmAbs, disasmAbs, disasmAbs, disasmAbs,
+	disasmRel, disasmIzy, disasmImp, disasmIzy, disasmZpx, disasmZpx, disasmZpx, disasmZpx, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAbx, disasmAbx,
+	disasmImp, disasmIzx, disasmImp, disasmIzx, disasmZpg, disasmZpg, disasmZpg, disasmZpg, disasmImp, disasmImm, disasmAcc, disasmImm, disasmAbs, disasmAbs, disasmAbs, disasmAbs,
+	disasmRel, disasmIzy, disasmImp, disasmIzy, disasmZpx, disasmZpx, disasmZpx, disasmZpx, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAbx, disasmAbx,
+	disasmImp, disasmIzx, disasmImp, disasmIzx, disasmZpg, disasmZpg, disasmZpg, disasmZpg, disasmImp, disasmImm, disasmAcc, disasmImm, disasmInd, disasmAbs, disasmAbs, disasmAbs,
+	disasmRel, disasmIzy, disasmImp, disasmIzy, disasmZpx, disasmZpx, disasmZpx, disasmZpx, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAbx, disasmAbx,
 	disasmImm, disasmIzx, disasmImm, disasmIzx, disasmZpg, disasmZpg, disasmZpg, disasmZpg, disasmImp, disasmImm, disasmImp, disasmImm, disasmAbs, disasmAbs, disasmAbs, disasmAbs,
-	disasmRel, disasmIzy, disasmImm, disasmIzy, disasmZpx, disasmZpx, disasmZpy, disasmZpy, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAby, disasmAby,
+	disasmRel, disasmIzy, disasmImp, disasmIzy, disasmZpx, disasmZpx, disasmZpy, disasmZpy, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAby, disasmAby,
 	disasmImm, disasmIzx, disasmImm, disasmIzx, disasmZpg, disasmZpg, disasmZpg, disasmZpg, disasmImp, disasmImm, disasmImp, disasmImm, disasmAbs, disasmAbs, disasmAbs, disasmAbs,
-	disasmRel, disasmIzy, disasmImm, disasmIzy, disasmZpx, disasmZpx, disasmZpy, disasmZpy, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAby, disasmAby,
+	disasmRel, disasmIzy, disasmImp, disasmIzy, disasmZpx, disasmZpx, disasmZpy, disasmZpy, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAby, disasmAby,
 	disasmImm, disasmIzx, disasmImm, disasmIzx, disasmZpg, disasmZpg, disasmZpg, disasmZpg, disasmImp, disasmImm, disasmImp, disasmImm, disasmAbs, disasmAbs, disasmAbs, disasmAbs,
-	disasmRel, disasmIzy, disasmImm, disasmIzy, disasmZpx, disasmZpx, disasmZpx, disasmZpx, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAbx, disasmAbx,
+	disasmRel, disasmIzy, disasmImp, disasmIzy, disasmZpx, disasmZpx, disasmZpx, disasmZpx, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAbx, disasmAbx,
 	disasmImm, disasmIzx, disasmImm, disasmIzx, disasmZpg, disasmZpg, disasmZpg, disasmZpg, disasmImp, disasmImm, disasmImp, disasmImm, disasmAbs, disasmAbs, disasmAbs, disasmAbs,
-	disasmRel, disasmIzy, disasmImm, disasmIzy, disasmZpx, disasmZpx, disasmZpx, disasmZpx, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAbx, disasmAbx,
+	disasmRel, disasmIzy, disasmImp, disasmIzy, disasmZpx, disasmZpx, disasmZpx, disasmZpx, disasmImp, disasmAby, disasmImp, disasmAby, disasmAbx, disasmAbx, disasmAbx, disasmAbx,
 }
 
 var opcodeNames = [256]string{
-	" BRK", " ORA", "*JAM", "*SLO", "*NOP", " ORA", " ASL", "*SLO", " PHP", " ORA", " ASL", "*ANC", "*NOP", " ORA", " ASL", "*SLO",
-	" BPL", " ORA", "*JAM", "*SLO", "*NOP", " ORA", " ASL", "*SLO", " CLC", " ORA", "*NOP", "*SLO", "*NOP", " ORA", " ASL", "*SLO",
-	" JSR", " AND", "*JAM", "*RLA", " BIT", " AND", " ROL", "*RLA", " PLP", " AND", " ROL", "*ANC", " BIT", " AND", " ROL", "*RLA",
-	" BMI", " AND", "*JAM", "*RLA", "*NOP", " AND", " ROL", "*RLA", " SEC", " AND", "*NOP", "*RLA", "*NOP", " AND", " ROL", "*RLA",
-	" RTI", " EOR", "*JAM", "*SRE", "*NOP", " EOR", " LSR", "*SRE", " PHA", " EOR", " LSR", "*ALR", " JMP", " EOR", " LSR", "*SRE",
-	" BVC", " EOR", "*JAM", "*SRE", "*NOP", " EOR", " LSR", "*SRE", " CLI", " EOR", "*NOP", "*SRE", "*NOP", " EOR", " LSR", "*SRE",
-	" RTS", " ADC", "*JAM", "*RRA", "*NOP", " ADC", " ROR", "*RRA", " PLA", " ADC", " ROR", "*ARR", " JMP", " ADC", " ROR", "*RRA",
-	" BVS", " ADC", "*JAM", "*RRA", "*NOP", " ADC", " ROR", "*RRA", " SEI", " ADC", "*NOP", "*RRA", "*NOP", " ADC", " ROR", "*RRA",
-	"*NOP", " STA", "*NOP", "*SAX", " STY", " STA", " STX", "*SAX", " DEY", "*NOP", " TXA", "*ANE", " STY", " STA", " STX", "*SAX",
-	" BCC", " STA", "*JAM", "*SHA", " STY", " STA", " STX", "*SAX", " TYA", " STA", " TXS", "*TAS", "*SHY", " STA", "*SHX", "*SHA",
-	" LDY", " LDA", " LDX", "*LAX", " LDY", " LDA", " LDX", "*LAX", " TAY", " LDA", " TAX", "*LXA", " LDY", " LDA", " LDX", "*LAX",
-	" BCS", " LDA", "*JAM", "*LAX", " LDY", " LDA", " LDX", "*LAX", " CLV", " LDA", " TSX", "*LAS", " LDY", " LDA", " LDX", "*LAX",
-	" CPY", " CMP", "*NOP", "*DCP", " CPY", " CMP", " DEC", "*DCP", " INY", " CMP", " DEX", "*SBX", " CPY", " CMP", " DEC", "*DCP",
-	" BNE", " CMP", "*JAM", "*DCP", "*NOP", " CMP", " DEC", "*DCP", " CLD", " CMP", "*NOP", "*DCP", "*NOP", " CMP", " DEC", "*DCP",
-	" CPX", " SBC", "*NOP", "*ISB", " CPX", " SBC", " INC", "*ISB", " INX", " SBC", " NOP", "*SBC", " CPX", " SBC", " INC", "*ISB",
-	" BEQ", " SBC", "*JAM", "*ISB", "*NOP", " SBC", " INC", "*ISB", " SED", " SBC", "*NOP", "*ISB", "*NOP", " SBC", " INC", "*ISB",
+	"BRK", "ORA", "STP", "SLO", "NOP", "ORA", "ASL", "SLO", "PHP", "ORA", "ASL", "ANC", "NOP", "ORA", "ASL", "SLO",
+	"BPL", "ORA", "STP", "SLO", "NOP", "ORA", "ASL", "SLO", "CLC", "ORA", "NOP", "SLO", "NOP", "ORA", "ASL", "SLO",
+	"JSR", "AND", "STP", "RLA", "BIT", "AND", "ROL", "RLA", "PLP", "AND", "ROL", "ANC", "BIT", "AND", "ROL", "RLA",
+	"BMI", "AND", "STP", "RLA", "NOP", "AND", "ROL", "RLA", "SEC", "AND", "NOP", "RLA", "NOP", "AND", "ROL", "RLA",
+	"RTI", "EOR", "STP", "SRE", "NOP", "EOR", "LSR", "SRE", "PHA", "EOR", "LSR", "ALR", "JMP", "EOR", "LSR", "SRE",
+	"BVC", "EOR", "STP", "SRE", "NOP", "EOR", "LSR", "SRE", "CLI", "EOR", "NOP", "SRE", "NOP", "EOR", "LSR", "SRE",
+	"RTS", "ADC", "STP", "RRA", "NOP", "ADC", "ROR", "RRA", "PLA", "ADC", "ROR", "ARR", "JMP", "ADC", "ROR", "RRA",
+	"BVS", "ADC", "STP", "RRA", "NOP", "ADC", "ROR", "RRA", "SEI", "ADC", "NOP", "RRA", "NOP", "ADC", "ROR", "RRA",
+	"NOP", "STA", "NOP", "SAX", "STY", "STA", "STX", "SAX", "DEY", "NOP", "TXA", "ANE", "STY", "STA", "STX", "SAX",
+	"BCC", "STA", "STP", "SHA", "STY", "STA", "STX", "SAX", "TYA", "STA", "TXS", "TAS", "SHY", "STA", "SHX", "SHA",
+	"LDY", "LDA", "LDX", "LAX", "LDY", "LDA", "LDX", "LAX", "TAY", "LDA", "TAX", "LXA", "LDY", "LDA", "LDX", "LAX",
+	"BCS", "LDA", "STP", "LAX", "LDY", "LDA", "LDX", "LAX", "CLV", "LDA", "TSX", "LAS", "LDY", "LDA", "LDX", "LAX",
+	"CPY", "CMP", "NOP", "DCP", "CPY", "CMP", "DEC", "DCP", "INY", "CMP", "DEX", "SBX", "CPY", "CMP", "DEC", "DCP",
+	"BNE", "CMP", "STP", "DCP", "NOP", "CMP", "DEC", "DCP", "CLD", "CMP", "NOP", "DCP", "NOP", "CMP", "DEC", "DCP",
+	"CPX", "SBC", "NOP", "ISC", "CPX", "SBC", "INC", "ISC", "INX", "SBC", "NOP", "SBC", "CPX", "SBC", "INC", "ISC",
+	"BEQ", "SBC", "STP", "ISC", "NOP", "SBC", "INC", "ISC", "SED", "SBC", "NOP", "ISC", "NOP", "SBC", "INC", "ISC",
 }

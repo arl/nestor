@@ -29,267 +29,266 @@ type opdef struct {
 	// 	- w: write 'val' back into 'oper/accumulator'
 	// 	- x: extra cycle for page crosses
 	// 	- a: extra cycle always
-	// 	- i: unofficial (illegal) opcode
 	d string
 }
 
 var defs = [256]opdef{
-	{i: 0x00, n: "BRK", d: "      ", m: "imp", dontgen: true},
-	{i: 0x01, n: "ORA", d: "r     ", m: "izx"},
-	{i: 0x02, n: "JAM", d: "     i", m: "imm"},
-	{i: 0x03, n: "SLO", d: "rw   i", m: "izx"},
-	{i: 0x04, n: "NOP", d: "     i", m: "zpg"},
-	{i: 0x05, n: "ORA", d: "r     ", m: "zpg"},
-	{i: 0x06, n: "ASL", d: "rw    ", m: "zpg"},
-	{i: 0x07, n: "SLO", d: "rw   i", m: "zpg"},
-	{i: 0x08, n: "PHP", d: "      ", m: "imp"},
-	{i: 0x09, n: "ORA", d: "r     ", m: "imm"},
-	{i: 0x0A, n: "ASL", d: "rw    ", m: "acc"},
-	{i: 0x0B, n: "ANC", d: "r    i", m: "imm"},
-	{i: 0x0C, n: "NOP", d: "     i", m: "abs"},
-	{i: 0x0D, n: "ORA", d: "r     ", m: "abs"},
-	{i: 0x0E, n: "ASL", d: "rw    ", m: "abs"},
-	{i: 0x0F, n: "SLO", d: "rw   i", m: "abs"},
-	{i: 0x10, n: "BPL", d: "      ", m: "rel", f: branch(7, false)},
-	{i: 0x11, n: "ORA", d: "r  x  ", m: "izy"},
-	{i: 0x12, n: "JAM", d: "     i", m: "imm"},
-	{i: 0x13, n: "SLO", d: "rw  ai", m: "izy"},
-	{i: 0x14, n: "NOP", d: "     i", m: "zpx"},
-	{i: 0x15, n: "ORA", d: "r     ", m: "zpx"},
-	{i: 0x16, n: "ASL", d: "rw    ", m: "zpx"},
-	{i: 0x17, n: "SLO", d: "rw   i", m: "zpx"},
-	{i: 0x18, n: "CLC", d: "      ", m: "imp", f: clear(0)},
-	{i: 0x19, n: "ORA", d: "r  x  ", m: "aby"},
-	{i: 0x1A, n: "NOP", d: "     i", m: "imp"},
-	{i: 0x1B, n: "SLO", d: "rw   i", m: "aby"},
-	{i: 0x1C, n: "NOP", d: "   x i", m: "abx"},
-	{i: 0x1D, n: "ORA", d: "r  x  ", m: "abx"},
-	{i: 0x1E, n: "ASL", d: "rw    ", m: "abx"},
-	{i: 0x1F, n: "SLO", d: "rw   i", m: "abx"},
-	{i: 0x20, n: "JSR", d: "      ", m: "abs"},
-	{i: 0x21, n: "AND", d: "r     ", m: "izx"},
-	{i: 0x22, n: "JAM", d: "     i", m: "imm"},
-	{i: 0x23, n: "RLA", d: "rw   i", m: "izx"},
-	{i: 0x24, n: "BIT", d: "r     ", m: "zpg"},
-	{i: 0x25, n: "AND", d: "r     ", m: "zpg"},
-	{i: 0x26, n: "ROL", d: "rw    ", m: "zpg"},
-	{i: 0x27, n: "RLA", d: "rw   i", m: "zpg"},
-	{i: 0x28, n: "PLP", d: "      ", m: "imp"},
-	{i: 0x29, n: "AND", d: "r     ", m: "imm"},
-	{i: 0x2A, n: "ROL", d: "rw    ", m: "acc"},
-	{i: 0x2B, n: "ANC", d: "r    i", m: "imm"},
-	{i: 0x2C, n: "BIT", d: "r     ", m: "abs"},
-	{i: 0x2D, n: "AND", d: "r     ", m: "abs"},
-	{i: 0x2E, n: "ROL", d: "rw    ", m: "abs"},
-	{i: 0x2F, n: "RLA", d: "rw   i", m: "abs"},
-	{i: 0x30, n: "BMI", d: "      ", m: "rel", f: branch(7, true)},
-	{i: 0x31, n: "AND", d: "r  x  ", m: "izy"},
-	{i: 0x32, n: "JAM", d: "     i", m: "imm"},
-	{i: 0x33, n: "RLA", d: "rw  ai", m: "izy"},
-	{i: 0x34, n: "NOP", d: "     i", m: "zpx"},
-	{i: 0x35, n: "AND", d: "r     ", m: "zpx"},
-	{i: 0x36, n: "ROL", d: "rw    ", m: "zpx"},
-	{i: 0x37, n: "RLA", d: "rw   i", m: "zpx"},
-	{i: 0x38, n: "SEC", d: "      ", m: "imp", f: set(0)},
-	{i: 0x39, n: "AND", d: "r  x  ", m: "aby"},
-	{i: 0x3A, n: "NOP", d: "     i", m: "imp"},
-	{i: 0x3B, n: "RLA", d: "rw   i", m: "aby"},
-	{i: 0x3C, n: "NOP", d: "   x i", m: "abx"},
-	{i: 0x3D, n: "AND", d: "r  x  ", m: "abx"},
-	{i: 0x3E, n: "ROL", d: "rw    ", m: "abx"},
-	{i: 0x3F, n: "RLA", d: "rw   i", m: "abx"},
-	{i: 0x40, n: "RTI", d: "      ", m: "imp"},
-	{i: 0x41, n: "EOR", d: "r     ", m: "izx"},
-	{i: 0x42, n: "JAM", d: "     i", m: "imm"},
-	{i: 0x43, n: "SRE", d: "rw   i", m: "izx"},
-	{i: 0x44, n: "NOP", d: "     i", m: "zpg"},
-	{i: 0x45, n: "EOR", d: "r     ", m: "zpg"},
-	{i: 0x46, n: "LSR", d: "rw    ", m: "zpg"},
-	{i: 0x47, n: "SRE", d: "rw   i", m: "zpg"},
-	{i: 0x48, n: "PHA", d: "      ", m: "imp"},
-	{i: 0x49, n: "EOR", d: "r     ", m: "imm"},
-	{i: 0x4A, n: "LSR", d: "rw    ", m: "acc"},
-	{i: 0x4B, n: "ALR", d: "r    i", m: "imm"},
-	{i: 0x4C, n: "JMP", d: "      ", m: "abs"},
-	{i: 0x4D, n: "EOR", d: "r     ", m: "abs"},
-	{i: 0x4E, n: "LSR", d: "rw    ", m: "abs"},
-	{i: 0x4F, n: "SRE", d: "rw   i", m: "abs"},
-	{i: 0x50, n: "BVC", d: "      ", m: "rel", f: branch(6, false)},
-	{i: 0x51, n: "EOR", d: "r  x  ", m: "izy"},
-	{i: 0x52, n: "JAM", d: "     i", m: "imm"},
-	{i: 0x53, n: "SRE", d: "rw  ai", m: "izy"},
-	{i: 0x54, n: "NOP", d: "     i", m: "zpx"},
-	{i: 0x55, n: "EOR", d: "r     ", m: "zpx"},
-	{i: 0x56, n: "LSR", d: "rw    ", m: "zpx"},
-	{i: 0x57, n: "SRE", d: "rw   i", m: "zpx"},
-	{i: 0x58, n: "CLI", d: "      ", m: "imp", f: clear(2)},
-	{i: 0x59, n: "EOR", d: "r  x  ", m: "aby"},
-	{i: 0x5A, n: "NOP", d: "     i", m: "imp"},
-	{i: 0x5B, n: "SRE", d: "rw   i", m: "aby"},
-	{i: 0x5C, n: "NOP", d: "   x i", m: "abx"},
-	{i: 0x5D, n: "EOR", d: "r  x  ", m: "abx"},
-	{i: 0x5E, n: "LSR", d: "rw    ", m: "abx"},
-	{i: 0x5F, n: "SRE", d: "rw   i", m: "abx"},
-	{i: 0x60, n: "RTS", d: "      ", m: "imp"},
-	{i: 0x61, n: "ADC", d: "r     ", m: "izx"},
-	{i: 0x62, n: "JAM", d: "     i", m: "imm"},
-	{i: 0x63, n: "RRA", d: "rw   i", m: "izx"},
-	{i: 0x64, n: "NOP", d: "     i", m: "zpg"},
-	{i: 0x65, n: "ADC", d: "r     ", m: "zpg"},
-	{i: 0x66, n: "ROR", d: "rw    ", m: "zpg"},
-	{i: 0x67, n: "RRA", d: "rw   i", m: "zpg"},
-	{i: 0x68, n: "PLA", d: "      ", m: "imp"},
-	{i: 0x69, n: "ADC", d: "r     ", m: "imm"},
-	{i: 0x6A, n: "ROR", d: "rw    ", m: "acc"},
-	{i: 0x6B, n: "ARR", d: "r    i", m: "imm"},
-	{i: 0x6C, n: "JMP", d: "      ", m: "ind"},
-	{i: 0x6D, n: "ADC", d: "r     ", m: "abs"},
-	{i: 0x6E, n: "ROR", d: "rw    ", m: "abs"},
-	{i: 0x6F, n: "RRA", d: "rw   i", m: "abs"},
-	{i: 0x70, n: "BVS", d: "      ", m: "rel", f: branch(6, true)},
-	{i: 0x71, n: "ADC", d: "r  x  ", m: "izy"},
-	{i: 0x72, n: "JAM", d: "     i", m: "imm"},
-	{i: 0x73, n: "RRA", d: "rw  ai", m: "izy"},
-	{i: 0x74, n: "NOP", d: "     i", m: "zpx"},
-	{i: 0x75, n: "ADC", d: "r     ", m: "zpx"},
-	{i: 0x76, n: "ROR", d: "rw    ", m: "zpx"},
-	{i: 0x77, n: "RRA", d: "rw   i", m: "zpx"},
-	{i: 0x78, n: "SEI", d: "      ", m: "imp", f: set(2)},
-	{i: 0x79, n: "ADC", d: "r  x  ", m: "aby"},
-	{i: 0x7A, n: "NOP", d: "     i", m: "imp"},
-	{i: 0x7B, n: "RRA", d: "rw   i", m: "aby"},
-	{i: 0x7C, n: "NOP", d: "   x i", m: "abx"},
-	{i: 0x7D, n: "ADC", d: "r  x  ", m: "abx"},
-	{i: 0x7E, n: "ROR", d: "rw    ", m: "abx"},
-	{i: 0x7F, n: "RRA", d: "rw   i", m: "abx"},
-	{i: 0x80, n: "NOP", d: "     i", m: "imm"},
-	{i: 0x81, n: "STA", d: "      ", m: "izx", f: ST("A")},
-	{i: 0x82, n: "NOP", d: "     i", m: "imm"},
-	{i: 0x83, n: "SAX", d: "     i", m: "izx"},
-	{i: 0x84, n: "STY", d: "      ", m: "zpg", f: ST("Y")},
-	{i: 0x85, n: "STA", d: "      ", m: "zpg", f: ST("A")},
-	{i: 0x86, n: "STX", d: "      ", m: "zpg", f: ST("X")},
-	{i: 0x87, n: "SAX", d: "     i", m: "zpg"},
-	{i: 0x88, n: "DEY", d: "      ", m: "imp", f: dec("Y")},
-	{i: 0x89, n: "NOP", d: "     i", m: "imm"},
-	{i: 0x8A, n: "TXA", d: "      ", m: "imp", f: T("X", "A")},
-	{i: 0x8B, n: "ANE", d: "     i", m: "imm", f: unstable},
-	{i: 0x8C, n: "STY", d: "      ", m: "abs", f: ST("Y")},
-	{i: 0x8D, n: "STA", d: "      ", m: "abs", f: ST("A")},
-	{i: 0x8E, n: "STX", d: "      ", m: "abs", f: ST("X")},
-	{i: 0x8F, n: "SAX", d: "     i", m: "abs"},
-	{i: 0x90, n: "BCC", d: "      ", m: "rel", f: branch(0, false)},
-	{i: 0x91, n: "STA", d: "   _a_", m: "izy", f: ST("A")},
-	{i: 0x92, n: "JAM", d: "     i", m: "imm"},
-	{i: 0x93, n: "SHA", d: "     i", m: "izy", f: unstable},
-	{i: 0x94, n: "STY", d: "      ", m: "zpx", f: ST("Y")},
-	{i: 0x95, n: "STA", d: "      ", m: "zpx", f: ST("A")},
-	{i: 0x96, n: "STX", d: "      ", m: "zpy", f: ST("X")},
-	{i: 0x97, n: "SAX", d: "     i", m: "zpy"},
-	{i: 0x98, n: "TYA", d: "      ", m: "imp", f: T("Y", "A")},
-	{i: 0x99, n: "STA", d: "      ", m: "aby", f: ST("A")},
-	{i: 0x9A, n: "TXS", d: "      ", m: "imp", f: T("X", "SP")},
-	{i: 0x9B, n: "TAS", d: "     i", m: "aby", f: unstable},
-	{i: 0x9C, n: "SHY", d: "     i", m: "abx", f: unstable},
-	{i: 0x9D, n: "STA", d: "      ", m: "abx", f: ST("A")},
-	{i: 0x9E, n: "SHX", d: "     i", m: "aby", f: unstable},
-	{i: 0x9F, n: "SHA", d: "     i", m: "aby", f: unstable},
-	{i: 0xA0, n: "LDY", d: "r     ", m: "imm", f: LD("Y")},
-	{i: 0xA1, n: "LDA", d: "r     ", m: "izx", f: LD("A")},
-	{i: 0xA2, n: "LDX", d: "r     ", m: "imm", f: LD("X")},
-	{i: 0xA3, n: "LAX", d: "r    i", m: "izx", f: LD("A", "X")},
-	{i: 0xA4, n: "LDY", d: "r     ", m: "zpg", f: LD("Y")},
-	{i: 0xA5, n: "LDA", d: "r     ", m: "zpg", f: LD("A")},
-	{i: 0xA6, n: "LDX", d: "r     ", m: "zpg", f: LD("X")},
-	{i: 0xA7, n: "LAX", d: "r    i", m: "zpg", f: LD("A", "X")},
-	{i: 0xA8, n: "TAY", d: "      ", m: "imp", f: T("A", "Y")},
-	{i: 0xA9, n: "LDA", d: "r     ", m: "imm", f: LD("A")},
-	{i: 0xAA, n: "TAX", d: "      ", m: "imp", f: T("A", "X")},
-	{i: 0xAB, n: "LXA", d: "     i", m: "imm", f: unstable},
-	{i: 0xAC, n: "LDY", d: "r     ", m: "abs", f: LD("Y")},
-	{i: 0xAD, n: "LDA", d: "r     ", m: "abs", f: LD("A")},
-	{i: 0xAE, n: "LDX", d: "r     ", m: "abs", f: LD("X")},
-	{i: 0xAF, n: "LAX", d: "r    i", m: "abs", f: LD("A", "X")},
-	{i: 0xB0, n: "BCS", d: "      ", m: "rel", f: branch(0, true)},
-	{i: 0xB1, n: "LDA", d: "r  x  ", m: "izy", f: LD("A")},
-	{i: 0xB2, n: "JAM", d: "     i", m: "imm"},
-	{i: 0xB3, n: "LAX", d: "r  x i", m: "izy", f: LD("A", "X")},
-	{i: 0xB4, n: "LDY", d: "r     ", m: "zpx", f: LD("Y")},
-	{i: 0xB5, n: "LDA", d: "r     ", m: "zpx", f: LD("A")},
-	{i: 0xB6, n: "LDX", d: "r     ", m: "zpy", f: LD("X")},
-	{i: 0xB7, n: "LAX", d: "r    i", m: "zpy", f: LD("A", "X")},
-	{i: 0xB8, n: "CLV", d: "      ", m: "imp", f: clear(6)},
-	{i: 0xB9, n: "LDA", d: "r  x  ", m: "aby", f: LD("A")},
-	{i: 0xBA, n: "TSX", d: "      ", m: "imp", f: T("SP", "X")},
-	{i: 0xBB, n: "LAS", d: "r  x i", m: "aby"},
-	{i: 0xBC, n: "LDY", d: "r  x  ", m: "abx", f: LD("Y")},
-	{i: 0xBD, n: "LDA", d: "r  x  ", m: "abx", f: LD("A")},
-	{i: 0xBE, n: "LDX", d: "r  x  ", m: "aby", f: LD("X")},
-	{i: 0xBF, n: "LAX", d: "r  x i", m: "aby", f: LD("A", "X")},
-	{i: 0xC0, n: "CPY", d: "r     ", m: "imm", f: cmp("Y")},
-	{i: 0xC1, n: "CMP", d: "r     ", m: "izx", f: cmp("A")},
-	{i: 0xC2, n: "NOP", d: "     i", m: "imm"},
-	{i: 0xC3, n: "DCP", d: "rw   i", m: "izx"},
-	{i: 0xC4, n: "CPY", d: "r     ", m: "zpg", f: cmp("Y")},
-	{i: 0xC5, n: "CMP", d: "r     ", m: "zpg", f: cmp("A")},
-	{i: 0xC6, n: "DEC", d: "rw    ", m: "zpg", f: dec("")},
-	{i: 0xC7, n: "DCP", d: "rw   i", m: "zpg"},
-	{i: 0xC8, n: "INY", d: "      ", m: "imp", f: inc("Y")},
-	{i: 0xC9, n: "CMP", d: "r     ", m: "imm", f: cmp("A")},
-	{i: 0xCA, n: "DEX", d: "      ", m: "imp", f: dec("X")},
-	{i: 0xCB, n: "SBX", d: "r    i", m: "imm"},
-	{i: 0xCC, n: "CPY", d: "r     ", m: "abs", f: cmp("Y")},
-	{i: 0xCD, n: "CMP", d: "r     ", m: "abs", f: cmp("A")},
-	{i: 0xCE, n: "DEC", d: "rw    ", m: "abs", f: dec("")},
-	{i: 0xCF, n: "DCP", d: "rw   i", m: "abs"},
-	{i: 0xD0, n: "BNE", d: "      ", m: "rel", f: branch(1, false)},
-	{i: 0xD1, n: "CMP", d: "r  x  ", m: "izy", f: cmp("A")},
-	{i: 0xD2, n: "JAM", d: "     i", m: "imm"},
-	{i: 0xD3, n: "DCP", d: "rw  ai", m: "izy"},
-	{i: 0xD4, n: "NOP", d: "     i", m: "zpx"},
-	{i: 0xD5, n: "CMP", d: "r     ", m: "zpx", f: cmp("A")},
-	{i: 0xD6, n: "DEC", d: "rw    ", m: "zpx", f: dec("")},
-	{i: 0xD7, n: "DCP", d: "rw   i", m: "zpx"},
-	{i: 0xD8, n: "CLD", d: "      ", m: "imp", f: clear(3)},
-	{i: 0xD9, n: "CMP", d: "r  x  ", m: "aby", f: cmp("A")},
-	{i: 0xDA, n: "NOP", d: "     i", m: "imp"},
-	{i: 0xDB, n: "DCP", d: "rw   i", m: "aby"},
-	{i: 0xDC, n: "NOP", d: "   x i", m: "abx"},
-	{i: 0xDD, n: "CMP", d: "r  x  ", m: "abx", f: cmp("A")},
-	{i: 0xDE, n: "DEC", d: "rw    ", m: "abx", f: dec("")},
-	{i: 0xDF, n: "DCP", d: "rw   i", m: "abx"},
-	{i: 0xE0, n: "CPX", d: "r     ", m: "imm", f: cmp("X")},
-	{i: 0xE1, n: "SBC", d: "r     ", m: "izx"},
-	{i: 0xE2, n: "NOP", d: "     i", m: "imm"},
-	{i: 0xE3, n: "ISB", d: "rw   i", m: "izx"},
-	{i: 0xE4, n: "CPX", d: "r     ", m: "zpg", f: cmp("X")},
-	{i: 0xE5, n: "SBC", d: "r     ", m: "zpg"},
-	{i: 0xE6, n: "INC", d: "rw    ", m: "zpg", f: inc("")},
-	{i: 0xE7, n: "ISB", d: "rw   i", m: "zpg"},
-	{i: 0xE8, n: "INX", d: "      ", m: "imp", f: inc("X")},
-	{i: 0xE9, n: "SBC", d: "r     ", m: "imm"},
-	{i: 0xEA, n: "NOP", d: "      ", m: "imp"},
-	{i: 0xEB, n: "SBC", d: "r    i", m: "imm"},
-	{i: 0xEC, n: "CPX", d: "r     ", m: "abs", f: cmp("X")},
-	{i: 0xED, n: "SBC", d: "r     ", m: "abs"},
-	{i: 0xEE, n: "INC", d: "rw    ", m: "abs", f: inc("")},
-	{i: 0xEF, n: "ISB", d: "rw   i", m: "abs"},
-	{i: 0xF0, n: "BEQ", d: "      ", m: "rel", f: branch(1, true)},
-	{i: 0xF1, n: "SBC", d: "r  x  ", m: "izy"},
-	{i: 0xF2, n: "JAM", d: "     i", m: "imm"},
-	{i: 0xF3, n: "ISB", d: "rw  ai", m: "izy"},
-	{i: 0xF4, n: "NOP", d: "     i", m: "zpx"},
-	{i: 0xF5, n: "SBC", d: "r     ", m: "zpx"},
-	{i: 0xF6, n: "INC", d: "rw    ", m: "zpx", f: inc("")},
-	{i: 0xF7, n: "ISB", d: "rw   i", m: "zpx"},
-	{i: 0xF8, n: "SED", d: "      ", m: "imp", f: set(3)},
-	{i: 0xF9, n: "SBC", d: "r  x  ", m: "aby"},
-	{i: 0xFA, n: "NOP", d: "     i", m: "imp"},
-	{i: 0xFB, n: "ISB", d: "rw   i", m: "aby"},
-	{i: 0xFC, n: "NOP", d: "   x i", m: "abx"},
-	{i: 0xFD, n: "SBC", d: "r  x  ", m: "abx"},
-	{i: 0xFE, n: "INC", d: "rw    ", m: "abx", f: inc("")},
-	{i: 0xFF, n: "ISB", d: "rw   i", m: "abx"},
+	{i: 0x00, n: "BRK", d: "     ", m: "imp", dontgen: true},
+	{i: 0x01, n: "ORA", d: "r    ", m: "izx"},
+	{i: 0x02, n: "STP", d: "     ", m: "imp"},
+	{i: 0x03, n: "SLO", d: "rw   ", m: "izx"},
+	{i: 0x04, n: "NOP", d: "     ", m: "zpg"},
+	{i: 0x05, n: "ORA", d: "r    ", m: "zpg"},
+	{i: 0x06, n: "ASL", d: "rw   ", m: "zpg"},
+	{i: 0x07, n: "SLO", d: "rw   ", m: "zpg"},
+	{i: 0x08, n: "PHP", d: "     ", m: "imp"},
+	{i: 0x09, n: "ORA", d: "r    ", m: "imm"},
+	{i: 0x0A, n: "ASL", d: "rw   ", m: "acc"},
+	{i: 0x0B, n: "ANC", d: "r    ", m: "imm"},
+	{i: 0x0C, n: "NOP", d: "     ", m: "abs"},
+	{i: 0x0D, n: "ORA", d: "r    ", m: "abs"},
+	{i: 0x0E, n: "ASL", d: "rw   ", m: "abs"},
+	{i: 0x0F, n: "SLO", d: "rw   ", m: "abs"},
+	{i: 0x10, n: "BPL", d: "     ", m: "rel", f: branch(7, false)},
+	{i: 0x11, n: "ORA", d: "r  x ", m: "izy"},
+	{i: 0x12, n: "STP", d: "     ", m: "imp"},
+	{i: 0x13, n: "SLO", d: "rw  a", m: "izy"},
+	{i: 0x14, n: "NOP", d: "     ", m: "zpx"},
+	{i: 0x15, n: "ORA", d: "r    ", m: "zpx"},
+	{i: 0x16, n: "ASL", d: "rw   ", m: "zpx"},
+	{i: 0x17, n: "SLO", d: "rw   ", m: "zpx"},
+	{i: 0x18, n: "CLC", d: "     ", m: "imp", f: clear(0)},
+	{i: 0x19, n: "ORA", d: "r  x ", m: "aby"},
+	{i: 0x1A, n: "NOP", d: "     ", m: "imp"},
+	{i: 0x1B, n: "SLO", d: "rw   ", m: "aby"},
+	{i: 0x1C, n: "NOP", d: "   x ", m: "abx"},
+	{i: 0x1D, n: "ORA", d: "r  x ", m: "abx"},
+	{i: 0x1E, n: "ASL", d: "rw   ", m: "abx"},
+	{i: 0x1F, n: "SLO", d: "rw   ", m: "abx"},
+	{i: 0x20, n: "JSR", d: "     ", m: "abs"},
+	{i: 0x21, n: "AND", d: "r    ", m: "izx"},
+	{i: 0x22, n: "STP", d: "     ", m: "imp"},
+	{i: 0x23, n: "RLA", d: "rw   ", m: "izx"},
+	{i: 0x24, n: "BIT", d: "r    ", m: "zpg"},
+	{i: 0x25, n: "AND", d: "r    ", m: "zpg"},
+	{i: 0x26, n: "ROL", d: "rw   ", m: "zpg"},
+	{i: 0x27, n: "RLA", d: "rw   ", m: "zpg"},
+	{i: 0x28, n: "PLP", d: "     ", m: "imp"},
+	{i: 0x29, n: "AND", d: "r    ", m: "imm"},
+	{i: 0x2A, n: "ROL", d: "rw   ", m: "acc"},
+	{i: 0x2B, n: "ANC", d: "r    ", m: "imm"},
+	{i: 0x2C, n: "BIT", d: "r    ", m: "abs"},
+	{i: 0x2D, n: "AND", d: "r    ", m: "abs"},
+	{i: 0x2E, n: "ROL", d: "rw   ", m: "abs"},
+	{i: 0x2F, n: "RLA", d: "rw   ", m: "abs"},
+	{i: 0x30, n: "BMI", d: "     ", m: "rel", f: branch(7, true)},
+	{i: 0x31, n: "AND", d: "r  x ", m: "izy"},
+	{i: 0x32, n: "STP", d: "     ", m: "imp"},
+	{i: 0x33, n: "RLA", d: "rw  a", m: "izy"},
+	{i: 0x34, n: "NOP", d: "     ", m: "zpx"},
+	{i: 0x35, n: "AND", d: "r    ", m: "zpx"},
+	{i: 0x36, n: "ROL", d: "rw   ", m: "zpx"},
+	{i: 0x37, n: "RLA", d: "rw   ", m: "zpx"},
+	{i: 0x38, n: "SEC", d: "     ", m: "imp", f: set(0)},
+	{i: 0x39, n: "AND", d: "r  x ", m: "aby"},
+	{i: 0x3A, n: "NOP", d: "     ", m: "imp"},
+	{i: 0x3B, n: "RLA", d: "rw   ", m: "aby"},
+	{i: 0x3C, n: "NOP", d: "   x ", m: "abx"},
+	{i: 0x3D, n: "AND", d: "r  x ", m: "abx"},
+	{i: 0x3E, n: "ROL", d: "rw   ", m: "abx"},
+	{i: 0x3F, n: "RLA", d: "rw   ", m: "abx"},
+	{i: 0x40, n: "RTI", d: "     ", m: "imp"},
+	{i: 0x41, n: "EOR", d: "r    ", m: "izx"},
+	{i: 0x42, n: "STP", d: "     ", m: "imp"},
+	{i: 0x43, n: "SRE", d: "rw   ", m: "izx"},
+	{i: 0x44, n: "NOP", d: "     ", m: "zpg"},
+	{i: 0x45, n: "EOR", d: "r    ", m: "zpg"},
+	{i: 0x46, n: "LSR", d: "rw   ", m: "zpg"},
+	{i: 0x47, n: "SRE", d: "rw   ", m: "zpg"},
+	{i: 0x48, n: "PHA", d: "     ", m: "imp"},
+	{i: 0x49, n: "EOR", d: "r    ", m: "imm"},
+	{i: 0x4A, n: "LSR", d: "rw   ", m: "acc"},
+	{i: 0x4B, n: "ALR", d: "r    ", m: "imm"},
+	{i: 0x4C, n: "JMP", d: "     ", m: "abs"},
+	{i: 0x4D, n: "EOR", d: "r    ", m: "abs"},
+	{i: 0x4E, n: "LSR", d: "rw   ", m: "abs"},
+	{i: 0x4F, n: "SRE", d: "rw   ", m: "abs"},
+	{i: 0x50, n: "BVC", d: "     ", m: "rel", f: branch(6, false)},
+	{i: 0x51, n: "EOR", d: "r  x ", m: "izy"},
+	{i: 0x52, n: "STP", d: "     ", m: "imp"},
+	{i: 0x53, n: "SRE", d: "rw  a", m: "izy"},
+	{i: 0x54, n: "NOP", d: "     ", m: "zpx"},
+	{i: 0x55, n: "EOR", d: "r    ", m: "zpx"},
+	{i: 0x56, n: "LSR", d: "rw   ", m: "zpx"},
+	{i: 0x57, n: "SRE", d: "rw   ", m: "zpx"},
+	{i: 0x58, n: "CLI", d: "     ", m: "imp", f: clear(2)},
+	{i: 0x59, n: "EOR", d: "r  x ", m: "aby"},
+	{i: 0x5A, n: "NOP", d: "     ", m: "imp"},
+	{i: 0x5B, n: "SRE", d: "rw   ", m: "aby"},
+	{i: 0x5C, n: "NOP", d: "   x ", m: "abx"},
+	{i: 0x5D, n: "EOR", d: "r  x ", m: "abx"},
+	{i: 0x5E, n: "LSR", d: "rw   ", m: "abx"},
+	{i: 0x5F, n: "SRE", d: "rw   ", m: "abx"},
+	{i: 0x60, n: "RTS", d: "     ", m: "imp"},
+	{i: 0x61, n: "ADC", d: "r    ", m: "izx"},
+	{i: 0x62, n: "STP", d: "     ", m: "imp"},
+	{i: 0x63, n: "RRA", d: "rw   ", m: "izx"},
+	{i: 0x64, n: "NOP", d: "     ", m: "zpg"},
+	{i: 0x65, n: "ADC", d: "r    ", m: "zpg"},
+	{i: 0x66, n: "ROR", d: "rw   ", m: "zpg"},
+	{i: 0x67, n: "RRA", d: "rw   ", m: "zpg"},
+	{i: 0x68, n: "PLA", d: "     ", m: "imp"},
+	{i: 0x69, n: "ADC", d: "r    ", m: "imm"},
+	{i: 0x6A, n: "ROR", d: "rw   ", m: "acc"},
+	{i: 0x6B, n: "ARR", d: "r    ", m: "imm"},
+	{i: 0x6C, n: "JMP", d: "     ", m: "ind"},
+	{i: 0x6D, n: "ADC", d: "r    ", m: "abs"},
+	{i: 0x6E, n: "ROR", d: "rw   ", m: "abs"},
+	{i: 0x6F, n: "RRA", d: "rw   ", m: "abs"},
+	{i: 0x70, n: "BVS", d: "     ", m: "rel", f: branch(6, true)},
+	{i: 0x71, n: "ADC", d: "r  x ", m: "izy"},
+	{i: 0x72, n: "STP", d: "     ", m: "imp"},
+	{i: 0x73, n: "RRA", d: "rw  a", m: "izy"},
+	{i: 0x74, n: "NOP", d: "     ", m: "zpx"},
+	{i: 0x75, n: "ADC", d: "r    ", m: "zpx"},
+	{i: 0x76, n: "ROR", d: "rw   ", m: "zpx"},
+	{i: 0x77, n: "RRA", d: "rw   ", m: "zpx"},
+	{i: 0x78, n: "SEI", d: "     ", m: "imp", f: set(2)},
+	{i: 0x79, n: "ADC", d: "r  x ", m: "aby"},
+	{i: 0x7A, n: "NOP", d: "     ", m: "imp"},
+	{i: 0x7B, n: "RRA", d: "rw   ", m: "aby"},
+	{i: 0x7C, n: "NOP", d: "   x ", m: "abx"},
+	{i: 0x7D, n: "ADC", d: "r  x ", m: "abx"},
+	{i: 0x7E, n: "ROR", d: "rw   ", m: "abx"},
+	{i: 0x7F, n: "RRA", d: "rw   ", m: "abx"},
+	{i: 0x80, n: "NOP", d: "     ", m: "imm"},
+	{i: 0x81, n: "STA", d: "     ", m: "izx", f: ST("A")},
+	{i: 0x82, n: "NOP", d: "     ", m: "imm"},
+	{i: 0x83, n: "SAX", d: "     ", m: "izx"},
+	{i: 0x84, n: "STY", d: "     ", m: "zpg", f: ST("Y")},
+	{i: 0x85, n: "STA", d: "     ", m: "zpg", f: ST("A")},
+	{i: 0x86, n: "STX", d: "     ", m: "zpg", f: ST("X")},
+	{i: 0x87, n: "SAX", d: "     ", m: "zpg"},
+	{i: 0x88, n: "DEY", d: "     ", m: "imp", f: dec("Y")},
+	{i: 0x89, n: "NOP", d: "     ", m: "imm"},
+	{i: 0x8A, n: "TXA", d: "     ", m: "imp", f: T("X", "A")},
+	{i: 0x8B, n: "ANE", d: "     ", m: "imm", f: unstable},
+	{i: 0x8C, n: "STY", d: "     ", m: "abs", f: ST("Y")},
+	{i: 0x8D, n: "STA", d: "     ", m: "abs", f: ST("A")},
+	{i: 0x8E, n: "STX", d: "     ", m: "abs", f: ST("X")},
+	{i: 0x8F, n: "SAX", d: "     ", m: "abs"},
+	{i: 0x90, n: "BCC", d: "     ", m: "rel", f: branch(0, false)},
+	{i: 0x91, n: "STA", d: "   _a", m: "izy", f: ST("A")},
+	{i: 0x92, n: "STP", d: "     ", m: "imp"},
+	{i: 0x93, n: "SHA", d: "     ", m: "izy", f: unstable},
+	{i: 0x94, n: "STY", d: "     ", m: "zpx", f: ST("Y")},
+	{i: 0x95, n: "STA", d: "     ", m: "zpx", f: ST("A")},
+	{i: 0x96, n: "STX", d: "     ", m: "zpy", f: ST("X")},
+	{i: 0x97, n: "SAX", d: "     ", m: "zpy"},
+	{i: 0x98, n: "TYA", d: "     ", m: "imp", f: T("Y", "A")},
+	{i: 0x99, n: "STA", d: "     ", m: "aby", f: ST("A")},
+	{i: 0x9A, n: "TXS", d: "     ", m: "imp", f: T("X", "SP")},
+	{i: 0x9B, n: "TAS", d: "     ", m: "aby", f: unstable},
+	{i: 0x9C, n: "SHY", d: "     ", m: "abx", f: unstable},
+	{i: 0x9D, n: "STA", d: "     ", m: "abx", f: ST("A")},
+	{i: 0x9E, n: "SHX", d: "     ", m: "aby", f: unstable},
+	{i: 0x9F, n: "SHA", d: "     ", m: "aby", f: unstable},
+	{i: 0xA0, n: "LDY", d: "r    ", m: "imm", f: LD("Y")},
+	{i: 0xA1, n: "LDA", d: "r    ", m: "izx", f: LD("A")},
+	{i: 0xA2, n: "LDX", d: "r    ", m: "imm", f: LD("X")},
+	{i: 0xA3, n: "LAX", d: "r    ", m: "izx", f: LD("A", "X")},
+	{i: 0xA4, n: "LDY", d: "r    ", m: "zpg", f: LD("Y")},
+	{i: 0xA5, n: "LDA", d: "r    ", m: "zpg", f: LD("A")},
+	{i: 0xA6, n: "LDX", d: "r    ", m: "zpg", f: LD("X")},
+	{i: 0xA7, n: "LAX", d: "r    ", m: "zpg", f: LD("A", "X")},
+	{i: 0xA8, n: "TAY", d: "     ", m: "imp", f: T("A", "Y")},
+	{i: 0xA9, n: "LDA", d: "r    ", m: "imm", f: LD("A")},
+	{i: 0xAA, n: "TAX", d: "     ", m: "imp", f: T("A", "X")},
+	{i: 0xAB, n: "LXA", d: "     ", m: "imm", f: unstable},
+	{i: 0xAC, n: "LDY", d: "r    ", m: "abs", f: LD("Y")},
+	{i: 0xAD, n: "LDA", d: "r    ", m: "abs", f: LD("A")},
+	{i: 0xAE, n: "LDX", d: "r    ", m: "abs", f: LD("X")},
+	{i: 0xAF, n: "LAX", d: "r    ", m: "abs", f: LD("A", "X")},
+	{i: 0xB0, n: "BCS", d: "     ", m: "rel", f: branch(0, true)},
+	{i: 0xB1, n: "LDA", d: "r  x ", m: "izy", f: LD("A")},
+	{i: 0xB2, n: "STP", d: "     ", m: "imp"},
+	{i: 0xB3, n: "LAX", d: "r  x ", m: "izy", f: LD("A", "X")},
+	{i: 0xB4, n: "LDY", d: "r    ", m: "zpx", f: LD("Y")},
+	{i: 0xB5, n: "LDA", d: "r    ", m: "zpx", f: LD("A")},
+	{i: 0xB6, n: "LDX", d: "r    ", m: "zpy", f: LD("X")},
+	{i: 0xB7, n: "LAX", d: "r    ", m: "zpy", f: LD("A", "X")},
+	{i: 0xB8, n: "CLV", d: "     ", m: "imp", f: clear(6)},
+	{i: 0xB9, n: "LDA", d: "r  x ", m: "aby", f: LD("A")},
+	{i: 0xBA, n: "TSX", d: "     ", m: "imp", f: T("SP", "X")},
+	{i: 0xBB, n: "LAS", d: "r  x ", m: "aby"},
+	{i: 0xBC, n: "LDY", d: "r  x ", m: "abx", f: LD("Y")},
+	{i: 0xBD, n: "LDA", d: "r  x ", m: "abx", f: LD("A")},
+	{i: 0xBE, n: "LDX", d: "r  x ", m: "aby", f: LD("X")},
+	{i: 0xBF, n: "LAX", d: "r  x ", m: "aby", f: LD("A", "X")},
+	{i: 0xC0, n: "CPY", d: "r    ", m: "imm", f: cmp("Y")},
+	{i: 0xC1, n: "CMP", d: "r    ", m: "izx", f: cmp("A")},
+	{i: 0xC2, n: "NOP", d: "     ", m: "imm"},
+	{i: 0xC3, n: "DCP", d: "rw   ", m: "izx"},
+	{i: 0xC4, n: "CPY", d: "r    ", m: "zpg", f: cmp("Y")},
+	{i: 0xC5, n: "CMP", d: "r    ", m: "zpg", f: cmp("A")},
+	{i: 0xC6, n: "DEC", d: "rw   ", m: "zpg", f: dec("")},
+	{i: 0xC7, n: "DCP", d: "rw   ", m: "zpg"},
+	{i: 0xC8, n: "INY", d: "     ", m: "imp", f: inc("Y")},
+	{i: 0xC9, n: "CMP", d: "r    ", m: "imm", f: cmp("A")},
+	{i: 0xCA, n: "DEX", d: "     ", m: "imp", f: dec("X")},
+	{i: 0xCB, n: "SBX", d: "r    ", m: "imm"},
+	{i: 0xCC, n: "CPY", d: "r    ", m: "abs", f: cmp("Y")},
+	{i: 0xCD, n: "CMP", d: "r    ", m: "abs", f: cmp("A")},
+	{i: 0xCE, n: "DEC", d: "rw   ", m: "abs", f: dec("")},
+	{i: 0xCF, n: "DCP", d: "rw   ", m: "abs"},
+	{i: 0xD0, n: "BNE", d: "     ", m: "rel", f: branch(1, false)},
+	{i: 0xD1, n: "CMP", d: "r  x ", m: "izy", f: cmp("A")},
+	{i: 0xD2, n: "STP", d: "     ", m: "imp"},
+	{i: 0xD3, n: "DCP", d: "rw  a", m: "izy"},
+	{i: 0xD4, n: "NOP", d: "     ", m: "zpx"},
+	{i: 0xD5, n: "CMP", d: "r    ", m: "zpx", f: cmp("A")},
+	{i: 0xD6, n: "DEC", d: "rw   ", m: "zpx", f: dec("")},
+	{i: 0xD7, n: "DCP", d: "rw   ", m: "zpx"},
+	{i: 0xD8, n: "CLD", d: "     ", m: "imp", f: clear(3)},
+	{i: 0xD9, n: "CMP", d: "r  x ", m: "aby", f: cmp("A")},
+	{i: 0xDA, n: "NOP", d: "     ", m: "imp"},
+	{i: 0xDB, n: "DCP", d: "rw   ", m: "aby"},
+	{i: 0xDC, n: "NOP", d: "   x ", m: "abx"},
+	{i: 0xDD, n: "CMP", d: "r  x ", m: "abx", f: cmp("A")},
+	{i: 0xDE, n: "DEC", d: "rw   ", m: "abx", f: dec("")},
+	{i: 0xDF, n: "DCP", d: "rw   ", m: "abx"},
+	{i: 0xE0, n: "CPX", d: "r    ", m: "imm", f: cmp("X")},
+	{i: 0xE1, n: "SBC", d: "r    ", m: "izx"},
+	{i: 0xE2, n: "NOP", d: "     ", m: "imm"},
+	{i: 0xE3, n: "ISC", d: "rw   ", m: "izx"},
+	{i: 0xE4, n: "CPX", d: "r    ", m: "zpg", f: cmp("X")},
+	{i: 0xE5, n: "SBC", d: "r    ", m: "zpg"},
+	{i: 0xE6, n: "INC", d: "rw   ", m: "zpg", f: inc("")},
+	{i: 0xE7, n: "ISC", d: "rw   ", m: "zpg"},
+	{i: 0xE8, n: "INX", d: "     ", m: "imp", f: inc("X")},
+	{i: 0xE9, n: "SBC", d: "r    ", m: "imm"},
+	{i: 0xEA, n: "NOP", d: "     ", m: "imp"},
+	{i: 0xEB, n: "SBC", d: "r    ", m: "imm"},
+	{i: 0xEC, n: "CPX", d: "r    ", m: "abs", f: cmp("X")},
+	{i: 0xED, n: "SBC", d: "r    ", m: "abs"},
+	{i: 0xEE, n: "INC", d: "rw   ", m: "abs", f: inc("")},
+	{i: 0xEF, n: "ISC", d: "rw   ", m: "abs"},
+	{i: 0xF0, n: "BEQ", d: "     ", m: "rel", f: branch(1, true)},
+	{i: 0xF1, n: "SBC", d: "r  x ", m: "izy"},
+	{i: 0xF2, n: "STP", d: "     ", m: "imp"},
+	{i: 0xF3, n: "ISC", d: "rw  a", m: "izy"},
+	{i: 0xF4, n: "NOP", d: "     ", m: "zpx"},
+	{i: 0xF5, n: "SBC", d: "r    ", m: "zpx"},
+	{i: 0xF6, n: "INC", d: "rw   ", m: "zpx", f: inc("")},
+	{i: 0xF7, n: "ISC", d: "rw   ", m: "zpx"},
+	{i: 0xF8, n: "SED", d: "     ", m: "imp", f: set(3)},
+	{i: 0xF9, n: "SBC", d: "r  x ", m: "aby"},
+	{i: 0xFA, n: "NOP", d: "     ", m: "imp"},
+	{i: 0xFB, n: "ISC", d: "rw   ", m: "aby"},
+	{i: 0xFC, n: "NOP", d: "   x ", m: "abx"},
+	{i: 0xFD, n: "SBC", d: "r  x ", m: "abx"},
+	{i: 0xFE, n: "INC", d: "rw   ", m: "abx", f: inc("")},
+	{i: 0xFF, n: "ISC", d: "rw   ", m: "abx"},
 }
 
 type addrmode struct {
@@ -525,6 +524,11 @@ func copybits(dst, src, mask string) string {
 // opcode generators
 //
 
+func (g *Generator) STP(def opdef) {
+	g.unstable = append(g.unstable, def.i)
+	g.printf(`cpu.doHalt = true`)
+}
+
 func (g *Generator) ADC(_ opdef) {
 	carrybit(g)
 	g.printf(`sum := uint16(cpu.A) + uint16(val) + uint16(carry)`)
@@ -597,16 +601,11 @@ func (g *Generator) EOR(_ opdef) {
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
-func (g *Generator) ISB(def opdef) {
+func (g *Generator) ISC(def opdef) {
 	inc("")(g, def)
 	g.printf(`final := val`)
 	g.SBC(def)
 	g.printf(`val = final`)
-}
-
-func (g *Generator) JAM(def opdef) {
-	g.unstable = append(g.unstable, def.i)
-	insertPanic(g, fmt.Sprintf(`Halt and catch fire!\nJAM(0x%02X) called`, def.i))
 }
 
 func (g *Generator) JMP(_ opdef) {
@@ -941,38 +940,84 @@ func (g *Generator) disasmAddrModes() {
 		for n := 0; n < am.n; n++ {
 			bytes = append(bytes, "oper"+strconv.Itoa(n))
 		}
-		oper16 := ""
+
 		if am.n == 3 {
-			oper16 = `uint16(oper1)|uint16(oper2)<<8`
+			g.printf(`operaddr := uint16(oper1)|uint16(oper2)<<8`)
+		}
+		g.printf(`oper := ""`)
+		g.printf(``)
+
+		abxy := func(xy byte) {
+			g.printf(`pointee := cpu.Bus.Peek8(operaddr + uint16(cpu.%c))`, xy)
+			g.printf(`oper = fmt.Sprintf("$%%04X,%c = $%%02X", operaddr, pointee)`, xy)
 		}
 
-		g.printf(`return DisasmOp{`)
-		g.printf(`PC: pc,`)
-		g.printf(`Opcode: opcodeNames[oper0],`)
-		g.printf(`Bytes: []byte{%s},`, strings.Join(bytes, ","))
 		switch name {
 		case "imp":
 		case "acc":
-			g.printf(`Oper: "A",`)
+			g.printf(`oper = "A"`)
 		case "rel":
-			g.printf(`Oper: fmt.Sprintf("$%%04X", uint16(int16(pc+2) + int16(int8(oper1)))),`)
+			g.printf(`oper = fmt.Sprintf("$%%04X", uint16(int16(pc+2) + int16(int8(oper1))))`)
 		case "ind":
-			g.printf(`Oper: fmt.Sprintf("($%%04X)", %s),`, oper16)
+			g.printf(`lo := cpu.Bus.Peek8(operaddr)`)
+			g.printf(`// 2 bytes address wrap around`)
+			g.printf(`hi := cpu.Bus.Peek8((0xff00 & operaddr) | (0x00ff & (operaddr + 1)))`)
+			g.printf(`dest := uint16(hi)<<8 | uint16(lo)`)
+			g.printf(`pointee := cpu.Bus.Peek8(dest)`)
+			g.printf(`oper = fmt.Sprintf("($%%04X) = $%%02X", operaddr, pointee)`)
 		case "abs":
-			g.printf(`Oper: fmt.Sprintf("$%%04X", %s),`, oper16)
+			g.printf(`if oper0 == 0x20 || oper0 == 0x4C {`)
+			g.printf("        // JSR / JMP")
+			g.printf(`        oper = fmt.Sprintf("$%%04X", operaddr)`)
+			g.printf(`} else {`)
+			g.printf(`        pointee := cpu.Bus.Peek8(operaddr)`)
+			g.printf(`        oper = fmt.Sprintf("$%%04X = $%%02X", operaddr, pointee)`)
+			g.printf(`}`)
 		case "abx":
-			g.printf(`Oper: fmt.Sprintf("$%%04X,X", %s),`, oper16)
+			abxy('X')
 		case "aby":
-			g.printf(`Oper: fmt.Sprintf("$%%04X,Y", %s),`, oper16)
+			abxy('Y')
 		case "imm":
-			g.printf(`Oper: fmt.Sprintf("#$%%02X", oper1),`)
-		case "zpx", "zpy", "zp", "zpg":
-			g.printf(`Oper: fmt.Sprintf("$%%02X", oper1),`)
+			g.printf(`oper = fmt.Sprintf("#$%%02X", oper1)`)
+		case "zpg":
+			g.printf(`pointee := cpu.Bus.Peek8(uint16(oper1))`)
+			g.printf(`oper = fmt.Sprintf("$%%02X = $%%02X", oper1, pointee)`)
+		case "zpx":
+			g.printf(`addr := uint16(oper1) + uint16(cpu.X)`)
+			g.printf(`addr &= 0xff`)
+			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
+			g.printf(`oper = fmt.Sprintf("$%%02X,X = $%%02X", oper1, pointee)`)
+		case "zpy":
+			g.printf(`addr := uint16(oper1) + uint16(cpu.Y)`)
+			g.printf(`addr &= 0xff`)
+			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
+			g.printf(`oper = fmt.Sprintf("$%%02X,Y = $%%02X", oper1, pointee)`)
+		case "zp":
+			g.printf(`oper = fmt.Sprintf("$%%02X", oper1)`)
 		case "izx":
-			g.printf(`Oper: fmt.Sprintf("($%%02X,X)", oper1),`)
+			g.printf(`addr := uint16(uint8(oper1) + cpu.X)`)
+			g.printf(`// read 16 bytes from the zero page, handling page wrap`)
+			g.printf(`lo := cpu.Bus.Peek8(addr)`)
+			g.printf(`hi := cpu.Bus.Peek8(uint16(uint8(addr) + 1))`)
+			g.printf(`addr = uint16(hi)<<8 | uint16(lo)`)
+			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
+			g.printf(`oper = fmt.Sprintf("($%%02X,X) = $%%02X", oper1, pointee)`)
 		case "izy":
-			g.printf(`Oper: fmt.Sprintf("($%%02X),Y", oper1),`)
+			g.printf(`// read 16 bytes from the zero page, handling page wrap`)
+			g.printf(`lo := cpu.Bus.Peek8(uint16(oper1))`)
+			g.printf(`hi := cpu.Bus.Peek8(uint16(uint8(oper1) + 1))`)
+			g.printf(`addr := uint16(hi)<<8 | uint16(lo)`)
+			g.printf(`addr += uint16(cpu.Y)`)
+			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
+			g.printf(`oper = fmt.Sprintf("($%%02X),Y = $%%02X", oper1, pointee)`)
 		}
+
+		g.printf(``)
+		g.printf(`return DisasmOp{`)
+		g.printf(`	PC: pc,`)
+		g.printf(`	Opcode: opcodeNames[oper0],`)
+		g.printf(`	Buf: []byte{%s},`, strings.Join(bytes, ","))
+		g.printf(`	Oper: oper,`)
 		g.printf(`}`)
 		g.printf(`}`)
 		g.printf(``)
@@ -1018,11 +1063,7 @@ func (g *Generator) disasmTable() {
 func (g *Generator) opcodeNamesTable() {
 	var names [256]string
 	for i, def := range defs {
-		if has(def.d, 'i') {
-			names[i] = `"` + "*" + def.n + `"`
-		} else {
-			names[i] = `"` + " " + def.n + `"`
-		}
+		names[i] = strconv.Quote(def.n)
 	}
 	g.printf(`var opcodeNames = [256]string{`)
 	for i := 0; i < 16; i++ {

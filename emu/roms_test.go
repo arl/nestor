@@ -59,6 +59,9 @@ func TestNestest(t *testing.T) {
 
 	want := filepath.Join("testdata", "nestest.mesen.log")
 	CompareFileWithGolden(t, flog.Name(), want, false)
+	if t.Failed() {
+		t.Log("execution trace saved to", flog.Name())
+	}
 }
 
 func TestInstructionsV5(t *testing.T) {

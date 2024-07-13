@@ -248,11 +248,6 @@ func (c *CPU) handleInterrupts() {
 	c.runIRQ = c.irqFlag && !c.P.intDisable()
 }
 
-// STP - immediate addressing.
-func STP(cpu *CPU) {
-	cpu.doHalt = true
-}
-
 func BRK(cpu *CPU) {
 	cpu.tick()
 
