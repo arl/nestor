@@ -19,6 +19,8 @@ type CPU struct {
 	Ram   [0x800]byte // Internal RAM
 	Clock int64       // cycles
 
+	doHalt bool
+
 	ppu       *PPU
 	ppuAbsent bool // allow to disconnect PPU during CPU tests
 	ppuDMA    ppuDMA
@@ -83,7 +85,7 @@ func (c *CPU) InitBus() {
 	c.Bus.MapBank(0x4014, &c.ppuDMA, 0)
 
 	c.input.initBus()
-	c.Bus.MapBank(0x4016, &c.input, 0)
+	c.Bus.MapBank(0x4000, &c.input, 0)
 
 	// 0x4000-0x4017 -> APU and IO registers.
 	// TODO
@@ -140,6 +142,10 @@ func (c *CPU) Run(ncycles int64) {
 		c.dbg.Trace(c.PC)
 		c.PC++
 		ops[opcode](c)
+
+		if c.doHalt {
+			break
+		}
 
 		if c.prevRunIRQ || c.prevNeedNmi {
 			c.IRQ()
@@ -238,6 +244,11 @@ func (c *CPU) handleInterrupts() {
 	// previous cycle. The before-to-last cycle's values will be used.
 	c.prevRunIRQ = c.runIRQ
 	c.runIRQ = c.irqFlag && !c.P.intDisable()
+}
+
+// STP - immediate addressing.
+func STP(cpu *CPU) {
+	cpu.doHalt = true
 }
 
 func BRK(cpu *CPU) {
