@@ -682,6 +682,9 @@ func (p *PPU) clearOAM() {
 
 // Prepare sprites info in secondary OAM for next scanline
 func (p *PPU) evalSprites() {
+	if !p.renderingEnabled() {
+		return
+	}
 	n := 0
 	for i := 0; i < 64; i++ {
 		line := p.Scanline
