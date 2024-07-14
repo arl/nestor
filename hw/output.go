@@ -9,6 +9,7 @@ type OutputConfig struct {
 	Height          int
 	NumVideoBuffers int
 
+	// Headless output: leave nil to read but discard all video frames.
 	FrameOutCh chan image.RGBA
 }
 
@@ -18,6 +19,7 @@ type Output struct {
 
 	framecounter int
 	framech      chan frame
+	stop         chan struct{}
 
 	cfg OutputConfig
 }
@@ -31,6 +33,7 @@ func NewOutput(cfg OutputConfig) *Output {
 		framebuf: vb,
 		cfg:      cfg,
 		framech:  make(chan frame),
+		stop:     make(chan struct{}),
 	}
 	go o.render()
 	return o
@@ -54,23 +57,31 @@ func (o *Output) EndFrame(video []byte) {
 	o.framech <- frame{video: video}
 }
 
-func (o *Output) render() {
-	if o.cfg.FrameOutCh == nil {
-		for range o.framech {
-			// We're headless, just discard all frames.
-		}
-	} else {
-		rgba := image.RGBA{
-			Stride: 4 * o.cfg.Width,
-			Rect: image.Rectangle{
-				Max: image.Point{
-					X: o.cfg.Width,
-					Y: o.cfg.Height,
-				},
-			},
-		}
+// Stop output flow.
+func (o *Output) Close() {
+	close(o.stop)
+}
 
-		for frame := range o.framech {
+func (o *Output) render() {
+	rgba := image.RGBA{
+		Stride: 4 * o.cfg.Width,
+		Rect: image.Rectangle{
+			Max: image.Point{
+				X: o.cfg.Width,
+				Y: o.cfg.Height,
+			},
+		},
+	}
+
+	for {
+		select {
+		case <-o.stop:
+			return
+		case frame := <-o.framech:
+			if o.cfg.FrameOutCh == nil {
+				// Just discard frame if we're headless.
+				break
+			}
 			rgba.Pix = frame.video
 			o.cfg.FrameOutCh <- rgba
 		}

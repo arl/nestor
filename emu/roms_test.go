@@ -5,19 +5,29 @@ import (
 	"image"
 	_ "image/png"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"testing"
 	"unsafe"
 
 	"nestor/emu/hwio"
+	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/ines"
 	"nestor/tests"
 )
 
+func headlessOutput() *hw.Output {
+	return hw.NewOutput(hw.OutputConfig{
+		Width:           256,
+		Height:          240,
+		NumVideoBuffers: 2,
+	})
+}
+
 func TestNestest(t *testing.T) {
+	log.SetOutput(io.Discard)
+
 	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
 	rom, err := ines.ReadRom(romPath)
 	if err != nil {
@@ -33,19 +43,24 @@ func TestNestest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(flog.Name())
-	t.Cleanup(func() {
-		flog.Close()
-		t.Logf("log saved to %s", flog.Name())
-	})
 
-	// This rom has an 'automation' mode. To enable it, PC must be set to C000.
+	// nestest.nes rom has an 'automation' mode. To enable it,
+	// PC must be set to C000 (instead of C004 for graphic mode).
 	nes.CPU.PC = 0xC000
 	nes.CPU.SetTraceOutput(flog)
+	nes.Run(headlessOutput())
 
-	r1, r2 := nes.CPU.Read8(0x02), nes.CPU.Read8(0x03)
-	if r1 != 0x00 || r2 != 0x00 {
-		t.Fatalf("nestest failed: 0x%02x%02x", r1, r2)
+	result := nes.CPU.Read16(0x02)
+	if result != 0 {
+		t.Fatalf("nestest CPU tests failed with result 0x%04x (check nestest.txt)", result)
+	}
+
+	flog.Close()
+
+	want := filepath.Join("testdata", "nestest.mesen.log")
+	CompareFileWithGolden(t, flog.Name(), want, false)
+	if t.Failed() {
+		t.Log("execution trace saved to", flog.Name())
 	}
 }
 
@@ -92,7 +107,6 @@ func TestInterruptsV2(t *testing.T) {
 		"5-branch_delays_irq.nes",
 	}
 
-	log.SetOutput(io.Discard)
 	for _, path := range files {
 		t.Run(path, runTestRom(filepath.Join(dir, path)))
 	}
@@ -101,7 +115,6 @@ func TestInterruptsV2(t *testing.T) {
 func TestOAMRead(t *testing.T) {
 	romPath := filepath.Join(tests.RomsPath(t), "oam_read", "oam_read.nes")
 
-	log.SetOutput(io.Discard)
 	runTestRom(romPath)(t)
 }
 
@@ -109,7 +122,6 @@ func TestOAMStress(t *testing.T) {
 	t.Skip("failing for now")
 	romPath := filepath.Join(tests.RomsPath(t), "oam_stress", "oam_stress.nes")
 
-	log.SetOutput(io.Discard)
 	runTestRom(romPath)(t)
 }
 
@@ -221,10 +233,9 @@ func TestNametableMirroring(t *testing.T) {
 }
 
 func TestBlarggPPUtests(t *testing.T) {
-	romsPath := tests.RomsPath(t)
-
 	const frameidx = 25
 
+	romsPath := tests.RomsPath(t)
 	roms := []string{
 		"palette_ram.nes",
 		"power_up_palette.nes",

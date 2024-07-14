@@ -12,8 +12,8 @@ const (
 	NumCycles    = 341 // Number of PPU cycles per scanline.
 )
 
-// Throwaway frame buffer for the first PPU cycles, before an actual one for the
-// actual output.
+// Throwaway frame buffer for the first PPU cycles,
+// before an actual one for the actual output.
 var tmpFramebuf = make([]uint32, 256*240)
 
 type PPU struct {
