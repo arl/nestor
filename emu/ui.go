@@ -67,6 +67,5 @@ type UserInput interface {
 
 func (e *Emulator) ConnectInputDevice(up UserInput) {
 	e.nes.CPU.PlugInputDevice(up)
-	// Connect inputs from window to emulated input ports.
 	up.ReadUserInput(e.screen.UserInputs())
 }

@@ -75,12 +75,15 @@ func (nes *NES) Run(out *hw.Output) {
 	for {
 		screen := out.BeginFrame()
 		nes.PPU.SetFrameBuffer(screen)
-		nes.RunOneFrame()
+		if !nes.RunOneFrame() {
+			out.Close()
+			break
+		}
 		nes.Debugger.FrameEnd()
 		out.EndFrame(screen)
 	}
 }
 
-func (nes *NES) RunOneFrame() {
-	nes.CPU.Run(29781)
+func (nes *NES) RunOneFrame() bool {
+	return nes.CPU.Run(29781)
 }

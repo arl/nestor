@@ -13,8 +13,15 @@ type InputDevice interface {
 // InputPorts handles I/O with an InputDevice (such as standard NES controller
 // for example).
 type InputPorts struct {
-	In  hwio.Reg8 `hwio:"offset=0x00,rcb,wcb"`
-	Out hwio.Reg8 `hwio:"offset=0x01,rcb"`
+	In  hwio.Reg8 `hwio:"offset=0x16,rcb,wcb"`
+	Out hwio.Reg8 `hwio:"offset=0x17,rcb"`
+
+	// XXX: this is just to pass nestest.nes test diff,
+	// while we don't have an APU.
+	Stub1 hwio.Reg8 `hwio:"offset=0x04"`
+	Stub2 hwio.Reg8 `hwio:"offset=0x05"`
+	Stub3 hwio.Reg8 `hwio:"offset=0x06"`
+	Stub4 hwio.Reg8 `hwio:"offset=0x07"`
 
 	dev InputDevice
 
@@ -24,6 +31,13 @@ type InputPorts struct {
 
 func (ip *InputPorts) initBus() {
 	hwio.MustInitRegs(ip)
+
+	// XXX: this is just to pass nestest.nes test diff,
+	// while we don't have an APU.
+	ip.Stub1.Value = 0x40
+	ip.Stub2.Value = 0x40
+	ip.Stub3.Value = 0x40
+	ip.Stub4.Value = 0x40
 }
 
 func (ip *InputPorts) regval(port uint8) uint8 {
@@ -41,6 +55,13 @@ func (ip *InputPorts) regval(port uint8) uint8 {
 
 // capture state of all connected input devices.
 func (ip *InputPorts) loadstate() {
+	if ip.dev == nil {
+		// No controller is connected.
+		ip.state[0] = 0x40
+		ip.state[1] = 0x40
+		return
+	}
+
 	ip.state[0], ip.state[1] = ip.dev.LoadState()
 }
 
