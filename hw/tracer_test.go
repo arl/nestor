@@ -8,10 +8,10 @@ import (
 )
 
 func BenchmarkDisasmOpString(b *testing.B) {
-	const want = `C000  4C F5 C5  JMP $C5F5`
+	const want = `C000  4C F5 C5  JMP $C5F5         `
 
 	op := DisasmOp{
-		Opcode: " JMP",
+		Opcode: "JMP",
 		Oper:   "$C5F5",
 		Buf:    []byte{0x4c, 0xf5, 0xc5},
 		PC:     0xC000,
@@ -46,13 +46,13 @@ func TestTraceFormat(t *testing.T) {
 			0xE052: DisasmOp{
 				PC:     0xE052,
 				Buf:    []byte{0xA9, 0x32},
-				Opcode: " LDA",
+				Opcode: "LDA",
 				Oper:   "#$32",
 			},
 			0xE054: DisasmOp{
 				PC:     0xE054,
 				Buf:    []byte{0x20, 0xEE, 0xE0},
-				Opcode: " JSR",
+				Opcode: "JSR",
 				Oper:   "$E0EE",
 			},
 		},
@@ -86,13 +86,13 @@ func BenchmarkTraceFormat(b *testing.B) {
 			0xE052: DisasmOp{
 				PC:     0xE052,
 				Buf:    []byte{0xA9, 0x32},
-				Opcode: " LDA",
+				Opcode: "LDA",
 				Oper:   "#$32",
 			},
 			0xE054: DisasmOp{
 				PC:     0xE054,
 				Buf:    []byte{0x20, 0xEE, 0xE0},
-				Opcode: " JSR",
+				Opcode: "JSR",
 				Oper:   "$E0EE",
 			},
 		},
