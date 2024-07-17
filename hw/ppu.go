@@ -431,8 +431,10 @@ func (p *PPU) renderPixel() {
 			paddr += uint16(palette)
 		}
 		pidx := p.Read8(paddr)
-		col := (*uint32)(unsafe.Pointer(&nesPalette[pidx]))
-		p.framebuf[p.Scanline*256+x] = *col
+
+		col := emphasis(uint8(mask), nesPalette[pidx])
+		colu32 := (*uint32)(unsafe.Pointer(&col))
+		p.framebuf[p.Scanline*256+x] = *colu32
 	}
 
 	// Perform background shifts:
@@ -440,6 +442,32 @@ func (p *PPU) renderPixel() {
 	p.bg.bgShifthi <<= 1
 	p.bg.atShiftlo = (p.bg.atShiftlo << 1) | b2u8(p.bg.atLatchlo)
 	p.bg.atShifthi = (p.bg.atShifthi << 1) | b2u8(p.bg.atLatchhi)
+}
+
+// TODO: use LUT or a faster way.
+// Test it with game/rom that support color emphasis.
+func emphasis(rgbmask byte, col color.RGBA) color.RGBA {
+	r, g, b := float64(col.R), float64(col.G), float64(col.B)
+	switch {
+	case rgbmask&0x20 != 0:
+		r *= 1.2
+		g *= 0.9
+		b *= 0.9
+	case rgbmask&0x40 != 0:
+		r *= 0.9
+		g *= 1.2
+		b *= 0.9
+	case rgbmask&0x80 != 0:
+		r *= 0.9
+		g *= 0.9
+		b *= 1.2
+	}
+
+	return color.RGBA{
+		R: uint8(min(255, max(0, int(r)))),
+		G: uint8(min(255, max(0, int(g)))),
+		B: uint8(min(255, max(0, int(b)))),
+	}
 }
 
 func b2u8(b bool) uint8 {
