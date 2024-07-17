@@ -571,6 +571,7 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 
 // PPUDATA: $2007
 func (p *PPU) WritePPUDATA(old, val uint8) {
+	// TODO: check if this should change the bus addr or not?
 	p.Write8(p.vramAddr.addr(), val)
 	p.vramIncr()
 
