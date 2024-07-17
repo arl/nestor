@@ -299,6 +299,17 @@ func (p *PPU) bgAddr() uint16 {
 func (p *PPU) refillShifters() {
 	p.bg.bgShiftlo = (p.bg.bgShiftlo & 0xFF00) | uint16(p.bg.bglo)
 	p.bg.bgShifthi = (p.bg.bgShifthi & 0xFF00) | uint16(p.bg.bghi)
+
+	var lo, hi uint16
+	if (p.bg.at & 0b01) != 0 {
+		lo = 0xFF
+	}
+	if (p.bg.at & 0b10) != 0 {
+		hi = 0xFF
+	}
+
+	p.bg.atShiftlo = uint8((uint16(p.bg.atShiftlo) & 0xFF00) | lo)
+	p.bg.atShifthi = uint8((uint16(p.bg.atShifthi) & 0xFF00) | hi)
 }
 
 func (p *PPU) horzScroll() {
