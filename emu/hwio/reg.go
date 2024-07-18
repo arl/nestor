@@ -68,6 +68,10 @@ func (reg *Reg8) Read8(addr uint16) uint8 {
 	return reg.Value
 }
 
+func (reg *Reg8) Peek8(addr uint16) uint8 {
+	return reg.Value
+}
+
 func (reg *Reg8) GetBit(n uint) bool {
 	return reg.GetBiti(n) != 0
 }

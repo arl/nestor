@@ -8,6 +8,7 @@ import (
 
 type BankIO8 interface {
 	Read8(addr uint16) uint8
+	Peek8(addr uint16) uint8 // Like Read8 but without side effects.
 	Write8(addr uint16, val uint8)
 }
 
@@ -172,11 +173,11 @@ func (t *Table) Peek8(addr uint16) uint8 {
 	}
 	switch io := io.(type) {
 	case *memUnalignedLE:
-		return io.Read8(addr)
+		return io.Peek8(addr)
 	case *Reg8:
 		return io.Value
 	case BankIO8:
-		return io.Read8(addr)
+		return io.Peek8(addr)
 	}
 	panic(fmt.Errorf("invalid io type: %T", io))
 }

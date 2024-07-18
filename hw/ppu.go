@@ -193,6 +193,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 		case p.Cycle >= 2 && p.Cycle <= 255,
 			p.Cycle >= 322 && p.Cycle <= 337:
 			p.renderPixel()
+
 			switch p.Cycle & 0b111 {
 
 			// nametable
@@ -227,6 +228,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 				p.bg.bghi = p.Read8(p.bg.addrLatch)
 				p.horzScroll()
 			}
+
 		case p.Cycle == 256:
 			p.renderPixel()
 			p.bg.bghi = p.Read8(p.bg.addrLatch)
@@ -248,9 +250,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 				ppustatus.setVblank(false)
 				p.PPUSTATUS.Value = uint8(ppustatus)
 			}
-		case p.Cycle == 321:
-			fallthrough
-		case p.Cycle == 339:
+		case p.Cycle == 321, p.Cycle == 339:
 			p.bg.addrLatch = p.ntAddr()
 
 		// 'garbage' fetches
@@ -300,16 +300,8 @@ func (p *PPU) refillShifters() {
 	p.bg.bgShiftlo = (p.bg.bgShiftlo & 0xFF00) | uint16(p.bg.bglo)
 	p.bg.bgShifthi = (p.bg.bgShifthi & 0xFF00) | uint16(p.bg.bghi)
 
-	var lo, hi uint16
-	if (p.bg.at & 0b01) != 0 {
-		lo = 0xFF
-	}
-	if (p.bg.at & 0b10) != 0 {
-		hi = 0xFF
-	}
-
-	p.bg.atShiftlo = uint8((uint16(p.bg.atShiftlo) & 0xFF00) | lo)
-	p.bg.atShifthi = uint8((uint16(p.bg.atShifthi) & 0xFF00) | hi)
+	p.bg.atLatchlo = u8tob(p.bg.at & 1)
+	p.bg.atLatchhi = u8tob(p.bg.at & 2)
 }
 
 func (p *PPU) horzScroll() {
@@ -370,6 +362,23 @@ func (p *PPU) spriteHeight() int {
 	return 8
 }
 
+func nthbit8(val uint8, n uint8) uint8    { return (val >> n) & 1 }
+func nthbit16(val uint16, n uint8) uint16 { return (val >> n) & 1 }
+
+func b2u8(b bool) uint8 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func b2u16(b bool) uint16 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 func (p *PPU) renderPixel() {
 	var palette uint8
 	var objPalette uint8
@@ -380,32 +389,31 @@ func (p *PPU) renderPixel() {
 	if p.Scanline < 240 && p.Cycle >= 0 && p.Cycle < 256 {
 
 		// Background
-		if mask.bg() && (!mask.bgLeft() || x >= 8) {
-			hibit := uint8(p.bg.bgShifthi>>(15-p.bg.finex)) & 1
-			lobit := uint8(p.bg.bgShiftlo>>(15-p.bg.finex)) & 1
-			palette = (hibit << 1) | lobit
+		if mask.bg() && !(mask.bgLeft() && x < 8) {
+			palette = uint8(nthbit16(p.bg.bgShifthi, 15-p.bg.finex)<<1 |
+				nthbit16(p.bg.bgShiftlo, 15-p.bg.finex))
 			if palette != 0 {
-				palette |= ((((p.bg.atShifthi)>>(7-p.bg.finex))&1)<<1 |
-					((p.bg.atShiftlo) >> (7 - p.bg.finex))) << 2
+				palette |= (nthbit8(p.bg.atShifthi, 7-p.bg.finex)<<1 |
+					nthbit8(p.bg.atShiftlo, 7-p.bg.finex)) << 2
 			}
 		}
 
 		// Sprites
-		if mask.sprites() && (!mask.spriteLeft() || x >= 8) {
+		if mask.sprites() && (mask.spriteLeft() || x >= 8) {
 			for i := 7; i >= 0; i-- {
 				if p.oam[i].id == 64 {
 					continue // Void entry.
 				}
 				sprX := x - int(p.oam[i].x)
-				if sprX >= 8 {
+				if sprX >= 8 || sprX < 0 {
 					continue // Not in range.
 				}
 				if p.oam[i].attr&0x40 != 0 {
 					sprX ^= 7 // Horizontal flip.
 				}
 
-				sprPalette := ((((p.oam[i].dataH) >> (7 - sprX)) & 1) << 1) |
-					(((p.oam[i].dataL) >> (7 - sprX)) & 1)
+				sprPalette := (nthbit8(p.oam[i].dataH, uint8(7-sprX)) << 1) |
+					nthbit8(p.oam[i].dataL, uint8(7-sprX))
 				if sprPalette == 0 {
 					continue // Transparent pixel.
 				}
@@ -426,19 +434,23 @@ func (p *PPU) renderPixel() {
 			palette = objPalette
 		}
 
-		paddr := uint16(0x3f00)
+		var paddr uint16
 		if p.renderingEnabled() {
 			paddr += uint16(palette)
 		}
-		pidx := p.Read8(paddr)
-		p.framebuf[p.Scanline*256+x] = nesPalette[pidx]
+		pidx := p.Read8(0x3F00 + paddr)
+		colu32 := nesPalette[pidx]
+
+		const m = 0x80 | 0x40 | 0x20
+		colu32 = emphasis(byte(mask&m), colu32)
+		p.framebuf[p.Scanline*256+x] = colu32
 	}
 
 	// Perform background shifts:
 	p.bg.bgShiftlo <<= 1
 	p.bg.bgShifthi <<= 1
-	p.bg.atShiftlo = (p.bg.atShiftlo << 1) | b2u8(p.bg.atLatchlo)
-	p.bg.atShifthi = (p.bg.atShifthi << 1) | b2u8(p.bg.atLatchhi)
+	p.bg.atShiftlo = (p.bg.atShiftlo << 1) | btou8(p.bg.atLatchlo)
+	p.bg.atShifthi = (p.bg.atShifthi << 1) | btou8(p.bg.atLatchhi)
 }
 
 func colorToU32(col color.RGBA) uint32 {
@@ -446,44 +458,61 @@ func colorToU32(col color.RGBA) uint32 {
 	return uint32(col.R)<<24 | uint32(col.G)<<16 | uint32(col.B)<<8 | 0xff
 }
 
+func u8tob(v uint8) bool {
+	return v != 0
+}
+
+func btou8(b bool) uint8 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 // TODO: use LUT or a faster way.
 // Test it with game/rom that support color emphasis.
-func emphasis(rgbmask byte, col color.RGBA) color.RGBA {
-	r, g, b := float64(col.R), float64(col.G), float64(col.B)
+func emphasis(rgbmask byte, abgr uint32) uint32 {
+	r := float64(abgr & 0xFF)
+	g := float64((0xFF00 & abgr) >> 8)
+	b := float64((0xFF0000 & abgr) >> 16)
+
 	switch {
 	case rgbmask&0x20 != 0:
-		r *= 1.2
-		g *= 0.9
-		b *= 0.9
+		r *= 1.3
+		g *= 0.8
+		b *= 0.8
 	case rgbmask&0x40 != 0:
-		r *= 0.9
-		g *= 1.2
-		b *= 0.9
+		r *= 0.8
+		g *= 1.3
+		b *= 0.8
 	case rgbmask&0x80 != 0:
-		r *= 0.9
-		g *= 0.9
-		b *= 1.2
+		r *= 0.8
+		g *= 0.8
+		b *= 1.3
 	}
 
-	return color.RGBA{
-		R: uint8(min(255, max(0, int(r)))),
-		G: uint8(min(255, max(0, int(g)))),
-		B: uint8(min(255, max(0, int(b)))),
+	if r > 255 {
+		r = 255
 	}
-}
+	if r < 0 {
+		r = 0
+	}
+	if g > 255 {
+		g = 255
+	}
+	if g < 0 {
+		g = 0
+	}
+	if b > 255 {
+		b = 255
+	}
+	if b < 0 {
+		b = 0
+	}
 
-func b2u8(b bool) uint8 {
-	if b {
-		return 1
-	}
-	return 0
-}
+	// println(r, g, b)
 
-func b2u16(b bool) uint16 {
-	if b {
-		return 1
-	}
-	return 0
+	return uint32(r) | uint32(g)<<8 | uint32(b)<<16 //| 0xFF
 }
 
 func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
