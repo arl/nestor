@@ -16,6 +16,7 @@ import (
 	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/ines"
+	"nestor/ui"
 )
 
 func main() {
@@ -111,8 +112,13 @@ func main() {
 		nes.Run(out)
 	}()
 
+	// TODO: gtk3
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
-	emulator.Run(ctx, nes)
+	if err := ui.ShowMainWindow(); err != nil {
+		log.ModEmu.FatalZ("failed to show main window").Error("error", err).End()
+	}
+	_ = ctx
+	// emulator.Run(ctx, nes)
 }
 
 func checkf(err error, format string, args ...any) {

@@ -3,12 +3,7 @@ package emu
 import (
 	"context"
 
-	"gioui.org/app"
-	"gioui.org/unit"
-
-	"nestor/emu/debugger"
 	"nestor/hw"
-	"nestor/ui"
 )
 
 const (
@@ -16,48 +11,48 @@ const (
 	ScreenHeight = 224
 )
 
-func ShowDebuggerWindow(a *ui.Application, nes *NES) {
-	a.NewWindow("Debugger", debugger.NewDebuggerWindow(nes.Debugger, nes.CPU, nes.PPU))
-}
-
 // TODO(arl) merge with NES struct
 type Emulator struct {
 	nes *NES
-	app *ui.Application
 
-	screen *ScreenWindow
+	// TODO: gtk3
+	// screen *ScreenWindow
 }
 
 func NewEmulator(nes *NES) *Emulator {
-	screen := NewScreenWindow(nes)
-	minw := unit.Dp(2*ScreenWidth + 200)
-	minh := unit.Dp(2 * ScreenHeight)
-	app := ui.NewApplication("NEStor", screen,
-		app.MinSize(minw, minh),
-		app.Size(minw, minh),
-	)
+	// TODO: gtk3
+	// screen := NewScreenWindow(nes)
+	// minw := unit.Dp(2*ScreenWidth + 200)
+	// minh := unit.Dp(2 * ScreenHeight)
+	// app := ui.NewApplication("NEStor", screen,
+	// app.MinSize(minw, minh),
+	// app.Size(minw, minh),
+	// )
 
 	return &Emulator{
-		nes:    nes,
-		app:    app,
-		screen: screen,
+		nes: nes,
+		// TODO: gtk3
+		// app:    app,
+		// screen: screen,
 	}
 }
 
 func (e *Emulator) Run(ctx context.Context, nes *NES) {
-	go func() {
-		<-ctx.Done()
-		e.app.Shutdown()
-	}()
+	// TODO: gtk3
+	// 	go func() {
+	// 	<-ctx.Done()
+	// 	e.app.Shutdown()
+	// }()
 
-	e.app.Wait()
+	// e.app.Wait()
 }
 
 // Defer allows to defer functions to be called at the end of the program. Defer
 // can be called multiple times, as `defer` the functions are called in reverse
 // order.
 func (e *Emulator) Defer(f func()) {
-	e.app.Defer(f)
+	// TODO: gtk3
+	// e.app.Defer(f)
 }
 
 type UserInput interface {
@@ -67,5 +62,6 @@ type UserInput interface {
 
 func (e *Emulator) ConnectInputDevice(up UserInput) {
 	e.nes.CPU.PlugInputDevice(up)
-	up.ReadUserInput(e.screen.UserInputs())
+	// TODO: gtk3
+	// up.ReadUserInput(e.screen.UserInputs())
 }

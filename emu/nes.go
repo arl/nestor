@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 
-	"nestor/emu/debugger"
 	"nestor/hw"
 	"nestor/hw/mappers"
 	"nestor/ines"
@@ -26,7 +25,8 @@ func PowerUp(rom *ines.Rom) (*NES, error) {
 
 	cpu := hw.NewCPU(ppu)
 	cpu.InitBus()
-	dbg := debugger.NewDebugger(cpu)
+	// TODO: gtk3
+	// dbg := debugger.NewDebugger(cpu)
 	ppu.CPU = cpu
 
 	// Load mapper, applying cartridge memory and hardware based on mapper.
@@ -39,10 +39,11 @@ func PowerUp(rom *ines.Rom) (*NES, error) {
 	}
 
 	nes := &NES{
-		CPU:      cpu,
-		PPU:      ppu,
-		Rom:      rom,
-		Debugger: dbg,
+		CPU: cpu,
+		PPU: ppu,
+		Rom: rom,
+		// TODO: gtk3
+		// Debugger: dbg,
 	}
 	nes.Reset()
 	return nes, nil
