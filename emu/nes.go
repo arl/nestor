@@ -14,8 +14,7 @@ type NES struct {
 	PPU *hw.PPU
 	Rom *ines.Rom
 
-	Frames   chan image.RGBA
-	Debugger hw.Debugger
+	Frames chan image.RGBA
 }
 
 func PowerUp(rom *ines.Rom) (*NES, error) {
@@ -62,7 +61,8 @@ func (nes *NES) Run(out *hw.Output) {
 			out.Close()
 			break
 		}
-		nes.Debugger.FrameEnd()
+		// TODO: gtk3
+		// nes.Debugger.FrameEnd()
 		out.EndFrame(screen)
 	}
 }

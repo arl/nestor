@@ -38,7 +38,7 @@ type CPU struct {
 	runIRQ, prevRunIRQ   bool
 	irqFlag              bool
 
-	dbg Debugger
+	dbg FwdDebugger
 
 	// Non-nil when execution tracing is enabled.
 	tracer *tracer
@@ -298,10 +298,51 @@ func (c *CPU) IRQ() {
 }
 
 func (cpu *CPU) SetDebugger(dbg Debugger) {
-	cpu.dbg = dbg
+	cpu.dbg.fwd = dbg
 }
 
 func (cpu *CPU) Disasm(pc uint16) DisasmOp {
 	opcode := cpu.Bus.Peek8(pc)
 	return disasmOps[opcode](cpu, pc)
+}
+
+// FwdDebugger is a no-op Debugger if fwd is nil.
+type FwdDebugger struct {
+	fwd Debugger
+}
+
+func (d *FwdDebugger) Reset() {
+	if d.fwd != nil {
+		d.Reset()
+	}
+}
+func (d *FwdDebugger) Trace(pc uint16) {
+	if d.fwd != nil {
+		d.Trace(pc)
+	}
+}
+func (d *FwdDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
+	if d.fwd != nil {
+		d.Interrupt(prevpc, curpc, isNMI)
+	}
+}
+func (d *FwdDebugger) WatchRead(addr uint16) {
+	if d.fwd != nil {
+		d.WatchRead(addr)
+	}
+}
+func (d *FwdDebugger) WatchWrite(addr uint16, val uint16) {
+	if d.fwd != nil {
+		d.WatchWrite(addr, val)
+	}
+}
+func (d *FwdDebugger) Break(msg string) {
+	if d.fwd != nil {
+		d.Break(msg)
+	}
+}
+func (d *FwdDebugger) FrameEnd() {
+	if d.fwd != nil {
+		d.FrameEnd()
+	}
 }

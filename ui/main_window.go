@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"image"
 	"image/color"
@@ -48,9 +49,12 @@ type mainWindow struct {
 	recentRomsView *recentROMsView
 }
 
+//go:embed nestor.glade
+var gladeUI string
+
 func newMainWindow() (*mainWindow, error) {
 	gtk.Init(nil)
-	builder, err := gtk.BuilderNewFromFile("./nestor.glade")
+	builder, err := gtk.BuilderNewFromString(gladeUI)
 	if err != nil {
 		return nil, fmt.Errorf("builder: can't load UI file: %s", err)
 	}
