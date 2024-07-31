@@ -101,7 +101,7 @@ type emuWindow struct {
 	shaderProgram uint32
 }
 
-func showEmuWindow(errc chan<- error) {
+func ShowWindow(errc chan<- error) {
 	runtime.LockOSThread()
 
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_JOYSTICK); err != nil {

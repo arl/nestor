@@ -19,17 +19,17 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-func builderObj[T glib.IObject, P *T](builder *gtk.Builder, name string) (*T, error) {
+func build[T glib.IObject, P *T](builder *gtk.Builder, name string) *T {
 	gobj, err := builder.GetObject(name)
 	if err != nil {
-		return nil, fmt.Errorf("builder: can't get object %q: %s", name, err)
+		panic(fmt.Sprintf("builder: can't get object %q: %s", name, err))
 	}
 	obj, ok := gobj.(P)
 	if !ok {
 		var zero T
-		return nil, fmt.Errorf("builder: object is not a %T but a %T", zero, gobj)
+		panic(fmt.Sprintf("builder: object is not a %T but a %T", zero, gobj))
 	}
-	return obj, nil
+	return obj
 }
 
 // ShowMainWindow creates and shows the main window, blocking until it's closed.
@@ -45,7 +45,7 @@ func ShowMainWindow() error {
 }
 
 type mainWindow struct {
-	window         *gtk.ApplicationWindow
+	w              *gtk.Window
 	recentRomsView *recentROMsView
 }
 
@@ -59,12 +59,12 @@ func newMainWindow() (*mainWindow, error) {
 		return nil, fmt.Errorf("builder: can't load UI file: %s", err)
 	}
 
-	window, err := builderObj[gtk.ApplicationWindow](builder, "main_appwindow")
-	if err != nil {
-		return nil, err
-	}
-	window.Connect("destroy", func() {
-		gtk.MainQuit()
+	w := build[gtk.Window](builder, "window1")
+	w.Connect("destroy", gtk.MainQuit)
+
+	build[gtk.MenuItem](builder, "menu_quit").Connect("activate", gtk.MainQuit)
+	build[gtk.MenuItem](builder, "menu_open").Connect("activate", func() {
+		log.Println("Open menu clicked")
 	})
 
 	recentRomsView, err := newRecentRomsView(builder)
@@ -73,7 +73,7 @@ func newMainWindow() (*mainWindow, error) {
 	}
 
 	return &mainWindow{
-		window:         window,
+		w:              w,
 		recentRomsView: recentRomsView,
 	}, nil
 }
@@ -92,32 +92,28 @@ func newRecentRomsView(builder *gtk.Builder) (*recentROMsView, error) {
 		recentROMs: loadRecentRoms(),
 	}
 
-	flowbox, err := builderObj[gtk.FlowBox](builder, "main_flowbox")
-	if err != nil {
-		return nil, err
-	}
-	v.flowbox = flowbox
+	v.flowbox = build[gtk.FlowBox](builder, "flowbox1")
 
-	addbtn, err := builderObj[gtk.Button](builder, "add_btn")
-	if err != nil {
-		return nil, err
-	}
-	addbtn.Connect("clicked", func() {
-		dummyCounter++
+	// addbtn, err := builderObj[gtk.Button](builder, "add_btn")
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// addbtn.Connect("clicked", func() {
+	// 	dummyCounter++
 
-		rom := recentROM{
-			Name:  strconv.Itoa(dummyCounter),
-			Path:  "/some/path",
-			Image: logoWithNumber(dummyCounter),
-		}
-		if err := v.addRom(rom); err != nil {
-			log.Println("failed to add rom to view:", err)
-			return
-		}
-		if err := rom.save(); err != nil {
-			log.Println("failed to save recent rom:", err)
-		}
-	})
+	// 	rom := recentROM{
+	// 		Name:  strconv.Itoa(dummyCounter),
+	// 		Path:  "/some/path",
+	// 		Image: logoWithNumber(dummyCounter),
+	// 	}
+	// 	if err := v.addRom(rom); err != nil {
+	// 		log.Println("failed to add rom to view:", err)
+	// 		return
+	// 	}
+	// 	if err := rom.save(); err != nil {
+	// 		log.Println("failed to save recent rom:", err)
+	// 	}
+	// })
 
 	v.recentROMs = loadRecentRoms()
 	for _, rom := range v.recentROMs {
