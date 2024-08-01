@@ -2,35 +2,21 @@ package ui
 
 import (
 	"bytes"
-	_ "embed"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/png"
 	"log"
+	"nestor/emu"
 	"strconv"
 
 	"github.com/gotk3/gotk3/gdk"
-	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
 )
-
-func build[T glib.IObject, P *T](builder *gtk.Builder, name string) *T {
-	gobj, err := builder.GetObject(name)
-	if err != nil {
-		panic(fmt.Sprintf("builder: can't get object %q: %s", name, err))
-	}
-	obj, ok := gobj.(P)
-	if !ok {
-		var zero T
-		panic(fmt.Sprintf("builder: object is not a %T but a %T", zero, gobj))
-	}
-	return obj
-}
 
 // ShowMainWindow creates and shows the main window, blocking until it's closed.
 func ShowMainWindow() error {
@@ -49,9 +35,6 @@ type mainWindow struct {
 	recentRomsView *recentROMsView
 }
 
-//go:embed nestor.glade
-var gladeUI string
-
 func newMainWindow() (*mainWindow, error) {
 	gtk.Init(nil)
 	builder, err := gtk.BuilderNewFromString(gladeUI)
@@ -63,8 +46,25 @@ func newMainWindow() (*mainWindow, error) {
 	w.Connect("destroy", gtk.MainQuit)
 
 	build[gtk.MenuItem](builder, "menu_quit").Connect("activate", gtk.MainQuit)
-	build[gtk.MenuItem](builder, "menu_open").Connect("activate", func() {
-		log.Println("Open menu clicked")
+	build[gtk.MenuItem](builder, "menu_open").Connect("activate", func(m *gtk.MenuItem) {
+		path, ok := openFileDialog(w)
+		if !ok {
+			return
+		}
+		_ = path
+
+		m.SetSensitive(false)
+
+		errc := make(chan error)
+		go func() {
+			defer m.SetSensitive(true)
+			emu.ShowWindow(errc)
+		}()
+
+		if err := <-errc; err != nil {
+			log.Printf("Failed to initialize emulator window: %v", err)
+			gtk.MainQuit()
+		}
 	})
 
 	recentRomsView, err := newRecentRomsView(builder)
@@ -170,16 +170,14 @@ func addLabel(img *image.RGBA, x, y int, label string) {
 // addRom adds a new ROM to the list of recent roms, in the first position.
 func (v *recentROMsView) addRom(rom recentROM) error {
 	loader, err := gdk.PixbufLoaderNewWithType("png")
+	must(err)
 	if err != nil {
 		return fmt.Errorf("failed to create pixbuf loader: %s", err)
 	}
+	defer loader.Close()
 
 	if _, err := loader.Write([]byte(rom.Image)); err != nil {
 		return fmt.Errorf("failed to write image data: %s", err)
-	}
-
-	if err := loader.Close(); err != nil {
-		return fmt.Errorf("failed to close pixbuf loader: %s", err)
 	}
 
 	buf, err := loader.GetPixbuf()
