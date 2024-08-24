@@ -19,7 +19,8 @@ type CPU struct {
 	Ram   [0x800]byte // Internal RAM
 	Clock int64       // cycles
 
-	doHalt bool
+	selfjumps uint // infinite loop detection: count successive jumps to same PC.
+	doHalt    bool
 
 	ppu       *PPU
 	ppuAbsent bool // allow to disconnect PPU during CPU tests
@@ -125,7 +126,6 @@ func (c *CPU) Run(ncycles int64) bool {
 	until := c.Clock + ncycles
 	for c.Clock < until {
 		opcode := c.Read8(c.PC)
-
 		if c.tracer != nil {
 			c.tracer.write(cpuState{
 				A:        c.A,
