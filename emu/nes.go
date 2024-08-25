@@ -3,7 +3,9 @@ package emu
 import (
 	"fmt"
 	"image"
+	"io"
 
+	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/hw/mappers"
 	"nestor/ines"
@@ -53,20 +55,33 @@ func (nes *NES) Reset() {
 	nes.CPU.Reset()
 }
 
-func (nes *NES) Run(out *hw.Output) {
-	for {
-		screen := out.BeginFrame()
-		nes.PPU.SetFrameBuffer(screen)
-		if !nes.RunOneFrame() {
-			out.Close()
-			break
-		}
+type Output interface {
+	io.Closer
+
+	BeginFrame() []byte
+	EndFrame([]byte)
+	Poll() bool
+}
+
+func (nes *NES) Run(out Output) {
+	for out.Poll() {
+		vbuf := out.BeginFrame()
+		halted := !nes.RunOneFrame(vbuf)
 		// TODO: gtk3
 		// nes.Debugger.FrameEnd()
-		out.EndFrame(screen)
+		out.EndFrame(vbuf)
+
+		if halted {
+			break
+		}
+	}
+	log.ModEmu.InfoZ("Emulation stopped").End()
+	if err := out.Close(); err != nil {
+		log.ModEmu.WarnZ("Error closing emulator window").Error("error", err).End()
 	}
 }
 
-func (nes *NES) RunOneFrame() bool {
+func (nes *NES) RunOneFrame(vbuf []byte) bool {
+	nes.PPU.SetFrameBuffer(vbuf)
 	return nes.CPU.Run(29781)
 }

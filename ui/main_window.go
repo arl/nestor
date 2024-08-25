@@ -9,6 +9,7 @@ import (
 	"image/png"
 	"log"
 	"nestor/emu"
+	"nestor/ines"
 	"strconv"
 
 	"github.com/gotk3/gotk3/gdk"
@@ -51,14 +52,23 @@ func newMainWindow() (*mainWindow, error) {
 		if !ok {
 			return
 		}
-		_ = path
+
+		rom, err := ines.ReadRom(path)
+		if err != nil {
+			log.Fatalf("failed to read ROM: %s", err)
+		}
 
 		m.SetSensitive(false)
 
-		errc := make(chan error)
+		errc := make(chan error, 1)
 		go func() {
 			defer m.SetSensitive(true)
-			emu.ShowWindow(errc)
+
+			runEmulator, err := emu.Start(rom)
+			errc <- err // Release gtk UI asap.
+			if runEmulator != nil {
+				runEmulator()
+			}
 		}()
 
 		if err := <-errc; err != nil {

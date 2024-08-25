@@ -11,6 +11,8 @@ import (
 	"runtime/pprof"
 	"strings"
 
+	"github.com/veandco/go-sdl2/sdl"
+
 	"nestor/emu"
 	"nestor/emu/hwio"
 	"nestor/emu/log"
@@ -19,7 +21,31 @@ import (
 	"nestor/ui"
 )
 
+type Config struct{}
+
 func main() {
+	cfg := parseArgs()
+
+	sdl.Main(func() { main1(cfg) })
+}
+
+func parseArgs() Config {
+	return Config{}
+}
+
+func main1(_ Config) {
+	ch := make(chan struct{}, 1)
+	go func() {
+		defer close(ch)
+		if err := ui.ShowMainWindow(); err != nil {
+			log.ModEmu.FatalZ("failed to show main window").Error("error", err).End()
+		}
+	}()
+	<-ch
+	log.ModEmu.InfoZ("Nestor exit").End()
+}
+
+func mainOld() {
 	ftraceLog := &outfile{}
 	romInfos := false
 	logflag := ""
@@ -101,8 +127,10 @@ func main() {
 		Width:           256,
 		Height:          240,
 		NumVideoBuffers: 2,
-		FrameOutCh:      nes.Frames,
 	})
+	if err := out.EnableVideo(true); err != nil {
+		log.ModEmu.FatalZ("failed to show emulator window").Error("error", err).End()
+	}
 
 	go func() {
 		if ftraceLog.w != nil {
