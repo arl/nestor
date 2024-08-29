@@ -13,10 +13,21 @@ import (
 )
 
 type OutputConfig struct {
-	Width           int
-	Height          int
+	// Dimensions of the video buffer (in pixels).
+	Width, Height int
+
+	// Number of video buffers to allocate. Defaults to 2.
 	NumVideoBuffers int
-	Title           string
+
+	// Window title.
+	Title string
+}
+
+func OutputNTSC() OutputConfig {
+	return OutputConfig{
+		Width:  256,
+		Height: 240,
+	}
 }
 
 type Output struct {
@@ -24,7 +35,7 @@ type Output struct {
 	framebuf    [][]byte
 
 	framecounter int
-	framech      chan frame
+	framech      chan Frame
 	stop         chan struct{}
 
 	fpscounter  int
@@ -42,31 +53,26 @@ type Output struct {
 }
 
 func NewOutput(cfg OutputConfig) *Output {
-	o := newOutput(cfg)
-	o.wg.Add(2)
-	go o.render()
-	go o.poll()
-	return o
-}
+	if cfg.NumVideoBuffers == 0 {
+		cfg.NumVideoBuffers = 2
+	}
 
-func NewHeadlessOutput(cfg OutputConfig) *Output {
-	o := newOutput(cfg)
-	o.wg.Add(1)
-	go o.render()
-	return o
-}
-
-func newOutput(cfg OutputConfig) *Output {
 	vb := make([][]byte, cfg.NumVideoBuffers)
 	for i := range vb {
 		vb[i] = make([]byte, cfg.Width*cfg.Height*4)
 	}
-	return &Output{
+	out := &Output{
 		framebuf: vb,
 		cfg:      cfg,
-		framech:  make(chan frame),
+		framech:  make(chan Frame),
 		stop:     make(chan struct{}),
 	}
+
+	out.wg.Add(2)
+	go out.render()
+	go out.poll()
+
+	return out
 }
 
 func (out *Output) EnableVideo(enable bool) error {
@@ -88,8 +94,8 @@ func (out *Output) EnableVideo(enable bool) error {
 	return nil
 }
 
-type frame struct {
-	video []byte
+type Frame struct {
+	Video []byte
 }
 
 func (out *Output) BeginFrame() (video []byte) {
@@ -103,7 +109,7 @@ func (out *Output) BeginFrame() (video []byte) {
 
 func (out *Output) EndFrame(video []byte) {
 	out.framecounter++
-	out.framech <- frame{video: video}
+	out.framech <- Frame{Video: video}
 }
 
 // Stop output flow.
@@ -112,11 +118,16 @@ func (out *Output) Close() error {
 	close(out.stop)
 
 	// Flow is stopped by now, but window may still be rendering.
-	out.window.SetTitle("halted")
+	if out.window != nil {
+		out.window.SetTitle("halted")
+	}
 	out.wg.Wait()
 
-	log.ModEmu.DebugZ("Closing SDL window").End()
-	return out.window.Close()
+	if out.window != nil {
+		log.ModEmu.DebugZ("Closing SDL window").End()
+		return out.window.Close()
+	}
+	return nil
 }
 
 func (out *Output) render() {
@@ -128,15 +139,16 @@ func (out *Output) render() {
 		case frame := <-out.framech:
 			if out.videoEnabled {
 				sdl.Do(func() {
-					out.renderVideo(frame.video)
+					out.renderVideo(frame.Video)
 				})
 			}
 
-			// Update FPS counter in title bar
+			// Update FPS counter in title bar.
 			if out.videoEnabled {
 				out.fpscounter++
 				if out.fpsclock+1000 < sdl.GetTicks64() {
-					out.window.SetTitle(fmt.Sprintf("%s - %d FPS", out.cfg.Title, out.fpscounter))
+					title := fmt.Sprintf("%s - %d FPS", out.cfg.Title, out.fpscounter)
+					out.window.SetTitle(title)
 					out.fpscounter = 0
 					out.fpsclock += 1000
 				}
@@ -156,6 +168,7 @@ func (out *Output) renderVideo(video []byte) {
 }
 
 // Poll reports whether input polling is ongoing.
+// (i.e false if user requested to quit).
 func (out *Output) Poll() bool {
 	return !out.quit
 }
