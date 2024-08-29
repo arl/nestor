@@ -8,8 +8,6 @@ import (
 	"image/draw"
 	"image/png"
 	"log"
-	"nestor/emu"
-	"nestor/ines"
 	"strconv"
 
 	"github.com/gotk3/gotk3/gdk"
@@ -17,6 +15,9 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
+
+	"nestor/emu"
+	"nestor/ines"
 )
 
 // ShowMainWindow creates and shows the main window, blocking until it's closed.
