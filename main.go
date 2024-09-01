@@ -63,14 +63,14 @@ func emuMain(cfg CLIConfig) {
 		os.Exit(1)
 	}
 	if runEmulator != nil {
-		if cfg.ProfileCPU != "" {
-			f, err := os.Create(cfg.ProfileCPU)
+		if cfg.CPUProfile != "" {
+			f, err := os.Create(cfg.CPUProfile)
 			checkf(err, "failed to create cpu profile file")
 			checkf(pprof.StartCPUProfile(f), "failed to start cpu profile")
 			defer func() {
 				pprof.StopCPUProfile()
 				f.Close()
-				fmt.Println("CPU profile written to", cfg.ProfileCPU)
+				fmt.Println("CPU profile written to", cfg.CPUProfile)
 			}()
 		}
 
