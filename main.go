@@ -21,19 +21,23 @@ import (
 	"nestor/ui"
 )
 
-type Config struct{}
-
 func main() {
-	cfg := parseArgs()
-
-	sdl.Main(func() { main1(cfg) })
+	sdl.Main(main1)
 }
 
-func parseArgs() Config {
-	return Config{}
+func main1() {
+	cfg := parseArgs(os.Args[1:])
+	cfg.check() // fails if necessary
+
+	if cfg.RomPath == "" {
+		guiMain()
+	} else {
+		emuMain(cfg)
+	}
 }
 
-func main1(_ Config) {
+// guiMain runs Nestor graphical user interface.
+func guiMain() {
 	ch := make(chan struct{}, 1)
 	go func() {
 		defer close(ch)
@@ -43,6 +47,35 @@ func main1(_ Config) {
 	}()
 	<-ch
 	log.ModEmu.InfoZ("Nestor exit").End()
+}
+
+// emuMain runs the emulator directly with the given rom.
+func emuMain(cfg CLIConfig) {
+	rom, err := ines.ReadRom(cfg.RomPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to read ROM: %s", err)
+		os.Exit(1)
+	}
+
+	runEmulator, err := emu.Start(rom)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to start emulator: %v", err)
+		os.Exit(1)
+	}
+	if runEmulator != nil {
+		if cfg.ProfileCPU != "" {
+			f, err := os.Create(cfg.ProfileCPU)
+			checkf(err, "failed to create cpu profile file")
+			checkf(pprof.StartCPUProfile(f), "failed to start cpu profile")
+			defer func() {
+				pprof.StopCPUProfile()
+				f.Close()
+				fmt.Println("CPU profile written to", cfg.ProfileCPU)
+			}()
+		}
+
+		runEmulator()
+	}
 }
 
 func mainOld() {
@@ -129,7 +162,7 @@ func mainOld() {
 		NumVideoBuffers: 2,
 	})
 	if err := out.EnableVideo(true); err != nil {
-		log.ModEmu.FatalZ("failed to show emulator window").Error("error", err).End()
+		fatalf("failed to show emulator window: %v", err)
 	}
 
 	go func() {
@@ -143,26 +176,10 @@ func mainOld() {
 	// TODO: gtk3
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
 	if err := ui.ShowMainWindow(); err != nil {
-		log.ModEmu.FatalZ("failed to show main window").Error("error", err).End()
+		fatalf("failed to show main window: %v", err)
 	}
 	_ = ctx
 	// emulator.Run(ctx, nes)
-}
-
-func checkf(err error, format string, args ...any) {
-	if err == nil {
-		return
-	}
-
-	fmt.Fprintf(os.Stderr, "fatal error:")
-	fmt.Fprintf(os.Stderr, "\n\t%s: %s\n", fmt.Sprintf(format, args...), err)
-	os.Exit(1)
-}
-
-func fatalf(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "fatal error:")
-	fmt.Fprintf(os.Stderr, "\n\t%s\n", fmt.Sprintf(format, args...))
-	os.Exit(1)
 }
 
 type outfile struct {

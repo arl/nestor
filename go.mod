@@ -14,6 +14,7 @@ require (
 )
 
 require (
+	github.com/alecthomas/kong v0.9.0 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 )
