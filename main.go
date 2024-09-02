@@ -27,7 +27,7 @@ func main() {
 
 func main1() {
 	cfg := parseArgs(os.Args[1:])
-	cfg.check() // fails if necessary
+	cfg.validate() // fails if necessary
 
 	if cfg.RomPath == "" {
 		guiMain()
@@ -57,25 +57,41 @@ func emuMain(cfg CLIConfig) {
 		os.Exit(1)
 	}
 
-	runEmulator, err := emu.Start(rom)
+	if cfg.Infos {
+		rom.PrintInfos(os.Stdout)
+		os.Exit(0)
+	}
+
+	var (
+		traceout io.WriteCloser
+	)
+
+	if cfg.Trace != nil {
+		traceout = cfg.Trace
+	}
+
+	emucfg := emu.Config{
+		TraceOut: traceout,
+	}
+
+	emuloop, err := emu.Start(rom, emucfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to start emulator: %v", err)
 		os.Exit(1)
 	}
-	if runEmulator != nil {
-		if cfg.CPUProfile != "" {
-			f, err := os.Create(cfg.CPUProfile)
-			checkf(err, "failed to create cpu profile file")
-			checkf(pprof.StartCPUProfile(f), "failed to start cpu profile")
-			defer func() {
-				pprof.StopCPUProfile()
-				f.Close()
-				fmt.Println("CPU profile written to", cfg.CPUProfile)
-			}()
-		}
 
-		runEmulator()
+	if cfg.CPUProfile != "" {
+		f, err := os.Create(cfg.CPUProfile)
+		checkf(err, "failed to create cpu profile file")
+		checkf(pprof.StartCPUProfile(f), "failed to start cpu profile")
+		defer func() {
+			pprof.StopCPUProfile()
+			f.Close()
+			fmt.Println("CPU profile written to", cfg.CPUProfile)
+		}()
 	}
+
+	emuloop()
 }
 
 func mainOld() {
@@ -90,7 +106,7 @@ func mainOld() {
 	flag.StringVar(&logflag, "log", "", "enable logging for specified modules")
 	// TODO(arl) replace with log=no
 	flag.BoolVar(&nologflag, "nolog", false, "disable all logging")
-	flag.Var(ftraceLog, "trace", "write cpu trace log to [file|stdout|stderr] (warning: quickly gets very big)")
+	// flag.Var(ftraceLog, "trace", "write cpu trace log to [file|stdout|stderr] (warning: quickly gets very big)")
 	flag.Int64Var(&resetVector, "reset", -1, "overwrite CPU reset vector with (default: rom-defined)")
 	flag.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
 
@@ -180,35 +196,4 @@ func mainOld() {
 	}
 	_ = ctx
 	// emulator.Run(ctx, nes)
-}
-
-type outfile struct {
-	w    io.Writer
-	name string
-}
-
-func (f *outfile) Set(s string) error {
-	f.name = s
-	switch s {
-	case "stdout":
-		f.w = os.Stdout
-	case "stderr":
-		f.w = os.Stderr
-	default:
-		fd, err := os.Create(s)
-		if err != nil {
-			return err
-		}
-		f.w = fd
-	}
-	return nil
-}
-
-func (f *outfile) String() string              { return f.name }
-func (f *outfile) Write(p []byte) (int, error) { return f.w.Write(p) }
-func (f *outfile) Close() error {
-	if f.name == "stdout" || f.name == "stderr" {
-		return nil
-	}
-	return f.w.(io.Closer).Close()
 }

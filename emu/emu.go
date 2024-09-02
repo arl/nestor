@@ -3,15 +3,20 @@ package emu
 import (
 	"fmt"
 	"image"
+	"io"
 
 	"nestor/hw"
 	"nestor/ines"
 )
 
+type Config struct {
+	TraceOut io.WriteCloser
+}
+
 // Start configures controllers, loads up the rom and creates output streams. It
 // returns a run function that starts the whole emulation, and that terminates
 // when emulation stops by itself or the window is closed.
-func Start(rom *ines.Rom) (func(), error) {
+func Start(rom *ines.Rom, cfg Config) (func(), error) {
 	pads := StdControllerPair{
 		Pad1Connected: true,
 	}
@@ -34,5 +39,14 @@ func Start(rom *ines.Rom) (func(), error) {
 		return nil, err
 	}
 
-	return func() { nes.Run(out) }, nil
+	runLoop := func() {
+		if cfg.TraceOut != nil {
+			defer cfg.TraceOut.Close()
+			nes.CPU.SetTraceOutput(cfg.TraceOut)
+		}
+
+		nes.Run(out)
+	}
+
+	return runLoop, nil
 }
