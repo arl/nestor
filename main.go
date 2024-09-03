@@ -29,10 +29,11 @@ func main1() {
 	cfg := parseArgs(os.Args[1:])
 	cfg.validate() // fails if necessary
 
-	if cfg.RomPath == "" {
+	switch cfg.mode {
+	case guiMode:
 		guiMain()
-	} else {
-		emuMain(cfg)
+	case runMode:
+		emuMain(cfg.Run)
 	}
 }
 
@@ -50,7 +51,7 @@ func guiMain() {
 }
 
 // emuMain runs the emulator directly with the given rom.
-func emuMain(cfg CLIConfig) {
+func emuMain(cfg RunConfig) {
 	rom, err := ines.ReadRom(cfg.RomPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to read ROM: %s", err)

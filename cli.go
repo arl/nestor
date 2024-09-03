@@ -11,13 +11,30 @@ import (
 	"nestor/emu/log"
 )
 
-type CLIConfig struct {
-	CPUProfile string     `name:"cpuprofile" help:"${cpuprofile_help}" type:"path"`
-	RomPath    string     `arg:"" name:"/path/to/rom" optional:"" help:"${rompath_help}" type:"existingfile"`
-	Log        logModMask `help:"${log_help}" placeholder:"mod0,mod1,..."`
-	Infos      bool       `name:"infos" help:"Show information about the ROM and exit."`
-	Trace      *outfile   `name:"trace" help:"Write CPU trace log." placeholder:"FILE|stdout|stderr"`
-}
+type mode byte
+
+const (
+	guiMode mode = iota
+	runMode
+)
+
+type (
+	CLIConfig struct {
+		mode mode
+		Run  RunConfig `cmd:"" help:"Run ROM in emulator."`
+		GUI  GUIConfig `cmd:"" help:"Run Nestor graphical user interface." default:"1"`
+	}
+
+	RunConfig struct {
+		CPUProfile string     `name:"cpuprofile" help:"${cpuprofile_help}" type:"path"`
+		RomPath    string     `arg:"" name:"/path/to/rom" optional:"" help:"${rompath_help}" type:"existingfile"`
+		Log        logModMask `help:"${log_help}" placeholder:"mod0,mod1,..."`
+		Infos      bool       `name:"infos" help:"Show information about the ROM and exit."`
+		Trace      *outfile   `name:"trace" help:"Write CPU trace log." placeholder:"FILE|stdout|stderr"`
+	}
+
+	GUIConfig struct{}
+)
 
 var vars = kong.Vars{
 	"rompath_help":    "Run the ROM directly, skip the graphical user interface.",
@@ -26,10 +43,15 @@ var vars = kong.Vars{
 }
 
 func (cfg CLIConfig) validate() {
-	if cfg.RomPath == "" {
-		// gui mode
-		if cfg.CPUProfile != "" {
-			fatalf("cpuprofile option is only available when running a ROM")
+	switch cfg.mode {
+	case guiMode:
+	case runMode:
+		cfg := cfg.Run
+		if cfg.RomPath == "" {
+			// gui mode
+			if cfg.CPUProfile != "" {
+				fatalf("cpuprofile option is only available when running a ROM")
+			}
 		}
 	}
 }
@@ -49,6 +71,12 @@ func parseArgs(args []string) CLIConfig {
 	ctx, err := parser.Parse(args)
 	checkf(err, "failed to parse command line")
 	checkf(ctx.Error, "failed to parse command line")
+
+	if ctx.Command() == "gui" {
+		cfg.mode = guiMode
+	} else {
+		cfg.mode = runMode
+	}
 	return cfg
 }
 
