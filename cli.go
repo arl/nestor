@@ -81,22 +81,22 @@ func parseArgs(args []string) CLIConfig {
 }
 
 func printHelp(options kong.HelpOptions, ctx *kong.Context) error {
-	err := kong.DefaultHelpPrinter(options, ctx)
-	if err != nil {
+	if err := kong.DefaultHelpPrinter(options, ctx); err != nil {
 		return err
 	}
-
-	// Logging help
-	loggingHelp := `
+	if strings.HasPrefix(ctx.Command(), "run") {
+		loggingHelp := `
 Log modules:
   Accepted log modules:
   %s
 
-  As a special case, the following values are accepted: 
-    - 'no'                   Disable all logging.
-    - 'all'                  Enable all logs.
+As a special case, the following values are accepted: 
+  - 'no'                   Disable all logging.
+  - 'all'                  Enable all logs.
 `
-	fmt.Fprintf(os.Stderr, loggingHelp, strings.Join(log.ModuleNames(), ", "))
+		fmt.Fprintf(os.Stderr, loggingHelp, strings.Join(log.ModuleNames(), ", "))
+	}
+
 	return nil
 }
 
