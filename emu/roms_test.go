@@ -41,10 +41,12 @@ func TestNestest(t *testing.T) {
 	nes.CPU.SetTraceOutput(flog)
 
 	// Configure a headless testing output.
-	nes.Run(newTestingOutput(TestingOutputConfig{
+	outcfg := TestingOutputConfig{
 		Height: hw.OutputNTSC().Height,
 		Width:  hw.OutputNTSC().Width,
-	}))
+	}
+	nes.SetOutput(newTestingOutput(outcfg))
+	nes.Run()
 
 	result := nes.CPU.Read16(0x02)
 	if result != 0 {
@@ -260,15 +262,16 @@ func TestBlarggPPUtests(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			out := newTestingOutput(TestingOutputConfig{
-				Height:        hw.OutputNTSC().Height,
-				Width:         hw.OutputNTSC().Width,
-				SaveFrameDir:  "testdata",
-				SaveFrameFile: filepath.Base(romPath),
-				SaveFrameNum:  frameidx,
-			})
-
-			nes.Run(out)
+			out := newTestingOutput(
+				TestingOutputConfig{
+					Height:        hw.OutputNTSC().Height,
+					Width:         hw.OutputNTSC().Width,
+					SaveFrameDir:  "testdata",
+					SaveFrameFile: filepath.Base(romPath),
+					SaveFrameNum:  frameidx,
+				})
+			nes.SetOutput(out)
+			nes.Run()
 
 			out.CompareFrame(t)
 		})

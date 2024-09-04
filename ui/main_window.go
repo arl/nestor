@@ -65,11 +65,13 @@ func newMainWindow() (*mainWindow, error) {
 		go func() {
 			defer m.SetSensitive(true)
 
-			emuloop, err := emu.Start(rom, emu.Config{})
+			nes, err := emu.Start(rom, emu.Config{})
 			errc <- err // Release gtk UI asap.
-			if emuloop != nil {
-				emuloop()
+			if err != nil {
+				return
 			}
+
+			nes.Run()
 		}()
 
 		if err := <-errc; err != nil {

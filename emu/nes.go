@@ -17,10 +17,10 @@ type NES struct {
 	Rom *ines.Rom
 
 	Frames chan image.RGBA
+	Out    Output
 }
 
 func PowerUp(rom *ines.Rom) (*NES, error) {
-	// nes.Rom = rom
 	ppu := hw.NewPPU()
 	ppu.InitBus()
 
@@ -63,20 +63,26 @@ type Output interface {
 	Poll() bool
 }
 
-func (nes *NES) Run(out Output) {
-	for out.Poll() {
-		vbuf := out.BeginFrame()
+func (nes *NES) SetOutput(out Output) {
+	nes.Out = out
+}
+
+// Run run the emulator loop until the CPU halts
+// or the output window is closed.
+func (nes *NES) Run() {
+	for nes.Out.Poll() {
+		vbuf := nes.Out.BeginFrame()
 		halted := !nes.RunOneFrame(vbuf)
 		// TODO: gtk3
 		// nes.Debugger.FrameEnd()
-		out.EndFrame(vbuf)
+		nes.Out.EndFrame(vbuf)
 
 		if halted {
 			break
 		}
 	}
 	log.ModEmu.InfoZ("Emulation stopped").End()
-	if err := out.Close(); err != nil {
+	if err := nes.Out.Close(); err != nil {
 		log.ModEmu.WarnZ("Error closing emulator window").Error("error", err).End()
 	}
 }

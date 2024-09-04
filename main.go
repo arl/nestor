@@ -68,7 +68,7 @@ func emuMain(cfg RunConfig) {
 		TraceOut: traceout,
 	}
 
-	emuloop, err := emu.Start(rom, emucfg)
+	nes, err := emu.Start(rom, emucfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to start emulator: %v", err)
 		os.Exit(1)
@@ -85,5 +85,5 @@ func emuMain(cfg RunConfig) {
 		}()
 	}
 
-	emuloop()
+	nes.Run()
 }
