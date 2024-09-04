@@ -21,9 +21,11 @@ const (
 type (
 	CLIConfig struct {
 		mode mode
+		GUI  GUIConfig `cmd:"" help:"Run Nestor graphical user interface. The default if no commands are given." default:"1"`
 		Run  RunConfig `cmd:"" help:"Run ROM in emulator."`
-		GUI  GUIConfig `cmd:"" help:"Run Nestor graphical user interface." default:"1"`
 	}
+
+	GUIConfig struct{}
 
 	RunConfig struct {
 		CPUProfile string     `name:"cpuprofile" help:"${cpuprofile_help}" type:"path"`
@@ -32,14 +34,12 @@ type (
 		Infos      bool       `name:"infos" help:"Show information about the ROM and exit."`
 		Trace      *outfile   `name:"trace" help:"Write CPU trace log." placeholder:"FILE|stdout|stderr"`
 	}
-
-	GUIConfig struct{}
 )
 
 var vars = kong.Vars{
 	"rompath_help":    "Run the ROM directly, skip the graphical user interface.",
 	"cpuprofile_help": "Write CPU profile to file. (only when running a ROM)",
-	"log_help":        "Enable logging for specified modules (comma separated).",
+	"log_help":        "Enable logging for specified modules. See 'Log Modules'.",
 }
 
 func (cfg CLIConfig) validate() {
@@ -87,14 +87,21 @@ func printHelp(options kong.HelpOptions, ctx *kong.Context) error {
 	if strings.HasPrefix(ctx.Command(), "run") {
 		loggingHelp := `
 Log modules:
-  Accepted log modules:
-  %s
+  The --log flag accepts a comma-separated list of modules.
 
-As a special case, the following values are accepted: 
-  - 'no'                   Disable all logging.
-  - 'all'                  Enable all logs.
+  Valid log modules are:
+%s
+  
+  As a special case, the following values are accepted: 
+    - no                     Disable all logging.
+    - all                    Enable all logs.
 `
-		fmt.Fprintf(os.Stderr, loggingHelp, strings.Join(log.ModuleNames(), ", "))
+		var strs []string
+		for _, m := range log.ModuleNames() {
+			strs = append(strs, "    - "+m)
+		}
+
+		fmt.Fprintf(os.Stderr, loggingHelp, strings.Join(strs, "\n"))
 	}
 
 	return nil
