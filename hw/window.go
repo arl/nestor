@@ -156,6 +156,7 @@ void main() {
 }
 ` + "\x00"
 
+//lint:ignore U1000 keep that for now
 const fragmentShaderSource = `
 #version 330 core
 out vec4 FragColor;

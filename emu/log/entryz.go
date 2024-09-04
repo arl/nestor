@@ -7,8 +7,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	logrus "gopkg.in/Sirupsen/logrus.v0"
 )
 
 type EntryZ struct {
@@ -168,15 +166,6 @@ func (z *EntryZ) Blob(key string, value []byte) *EntryZ {
 		z.zfidx++
 	}
 	return z
-}
-
-var logfuncs = []func(*logrus.Entry, ...any){
-	(*logrus.Entry).Panic,
-	(*logrus.Entry).Fatal,
-	(*logrus.Entry).Error,
-	(*logrus.Entry).Warn,
-	(*logrus.Entry).Info,
-	(*logrus.Entry).Debug,
 }
 
 const (

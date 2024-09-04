@@ -3,7 +3,6 @@ package ui
 import (
 	_ "embed"
 	"fmt"
-	"log"
 
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
@@ -31,6 +30,7 @@ func must(err error) {
 	}
 }
 
+//lint:ignore U1000 useful later
 func mustf(err error, format string, args ...any) {
 	if err != nil {
 		msg := fmt.Sprintf(format, args...)
@@ -38,31 +38,26 @@ func mustf(err error, format string, args ...any) {
 	}
 }
 
-func must2[T any](v T, err error) T {
+func mustT[T any](v T, err error) T {
 	must(err)
 	return v
 }
 
 // openFileDialog shows a file chooser dialog for selecting a nes ROM file.
 func openFileDialog(parent *gtk.Window) (string, bool) {
-	dlg, err := gtk.FileChooserDialogNewWith1Button(
+	dlg := mustT(gtk.FileChooserDialogNewWith1Button(
 		"Open NES ROM",
 		parent,
 		gtk.FILE_CHOOSER_ACTION_OPEN,
 		"Open",
 		gtk.RESPONSE_OK,
-	)
-	must(err)
+	))
 	defer dlg.Destroy()
 
-	filter, err := gtk.FileFilterNew()
-	if err != nil {
-		log.Fatal("Unable to create file filter:", err)
-	}
+	filter := mustT(gtk.FileFilterNew())
 	filter.AddPattern("*.nes")
 	filter.SetName("nes/famicom ROM Files")
 	dlg.AddFilter(filter)
-
 	if resp := dlg.Run(); resp != gtk.RESPONSE_OK {
 		return "", false
 	}

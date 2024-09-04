@@ -3,7 +3,6 @@ package hw
 import (
 	"fmt"
 	"sync"
-	"time"
 	"unsafe"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
@@ -31,22 +30,19 @@ func OutputNTSC() OutputConfig {
 }
 
 type Output struct {
-	framebufidx int
-	framebuf    [][]byte
-
+	framebufidx  int
+	framebuf     [][]byte
 	framecounter int
 	framech      chan Frame
-	stop         chan struct{}
 
-	fpscounter  int
-	fpsclock    uint64
-	fpsticks    []time.Time
-	fpsticksidx int
+	fpscounter int
+	fpsclock   uint64
 
 	videoEnabled bool
 	window       *window
 
 	quit bool
+	stop chan struct{}
 	wg   sync.WaitGroup // workers loops
 
 	cfg OutputConfig
