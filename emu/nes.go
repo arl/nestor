@@ -20,7 +20,7 @@ type NES struct {
 	Out    Output
 }
 
-func PowerUp(rom *ines.Rom) (*NES, error) {
+func powerUp(rom *ines.Rom) (*NES, error) {
 	ppu := hw.NewPPU()
 	ppu.InitBus()
 
@@ -71,8 +71,9 @@ func (nes *NES) SetOutput(out Output) {
 // Run run the emulator loop until the CPU halts
 // or the output window is closed.
 func (nes *NES) Run() {
+	var vbuf []byte
 	for nes.Out.Poll() {
-		vbuf := nes.Out.BeginFrame()
+		vbuf = nes.Out.BeginFrame()
 		halted := !nes.RunOneFrame(vbuf)
 		// TODO: gtk3
 		// nes.Debugger.FrameEnd()

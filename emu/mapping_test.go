@@ -34,7 +34,7 @@ func TestMapper000(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nes, err := PowerUp(rom)
+	nes, err := powerUp(rom)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestPPURegisterMapping(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nes, err := PowerUp(rom)
+	nes, err := powerUp(rom)
 	if err != nil {
 		t.Fatal(err)
 	}

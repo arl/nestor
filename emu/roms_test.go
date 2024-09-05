@@ -25,7 +25,7 @@ func TestNestest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nes, err := PowerUp(rom)
+	nes, err := powerUp(rom)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func runTestRom(path string) func(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		nes, err := PowerUp(rom)
+		nes, err := powerUp(rom)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -211,7 +211,7 @@ func TestNametableMirroring(t *testing.T) {
 	if rom.Mirroring() != ines.HorzMirroring {
 		t.Errorf("incorrect nt mirroring")
 	}
-	nes, err := PowerUp(rom)
+	nes, err := powerUp(rom)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +257,7 @@ func TestBlarggPPUtests(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			nes, err := PowerUp(rom)
+			nes, err := powerUp(rom)
 			if err != nil {
 				t.Fatal(err)
 			}

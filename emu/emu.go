@@ -13,10 +13,14 @@ type Config struct {
 	TraceOut io.WriteCloser
 }
 
-// Start configures controllers, loads up the rom and creates the output
+type Emulator struct {
+	NES *NES
+}
+
+// PowerUp configures controllers, loads up the rom and creates the output
 // streams. It returns a NES emulator ready to run.
-func Start(rom *ines.Rom, cfg Config) (*NES, error) {
-	nes, err := PowerUp(rom)
+func PowerUp(rom *ines.Rom, cfg Config) (*Emulator, error) {
+	nes, err := powerUp(rom)
 	if err != nil {
 		return nil, fmt.Errorf("power up failed: %s", err)
 	}
@@ -45,5 +49,15 @@ func Start(rom *ines.Rom, cfg Config) (*NES, error) {
 		nes.CPU.SetTraceOutput(cfg.TraceOut)
 	}
 
-	return nes, nil
+	return &Emulator{
+		NES: nes,
+	}, nil
+}
+
+func (e *Emulator) Run() {
+	e.NES.Run()
+}
+
+func (e *Emulator) Screenshot(path string) error {
+	return e.NES.Out.Screenshot(path)
 }
