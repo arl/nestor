@@ -1,24 +1,20 @@
 package ui
 
 import (
-	"bytes"
 	"fmt"
-	"image"
-	"image/color"
-	"image/draw"
-	"image/png"
-	"log"
-	"strconv"
+	"os"
+	"path/filepath"
+	"time"
 
-	"github.com/gotk3/gotk3/gdk"
+	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/basicfont"
-	"golang.org/x/image/math/fixed"
 
 	"nestor/emu"
+	"nestor/emu/log"
 	"nestor/ines"
 )
+
+var modGUI = log.NewModule("gui")
 
 // ShowMainWindow creates and shows the main window, blocking until it's closed.
 func ShowMainWindow() error {
@@ -45,209 +41,96 @@ func newMainWindow() (*mainWindow, error) {
 	}
 
 	w := build[gtk.Window](builder, "window1")
-	w.Connect("destroy", gtk.MainQuit)
+	mw := &mainWindow{
+		w: w,
+	}
+	w.Connect("destroy", func() { mw.Close(nil) })
 
-	build[gtk.MenuItem](builder, "menu_quit").Connect("activate", gtk.MainQuit)
-	build[gtk.MenuItem](builder, "menu_open").Connect("activate", func(m *gtk.MenuItem) {
-		path, ok := openFileDialog(w)
-		if !ok {
-			return
-		}
-
-		rom, err := ines.ReadRom(path)
-		if err != nil {
-			log.Fatalf("failed to read ROM: %s", err)
-		}
-
-		m.SetSensitive(false)
-
-		errc := make(chan error, 1)
-		go func() {
-			defer m.SetSensitive(true)
-
-			nes, err := emu.Start(rom, emu.Config{})
-			errc <- err // Release gtk UI asap.
-			if err != nil {
-				return
-			}
-
-			nes.Run()
-		}()
-
-		if err := <-errc; err != nil {
-			log.Printf("Failed to initialize emulator window: %v", err)
-			gtk.MainQuit()
-		}
-	})
-
-	recentRomsView, err := newRecentRomsView(builder)
+	mw.recentRomsView, err = newRecentRomsView(builder, mw.guiRunROM)
 	if err != nil {
 		return nil, err
 	}
 
-	return &mainWindow{
-		w:              w,
-		recentRomsView: recentRomsView,
-	}, nil
-}
-
-const maxRecentsRoms = 16
-
-type recentROMsView struct {
-	flowbox    *gtk.FlowBox
-	recentROMs []recentROM
-}
-
-var dummyCounter = 0
-
-func newRecentRomsView(builder *gtk.Builder) (*recentROMsView, error) {
-	v := &recentROMsView{
-		recentROMs: loadRecentRoms(),
-	}
-
-	v.flowbox = build[gtk.FlowBox](builder, "flowbox1")
-
-	// addbtn, err := builderObj[gtk.Button](builder, "add_btn")
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// addbtn.Connect("clicked", func() {
-	// 	dummyCounter++
-
-	// 	rom := recentROM{
-	// 		Name:  strconv.Itoa(dummyCounter),
-	// 		Path:  "/some/path",
-	// 		Image: logoWithNumber(dummyCounter),
-	// 	}
-	// 	if err := v.addRom(rom); err != nil {
-	// 		log.Println("failed to add rom to view:", err)
-	// 		return
-	// 	}
-	// 	if err := rom.save(); err != nil {
-	// 		log.Println("failed to save recent rom:", err)
-	// 	}
-	// })
-
-	v.recentROMs = loadRecentRoms()
-	for _, rom := range v.recentROMs {
-		if err := v.addRom(rom); err != nil {
-			log.Println("failed to add rom to view:", err)
-			return nil, err
+	build[gtk.MenuItem](builder, "menu_quit").Connect("activate", gtk.MainQuit)
+	build[gtk.MenuItem](builder, "menu_open").Connect("activate", func(m *gtk.MenuItem) {
+		path, ok := openFileDialog(mw.w)
+		if !ok {
+			return
 		}
-		dummyCounter++
-	}
-	return v, nil
-}
 
-func logoWithNumber(n int) []byte {
-	var logo []byte
-	rgba64, err := pngToRGBA(logo)
-	if err != nil {
-		panic(err)
-	}
-	addLabel(rgba64, 10, 10, strconv.Itoa(n))
-
-	var bb bytes.Buffer
-	if err := png.Encode(&bb, rgba64); err != nil {
-		panic(err)
-	}
-	return bb.Bytes()
-}
-
-func pngToRGBA(buf []byte) (*image.RGBA, error) {
-	img, _, err := image.Decode(bytes.NewReader(buf))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode image: %s", err)
-	}
-
-	// Convert image to RGBA
-	rgba := image.NewRGBA(img.Bounds())
-	draw.Draw(rgba, rgba.Bounds(), img, image.Point{}, draw.Src)
-
-	return rgba, nil
-}
-
-func addLabel(img *image.RGBA, x, y int, label string) {
-	col := color.RGBA{255, 0, 0, 255}
-	point := fixed.Point26_6{X: fixed.I(x), Y: fixed.I(y)}
-
-	d := &font.Drawer{
-		Dst:  img,
-		Src:  image.NewUniform(col),
-		Face: basicfont.Face7x13,
-		Dot:  point,
-	}
-	d.DrawString(label)
-}
-
-// addRom adds a new ROM to the list of recent roms, in the first position.
-func (v *recentROMsView) addRom(rom recentROM) error {
-	loader, err := gdk.PixbufLoaderNewWithType("png")
-	must(err)
-	if err != nil {
-		return fmt.Errorf("failed to create pixbuf loader: %s", err)
-	}
-	defer loader.Close()
-
-	if _, err := loader.Write([]byte(rom.Image)); err != nil {
-		return fmt.Errorf("failed to write image data: %s", err)
-	}
-
-	buf, err := loader.GetPixbuf()
-	if err != nil {
-		return fmt.Errorf("failed to get pixbuf from loader: %s", err)
-	}
-
-	buf, err = buf.ScaleSimple(256, 256, gdk.INTERP_BILINEAR)
-	if err != nil {
-		return fmt.Errorf("failed to get pixbuf from loader: %s", err)
-	}
-
-	img, err := gtk.ImageNewFromPixbuf(buf)
-	if err != nil {
-		return fmt.Errorf("failed to create image from pixbuf: %s", err)
-	}
-
-	// Create a button to contain the image
-	button, err := gtk.ButtonNew()
-	if err != nil {
-		return fmt.Errorf("failed to create button: %s", err)
-	}
-
-	// Set the image as the button content
-	button.SetImage(img)
-	button.SetAlwaysShowImage(true)
-
-	img.SetVisible(true)
-
-	// Create a box to contain the button and the label
-	box, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 0)
-	if err != nil {
-		return fmt.Errorf("failed to create box: %s", err)
-	}
-
-	// Create the label
-	label, err := gtk.LabelNew("some name")
-	if err != nil {
-		return fmt.Errorf("failed to create label: %s", err)
-	}
-
-	// Pack the button and the label into the box
-	box.PackStart(button, false, false, 0)
-	box.PackStart(label, false, false, 0)
-
-	// Connect the click event
-	button.Connect("clicked", func() {
-		fmt.Println("Image clicked!")
+		mw.guiRunROM(path)
 	})
 
-	// Insert the box into the flowbox
-	v.flowbox.Insert(box, 0)
+	return mw, nil
+}
 
-	button.SetVisible(true)
-	img.SetVisible(true)
-	box.SetVisible(true)
-	label.SetVisible(true)
+func (mw *mainWindow) Close(err error) {
+	if err != nil {
+		modGUI.Warnf("closing UI with error: %s", err)
+	}
+	gtk.MainQuit()
+}
 
+func (mw *mainWindow) guiRunROM(path string) {
+	mw.w.SetSensitive(false)
+
+	rom, err := ines.ReadRom(path)
+	if err != nil {
+		modGUI.Warnf("failed to read ROM: %s", err)
+		return
+	}
+
+	errc := make(chan error)
+	go func() {
+		defer mw.w.SetSensitive(true)
+
+		emulator, err := emu.PowerUp(rom, emu.Config{})
+		errc <- err // Release gtk thread asap.
+
+		emulator.Run()
+
+		// TODO: should Screenshot return an image.Image (or image.RGBA) instead
+		// of writing to a file? We wouldn't need to crate the file, close it,
+		// read it again, to pass the bytes to the recent roms view.
+		screenshot := tempFile()
+		emulator.Screenshot(screenshot)
+		fmt.Println(screenshot)
+
+		glib.IdleAdd(func() {
+			if err := mw.addRecentROM(path, screenshot); err != nil {
+				modGUI.Warnf("failed to add recent ROM: %s", err)
+			}
+		})
+	}()
+
+	if err := <-errc; err != nil {
+		if err != nil {
+			log.ModEmu.Fatalf("failed to start emulator window: %v", err)
+			gtk.MainQuit()
+		}
+	}
+}
+
+func tempFile() string {
+	f, err := os.CreateTemp("", "nestor_*")
+	if err != nil {
+		log.ModEmu.Fatalf("failed to create temporary file: %s", err)
+	}
+	f.Close()
+	return f.Name()
+}
+
+func (mw *mainWindow) addRecentROM(path, screenshot string) error {
+	nrr := recentROM{
+		Name:     filepath.Base(path),
+		Image:    mustT(os.ReadFile(screenshot)),
+		Path:     path,
+		LastUsed: time.Now(),
+	}
+	mw.recentRomsView.addROM(nrr)
+	if err := nrr.save(); err != nil {
+		return fmt.Errorf("failed to save recent rom: %v", err)
+	}
+	mw.recentRomsView.refreshView()
 	return nil
 }

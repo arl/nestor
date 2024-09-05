@@ -52,7 +52,7 @@ func openFileDialog(parent *gtk.Window) (string, bool) {
 		"Open",
 		gtk.RESPONSE_OK,
 	))
-	defer dlg.Destroy()
+	defer dlg.Close()
 
 	filter := mustT(gtk.FileFilterNew())
 	filter.AddPattern("*.nes")
