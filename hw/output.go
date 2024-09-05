@@ -2,6 +2,9 @@ package hw
 
 import (
 	"fmt"
+	"image"
+	"image/png"
+	"os"
 	"sync"
 	"unsafe"
 
@@ -171,6 +174,9 @@ func (out *Output) Poll() bool {
 
 func (out *Output) poll() {
 	defer out.wg.Done()
+
+	// kbstate := sdl.GetKeyboardState()
+
 	for !out.quit {
 		sdl.Do(func() {
 			for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
@@ -181,8 +187,7 @@ func (out *Output) poll() {
 						return
 					}
 
-					kbstate := sdl.GetKeyboardState()
-					fmt.Println(kbstate)
+					// fmt.Println(kbstate)
 				case *sdl.QuitEvent:
 					out.quit = true
 				case *sdl.JoyButtonEvent:
@@ -195,4 +200,30 @@ func (out *Output) poll() {
 			}
 		})
 	}
+}
+
+func (out *Output) Screenshot(path string) error {
+	imgc := make(chan *image.RGBA, 1)
+	sdl.Do(func() {
+		imgc <- FramebufImage(out.framebuf[0], out.cfg.Width, out.cfg.Height)
+	})
+
+	return SaveAsPNG(<-imgc, path)
+}
+
+func FramebufImage(framebuf []byte, w, h int) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	img.Pix = framebuf
+	return img
+}
+
+func SaveAsPNG(img image.Image, path string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	if err := png.Encode(f, img); err != nil {
+		return err
+	}
+	return f.Close()
 }

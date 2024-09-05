@@ -2,9 +2,8 @@ package emu
 
 import (
 	"fmt"
-	"image"
-	"image/png"
 	"math"
+	"nestor/hw"
 	"os"
 	"path/filepath"
 	"testing"
@@ -60,27 +59,19 @@ func (to *TestingOutput) framePath(isGolden bool) string {
 	return filepath.Join(to.cfg.SaveFrameDir, fn)
 }
 
+func (to *TestingOutput) Screenshot(path string) error {
+	img := hw.FramebufImage(to.framebuf, to.cfg.Width, to.cfg.Height)
+	return hw.SaveAsPNG(img, path)
+}
+
 func (to *TestingOutput) EndFrame(video []byte) {
 	if to.framecounter == int(to.cfg.SaveFrameNum) {
-		img := image.NewRGBA(image.Rect(0, 0, to.cfg.Width, to.cfg.Height))
-		img.Pix = video
-		if err := saveToPNG(img, to.framePath(false)); err != nil {
+		if err := to.Screenshot(to.framePath(false)); err != nil {
 			panic("failed to save frame: " + err.Error())
 		}
 	}
 
 	to.framecounter++
-}
-
-func saveToPNG(img image.Image, path string) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	if err := png.Encode(f, img); err != nil {
-		return err
-	}
-	return f.Close()
 }
 
 func (to *TestingOutput) Poll() bool {
