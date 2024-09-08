@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
-	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -118,9 +117,9 @@ func (w *window) Close() error {
 		if w.context != nil {
 			sdl.GLDeleteContext(w.context)
 		}
-		img.Quit()
+		err := w.Destroy()
 		sdl.Quit()
-		errc <- w.Destroy()
+		errc <- err
 	})
 	return <-errc
 }
