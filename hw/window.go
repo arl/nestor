@@ -124,17 +124,14 @@ func (w *window) Close() error {
 	return <-errc
 }
 
-// Columns are (x, y, z, s, t)
-// where x, y, z are the position of the vertex
-// and s, t are the texture coordinates.
-//
-// Rows are the vertices of the quad, in cw order, so:
-// top right, bottom right, bottom left, top left
+// Columns are position and texture coordinates.
+// Rows are the quad vertices in clockwise order.
 var vertices = []float32{
-	0.5, 0.5, 0, 1, 0,
-	0.5, -0.5, 0, 1, 1,
-	-0.5, -0.5, 0, 0, 1,
-	-0.5, 0.5, 0, 0, 0,
+	// x, y, z, s, t
+	0.5, 0.5, 0, 1, 0, // top right
+	0.5, -0.5, 0, 1, 1, // bottom right
+	-0.5, -0.5, 0, 0, 1, // bottom left
+	-0.5, 0.5, 0, 0, 0, // top left
 }
 
 var indices = []uint32{
