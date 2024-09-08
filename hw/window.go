@@ -128,10 +128,10 @@ func (w *window) Close() error {
 // Rows are the quad vertices in clockwise order.
 var vertices = []float32{
 	// x, y, z, s, t
-	0.5, 0.5, 0, 1, 0, // top right
-	0.5, -0.5, 0, 1, 1, // bottom right
-	-0.5, -0.5, 0, 0, 1, // bottom left
-	-0.5, 0.5, 0, 0, 0, // top left
+	1.0, 1.0, 0, 1, 0, // top right
+	1.0, -1.0, 0, 1, 1, // bottom right
+	-1.0, -1.0, 0, 0, 1, // bottom left
+	-1.0, 1.0, 0, 0, 0, // top left
 }
 
 var indices = []uint32{

@@ -194,12 +194,35 @@ func (out *Output) poll() {
 				case *sdl.WindowEvent:
 					if e.Event == sdl.WINDOWEVENT_RESIZED {
 						width, height := e.Data1, e.Data2
-						gl.Viewport(0, 0, int32(width), int32(height))
+						scaleViewport(width, height, out.cfg.Width, out.cfg.Height)
 					}
 				}
 			}
 		})
 	}
+}
+
+func scaleViewport(winw, winh int32, orgw, orgh int) {
+	winRatio := float64(winw) / float64(winh)
+	nesRatio := float64(orgw) / float64(orgh)
+
+	// We want the largest rectangle that maintains nes aspect ratio.
+	var vpw, vph int32
+	if winRatio > nesRatio {
+		// Window is wider than the NES aspect ratio.
+		vph = winh
+		vpw = int32(float64(winh) * nesRatio)
+	} else {
+		// Window is taller or equal to the NES aspect ratio.
+		vpw = winw
+		vph = int32(float64(winw) / nesRatio)
+	}
+
+	// Center the viewport within the window.
+	offx := (winw - vpw) / 2
+	offy := (winh - vph) / 2
+
+	gl.Viewport(offx, offy, vpw, vph)
 }
 
 func (out *Output) Screenshot() image.Image {
