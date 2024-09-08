@@ -58,6 +58,6 @@ func (e *Emulator) Run() {
 	e.NES.Run()
 }
 
-func (e *Emulator) Screenshot(path string) error {
-	return e.NES.Out.Screenshot(path)
+func (e *Emulator) Screenshot() image.Image {
+	return e.NES.Out.Screenshot()
 }

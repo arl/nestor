@@ -89,12 +89,7 @@ func (mw *mainWindow) guiRunROM(path string) {
 
 		emulator.Run()
 
-		// TODO: should Screenshot return an image.Image (or image.RGBA) instead
-		// of writing to a file? We wouldn't need to crate the file, close it,
-		// read it again, to pass the bytes to the recent roms view.
-		screenshot := tempFile()
-		emulator.Screenshot(screenshot)
-		fmt.Println(screenshot)
+		screenshot := emulator.Screenshot()
 
 		glib.IdleAdd(func() {
 			if err := mw.addRecentROM(path, screenshot); err != nil {

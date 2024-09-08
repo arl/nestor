@@ -202,13 +202,13 @@ func (out *Output) poll() {
 	}
 }
 
-func (out *Output) Screenshot(path string) error {
+func (out *Output) Screenshot() image.Image {
 	imgc := make(chan *image.RGBA, 1)
 	sdl.Do(func() {
-		imgc <- FramebufImage(out.framebuf[0], out.cfg.Width, out.cfg.Height)
+		imgc <- FramebufImage(out.framebuf[out.framebufidx], out.cfg.Width, out.cfg.Height)
 	})
 
-	return SaveAsPNG(<-imgc, path)
+	return <-imgc
 }
 
 func FramebufImage(framebuf []byte, w, h int) *image.RGBA {

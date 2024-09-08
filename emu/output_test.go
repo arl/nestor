@@ -2,6 +2,7 @@ package emu
 
 import (
 	"fmt"
+	"image"
 	"math"
 	"nestor/hw"
 	"os"
@@ -59,14 +60,13 @@ func (to *TestingOutput) framePath(isGolden bool) string {
 	return filepath.Join(to.cfg.SaveFrameDir, fn)
 }
 
-func (to *TestingOutput) Screenshot(path string) error {
-	img := hw.FramebufImage(to.framebuf, to.cfg.Width, to.cfg.Height)
-	return hw.SaveAsPNG(img, path)
+func (to *TestingOutput) Screenshot() image.Image {
+	return hw.FramebufImage(to.framebuf, to.cfg.Width, to.cfg.Height)
 }
 
 func (to *TestingOutput) EndFrame(video []byte) {
 	if to.framecounter == int(to.cfg.SaveFrameNum) {
-		if err := to.Screenshot(to.framePath(false)); err != nil {
+		if err := hw.SaveAsPNG(to.Screenshot(), to.framePath(false)); err != nil {
 			panic("failed to save frame: " + err.Error())
 		}
 	}

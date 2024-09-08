@@ -61,7 +61,7 @@ type Output interface {
 	BeginFrame() []byte
 	EndFrame([]byte)
 	Poll() bool
-	Screenshot(path string) error
+	Screenshot() image.Image
 }
 
 func (nes *NES) SetOutput(out Output) {
