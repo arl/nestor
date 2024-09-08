@@ -115,9 +115,6 @@ func loadRecentROMs() []recentROM {
 		modGUI.Warnf("error loading recent roms: %s", err)
 	}
 
-	slices.SortFunc(roms, func(a, b recentROM) int {
-		return cmp.Compare(a.LastUsed.Unix(), b.LastUsed.Unix())
-	})
 	return roms
 }
 
@@ -183,10 +180,7 @@ func newRecentRomsView(builder *gtk.Builder, runROM func(path string)) (*recentR
 		flowbox:    build[gtk.FlowBox](builder, "flowbox1"),
 	}
 
-	for _, rom := range v.recentROMs {
-		v.addROM(rom)
-	}
-	v.refreshView()
+	v.updateView()
 	return v, nil
 }
 
@@ -203,18 +197,37 @@ func addLabel(img *image.RGBA, x, y int, label string) {
 	d.DrawString(label)
 }
 
-// addROM adds a new ROM to the list of recent roms, at the first position.
-func (v *recentROMsView) addROM(rom recentROM) {
-	// Drop duplicates of the same ROM, and trailing elements if we have too many.
-	v.recentROMs = slices.DeleteFunc(v.recentROMs, func(r recentROM) bool {
-		return r.Name == rom.Name
-	})
-	v.recentROMs = append([]recentROM{rom}, v.recentROMs...)
-	v.recentROMs = v.recentROMs[:min(len(v.recentROMs), maxRecentsRoms)]
+// addROM adds a new ROM to the list of recent roms.
+func (v *recentROMsView) addROM(rom recentROM) error {
+	v.recentROMs = append(v.recentROMs, rom)
+	if err := rom.save(); err != nil {
+		return fmt.Errorf("ROM save: %v", err)
+	}
+	v.updateView()
+	return nil
 }
 
-func (v *recentROMsView) refreshView() {
-	// Remove all children from the flowbox.
+// remove duplicates and sort the list by last usage.
+func (v *recentROMsView) fixOrderAndDups() {
+	m := make(map[string]recentROM, len(v.recentROMs))
+	for _, rom := range v.recentROMs {
+		m[rom.Name] = rom
+	}
+
+	v.recentROMs = v.recentROMs[:0]
+	for _, rom := range m {
+		v.recentROMs = append(v.recentROMs, rom)
+	}
+
+	slices.SortFunc(v.recentROMs, func(a, b recentROM) int {
+		return cmp.Compare(b.LastUsed.Unix(), a.LastUsed.Unix())
+	})
+}
+
+func (v *recentROMsView) updateView() {
+	v.fixOrderAndDups()
+
+	// Empty the flowbox.
 	v.flowbox.GetChildren().Foreach(func(item any) {
 		item.(*gtk.Widget).Destroy()
 	})
@@ -223,19 +236,12 @@ func (v *recentROMsView) refreshView() {
 		loader := mustT(gdk.PixbufLoaderNewWithType("png"))
 		defer loader.Close()
 
-		if _, err := loader.Write([]byte(rom.Image)); err != nil {
-			return fmt.Errorf("failed to write image data: %s", err)
-		}
+		bufimg := make([]byte, len(rom.Image))
+		copy(bufimg, rom.Image)
+		mustT(loader.Write(bufimg))
 
-		buf, err := loader.GetPixbuf()
-		if err != nil {
-			return fmt.Errorf("failed to get pixbuf from loader: %s", err)
-		}
-
-		buf, err = buf.ScaleSimple(256, 256, gdk.INTERP_BILINEAR)
-		if err != nil {
-			return fmt.Errorf("failed to get pixbuf from loader: %s", err)
-		}
+		buf := mustT(loader.GetPixbuf())
+		buf = mustT(buf.ScaleSimple(256, 256, gdk.INTERP_BILINEAR))
 
 		// Create a button to contain the image
 		img := mustT(gtk.ImageNewFromPixbuf(buf))
@@ -245,14 +251,9 @@ func (v *recentROMsView) refreshView() {
 		button.SetImage(img)
 		button.SetAlwaysShowImage(true)
 
-		img.SetVisible(true)
-
 		// Create a box to contain the button and the label
 		box := mustT(gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 0))
-		// Create the label
 		label := mustT(gtk.LabelNew(rom.Name))
-
-		// Pack the button and the label into the box
 		box.PackStart(button, false, false, 0)
 		box.PackStart(label, false, false, 0)
 
@@ -266,12 +267,13 @@ func (v *recentROMsView) refreshView() {
 		img.SetVisible(true)
 		box.SetVisible(true)
 		label.SetVisible(true)
+		img.SetVisible(true)
 		return nil
 	}
 
 	for _, rom := range v.recentROMs {
 		if err := addItem(rom); err != nil {
-			log.ModEmu.Warnf("failed to add recent romw to view: %s", err)
+			log.ModEmu.Warnf("failed to add recent ROM %q to view: %s", rom.Name, err)
 		}
 	}
 }

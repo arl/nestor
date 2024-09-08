@@ -1,8 +1,10 @@
 package ui
 
 import (
+	"bytes"
 	"fmt"
-	"os"
+	"image"
+	"image/png"
 	"path/filepath"
 	"time"
 
@@ -46,7 +48,7 @@ func newMainWindow() (*mainWindow, error) {
 	}
 	w.Connect("destroy", func() { mw.Close(nil) })
 
-	mw.recentRomsView, err = newRecentRomsView(builder, mw.guiRunROM)
+	mw.recentRomsView, err = newRecentRomsView(builder, mw.runROM)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +60,7 @@ func newMainWindow() (*mainWindow, error) {
 			return
 		}
 
-		mw.guiRunROM(path)
+		mw.runROM(path)
 	})
 
 	return mw, nil
@@ -71,7 +73,7 @@ func (mw *mainWindow) Close(err error) {
 	gtk.MainQuit()
 }
 
-func (mw *mainWindow) guiRunROM(path string) {
+func (mw *mainWindow) runROM(path string) {
 	mw.w.SetSensitive(false)
 
 	rom, err := ines.ReadRom(path)
@@ -99,33 +101,21 @@ func (mw *mainWindow) guiRunROM(path string) {
 	}()
 
 	if err := <-errc; err != nil {
-		if err != nil {
-			log.ModEmu.Fatalf("failed to start emulator window: %v", err)
-			gtk.MainQuit()
-		}
+		log.ModEmu.Fatalf("failed to start emulator window: %v", err)
+		gtk.MainQuit()
 	}
 }
 
-func tempFile() string {
-	f, err := os.CreateTemp("", "nestor_*")
-	if err != nil {
-		log.ModEmu.Fatalf("failed to create temporary file: %s", err)
+func (mw *mainWindow) addRecentROM(romPath string, screenshot image.Image) error {
+	bb := bytes.Buffer{}
+	if err := png.Encode(&bb, screenshot); err != nil {
+		return fmt.Errorf("failed to encode screenshot: %v", err)
 	}
-	f.Close()
-	return f.Name()
-}
 
-func (mw *mainWindow) addRecentROM(path, screenshot string) error {
-	nrr := recentROM{
-		Name:     filepath.Base(path),
-		Image:    mustT(os.ReadFile(screenshot)),
-		Path:     path,
+	return mw.recentRomsView.addROM(recentROM{
+		Name:     filepath.Base(romPath),
+		Image:    bb.Bytes(),
+		Path:     romPath,
 		LastUsed: time.Now(),
-	}
-	mw.recentRomsView.addROM(nrr)
-	if err := nrr.save(); err != nil {
-		return fmt.Errorf("failed to save recent rom: %v", err)
-	}
-	mw.recentRomsView.refreshView()
-	return nil
+	})
 }
