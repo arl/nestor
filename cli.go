@@ -14,18 +14,21 @@ import (
 type mode byte
 
 const (
-	guiMode mode = iota
-	runMode
+	guiMode      mode = iota // Start Nestor GUI
+	runMode                  // Just run a ROM
+	mapInputMode             // keyboard/joystick mapping window
 )
 
 type (
 	CLIConfig struct {
-		mode mode
-		GUI  GUIConfig `cmd:"" help:"Run Nestor graphical user interface. The default if no commands are given." default:"1"`
-		Run  RunConfig `cmd:"" help:"Run ROM in emulator."`
+		mode     mode
+		GUI      GUIConfig      `cmd:"" help:"Run Nestor graphical user interface. The default if no commands are given." default:"1"`
+		Run      RunConfig      `cmd:"" help:"Run ROM in emulator."`
+		MapInput MapInputConfig `cmd:"" name:"map-input" hidden:""`
 	}
 
-	GUIConfig struct{}
+	GUIConfig      struct{}
+	MapInputConfig struct{}
 
 	RunConfig struct {
 		CPUProfile string     `name:"cpuprofile" help:"${cpuprofile_help}" type:"path"`
@@ -44,7 +47,6 @@ var vars = kong.Vars{
 
 func (cfg CLIConfig) validate() {
 	switch cfg.mode {
-	case guiMode:
 	case runMode:
 		cfg := cfg.Run
 		if cfg.RomPath == "" {
@@ -72,9 +74,12 @@ func parseArgs(args []string) CLIConfig {
 	checkf(err, "failed to parse command line")
 	checkf(ctx.Error, "failed to parse command line")
 
-	if ctx.Command() == "gui" {
+	switch ctx.Command() {
+	case "gui":
 		cfg.mode = guiMode
-	} else {
+	case "map-input":
+		cfg.mode = mapInputMode
+	default:
 		cfg.mode = runMode
 	}
 	return cfg

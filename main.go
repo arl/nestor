@@ -10,6 +10,7 @@ import (
 
 	"nestor/emu"
 	"nestor/emu/log"
+	"nestor/hw"
 	"nestor/ines"
 	"nestor/ui"
 )
@@ -27,6 +28,8 @@ func main1() {
 		guiMain()
 	case runMode:
 		emuMain(cfg.Run)
+	case mapInputMode:
+		hw.InputMappingMain()
 	}
 }
 
@@ -47,7 +50,7 @@ func guiMain() {
 func emuMain(cfg RunConfig) {
 	rom, err := ines.ReadRom(cfg.RomPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to read ROM: %s", err)
+		fmt.Fprintf(os.Stderr, "error reading ROM: %s", err)
 		os.Exit(1)
 	}
 
