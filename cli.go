@@ -28,7 +28,9 @@ type (
 	}
 
 	GUIConfig      struct{}
-	MapInputConfig struct{}
+	MapInputConfig struct {
+		Button string `name:"button" help:"NES button to map." required:""`
+	}
 
 	RunConfig struct {
 		CPUProfile string     `name:"cpuprofile" help:"${cpuprofile_help}" type:"path"`

@@ -29,7 +29,7 @@ func main1() {
 	case runMode:
 		emuMain(cfg.Run)
 	case mapInputMode:
-		hw.InputMappingMain()
+		hw.MapInputMain(cfg.MapInput.Button)
 	}
 }
 
