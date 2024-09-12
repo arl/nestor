@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/veandco/go-sdl2/sdl"
@@ -11,6 +12,17 @@ import (
 
 	"nestor/resource"
 )
+
+// ShowMapInputWindow shows the user a small window, capturing the next key or
+// joystick press.
+func ShowMapInputWindow(btnName string) (string, error) {
+	cmd := exec.Command(os.Args[0], "map-input", "--button="+btnName)
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
 
 func MapInputMain(btnname string) {
 	pressed, err := runMapInput(btnname)
@@ -97,7 +109,7 @@ func runMapInput(btnName string) (pressed string, err error) {
 		// Render the text line by line
 		winw, _ := win.GetSize()
 		col := sdl.Color{R: 255, G: 255, B: 255, A: 255}
-		if err := renderText(renderer, font, lines, col, 10, 50, winw); err != nil {
+		if err := renderText(renderer, font, lines, col, 50, winw); err != nil {
 			return pressed, fmt.Errorf("renderText error: %s", err)
 		}
 
@@ -152,7 +164,7 @@ func wrapText(font *ttf.Font, text string, maxw int) []string {
 }
 
 // renderText renders each line of text at the given y position, centering each line.
-func renderText(renderer *sdl.Renderer, font *ttf.Font, lines []string, color sdl.Color, x, y int32, winw int32) error {
+func renderText(renderer *sdl.Renderer, font *ttf.Font, lines []string, color sdl.Color, y int32, winw int32) error {
 	vspacing := int32(font.LineSkip())
 
 	for _, line := range lines {
