@@ -25,12 +25,6 @@ func PowerUp(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		return nil, fmt.Errorf("power up failed: %s", err)
 	}
 
-	// Controller setup.
-	paddles := StdControllerPair{
-		Pad1Connected: true,
-	}
-	nes.CPU.PlugInputDevice(&paddles)
-
 	// Output setup.
 	nes.Frames = make(chan image.RGBA)
 	out := hw.NewOutput(hw.OutputConfig{
@@ -42,6 +36,17 @@ func PowerUp(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		return nil, err
 	}
 	nes.SetOutput(out)
+
+	// Controller setup.
+	var inputcfg hw.InputConfig
+	inputcfg.Paddles[0].Plugged = true
+	inputcfg.Paddles[1].Plugged = false
+
+	input, err := hw.NewInputProvider(inputcfg)
+	if err != nil {
+		return nil, fmt.Errorf("input provider: %s", err)
+	}
+	nes.CPU.PlugInputDevice(input)
 
 	// CPU trace setup.
 	if cfg.TraceOut != nil {

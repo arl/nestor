@@ -61,8 +61,8 @@ func NewCPU(ppu *PPU) *CPU {
 	return cpu
 }
 
-func (c *CPU) PlugInputDevice(device InputDevice) {
-	c.input.dev = device
+func (c *CPU) PlugInputDevice(ip *InputProvider) {
+	c.input.provider = ip
 }
 
 func (c *CPU) SetTraceOutput(w io.Writer) {
