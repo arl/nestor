@@ -13,6 +13,8 @@ import (
 	"nestor/resource"
 )
 
+const mapInputNone = "none"
+
 // ShowMapInputWindow shows the user a small window,
 // capturing the next key or joystick press.
 func ShowMapInputWindow(btnName string) (string, error) {
@@ -31,7 +33,7 @@ func MapInputMain(btnname string) {
 		os.Exit(1)
 	}
 
-	if pressed == pressedNone {
+	if pressed == mapInputNone {
 		os.Exit(0)
 	}
 
@@ -39,10 +41,8 @@ func MapInputMain(btnname string) {
 	os.Exit(0)
 }
 
-const pressedNone = "none"
-
 func runMapInput(btnName string) (pressed string, err error) {
-	pressed = pressedNone
+	pressed = mapInputNone
 
 	// Initialize SDL
 	if err := sdl.Init(sdl.INIT_VIDEO); err != nil {
@@ -96,8 +96,9 @@ func runMapInput(btnName string) (pressed string, err error) {
 				quit = true
 			case *sdl.KeyboardEvent:
 				if e.State == sdl.PRESSED {
-					// Send the pressed key to the main SDL application
-					pressed = sdl.GetScancodeName(e.Keysym.Scancode)
+					if e.Keysym.Scancode != sdl.SCANCODE_ESCAPE {
+						pressed = sdl.GetScancodeName(e.Keysym.Scancode)
+					}
 					quit = true
 				}
 			}
@@ -114,7 +115,7 @@ func runMapInput(btnName string) (pressed string, err error) {
 		}
 
 		renderer.Present()
-		sdl.Delay(16) // Reduce CPU usage (~60 FPS)
+		sdl.Delay(16) // max out at 60fps
 	}
 
 	return pressed, nil

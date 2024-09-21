@@ -13,7 +13,6 @@ import (
 
 	"nestor/emu"
 	"nestor/emu/log"
-	"nestor/hw"
 	"nestor/ines"
 )
 
@@ -63,14 +62,11 @@ func newMainWindow() (*mainWindow, error) {
 		mw.runROM(path)
 	})
 	build[gtk.MenuItem](builder, "menu_controls").Connect("activate", func(m *gtk.MenuItem) {
-		// TODO(arl): when we're in GUI mode, configuration should be stored and
-		// saved back to ~/.config/nestor. However, for 'emu' only mode
-		// configuration is read, but never modified nor saved.
-		//
-		// Hence configuration should be passed to the emulator when it powers
-		// up, so the mainWindow as well?
-		var cfg hw.InputConfig
-		openInputConfigDialog(&cfg)
+		cfg := LoadConfigOrDefault()
+		openInputConfigDialog(&cfg.Input)
+		if err := SaveConfig(cfg); err != nil {
+			modGUI.Warnf("failed to save config: %s", err)
+		}
 	})
 
 	return mw, nil

@@ -27,14 +27,6 @@ import (
 
 const recentROMextension = ".nrr"
 
-var ConfigDir string = sync.OnceValue(func() string {
-	dir := configdir.LocalConfig("nestor")
-	if err := configdir.MakePath(dir); err != nil {
-		modGUI.Fatalf("failed to create directory %s: %v", dir, err)
-	}
-	return dir
-})()
-
 var RecentROMsDir string = sync.OnceValue(func() string {
 	dir := filepath.Join(ConfigDir, "recent-roms")
 	if err := configdir.MakePath(dir); err != nil {
