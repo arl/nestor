@@ -47,7 +47,7 @@ func guiMain() {
 }
 
 // emuMain runs the emulator directly with the given rom.
-func emuMain(cfg RunConfig) {
+func emuMain(cfg Run) {
 	rom, err := ines.ReadRom(cfg.RomPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading ROM: %s", err)

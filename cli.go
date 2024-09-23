@@ -20,19 +20,20 @@ const (
 )
 
 type (
-	CLIConfig struct {
-		mode     mode
-		GUI      GUIConfig      `cmd:"" help:"Run Nestor graphical user interface. The default if no commands are given." default:"1"`
-		Run      RunConfig      `cmd:"" help:"Run ROM in emulator."`
-		MapInput MapInputConfig `cmd:"" name:"map-input" hidden:""`
+	CLI struct {
+		GUI      GUI      `cmd:"" help:"Run Nestor graphical user interface. The default if no commands are given." default:"1"`
+		Run      Run      `cmd:"" help:"Run ROM in emulator."`
+		MapInput MapInput `cmd:"" name:"map-input" hidden:""`
+
+		mode mode
 	}
 
-	GUIConfig      struct{}
-	MapInputConfig struct {
+	GUI      struct{}
+	MapInput struct {
 		Button string `name:"button" help:"NES button to map." required:""`
 	}
 
-	RunConfig struct {
+	Run struct {
 		CPUProfile string     `name:"cpuprofile" help:"${cpuprofile_help}" type:"path"`
 		RomPath    string     `arg:"" name:"/path/to/rom" optional:"" help:"${rompath_help}" type:"existingfile"`
 		Log        logModMask `help:"${log_help}" placeholder:"mod0,mod1,..."`
@@ -47,7 +48,7 @@ var vars = kong.Vars{
 	"log_help":        "Enable logging for specified modules. See 'Log Modules'.",
 }
 
-func (cfg CLIConfig) validate() {
+func (cfg CLI) validate() {
 	switch cfg.mode {
 	case runMode:
 		cfg := cfg.Run
@@ -60,8 +61,8 @@ func (cfg CLIConfig) validate() {
 	}
 }
 
-func parseArgs(args []string) CLIConfig {
-	var cfg CLIConfig
+func parseArgs(args []string) CLI {
+	var cfg CLI
 	parser, err := kong.New(&cfg,
 		kong.Name("nestor"),
 		kong.Description("NES emulator. github.com/arl/nestor"),
