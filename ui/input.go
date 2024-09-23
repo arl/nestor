@@ -37,10 +37,7 @@ func openInputConfigDialog(cfg *hw.InputConfig) {
 
 // createControllerTab creates the content for each controller tab.
 func createControllerTab(padcfg *hw.PaddleConfig) *gtk.Widget {
-	hbox := mustT(gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 5))
-
 	area := mustT(gtk.DrawingAreaNew())
-	area.SetSizeRequest(400, 300)
 	area.SetEvents(int(gdk.BUTTON_PRESS_MASK))
 
 	const margin = 10
@@ -51,14 +48,26 @@ func createControllerTab(padcfg *hw.PaddleConfig) *gtk.Widget {
 
 	treeView, listStore := createPropertyList()
 
-	// Wrap the treeview into a frame.
-	frame := mustT(gtk.FrameNew("Controller Mappings"))
+	// Checkbox for the plugged state.
+	plugcheck := mustT(gtk.CheckButtonNewWithLabel("Plugged"))
+	plugcheck.SetActive(padcfg.Plugged)
+	plugcheck.Connect("toggled", func(cb *gtk.CheckButton) {
+		padcfg.Plugged = cb.GetActive()
+	})
+
+	// Wrap treeview and checkbox into a vbox and into a frame.
+	vbox := mustT(gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 5))
+	vbox.PackStart(treeView, false, true, 0)
+	vbox.PackStart(plugcheck, false, false, 0)
+
+	frame := mustT(gtk.FrameNew(""))
 	frame.SetShadowType(gtk.SHADOW_ETCHED_IN)
 	frame.SetBorderWidth(5)
-	frame.Add(treeView)
+	frame.Add(vbox)
 	frame.SetSizeRequest(200, -1)
 
-	// Pack the drawing area and frame into the hbox
+	// Pack the drawing area and frame into a hbox.
+	hbox := mustT(gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 5))
 	hbox.PackStart(area, true, true, 0)
 	hbox.PackStart(frame, false, false, 0)
 
