@@ -163,7 +163,7 @@ type recentROMsView struct {
 	runROM     func(string)
 }
 
-func newRecentRomsView(builder *gtk.Builder, runROM func(path string)) (*recentROMsView, error) {
+func newRecentRomsView(builder *gtk.Builder, runROM func(path string)) *recentROMsView {
 	v := &recentROMsView{
 		runROM:     runROM,
 		recentROMs: loadRecentROMs(),
@@ -171,7 +171,7 @@ func newRecentRomsView(builder *gtk.Builder, runROM func(path string)) (*recentR
 	}
 
 	v.updateView()
-	return v, nil
+	return v
 }
 
 func addLabel(img *image.RGBA, x, y int, label string) {

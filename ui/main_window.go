@@ -31,8 +31,9 @@ func ShowMainWindow() error {
 }
 
 type mainWindow struct {
-	w              *gtk.Window
-	recentRomsView *recentROMsView
+	*gtk.Window
+	rrv *recentROMsView
+	cfg emu.Config
 }
 
 func newMainWindow() (*mainWindow, error) {
@@ -42,29 +43,25 @@ func newMainWindow() (*mainWindow, error) {
 		return nil, fmt.Errorf("builder: can't load UI file: %s", err)
 	}
 
-	w := build[gtk.Window](builder, "window1")
 	mw := &mainWindow{
-		w: w,
+		Window: build[gtk.Window](builder, "window1"),
+		cfg:    LoadConfigOrDefault(),
 	}
-	w.Connect("destroy", func() { mw.Close(nil) })
 
-	mw.recentRomsView, err = newRecentRomsView(builder, mw.runROM)
-	if err != nil {
-		return nil, err
-	}
+	mw.Connect("destroy", func() { mw.Close(nil) })
+	mw.rrv = newRecentRomsView(builder, mw.runROM)
 
 	build[gtk.MenuItem](builder, "menu_quit").Connect("activate", gtk.MainQuit)
 	build[gtk.MenuItem](builder, "menu_open").Connect("activate", func(m *gtk.MenuItem) {
-		path, ok := openFileDialog(mw.w)
+		path, ok := openFileDialog(mw.Window)
 		if !ok {
 			return
 		}
 		mw.runROM(path)
 	})
 	build[gtk.MenuItem](builder, "menu_controls").Connect("activate", func(m *gtk.MenuItem) {
-		cfg := LoadConfigOrDefault()
-		openInputConfigDialog(&cfg.Input)
-		if err := SaveConfig(cfg); err != nil {
+		openInputConfigDialog(&mw.cfg.Input)
+		if err := SaveConfig(mw.cfg); err != nil {
 			modGUI.Warnf("failed to save config: %s", err)
 		}
 	})
@@ -80,7 +77,7 @@ func (mw *mainWindow) Close(err error) {
 }
 
 func (mw *mainWindow) runROM(path string) {
-	mw.w.SetSensitive(false)
+	mw.SetSensitive(false)
 
 	rom, err := ines.ReadRom(path)
 	if err != nil {
@@ -90,9 +87,9 @@ func (mw *mainWindow) runROM(path string) {
 
 	errc := make(chan error)
 	go func() {
-		defer mw.w.SetSensitive(true)
+		defer mw.SetSensitive(true)
 
-		emulator, err := emu.PowerUp(rom, emu.Config{})
+		emulator, err := emu.PowerUp(rom, mw.cfg)
 		errc <- err // Release gtk thread asap.
 
 		emulator.Run()
@@ -118,7 +115,7 @@ func (mw *mainWindow) addRecentROM(romPath string, screenshot image.Image) error
 		return fmt.Errorf("failed to encode screenshot: %v", err)
 	}
 
-	return mw.recentRomsView.addROM(recentROM{
+	return mw.rrv.addROM(recentROM{
 		Name:     filepath.Base(romPath),
 		Image:    bb.Bytes(),
 		Path:     romPath,
