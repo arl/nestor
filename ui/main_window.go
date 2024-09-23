@@ -107,7 +107,7 @@ func (mw *mainWindow) runROM(path string) {
 	}()
 
 	if err := <-errc; err != nil {
-		log.ModEmu.Fatalf("failed to start emulator window: %v", err)
+		modGUI.Fatalf("failed to start emulator window: %v", err)
 		gtk.MainQuit()
 	}
 }

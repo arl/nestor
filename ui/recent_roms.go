@@ -21,8 +21,6 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
-
-	"nestor/emu/log"
 )
 
 const recentROMextension = ".nrr"
@@ -249,9 +247,7 @@ func (v *recentROMsView) updateView() {
 		box.PackStart(button, false, false, 0)
 		box.PackStart(label, false, false, 0)
 
-		button.Connect("clicked", func() {
-			v.runROM(rom.Path)
-		})
+		button.Connect("clicked", func() { v.runROM(rom.Path) })
 
 		v.flowbox.Insert(box, int(v.flowbox.GetChildren().Length()))
 
@@ -265,7 +261,7 @@ func (v *recentROMsView) updateView() {
 
 	for _, rom := range v.recentROMs {
 		if err := addItem(rom); err != nil {
-			log.ModEmu.Warnf("failed to add recent ROM %q to view: %s", rom.Name, err)
+			modGUI.Warnf("failed to add recent ROM %q to view: %s", rom.Name, err)
 		}
 	}
 }
