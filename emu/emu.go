@@ -10,7 +10,8 @@ import (
 )
 
 type Config struct {
-	TraceOut io.WriteCloser
+	Input    hw.InputConfig `toml:"input"`
+	TraceOut io.WriteCloser `toml:"-"`
 }
 
 type Emulator struct {
@@ -37,12 +38,7 @@ func PowerUp(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	}
 	nes.SetOutput(out)
 
-	// Controller setup.
-	var inputcfg hw.InputConfig
-	inputcfg.Paddles[0].Plugged = true
-	inputcfg.Paddles[1].Plugged = false
-
-	input, err := hw.NewInputProvider(inputcfg)
+	input, err := hw.NewInputProvider(cfg.Input)
 	if err != nil {
 		return nil, fmt.Errorf("input provider: %s", err)
 	}

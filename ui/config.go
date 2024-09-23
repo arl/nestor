@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"sync"
 
+	"nestor/emu"
+
 	"github.com/BurntSushi/toml"
 	"github.com/kirsle/configdir"
-
-	"nestor/hw"
 )
 
 var ConfigDir string = sync.OnceValue(func() string {
@@ -21,21 +21,17 @@ var ConfigDir string = sync.OnceValue(func() string {
 
 const cfgFilename = "config.toml"
 
-type Config struct {
-	Input hw.InputConfig `toml:"input"`
-}
-
-func LoadConfigOrDefault() Config {
-	var cfg Config
+func LoadConfigOrDefault() emu.Config {
+	var cfg emu.Config
 	_, err := toml.DecodeFile(filepath.Join(ConfigDir, cfgFilename), &cfg)
 	if err != nil {
 		// TODO: specify default config
-		return Config{}
+		return emu.Config{}
 	}
 	return cfg
 }
 
-func SaveConfig(cfg Config) error {
+func SaveConfig(cfg emu.Config) error {
 	buf, err := toml.Marshal(cfg)
 	if err != nil {
 		return err

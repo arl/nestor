@@ -103,20 +103,21 @@ func (cfg *PaddleConfig) GetMapping(pd PaddleButton) string {
 	}
 }
 
-func (cfg PaddleConfig) keycodes() ([8]sdl.Keycode, error) {
-	var codes [8]sdl.Keycode
-	codes[PadA] = sdl.GetKeyFromName(cfg.A)
-	codes[PadB] = sdl.GetKeyFromName(cfg.B)
-	codes[PadSelect] = sdl.GetKeyFromName(cfg.Select)
-	codes[PadStart] = sdl.GetKeyFromName(cfg.Start)
-	codes[PadUp] = sdl.GetKeyFromName(cfg.Up)
-	codes[PadDown] = sdl.GetKeyFromName(cfg.Down)
-	codes[PadLeft] = sdl.GetKeyFromName(cfg.Left)
-	codes[PadRight] = sdl.GetKeyFromName(cfg.Right)
+func (cfg PaddleConfig) keycodes() ([8]sdl.Scancode, error) {
+	var codes [8]sdl.Scancode
+	codes[PadA] = sdl.GetScancodeFromName(cfg.A)
+	codes[PadB] = sdl.GetScancodeFromName(cfg.B)
+	codes[PadSelect] = sdl.GetScancodeFromName(cfg.Select)
+	codes[PadStart] = sdl.GetScancodeFromName(cfg.Start)
+	codes[PadUp] = sdl.GetScancodeFromName(cfg.Up)
+	codes[PadDown] = sdl.GetScancodeFromName(cfg.Down)
+	codes[PadLeft] = sdl.GetScancodeFromName(cfg.Left)
+	codes[PadRight] = sdl.GetScancodeFromName(cfg.Right)
 
 	for btn, c := range codes {
 		if c == sdl.K_UNKNOWN {
-			return codes, fmt.Errorf("unrecognized key for button %s", PaddleButton(btn))
+			pbtn := PaddleButton(btn)
+			return codes, fmt.Errorf("unrecognized key for button %s: %q", pbtn, cfg.GetMapping(pbtn))
 		}
 	}
 
@@ -128,65 +129,50 @@ type InputConfig struct {
 }
 
 type InputProvider struct {
-	keys     [2][8]sdl.Keycode
+	keys     [2][8]sdl.Scancode
 	keystate []uint8
+
+	cfg InputConfig
 }
 
-// TODO: at the moment only a single controller is connected.
 func NewInputProvider(cfg InputConfig) (*InputProvider, error) {
-	up := &InputProvider{}
+	up := &InputProvider{cfg: cfg}
 	sdl.Do(func() {
 		up.keystate = sdl.GetKeyboardState()
 	})
 
 	var err error
-	if up.keys[0], err = cfg.Paddles[0].keycodes(); err != nil {
-		return nil, fmt.Errorf("pad1: %s", err)
+	if cfg.Paddles[0].Plugged {
+		if up.keys[0], err = cfg.Paddles[0].keycodes(); err != nil {
+			return nil, fmt.Errorf("pad1: %s", err)
+		}
 	}
-	if up.keys[1], err = cfg.Paddles[1].keycodes(); err != nil {
-		return nil, fmt.Errorf("pad1: %s", err)
+	if cfg.Paddles[1].Plugged {
+		if up.keys[1], err = cfg.Paddles[1].keycodes(); err != nil {
+			return nil, fmt.Errorf("pad2: %s", err)
+		}
 	}
 	return up, nil
 }
 
+func (ui *InputProvider) paddleState(idx int) uint8 {
+	padcfg := ui.cfg.Paddles[idx]
+	if !padcfg.Plugged {
+		// TODO: check this
+		return 0
+	}
+
+	state := uint8(0)
+	for btn, code := range ui.keys[idx] {
+		if ui.keystate[code] != 0 {
+			state |= 1 << uint(btn)
+		}
+	}
+	return state
+}
+
 func (ui *InputProvider) LoadState() (uint8, uint8) {
-
-	state1 := uint8(0)
-	if ui.keystate[sdl.SCANCODE_UP] != 0 {
-		fmt.Println("UP")
-
-		state1 |= 1 << PadUp
-	} else if ui.keystate[sdl.SCANCODE_DOWN] != 0 {
-		fmt.Println("DOWN")
-		state1 |= 1 << PadDown
-	}
-
-	if ui.keystate[sdl.SCANCODE_LEFT] != 0 {
-		fmt.Println("LEFT")
-		state1 |= 1 << PadLeft
-	} else if ui.keystate[sdl.SCANCODE_RIGHT] != 0 {
-		fmt.Println("RIGHT")
-		state1 |= 1 << PadRight
-	}
-
-	if ui.keystate[sdl.SCANCODE_Q] != 0 {
-		fmt.Println("A")
-		state1 |= 1 << PadA
-	}
-	if ui.keystate[sdl.SCANCODE_S] != 0 {
-		fmt.Println("B")
-		state1 |= 1 << PadB
-	}
-	if ui.keystate[sdl.SCANCODE_A] != 0 {
-		fmt.Println("SELECT")
-		state1 |= 1 << PadSelect
-	}
-	if ui.keystate[sdl.SCANCODE_Z] != 0 {
-		fmt.Println("START")
-		state1 |= 1 << PadStart
-	}
-
-	return state1, 0
+	return ui.paddleState(0), ui.paddleState(1)
 }
 
 // InputPorts handles I/O with an InputDevice (such as standard NES controller
@@ -236,6 +222,7 @@ func (ip *InputPorts) regval(port uint8) uint8 {
 func (ip *InputPorts) loadstate() {
 	if ip.provider == nil {
 		// No controller is connected.
+		// TODO: check this
 		ip.state[0] = 0x40
 		ip.state[1] = 0x40
 		return
