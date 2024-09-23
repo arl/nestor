@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"image"
 	"math"
-	"nestor/hw"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"nestor/hw"
 )
 
 type TestingOutputConfig struct {
