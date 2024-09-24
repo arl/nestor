@@ -67,9 +67,8 @@ func emuMain(cfg Run) {
 		traceout = cfg.Trace
 	}
 
-	emucfg := emu.Config{
-		TraceOut: traceout,
-	}
+	emucfg := emu.LoadConfigOrDefault()
+	emucfg.TraceOut = traceout
 
 	nes, err := emu.PowerUp(rom, emucfg)
 	if err != nil {

@@ -3,16 +3,10 @@ package emu
 import (
 	"fmt"
 	"image"
-	"io"
 
 	"nestor/hw"
 	"nestor/ines"
 )
-
-type Config struct {
-	Input    hw.InputConfig `toml:"input"`
-	TraceOut io.WriteCloser `toml:"-"`
-}
 
 type Emulator struct {
 	NES *NES

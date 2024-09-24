@@ -21,12 +21,14 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
+
+	"nestor/emu"
 )
 
 const recentROMextension = ".nrr"
 
 var RecentROMsDir string = sync.OnceValue(func() string {
-	dir := filepath.Join(ConfigDir, "recent-roms")
+	dir := filepath.Join(emu.ConfigDir, "recent-roms")
 	if err := configdir.MakePath(dir); err != nil {
 		modGUI.Fatalf("failed to create directory %s: %v", dir, err)
 	}
