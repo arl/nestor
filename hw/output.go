@@ -1,89 +1,252 @@
 package hw
 
 import (
+	"fmt"
 	"image"
+	"image/png"
+	"os"
+	"sync"
+	"unsafe"
+
+	"github.com/go-gl/gl/v3.3-core/gl"
+	"github.com/veandco/go-sdl2/sdl"
+
+	"nestor/emu/log"
 )
 
 type OutputConfig struct {
-	Width           int
-	Height          int
+	// Dimensions of the video buffer (in pixels).
+	Width, Height int
+
+	// Number of video buffers to allocate. Defaults to 2.
 	NumVideoBuffers int
 
-	// Headless output: leave nil to read but discard all video frames.
-	FrameOutCh chan image.RGBA
+	// Window title.
+	Title string
+}
+
+func OutputNTSC() OutputConfig {
+	return OutputConfig{
+		Width:  256,
+		Height: 240,
+	}
 }
 
 type Output struct {
-	framebufidx int
-	framebuf    [][]byte
-
+	framebufidx  int
+	framebuf     [][]byte
 	framecounter int
-	framech      chan frame
-	stop         chan struct{}
+	framech      chan Frame
+
+	fpscounter int
+	fpsclock   uint64
+
+	videoEnabled bool
+	window       *window
+
+	quit bool
+	stop chan struct{}
+	wg   sync.WaitGroup // workers loops
 
 	cfg OutputConfig
 }
 
 func NewOutput(cfg OutputConfig) *Output {
+	if cfg.NumVideoBuffers == 0 {
+		cfg.NumVideoBuffers = 2
+	}
+
 	vb := make([][]byte, cfg.NumVideoBuffers)
 	for i := range vb {
 		vb[i] = make([]byte, cfg.Width*cfg.Height*4)
 	}
-	o := &Output{
+	out := &Output{
 		framebuf: vb,
 		cfg:      cfg,
-		framech:  make(chan frame),
+		framech:  make(chan Frame),
 		stop:     make(chan struct{}),
 	}
-	go o.render()
-	return o
+
+	out.wg.Add(2)
+	go out.render()
+	go out.poll()
+
+	return out
 }
 
-type frame struct {
-	video []byte
-}
-
-func (o *Output) BeginFrame() (video []byte) {
-	o.framebufidx++
-	if o.framebufidx == o.cfg.NumVideoBuffers {
-		o.framebufidx = 0
+func (out *Output) EnableVideo(enable bool) error {
+	if enable && !out.videoEnabled {
+		window, err := newWindow(out.cfg.Title, out.cfg.Width, out.cfg.Height)
+		if err != nil {
+			return fmt.Errorf("failed to create emulator window: %s", err)
+		}
+		out.window = window
+		out.videoEnabled = true
+	} else if !enable && out.videoEnabled {
+		err := out.window.Close()
+		if err != nil {
+			return fmt.Errorf("failed to close emulator window: %s", err)
+		}
+		out.videoEnabled = false
 	}
 
-	return o.framebuf[o.framebufidx]
+	return nil
 }
 
-func (o *Output) EndFrame(video []byte) {
-	o.framecounter++
-	o.framech <- frame{video: video}
+type Frame struct {
+	Video []byte
+}
+
+func (out *Output) BeginFrame() (video []byte) {
+	out.framebufidx++
+	if out.framebufidx == out.cfg.NumVideoBuffers {
+		out.framebufidx = 0
+	}
+
+	return out.framebuf[out.framebufidx]
+}
+
+func (out *Output) EndFrame(video []byte) {
+	out.framecounter++
+	out.framech <- Frame{Video: video}
 }
 
 // Stop output flow.
-func (o *Output) Close() {
-	close(o.stop)
+func (out *Output) Close() error {
+	log.ModEmu.DebugZ("Terminating output streams").End()
+	close(out.stop)
+
+	// Flow is stopped by now, but window may still be rendering.
+	if out.window != nil {
+		out.window.SetTitle("halted")
+	}
+	out.wg.Wait()
+
+	if out.window != nil {
+		log.ModEmu.DebugZ("Closing SDL window").End()
+		return out.window.Close()
+	}
+	return nil
 }
 
-func (o *Output) render() {
-	rgba := image.RGBA{
-		Stride: 4 * o.cfg.Width,
-		Rect: image.Rectangle{
-			Max: image.Point{
-				X: o.cfg.Width,
-				Y: o.cfg.Height,
-			},
-		},
-	}
-
+func (out *Output) render() {
+	defer out.wg.Done()
 	for {
 		select {
-		case <-o.stop:
+		case <-out.stop:
 			return
-		case frame := <-o.framech:
-			if o.cfg.FrameOutCh == nil {
-				// Just discard frame if we're headless.
-				break
+		case frame := <-out.framech:
+			if out.videoEnabled {
+				sdl.Do(func() {
+					out.renderVideo(frame.Video)
+				})
 			}
-			rgba.Pix = frame.video
-			o.cfg.FrameOutCh <- rgba
+
+			// Update FPS counter in title bar.
+			if out.videoEnabled {
+				out.fpscounter++
+				if out.fpsclock+1000 < sdl.GetTicks64() {
+					title := fmt.Sprintf("%s - %d FPS", out.cfg.Title, out.fpscounter)
+					out.window.SetTitle(title)
+					out.fpscounter = 0
+					out.fpsclock += 1000
+				}
+			}
 		}
 	}
+}
+
+func (out *Output) renderVideo(video []byte) {
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.UseProgram(out.window.prog)
+	gl.BindTexture(gl.TEXTURE_2D, out.window.texture)
+	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(out.cfg.Width), int32(out.cfg.Height), gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&video[0]))
+	gl.BindVertexArray(out.window.vao)
+	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
+	out.window.GLSwap()
+}
+
+// Poll reports whether input polling is ongoing.
+// (i.e false if user requested to quit).
+func (out *Output) Poll() bool {
+	return !out.quit
+}
+
+func (out *Output) poll() {
+	defer out.wg.Done()
+
+	// kbstate := sdl.GetKeyboardState()
+
+	for !out.quit {
+		sdl.Do(func() {
+			for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+				switch e := event.(type) {
+				case *sdl.KeyboardEvent:
+					if e.Type == sdl.KEYDOWN && e.Keysym.Sym == sdl.K_ESCAPE {
+						out.quit = true
+						return
+					}
+
+					// fmt.Println(kbstate)
+				case *sdl.QuitEvent:
+					out.quit = true
+				case *sdl.JoyButtonEvent:
+				case *sdl.WindowEvent:
+					if e.Event == sdl.WINDOWEVENT_RESIZED {
+						width, height := e.Data1, e.Data2
+						scaleViewport(width, height, out.cfg.Width, out.cfg.Height)
+					}
+				}
+			}
+		})
+	}
+}
+
+func scaleViewport(winw, winh int32, orgw, orgh int) {
+	winRatio := float64(winw) / float64(winh)
+	nesRatio := float64(orgw) / float64(orgh)
+
+	// We want the largest rectangle that maintains nes aspect ratio.
+	var vpw, vph int32
+	if winRatio > nesRatio {
+		// Window is wider than the NES aspect ratio.
+		vph = winh
+		vpw = int32(float64(winh) * nesRatio)
+	} else {
+		// Window is taller or equal to the NES aspect ratio.
+		vpw = winw
+		vph = int32(float64(winw) / nesRatio)
+	}
+
+	// Center the viewport within the window.
+	offx := (winw - vpw) / 2
+	offy := (winh - vph) / 2
+
+	gl.Viewport(offx, offy, vpw, vph)
+}
+
+func (out *Output) Screenshot() image.Image {
+	imgc := make(chan *image.RGBA, 1)
+	sdl.Do(func() {
+		imgc <- FramebufImage(out.framebuf[out.framebufidx], out.cfg.Width, out.cfg.Height)
+	})
+
+	return <-imgc
+}
+
+func FramebufImage(framebuf []byte, w, h int) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	img.Pix = framebuf
+	return img
+}
+
+func SaveAsPNG(img image.Image, path string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	if err := png.Encode(f, img); err != nil {
+		return err
+	}
+	return f.Close()
 }

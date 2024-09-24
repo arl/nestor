@@ -24,16 +24,15 @@ jobs:
           sudo apt-get update &&
           sudo apt-get install
           gcc
-          libegl1-mesa-dev
-          libffi-dev
-          libgles2-mesa-dev
-          libvulkan-dev
-          libwayland-dev
-          libx11-dev
-          libx11-xcb-dev
-          libxcursor-dev
-          libxkbcommon-x11-dev
           pkg-config
+          libsdl2-dev
+          libgtk-3-dev
+          libglib2.0-dev
+          libgdk-pixbuf-2.0-dev
+          libsdl2-image-dev
+          libsdl2-mixer-dev
+          libsdl2-ttf-dev
+          libsdl2-gfx-dev
 
       - name: Run tests
         run: go test -race -shuffle=on ./...

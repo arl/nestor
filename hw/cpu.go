@@ -19,7 +19,8 @@ type CPU struct {
 	Ram   [0x800]byte // Internal RAM
 	Clock int64       // cycles
 
-	doHalt bool
+	selfjumps uint // infinite loop detection: count successive jumps to same PC.
+	doHalt    bool
 
 	ppu       *PPU
 	ppuAbsent bool // allow to disconnect PPU during CPU tests
@@ -38,7 +39,7 @@ type CPU struct {
 	runIRQ, prevRunIRQ   bool
 	irqFlag              bool
 
-	dbg Debugger
+	dbg FwdDebugger
 
 	// Non-nil when execution tracing is enabled.
 	tracer *tracer
@@ -60,8 +61,8 @@ func NewCPU(ppu *PPU) *CPU {
 	return cpu
 }
 
-func (c *CPU) PlugInputDevice(device InputDevice) {
-	c.input.dev = device
+func (c *CPU) PlugInputDevice(ip *InputProvider) {
+	c.input.provider = ip
 }
 
 func (c *CPU) SetTraceOutput(w io.Writer) {
@@ -125,7 +126,6 @@ func (c *CPU) Run(ncycles int64) bool {
 	until := c.Clock + ncycles
 	for c.Clock < until {
 		opcode := c.Read8(c.PC)
-
 		if c.tracer != nil {
 			c.tracer.write(cpuState{
 				A:        c.A,
@@ -298,10 +298,51 @@ func (c *CPU) IRQ() {
 }
 
 func (cpu *CPU) SetDebugger(dbg Debugger) {
-	cpu.dbg = dbg
+	cpu.dbg.fwd = dbg
 }
 
 func (cpu *CPU) Disasm(pc uint16) DisasmOp {
 	opcode := cpu.Bus.Peek8(pc)
 	return disasmOps[opcode](cpu, pc)
+}
+
+// FwdDebugger is a no-op Debugger if fwd is nil.
+type FwdDebugger struct {
+	fwd Debugger
+}
+
+func (d *FwdDebugger) Reset() {
+	if d.fwd != nil {
+		d.Reset()
+	}
+}
+func (d *FwdDebugger) Trace(pc uint16) {
+	if d.fwd != nil {
+		d.Trace(pc)
+	}
+}
+func (d *FwdDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
+	if d.fwd != nil {
+		d.Interrupt(prevpc, curpc, isNMI)
+	}
+}
+func (d *FwdDebugger) WatchRead(addr uint16) {
+	if d.fwd != nil {
+		d.WatchRead(addr)
+	}
+}
+func (d *FwdDebugger) WatchWrite(addr uint16, val uint16) {
+	if d.fwd != nil {
+		d.WatchWrite(addr, val)
+	}
+}
+func (d *FwdDebugger) Break(msg string) {
+	if d.fwd != nil {
+		d.Break(msg)
+	}
+}
+func (d *FwdDebugger) FrameEnd() {
+	if d.fwd != nil {
+		d.FrameEnd()
+	}
 }

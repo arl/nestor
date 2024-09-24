@@ -38,6 +38,10 @@ func NewModule(name string) Module {
 	return mod
 }
 
+func ModuleNames() []string {
+	return modNames[1:]
+}
+
 func ModuleByName(name string) (Module, bool) {
 	for idx, s := range modNames {
 		if s == name {

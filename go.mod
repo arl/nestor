@@ -1,23 +1,21 @@
 module nestor
 
-go 1.22
+go 1.22.4
 
 require (
-	gioui.org v0.6.0
-	gioui.org/x v0.6.1
+	github.com/alecthomas/kong v0.9.0
+	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71
 	github.com/google/go-cmp v0.6.0
-	golang.org/x/exp/shiny v0.0.0-20220827204233-334a2380cb91
+	github.com/gotk3/gotk3 v0.6.5-0.20240618185848-ff349ae13f56
+	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
+	github.com/veandco/go-sdl2 v0.4.40
+	golang.org/x/image v0.11.0
 	golang.org/x/sync v0.7.0
 	gopkg.in/Sirupsen/logrus.v0 v0.11.5
 )
 
 require (
-	gioui.org/cpu v0.0.0-20210817075930-8d6a761490d2 // indirect
-	gioui.org/shader v1.0.8 // indirect
-	github.com/go-text/typesetting v0.1.1 // indirect
+	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
-	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/image v0.11.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
 )

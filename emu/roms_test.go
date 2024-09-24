@@ -2,7 +2,6 @@ package emu
 
 import (
 	"bytes"
-	"image"
 	_ "image/png"
 	"io"
 	"os"
@@ -17,14 +16,6 @@ import (
 	"nestor/tests"
 )
 
-func headlessOutput() *hw.Output {
-	return hw.NewOutput(hw.OutputConfig{
-		Width:           256,
-		Height:          240,
-		NumVideoBuffers: 2,
-	})
-}
-
 func TestNestest(t *testing.T) {
 	log.SetOutput(io.Discard)
 
@@ -34,7 +25,7 @@ func TestNestest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nes, err := PowerUp(rom)
+	nes, err := powerUp(rom)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +39,14 @@ func TestNestest(t *testing.T) {
 	// PC must be set to C000 (instead of C004 for graphic mode).
 	nes.CPU.PC = 0xC000
 	nes.CPU.SetTraceOutput(flog)
-	nes.Run(headlessOutput())
+
+	// Configure a headless testing output.
+	outcfg := TestingOutputConfig{
+		Height: hw.OutputNTSC().Height,
+		Width:  hw.OutputNTSC().Width,
+	}
+	nes.SetOutput(newTestingOutput(outcfg))
+	nes.Run()
 
 	result := nes.CPU.Read16(0x02)
 	if result != 0 {
@@ -143,7 +141,7 @@ func runTestRom(path string) func(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		nes, err := PowerUp(rom)
+		nes, err := powerUp(rom)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -152,8 +150,17 @@ func runTestRom(path string) func(t *testing.T) {
 		magicset := 0
 		var result uint8
 
+		// Configure a headless testing output.
+		out := newTestingOutput(TestingOutputConfig{
+			Height: hw.OutputNTSC().Height,
+			Width:  hw.OutputNTSC().Width,
+		})
+
 		for {
-			nes.RunOneFrame()
+			vbuf := out.BeginFrame()
+			nes.RunOneFrame(vbuf)
+			out.EndFrame(vbuf)
+
 			data := nes.CPU.Bus.FetchPointer(0x6001)
 			if magicset == 0 {
 				if bytes.Equal(data[:3], magic) {
@@ -204,7 +211,7 @@ func TestNametableMirroring(t *testing.T) {
 	if rom.Mirroring() != ines.HorzMirroring {
 		t.Errorf("incorrect nt mirroring")
 	}
-	nes, err := PowerUp(rom)
+	nes, err := powerUp(rom)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,34 +250,30 @@ func TestBlarggPPUtests(t *testing.T) {
 		"sprite_ram.nes",
 		"vbl_clear_time.nes",
 	}
-	for _, rom := range roms {
-		t.Run(rom, func(t *testing.T) {
-			romPath := filepath.Join(romsPath, "blargg_ppu_tests_2005.09.15b", rom)
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(romsPath, "blargg_ppu_tests_2005.09.15b", romName)
 			rom, err := ines.ReadRom(romPath)
 			if err != nil {
 				t.Fatal(err)
 			}
-			nes, err := PowerUp(rom)
+			nes, err := powerUp(rom)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			frames := make(chan image.RGBA)
-			out := hw.NewOutput(hw.OutputConfig{
-				Width:           256,
-				Height:          240,
-				NumVideoBuffers: 2,
-				FrameOutCh:      frames,
-			})
+			out := newTestingOutput(
+				TestingOutputConfig{
+					Height:        hw.OutputNTSC().Height,
+					Width:         hw.OutputNTSC().Width,
+					SaveFrameDir:  "testdata",
+					SaveFrameFile: filepath.Base(romPath),
+					SaveFrameNum:  frameidx,
+				})
+			nes.SetOutput(out)
+			nes.Run()
 
-			go nes.Run(out)
-
-			paths, err := saveFrames(frames, romPath, frameidx)
-			if err != nil {
-				t.Fatalf("failed to save frames: %v", err)
-			}
-
-			diffFrames(t, paths)
+			out.CompareFrame(t)
 		})
 	}
 }
