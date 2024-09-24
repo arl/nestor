@@ -84,7 +84,12 @@ func (t *tracer) write(state cpuState) {
 	buf[off] = ' '
 	off++
 
-	buf = fmt.Appendf(buf[:off], "PPU:%-3d,%-3d %d\n", state.Scanline, state.PPUCycle, state.Clock)
+	scanline := state.Scanline
+	if scanline == 261 {
+		scanline = -1
+	}
+
+	buf = fmt.Appendf(buf[:off], "PPU:%-3d,%-3d %d\n", scanline, state.PPUCycle, state.Clock)
 	t.w.Write(buf)
 }
 

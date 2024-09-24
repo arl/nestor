@@ -44,6 +44,10 @@ func (m *memUnalignedLE) Read8(addr uint16) uint8 {
 	return *(*uint8)(unsafe.Pointer(uintptr(m.ptr) + off))
 }
 
+func (m *memUnalignedLE) Peek8(addr uint16) uint8 {
+	return m.Read8(addr)
+}
+
 func (m *memUnalignedLE) Write8CheckRO(addr uint16, val uint8) bool {
 	off := uintptr(addr & m.mask)
 	if m.ro == 0 {

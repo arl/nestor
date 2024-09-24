@@ -175,8 +175,6 @@ func (out *Output) Poll() bool {
 func (out *Output) poll() {
 	defer out.wg.Done()
 
-	// kbstate := sdl.GetKeyboardState()
-
 	for !out.quit {
 		sdl.Do(func() {
 			for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
@@ -187,7 +185,6 @@ func (out *Output) poll() {
 						return
 					}
 
-					// fmt.Println(kbstate)
 				case *sdl.QuitEvent:
 					out.quit = true
 				case *sdl.JoyButtonEvent:

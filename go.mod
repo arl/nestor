@@ -3,6 +3,7 @@ module nestor
 go 1.22.4
 
 require (
+	github.com/BurntSushi/toml v1.4.0
 	github.com/alecthomas/kong v0.9.0
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71
 	github.com/google/go-cmp v0.6.0
@@ -15,7 +16,6 @@ require (
 )
 
 require (
-	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 )

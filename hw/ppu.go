@@ -1,6 +1,7 @@
 package hw
 
 import (
+	"image/color"
 	"unsafe"
 
 	"nestor/emu/hwio"
@@ -192,6 +193,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 		case p.Cycle >= 2 && p.Cycle <= 255,
 			p.Cycle >= 322 && p.Cycle <= 337:
 			p.renderPixel()
+
 			switch p.Cycle & 0b111 {
 
 			// nametable
@@ -226,6 +228,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 				p.bg.bghi = p.Read8(p.bg.addrLatch)
 				p.horzScroll()
 			}
+
 		case p.Cycle == 256:
 			p.renderPixel()
 			p.bg.bghi = p.Read8(p.bg.addrLatch)
@@ -247,9 +250,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 				ppustatus.setVblank(false)
 				p.PPUSTATUS.Value = uint8(ppustatus)
 			}
-		case p.Cycle == 321:
-			fallthrough
-		case p.Cycle == 339:
+		case p.Cycle == 321, p.Cycle == 339:
 			p.bg.addrLatch = p.ntAddr()
 
 		// 'garbage' fetches
@@ -298,6 +299,9 @@ func (p *PPU) bgAddr() uint16 {
 func (p *PPU) refillShifters() {
 	p.bg.bgShiftlo = (p.bg.bgShiftlo & 0xFF00) | uint16(p.bg.bglo)
 	p.bg.bgShifthi = (p.bg.bgShifthi & 0xFF00) | uint16(p.bg.bghi)
+
+	p.bg.atLatchlo = u8tob(p.bg.at & 1)
+	p.bg.atLatchhi = u8tob(p.bg.at & 2)
 }
 
 func (p *PPU) horzScroll() {
@@ -358,6 +362,23 @@ func (p *PPU) spriteHeight() int {
 	return 8
 }
 
+func nthbit8(val uint8, n uint8) uint8    { return (val >> n) & 1 }
+func nthbit16(val uint16, n uint8) uint16 { return (val >> n) & 1 }
+
+func b2u8(b bool) uint8 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func b2u16(b bool) uint16 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 func (p *PPU) renderPixel() {
 	var palette uint8
 	var objPalette uint8
@@ -368,32 +389,31 @@ func (p *PPU) renderPixel() {
 	if p.Scanline < 240 && p.Cycle >= 0 && p.Cycle < 256 {
 
 		// Background
-		if mask.bg() && (!mask.bgLeft() || x >= 8) {
-			hibit := uint8(p.bg.bgShifthi>>(15-p.bg.finex)) & 1
-			lobit := uint8(p.bg.bgShiftlo>>(15-p.bg.finex)) & 1
-			palette = (hibit << 1) | lobit
+		if mask.bg() && !(mask.bgLeft() && x < 8) {
+			palette = uint8(nthbit16(p.bg.bgShifthi, 15-p.bg.finex)<<1 |
+				nthbit16(p.bg.bgShiftlo, 15-p.bg.finex))
 			if palette != 0 {
-				palette |= ((((p.bg.atShifthi)>>(7-p.bg.finex))&1)<<1 |
-					((p.bg.atShiftlo) >> (7 - p.bg.finex))) << 2
+				palette |= (nthbit8(p.bg.atShifthi, 7-p.bg.finex)<<1 |
+					nthbit8(p.bg.atShiftlo, 7-p.bg.finex)) << 2
 			}
 		}
 
 		// Sprites
-		if mask.sprites() && (!mask.spriteLeft() || x >= 8) {
+		if mask.sprites() && (mask.spriteLeft() || x >= 8) {
 			for i := 7; i >= 0; i-- {
 				if p.oam[i].id == 64 {
 					continue // Void entry.
 				}
 				sprX := x - int(p.oam[i].x)
-				if sprX >= 8 {
+				if sprX >= 8 || sprX < 0 {
 					continue // Not in range.
 				}
 				if p.oam[i].attr&0x40 != 0 {
 					sprX ^= 7 // Horizontal flip.
 				}
 
-				sprPalette := ((((p.oam[i].dataH) >> (7 - sprX)) & 1) << 1) |
-					(((p.oam[i].dataL) >> (7 - sprX)) & 1)
+				sprPalette := (nthbit8(p.oam[i].dataH, uint8(7-sprX)) << 1) |
+					nthbit8(p.oam[i].dataL, uint8(7-sprX))
 				if sprPalette == 0 {
 					continue // Transparent pixel.
 				}
@@ -414,33 +434,86 @@ func (p *PPU) renderPixel() {
 			palette = objPalette
 		}
 
-		paddr := uint16(0x3f00)
+		var paddr uint16
 		if p.renderingEnabled() {
 			paddr += uint16(palette)
 		}
-		pidx := p.Read8(paddr)
-		p.framebuf[p.Scanline*256+x] = nesPalette[pidx]
+		pidx := p.Read8(0x3F00 + paddr)
+		colu32 := nesPalette[pidx]
+
+		// TODO: emphasis not tested yet.
+		// const m = 0x80 | 0x40 | 0x20
+		// colu32 = emphasis(byte(mask&m), colu32)
+		p.framebuf[p.Scanline*256+x] = colu32
 	}
 
 	// Perform background shifts:
 	p.bg.bgShiftlo <<= 1
 	p.bg.bgShifthi <<= 1
-	p.bg.atShiftlo = (p.bg.atShiftlo << 1) | b2u8(p.bg.atLatchlo)
-	p.bg.atShifthi = (p.bg.atShifthi << 1) | b2u8(p.bg.atLatchhi)
+	p.bg.atShiftlo = (p.bg.atShiftlo << 1) | btou8(p.bg.atLatchlo)
+	p.bg.atShifthi = (p.bg.atShifthi << 1) | btou8(p.bg.atLatchhi)
 }
 
-func b2u8(b bool) uint8 {
+func colorToU32(col color.RGBA) uint32 {
+	// little-endian.
+	return uint32(col.R)<<24 | uint32(col.G)<<16 | uint32(col.B)<<8 | 0xff
+}
+
+func u8tob(v uint8) bool {
+	return v != 0
+}
+
+func btou8(b bool) uint8 {
 	if b {
 		return 1
 	}
 	return 0
 }
 
-func b2u16(b bool) uint16 {
-	if b {
-		return 1
+// TODO: use LUT or a faster way.
+// Test it with game/rom that support color emphasis.
+//
+//lint:ignore U1000
+func emphasis(rgbmask byte, abgr uint32) uint32 {
+	r := float64(abgr & 0xFF)
+	g := float64((0xFF00 & abgr) >> 8)
+	b := float64((0xFF0000 & abgr) >> 16)
+
+	switch {
+	case rgbmask&0x20 != 0:
+		r *= 1.3
+		g *= 0.8
+		b *= 0.8
+	case rgbmask&0x40 != 0:
+		r *= 0.8
+		g *= 1.3
+		b *= 0.8
+	case rgbmask&0x80 != 0:
+		r *= 0.8
+		g *= 0.8
+		b *= 1.3
 	}
-	return 0
+
+	if r > 255 {
+		r = 255
+	}
+	if r < 0 {
+		r = 0
+	}
+	if g > 255 {
+		g = 255
+	}
+	if g < 0 {
+		g = 0
+	}
+	if b > 255 {
+		b = 255
+	}
+	if b < 0 {
+		b = 0
+	}
+
+	return uint32(r) | uint32(g)<<8 | uint32(b)<<16 | (0xFF << 24)
 }
 
 func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
@@ -558,6 +631,7 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 
 // PPUDATA: $2007
 func (p *PPU) WritePPUDATA(old, val uint8) {
+	// TODO: check if this should change the bus addr or not?
 	p.Write8(p.vramAddr.addr(), val)
 	p.vramIncr()
 
@@ -586,15 +660,20 @@ func (p *PPU) Write8(addr uint16, val uint8) {
 	p.Bus.Write8(addr, val)
 }
 
+// ABGR format. Convenient for little endian since it has the same memory layout
+// as RGBA struct.
+//
+// TODO: should be defined as color.RGBA and generated at either compile time or
+// runtime, based on the target architecture.
 var nesPalette = [...]uint32{
-	0xFF7C7C7C, 0xFF0000FC, 0xFF0000BC, 0xFF4428BC, 0xFF940084, 0xFFA80020, 0xFFA81000, 0xFF881400,
-	0xFF503000, 0xFF007800, 0xFF006800, 0xFF005800, 0xFF004058, 0xFF000000, 0xFF000000, 0xFF000000,
-	0xFFBCBCBC, 0xFF0078F8, 0xFF0058F8, 0xFF6844FC, 0xFFD800CC, 0xFFE40058, 0xFFF83800, 0xFFE45C10,
-	0xFFAC7C00, 0xFF00B800, 0xFF00A800, 0xFF00A844, 0xFF008888, 0xFF000000, 0xFF000000, 0xFF000000,
-	0xFFF8F8F8, 0xFF3CBCFC, 0xFF6888FC, 0xFF9878F8, 0xFFF878F8, 0xFFF85898, 0xFFF87858, 0xFFFCA044,
-	0xFFF8B800, 0xFFB8F818, 0xFF58D854, 0xFF58F898, 0xFF00E8D8, 0xFF787878, 0xFF000000, 0xFF000000,
-	0xFFFCFCFC, 0xFFA4E4FC, 0xFFB8B8F8, 0xFFD8B8F8, 0xFFF8B8F8, 0xFFF8A4C0, 0xFFF0D0B0, 0xFFFCE0A8,
-	0xFFF8D878, 0xFFD8F878, 0xFFB8F8B8, 0xFFB8F8D8, 0xFF00FCFC, 0xFFF8D8F8, 0xFF000000, 0xFF000000,
+	0xFF7C7C7C, 0xFFFC0000, 0xFFBC0000, 0xFFBC2844, 0xFF840094, 0xFF2000A8, 0xFF0010A8, 0xFF001488,
+	0xFF003050, 0xFF007800, 0xFF006800, 0xFF005800, 0xFF584000, 0xFF000000, 0xFF000000, 0xFF000000,
+	0xFFBCBCBC, 0xFFF87800, 0xFFF85800, 0xFFFC4468, 0xFFCC00D8, 0xFF5800E4, 0xFF0038F8, 0xFF105CE4,
+	0xFF007CAC, 0xFF00B800, 0xFF00A800, 0xFF44A800, 0xFF888800, 0xFF000000, 0xFF000000, 0xFF000000,
+	0xFFF8F8F8, 0xFFFCBC3C, 0xFFFC8868, 0xFFF87898, 0xFFF878F8, 0xFF9858F8, 0xFF5878F8, 0xFF44A0FC,
+	0xFF00B8F8, 0xFF18F8B8, 0xFF54D858, 0xFF98F858, 0xFFD8E800, 0xFF787878, 0xFF000000, 0xFF000000,
+	0xFFFCFCFC, 0xFFFCE4A4, 0xFFF8B8B8, 0xFFF8B8D8, 0xFFF8B8F8, 0xFFC0A4F8, 0xFFB0D0F0, 0xFFA8E0FC,
+	0xFF78D8F8, 0xFF78F8D8, 0xFFB8F8B8, 0xFFD8F8B8, 0xFFFCFC00, 0xFFF8D8F8, 0xFF000000, 0xFF000000,
 }
 
 func (p *PPU) WritePALETTES(addr uint16, n int) {
@@ -682,6 +761,9 @@ func (p *PPU) clearOAM() {
 
 // Prepare sprites info in secondary OAM for next scanline
 func (p *PPU) evalSprites() {
+	if !p.renderingEnabled() {
+		return
+	}
 	n := 0
 	for i := 0; i < 64; i++ {
 		line := p.Scanline
