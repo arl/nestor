@@ -225,7 +225,11 @@ func scaleViewport(winw, winh int32, orgw, orgh int) {
 func (out *Output) Screenshot() image.Image {
 	imgc := make(chan *image.RGBA, 1)
 	sdl.Do(func() {
-		imgc <- FramebufImage(out.framebuf[out.framebufidx], out.cfg.Width, out.cfg.Height)
+		fbidx := out.framebufidx - 1
+		if fbidx < 1 {
+			fbidx = out.cfg.NumVideoBuffers - 1
+		}
+		imgc <- FramebufImage(out.framebuf[fbidx], out.cfg.Width, out.cfg.Height)
 	})
 
 	return <-imgc
