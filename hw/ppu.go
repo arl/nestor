@@ -441,8 +441,9 @@ func (p *PPU) renderPixel() {
 		pidx := p.Read8(0x3F00 + paddr)
 		colu32 := nesPalette[pidx]
 
-		const m = 0x80 | 0x40 | 0x20
-		colu32 = emphasis(byte(mask&m), colu32)
+		// TODO: emphasis not tested yet.
+		// const m = 0x80 | 0x40 | 0x20
+		// colu32 = emphasis(byte(mask&m), colu32)
 		p.framebuf[p.Scanline*256+x] = colu32
 	}
 
@@ -471,6 +472,8 @@ func btou8(b bool) uint8 {
 
 // TODO: use LUT or a faster way.
 // Test it with game/rom that support color emphasis.
+//
+//lint:ignore U1000
 func emphasis(rgbmask byte, abgr uint32) uint32 {
 	r := float64(abgr & 0xFF)
 	g := float64((0xFF00 & abgr) >> 8)
@@ -510,9 +513,7 @@ func emphasis(rgbmask byte, abgr uint32) uint32 {
 		b = 0
 	}
 
-	// println(r, g, b)
-
-	return uint32(r) | uint32(g)<<8 | uint32(b)<<16 //| 0xFF
+	return uint32(r) | uint32(g)<<8 | uint32(b)<<16 | (0xFF << 24)
 }
 
 func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
