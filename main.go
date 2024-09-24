@@ -72,7 +72,7 @@ func emuMain(cfg Run) {
 
 	nes, err := emu.PowerUp(rom, emucfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to start emulator: %v", err)
+		fmt.Fprintf(os.Stderr, "failed to start emulator: %v\n", err)
 		os.Exit(1)
 	}
 
