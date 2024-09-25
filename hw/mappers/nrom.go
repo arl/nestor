@@ -9,10 +9,10 @@ import (
 
 var NROM = hw.MapperDesc{
 	Name: "NROM",
-	Load: loadMapper000,
+	Load: loadNROM,
 }
 
-func loadMapper000(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
+func loadNROM(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
 	// CPU memory space mapping.
 	//
 
