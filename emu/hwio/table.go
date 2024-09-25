@@ -133,7 +133,7 @@ func (t *Table) MapMemorySlice(addr, end uint16, mem []uint8, readonly bool) {
 		Bool("ro", readonly).
 		End()
 
-	flags := MemFlag8
+	var flags MemFlags
 	if readonly {
 		flags |= MemFlag8ReadOnly
 	}
@@ -157,7 +157,7 @@ func (t *Table) Read8(addr uint16) uint8 {
 			End()
 		return 0
 	}
-	if mem, ok := io.(*memUnalignedLE); ok {
+	if mem, ok := io.(*mem); ok {
 		return mem.Read8(addr)
 	}
 	return io.(BankIO8).Read8(addr)
@@ -172,7 +172,7 @@ func (t *Table) Peek8(addr uint16) uint8 {
 		return 0
 	}
 	switch io := io.(type) {
-	case *memUnalignedLE:
+	case *mem:
 		return io.Peek8(addr)
 	case *Reg8:
 		return io.Value
@@ -192,7 +192,7 @@ func (t *Table) Write8(addr uint16, val uint8) {
 			End()
 		return
 	}
-	if mem, ok := io.(*memUnalignedLE); ok {
+	if mem, ok := io.(*mem); ok {
 		// NOTE: we use the CheckRO format so that the success codepath
 		// (that is, when the memory is read-write) is fully inlined and
 		// requires no function call.
@@ -211,7 +211,7 @@ func (t *Table) Write8(addr uint16, val uint8) {
 
 func (t *Table) FetchPointer(addr uint16) []uint8 {
 	io := t.table8.Search(addr)
-	if mem, ok := io.(*memUnalignedLE); ok {
+	if mem, ok := io.(*mem); ok {
 		return mem.FetchPointer(addr)
 	}
 	return nil

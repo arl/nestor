@@ -140,15 +140,7 @@ func InitRegs(data any) error {
 				}
 			}
 
-			flags := MemFlag8
-
-			switch tag.Get("rw8") {
-			case "on", "true", "":
-			case "off", "false":
-				flags &^= MemFlag8
-			default:
-				return fmt.Errorf("invalid rw8: %q", tag.Get("rw8"))
-			}
+			var flags MemFlags
 
 			if ro := tag.Get("readonly"); ro != "" {
 				flags |= MemFlag8ReadOnly

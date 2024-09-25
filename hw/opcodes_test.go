@@ -109,7 +109,6 @@ func testOpcodes(opfile string) func(t *testing.T) {
 				cpu.Bus = hwio.NewTable("cputest")
 				cpu.Bus.MapMem(0x0000, &hwio.Mem{
 					Data:  *slice,
-					Flags: hwio.MemFlag8,
 					VSize: int(0x10000),
 				})
 
