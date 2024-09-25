@@ -105,3 +105,24 @@ func (m *Mem) BankIO8() BankIO8 {
 	roflag := m.roFlag(MemFlag8ReadOnly)
 	return newMem(m.Data, m.WriteCb, roflag)
 }
+
+// Manual implements the BankIO8 interface for a manually managed memory area.
+// TODO: finx a better name: Area maybe?
+type Manual struct {
+	Name    string // name of the memory area (for debugging)
+	Size    int    // size of the memory area
+	ReadCb  func(addr uint16, peek bool) uint8
+	WriteCb func(addr uint16, val uint8)
+}
+
+func (m *Manual) Read8(addr uint16) uint8 {
+	return m.ReadCb(addr, false)
+}
+
+func (m *Manual) Peek8(addr uint16) uint8 {
+	return m.ReadCb(addr, true)
+}
+
+func (m *Manual) Write8(addr uint16, val uint8) {
+	m.WriteCb(addr, val)
+}
