@@ -3,7 +3,6 @@ package hw
 
 import (
 	"fmt"
-	"runtime"
 )
 
 // ORA - indexed addressing (abs, X).
@@ -3620,9 +3619,6 @@ var ops = [256]func(*CPU){
 }
 
 func disasmAbs(cpu *CPU, pc uint16) DisasmOp {
-	if pc == 0x2000 {
-		runtime.Breakpoint()
-	}
 	oper0 := cpu.Bus.Peek8(pc + 0)
 	oper1 := cpu.Bus.Peek8(pc + 1)
 	oper2 := cpu.Bus.Peek8(pc + 2)
