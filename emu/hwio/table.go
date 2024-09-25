@@ -27,7 +27,6 @@ func Read16(b BankIO8, addr uint16) uint16 {
 
 type Table struct {
 	Name string
-	ws   int
 
 	table8 radixTree
 }
@@ -37,10 +36,6 @@ func NewTable(name string) *Table {
 	t.Name = name
 	t.Reset()
 	return t
-}
-
-func (t *Table) SetWaitStates(ws int) {
-	t.ws = ws
 }
 
 func (t *Table) Reset() {
@@ -215,8 +210,4 @@ func (t *Table) FetchPointer(addr uint16) []uint8 {
 		return mem.FetchPointer(addr)
 	}
 	return nil
-}
-
-func (t *Table) WaitStates() int {
-	return t.ws
 }
