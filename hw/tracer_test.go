@@ -5,6 +5,8 @@ import (
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func BenchmarkDisasmOpString(b *testing.B) {
@@ -35,8 +37,9 @@ func (dd dummyDisasm) Disasm(pc uint16) DisasmOp {
 
 func TestTraceFormat(t *testing.T) {
 	want := []string{
-		`E052  A9 32     LDA #$32                         A:00 X:01 Y:00 P:07 S:F4 PPU:0  ,27  8`,
-		`E054  20 EE E0  JSR $E0EE                        A:32 X:01 Y:00 P:05 S:F4 PPU:0  ,33  10`,
+		`E052  A9 32     LDA #$32                         A:00 X:01 Y:02 P:07 S:F4 PPU:0  ,27  8`,
+		`E054  20 EE E0  JSR $E0EE                        A:03 X:02 Y:01 P:05 S:F4 PPU:0  ,33  10`,
+		`E060  AD 02 20  LDA PpuStatus_2002 = $00         A:0F X:F0 Y:FF P:04 S:FD PPU:0  ,39  12`,
 	}
 
 	var out bytes.Buffer
@@ -55,28 +58,41 @@ func TestTraceFormat(t *testing.T) {
 				Opcode: "JSR",
 				Oper:   "$E0EE",
 			},
+			0xE060: DisasmOp{
+				PC:     0xE060,
+				Buf:    []byte{0xAD, 0x02, 0x20},
+				Opcode: "LDA",
+				Oper:   "PpuStatus_2002 = $00",
+			},
 		},
 		w: &out,
 	}
 
 	tr.write(cpuState{
 		PC: 0xE052,
-		A:  0x00, X: 0x01, Y: 0x00, P: P(0x07), SP: 0xF4,
+		A:  0x00, X: 0x01, Y: 0x02, P: P(0x07), SP: 0xF4,
 		Scanline: 0,
 		PPUCycle: 27,
 		Clock:    8,
 	})
 	tr.write(cpuState{
 		PC: 0xE054,
-		A:  0x32, X: 0x01, Y: 0x00, P: P(0x05), SP: 0xF4,
+		A:  0x03, X: 0x02, Y: 0x01, P: P(0x05), SP: 0xF4,
 		Scanline: 0,
 		PPUCycle: 33,
 		Clock:    10,
 	})
+	tr.write(cpuState{
+		PC: 0xE060,
+		A:  0x0F, X: 0xF0, Y: 0xFF, P: P(0x04), SP: 0xFD,
+		Scanline: 0,
+		PPUCycle: 39,
+		Clock:    12,
+	})
 
 	wantstr := strings.Join(want, "\n") + "\n"
-	if out.String() != wantstr {
-		t.Fatalf("trace differs\ngot:\n%s\nwant:\n%s\n", out.String(), wantstr)
+	if diff := cmp.Diff(out.String(), wantstr); diff != "" {
+		t.Fatalf("trace differs\ngot:\n%s\nwant:\n%s\n\ndifferences:\n%s", out.String(), wantstr, diff)
 	}
 }
 

@@ -103,7 +103,7 @@ type DisasmOp struct {
 // Bytes returns the string representation of a DisasmOp, this is optimized
 // version, suitable for the execution tracer.
 func (d DisasmOp) Bytes() []byte {
-	const totalLen = 34
+	const totalLen = 48
 	buf := make([]byte, totalLen)
 
 	hexEncode(buf[0:], byte(d.PC>>8))
