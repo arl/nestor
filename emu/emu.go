@@ -40,7 +40,6 @@ func PowerUp(rom *ines.Rom, cfg Config) (*Emulator, error) {
 
 	// CPU trace setup.
 	if cfg.TraceOut != nil {
-		defer cfg.TraceOut.Close()
 		nes.CPU.SetTraceOutput(cfg.TraceOut)
 	}
 
