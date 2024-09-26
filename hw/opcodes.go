@@ -3630,7 +3630,7 @@ func disasmAbs(cpu *CPU, pc uint16) DisasmOp {
 		oper = fmt.Sprintf("$%04X", operaddr)
 	} else {
 		pointee := cpu.Bus.Peek8(operaddr)
-		oper = fmt.Sprintf("$%04X = $%02X", operaddr, pointee)
+		oper = fmt.Sprintf("%s = $%02X", formatAddr(operaddr), pointee)
 	}
 
 	return DisasmOp{
@@ -3648,8 +3648,9 @@ func disasmAbx(cpu *CPU, pc uint16) DisasmOp {
 	operaddr := uint16(oper1) | uint16(oper2)<<8
 	oper := ""
 
-	pointee := cpu.Bus.Peek8(operaddr + uint16(cpu.X))
-	oper = fmt.Sprintf("$%04X,X = $%02X", operaddr, pointee)
+	addr := operaddr + uint16(cpu.X)
+	pointee := cpu.Bus.Peek8(addr)
+	oper = fmt.Sprintf("%s,X [%s] = $%02X", formatAddr(operaddr), formatAddr(addr), pointee)
 
 	return DisasmOp{
 		PC:     pc,
@@ -3666,8 +3667,9 @@ func disasmAby(cpu *CPU, pc uint16) DisasmOp {
 	operaddr := uint16(oper1) | uint16(oper2)<<8
 	oper := ""
 
-	pointee := cpu.Bus.Peek8(operaddr + uint16(cpu.Y))
-	oper = fmt.Sprintf("$%04X,Y = $%02X", operaddr, pointee)
+	addr := operaddr + uint16(cpu.Y)
+	pointee := cpu.Bus.Peek8(addr)
+	oper = fmt.Sprintf("%s,Y [%s] = $%02X", formatAddr(operaddr), formatAddr(addr), pointee)
 
 	return DisasmOp{
 		PC:     pc,
@@ -3730,7 +3732,7 @@ func disasmInd(cpu *CPU, pc uint16) DisasmOp {
 	hi := cpu.Bus.Peek8((0xff00 & operaddr) | (0x00ff & (operaddr + 1)))
 	dest := uint16(hi)<<8 | uint16(lo)
 	pointee := cpu.Bus.Peek8(dest)
-	oper = fmt.Sprintf("($%04X) = $%02X", operaddr, pointee)
+	oper = fmt.Sprintf("(%s) [%s] = $%02X", formatAddr(operaddr), formatAddr(dest), pointee)
 
 	return DisasmOp{
 		PC:     pc,
@@ -3751,7 +3753,7 @@ func disasmIzx(cpu *CPU, pc uint16) DisasmOp {
 	hi := cpu.Bus.Peek8(uint16(uint8(addr) + 1))
 	addr = uint16(hi)<<8 | uint16(lo)
 	pointee := cpu.Bus.Peek8(addr)
-	oper = fmt.Sprintf("($%02X,X) = $%02X", oper1, pointee)
+	oper = fmt.Sprintf("($%02X,X) [%s] = $%02X", oper1, formatAddr(addr), pointee)
 
 	return DisasmOp{
 		PC:     pc,
@@ -3772,7 +3774,7 @@ func disasmIzy(cpu *CPU, pc uint16) DisasmOp {
 	addr := uint16(hi)<<8 | uint16(lo)
 	addr += uint16(cpu.Y)
 	pointee := cpu.Bus.Peek8(addr)
-	oper = fmt.Sprintf("($%02X),Y = $%02X", oper1, pointee)
+	oper = fmt.Sprintf("($%02X),Y [%s] = $%02X", oper1, formatAddr(addr), pointee)
 
 	return DisasmOp{
 		PC:     pc,
@@ -3821,7 +3823,7 @@ func disasmZpx(cpu *CPU, pc uint16) DisasmOp {
 	addr := uint16(oper1) + uint16(cpu.X)
 	addr &= 0xff
 	pointee := cpu.Bus.Peek8(addr)
-	oper = fmt.Sprintf("$%02X,X = $%02X", oper1, pointee)
+	oper = fmt.Sprintf("$%02X,X [%s] = $%02X", oper1, formatAddr(addr), pointee)
 
 	return DisasmOp{
 		PC:     pc,
@@ -3839,7 +3841,7 @@ func disasmZpy(cpu *CPU, pc uint16) DisasmOp {
 	addr := uint16(oper1) + uint16(cpu.Y)
 	addr &= 0xff
 	pointee := cpu.Bus.Peek8(addr)
-	oper = fmt.Sprintf("$%02X,Y = $%02X", oper1, pointee)
+	oper = fmt.Sprintf("$%02X,Y [%s] = $%02X", oper1, formatAddr(addr), pointee)
 
 	return DisasmOp{
 		PC:     pc,
