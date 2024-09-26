@@ -98,6 +98,44 @@ func (p *PPU) InitBus() {
 	copy(p.Palettes.Data, bootPalette[:])
 }
 
+type Mirroring int
+
+const (
+	HorzMirroring Mirroring = iota
+	VertMirroring
+)
+
+func (p *PPU) SetMirroring(m Mirroring) {
+	// NameTables
+	switch m {
+	case HorzMirroring: // A A B B
+		// 4 nametables
+		p.Bus.MapMemorySlice(0x2000, 0x23FF, p.Nametables[:0x400], false)
+		p.Bus.MapMemorySlice(0x2400, 0x27FF, p.Nametables[:0x400], false)
+		p.Bus.MapMemorySlice(0x2800, 0x2BFF, p.Nametables[0x400:0x800], false)
+		p.Bus.MapMemorySlice(0x2C00, 0x2FFF, p.Nametables[0x400:0x800], false)
+
+		// mirrors of the nametable area
+		p.Bus.MapMemorySlice(0x3000, 0x33FF, p.Nametables[:0x400], false)
+		p.Bus.MapMemorySlice(0x3400, 0x37FF, p.Nametables[:0x400], false)
+		p.Bus.MapMemorySlice(0x3800, 0x3BFF, p.Nametables[0x400:0x800], false)
+		p.Bus.MapMemorySlice(0x3C00, 0x3EFF, p.Nametables[0x400:0x800], false)
+
+	case VertMirroring: // A B A B
+		// 4 nametables
+		p.Bus.MapMemorySlice(0x2000, 0x23FF, p.Nametables[:0x400], false)
+		p.Bus.MapMemorySlice(0x2400, 0x27FF, p.Nametables[0x400:0x800], false)
+		p.Bus.MapMemorySlice(0x2800, 0x2BFF, p.Nametables[:0x400], false)
+		p.Bus.MapMemorySlice(0x2C00, 0x2FFF, p.Nametables[0x400:0x800], false)
+
+		// mirrors of the nametable area
+		p.Bus.MapMemorySlice(0x3000, 0x33FF, p.Nametables[:0x400], false)
+		p.Bus.MapMemorySlice(0x3400, 0x37FF, p.Nametables[0x400:0x800], false)
+		p.Bus.MapMemorySlice(0x3800, 0x3BFF, p.Nametables[:0x400], false)
+		p.Bus.MapMemorySlice(0x3C00, 0x3EFF, p.Nametables[0x400:0x800], false)
+	}
+}
+
 func (p *PPU) Reset() {
 	p.Scanline = 0
 	p.Cycle = 0

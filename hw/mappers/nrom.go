@@ -48,33 +48,15 @@ func loadNROM(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
 	}
 
 	// PPU memory space mapping.
-	// NameTables
+
+	// Nametables.
 	switch rom.Mirroring() {
 	case ines.HorzMirroring: // A A B B
-		// 4 nametables
-		ppu.Bus.MapMemorySlice(0x2000, 0x23FF, ppu.Nametables[:0x400], false)
-		ppu.Bus.MapMemorySlice(0x2400, 0x27FF, ppu.Nametables[:0x400], false)
-		ppu.Bus.MapMemorySlice(0x2800, 0x2BFF, ppu.Nametables[0x400:0x800], false)
-		ppu.Bus.MapMemorySlice(0x2C00, 0x2FFF, ppu.Nametables[0x400:0x800], false)
-
-		// mirrors of the nametable area
-		ppu.Bus.MapMemorySlice(0x3000, 0x33FF, ppu.Nametables[:0x400], false)
-		ppu.Bus.MapMemorySlice(0x3400, 0x37FF, ppu.Nametables[:0x400], false)
-		ppu.Bus.MapMemorySlice(0x3800, 0x3BFF, ppu.Nametables[0x400:0x800], false)
-		ppu.Bus.MapMemorySlice(0x3C00, 0x3EFF, ppu.Nametables[0x400:0x800], false)
-
+		ppu.SetMirroring(hw.HorzMirroring)
 	case ines.VertMirroring: // A B A B
-		// 4 nametables
-		ppu.Bus.MapMemorySlice(0x2000, 0x23FF, ppu.Nametables[:0x400], false)
-		ppu.Bus.MapMemorySlice(0x2400, 0x27FF, ppu.Nametables[0x400:0x800], false)
-		ppu.Bus.MapMemorySlice(0x2800, 0x2BFF, ppu.Nametables[:0x400], false)
-		ppu.Bus.MapMemorySlice(0x2C00, 0x2FFF, ppu.Nametables[0x400:0x800], false)
-
-		// mirrors of the nametable area
-		ppu.Bus.MapMemorySlice(0x3000, 0x33FF, ppu.Nametables[:0x400], false)
-		ppu.Bus.MapMemorySlice(0x3400, 0x37FF, ppu.Nametables[0x400:0x800], false)
-		ppu.Bus.MapMemorySlice(0x3800, 0x3BFF, ppu.Nametables[:0x400], false)
-		ppu.Bus.MapMemorySlice(0x3C00, 0x3EFF, ppu.Nametables[0x400:0x800], false)
+		ppu.SetMirroring(hw.VertMirroring)
+	default:
+		return fmt.Errorf("unexpected mirroring: %d", rom.Mirroring())
 	}
 
 	// continuer ici avec le log
