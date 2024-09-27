@@ -579,8 +579,6 @@ func (p *PPU) WritePPUCTRL(old, val uint8) {
 	} else if ppustatus.vblank() {
 		p.CPU.setNMIflag()
 	}
-
-	p.PPUCTRL.Value = uint8(ppuctrl)
 }
 
 // PPUMASK: $2001
