@@ -286,6 +286,25 @@ func TestBlarggPPUtests(t *testing.T) {
 	}
 }
 
+func TestTimingVBlankNMI(t *testing.T) {
+	const frameidx = 200
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"1.frame_basics.nes", // onlt this passes for now
+		// "2.vbl_timing.nes",
+		// "3.even_odd_frames.nes",
+		// "4.vbl_clear_timing.nes",
+		// "5.nmi_suppression.nes",
+		// "6.nmi_disable.nes",
+		// "7.nmi_timing.nes",
+	}
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(tests.RomsPath(t), "vbl_nmi_timing", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
 }
