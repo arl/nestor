@@ -261,7 +261,7 @@ func BRK(cpu *CPU) {
 	cpu.push16(cpu.PC + 1)
 
 	p := cpu.P
-	p.setB(true)
+	p.setBrk(true)
 	p.setUnused(true)
 	if cpu.needNmi {
 		cpu.needNmi = false
@@ -296,7 +296,7 @@ func (c *CPU) IRQ() {
 		c.dbg.Interrupt(prevpc, c.PC, true)
 	} else {
 		p := c.P
-		p.setB(true)
+		p.setBrk(true)
 		c.push8(uint8(p))
 		c.P.setIntDisable(true)
 		c.PC = c.Read16(IRQVector)

@@ -100,7 +100,7 @@ func opcode07(cpu *CPU) {
 func opcode08(cpu *CPU) {
 	cpu.tick()
 	p := cpu.P
-	p.setB(true)
+	p.setBrk(true)
 	p.setUnused(true)
 	cpu.push8(uint8(p))
 }

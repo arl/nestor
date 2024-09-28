@@ -56,11 +56,11 @@ func (p *P) setDecimal(val bool) {
 	*p |= ival << 3
 }
 
-func (p P) b() bool {
+func (p P) brk() bool {
 	return p&0x10 != 0
 }
 
-func (p *P) setB(val bool) {
+func (p *P) setBrk(val bool) {
 	var ival P
 	if val {
 		ival = 1

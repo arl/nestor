@@ -9,7 +9,7 @@ type P struct {
 	zero       bool `bitfield:"1"` // zero
 	intDisable bool `bitfield:"1"` // interrupt disable
 	decimal    bool `bitfield:"1"` // decimal mode
-	b          bool `bitfield:"1"` // break
+	brk        bool `bitfield:"1"` // break
 	unused     bool `bitfield:"1"` // unused
 	overflow   bool `bitfield:"1"` // overflow
 	negative   bool `bitfield:"1"` // negative

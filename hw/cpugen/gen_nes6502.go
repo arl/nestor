@@ -337,7 +337,7 @@ var flagOps = [8][2]string{
 	{"zero", "setZero"},
 	{"intDisable", "setIntDisable"},
 	{"decimal", "setDecimal"},
-	{"b", "setB"},
+	{"brk", "setBrk"},
 	{"unused", "setUnused"},
 	{"overflow", "setOverflow"},
 	{"negative", "setNegative"},

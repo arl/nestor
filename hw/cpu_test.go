@@ -11,7 +11,7 @@ func TestPflag(t *testing.T) {
 		t.Errorf("got P = %q, want %q", p.String(), P(0x44))
 	}
 
-	p.setB(true)
+	p.setBrk(true)
 	if p != 0x54 {
 		t.Errorf("got P = %q, want %q", p.String(), P(0x54))
 	}
