@@ -239,10 +239,38 @@ func TestNametableMirroring(t *testing.T) {
 	}
 }
 
+func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame int64) {
+	rom, err := ines.ReadRom(romPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nes, err := powerUp(rom)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	filepath.SplitList(romPath)
+
+	out := newTestingOutput(
+		TestingOutputConfig{
+			Height:        hw.OutputNTSC().Height,
+			Width:         hw.OutputNTSC().Width,
+			SaveFrameDir:  frameDir,
+			SaveFrameFile: framePath,
+			SaveFrameNum:  frame,
+		})
+	nes.SetOutput(out)
+	nes.Run()
+
+	out.CompareFrame(t)
+}
+
 func TestBlarggPPUtests(t *testing.T) {
 	const frameidx = 25
 
-	romsPath := tests.RomsPath(t)
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
 	roms := []string{
 		"palette_ram.nes",
 		"power_up_palette.nes",
@@ -252,28 +280,12 @@ func TestBlarggPPUtests(t *testing.T) {
 	}
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
-			romPath := filepath.Join(romsPath, "blargg_ppu_tests_2005.09.15b", romName)
-			rom, err := ines.ReadRom(romPath)
-			if err != nil {
-				t.Fatal(err)
-			}
-			nes, err := powerUp(rom)
-			if err != nil {
-				t.Fatal(err)
-			}
+			romPath := filepath.Join(tests.RomsPath(t), "blargg_ppu_tests_2005.09.15b", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
 
-			out := newTestingOutput(
-				TestingOutputConfig{
-					Height:        hw.OutputNTSC().Height,
-					Width:         hw.OutputNTSC().Width,
-					SaveFrameDir:  "testdata",
-					SaveFrameFile: filepath.Base(romPath),
-					SaveFrameNum:  frameidx,
-				})
-			nes.SetOutput(out)
-			nes.Run()
-
-			out.CompareFrame(t)
 		})
 	}
 }
