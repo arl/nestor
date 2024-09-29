@@ -67,7 +67,7 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 	if testing.Verbose() {
 		cpu.SetTraceOutput(tbwriter{t})
 	}
-	cpu.Run(cpu.Clock + ncycles)
+	cpu.Run(cpu.Cycles + ncycles)
 
 	for i := 0; i < len(states); i += 2 {
 		s := states[i].(string)

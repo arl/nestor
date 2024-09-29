@@ -3,6 +3,7 @@ package hw
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"testing"
 
 	"nestor/emu/hwio"
+	"nestor/emu/log"
 	"nestor/tests"
 )
 
@@ -24,6 +26,9 @@ func TestAllOpcodesAreImplemented(t *testing.T) {
 func TestOpcodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping long test")
+	}
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
 	}
 
 	testsDir := tests.TomHarteProcTestsPath(t)
@@ -134,8 +139,10 @@ func testOpcodes(opfile string) func(t *testing.T) {
 				)
 
 				// check cycles
-				if len(tt.Cycles) != int(cpu.Clock) {
-					t.Errorf("cycles count mismatch: got %d want %d\ndebug:\n%s", cpu.Clock, len(tt.Cycles), strings.Join(prettyCycles(tt.Cycles), "\n"))
+				if len(tt.Cycles) != int(cpu.Cycles) {
+					cyclesStr := strings.Join(prettyCycles(tt.Cycles), "\n")
+					t.Errorf("cycles count mismatch: got %d want %d\ndebug:\n%s",
+						cpu.Cycles, len(tt.Cycles), cyclesStr)
 				}
 
 				// check ram
@@ -167,7 +174,7 @@ func TestCPx(t *testing.T) {
 		// LDX #$40
 		// CPX #$41
 		cpu := loadCPUWith(t, `0600: a2 40 e0 41`)
-		cpu.Clock = 0
+		cpu.Cycles = 0
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		runAndCheckState(t, cpu, 4,
@@ -181,7 +188,7 @@ func TestCPx(t *testing.T) {
 		// LDX #$40
 		// CPX #$40
 		cpu := loadCPUWith(t, `0600: a2 40 e0 40`)
-		cpu.Clock = 0
+		cpu.Cycles = 0
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		runAndCheckState(t, cpu, 4,
@@ -195,7 +202,7 @@ func TestCPx(t *testing.T) {
 		// LDX #$40
 		// CPX #$39
 		cpu := loadCPUWith(t, `0600: a2 40 e0 39`)
-		cpu.Clock = 0
+		cpu.Cycles = 0
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		runAndCheckState(t, cpu, 4,
@@ -210,7 +217,7 @@ func TestCPx(t *testing.T) {
 func TestLDA_STA(t *testing.T) {
 	dump := `0600: a9 01 8d 00 02 a9 05 8d 01 02 a9 08 8d 02 02`
 	cpu := loadCPUWith(t, dump)
-	cpu.Clock = 0
+	cpu.Cycles = 0
 	cpu.PC = 0x0600
 	runAndCheckState(t, cpu, 6*3,
 		"A", 0x08,
@@ -225,7 +232,7 @@ func TestEOR(t *testing.T) {
 0000: 06
 0100: 45 00`
 		cpu := loadCPUWith(t, dump)
-		cpu.Clock = 0
+		cpu.Cycles = 0
 		cpu.PC = 0x0100
 		cpu.A = 0x80
 		runAndCheckState(t, cpu, 3,
@@ -270,7 +277,7 @@ func TestStack(t *testing.T) {
 FFFC: 00 06
 `
 	cpu := loadCPUWith(t, dump)
-	cpu.Clock = 0
+	cpu.Cycles = 0
 	cpu.P = 0x30
 	cpu.SP = 0xFF
 	runAndCheckState(t, cpu, 562,
@@ -294,7 +301,7 @@ func TestStackSmall(t *testing.T) {
 # instructions
 0600: a9 aa 48 a9 11 68`
 	cpu := loadCPUWith(t, dump)
-	cpu.Clock = 0
+	cpu.Cycles = 0
 	cpu.PC = 0x0600
 	cpu.P = 0x30
 	cpu.SP = 0xFF
