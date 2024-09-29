@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,9 +25,6 @@ func TestAllOpcodesAreImplemented(t *testing.T) {
 }
 
 func TestOpcodes(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping long test")
-	}
 	if !testing.Verbose() {
 		log.SetOutput(io.Discard)
 	}
@@ -94,6 +92,12 @@ func testOpcodes(opfile string) func(t *testing.T) {
 		var tests []TestCase
 		if err := json.Unmarshal(buf, &tests); err != nil {
 			t.Fatal(err)
+		}
+
+		if testing.Short() {
+			t.Log("with --short, just test a single case per opcode, random")
+			idx := rand.IntN(len(tests))
+			tests = []TestCase{tests[idx]}
 		}
 
 		for _, tt := range tests {
