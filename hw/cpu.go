@@ -289,7 +289,7 @@ func (c *CPU) IRQ() {
 	if c.needNmi {
 		c.needNmi = false
 		p := c.P
-		p.setB(true)
+		p.setBrk(true)
 		c.push8(uint8(p))
 		c.P.setIntDisable(true)
 		c.PC = c.Read16(NMIVector)
