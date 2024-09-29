@@ -239,10 +239,38 @@ func TestNametableMirroring(t *testing.T) {
 	}
 }
 
+func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame int64) {
+	rom, err := ines.ReadRom(romPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nes, err := powerUp(rom)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	filepath.SplitList(romPath)
+
+	out := newTestingOutput(
+		TestingOutputConfig{
+			Height:        hw.OutputNTSC().Height,
+			Width:         hw.OutputNTSC().Width,
+			SaveFrameDir:  frameDir,
+			SaveFrameFile: framePath,
+			SaveFrameNum:  frame,
+		})
+	nes.SetOutput(out)
+	nes.Run()
+
+	out.CompareFrame(t)
+}
+
 func TestBlarggPPUtests(t *testing.T) {
 	const frameidx = 25
 
-	romsPath := tests.RomsPath(t)
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
 	roms := []string{
 		"palette_ram.nes",
 		"power_up_palette.nes",
@@ -252,28 +280,31 @@ func TestBlarggPPUtests(t *testing.T) {
 	}
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
-			romPath := filepath.Join(romsPath, "blargg_ppu_tests_2005.09.15b", romName)
-			rom, err := ines.ReadRom(romPath)
-			if err != nil {
-				t.Fatal(err)
-			}
-			nes, err := powerUp(rom)
-			if err != nil {
-				t.Fatal(err)
-			}
+			romPath := filepath.Join(tests.RomsPath(t), "blargg_ppu_tests_2005.09.15b", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
 
-			out := newTestingOutput(
-				TestingOutputConfig{
-					Height:        hw.OutputNTSC().Height,
-					Width:         hw.OutputNTSC().Width,
-					SaveFrameDir:  "testdata",
-					SaveFrameFile: filepath.Base(romPath),
-					SaveFrameNum:  frameidx,
-				})
-			nes.SetOutput(out)
-			nes.Run()
+func TestTimingVBlankNMI(t *testing.T) {
+	const frameidx = 200
 
-			out.CompareFrame(t)
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"1.frame_basics.nes", // onlt this passes for now
+		// "2.vbl_timing.nes",
+		// "3.even_odd_frames.nes",
+		// "4.vbl_clear_timing.nes",
+		// "5.nmi_suppression.nes",
+		// "6.nmi_disable.nes",
+		// "7.nmi_timing.nes",
+	}
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(tests.RomsPath(t), "vbl_nmi_timing", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
 }

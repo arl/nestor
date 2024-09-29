@@ -15,13 +15,21 @@ type Rom struct {
 	CHRROM  []uint8 // CHR is PRG ROM data (size is a multiple of 8k)
 }
 
+func yesno(b bool) string {
+	if b {
+		return "yes"
+	}
+	return "no"
+}
+
 func (rom *Rom) PrintInfos(w io.Writer) {
-	fmt.Fprintf(w, "PRG ROM: 0x%x bytes\n", len(rom.PRGROM))
-	fmt.Fprintf(w, "CHR ROM: 0x%x bytes\n", len(rom.CHRROM))
+	fmt.Fprintf(w, "iNES2.0 : %s\n", yesno(rom.IsNES20()))
+	fmt.Fprintf(w, "PRG ROM: %dx16kB\n", rom.header.PRGROMSlots())
+	fmt.Fprintf(w, "CHR ROM: %dx8kB\n", rom.header.CHRROMSlots())
 	fmt.Fprintf(w, "Nametable mirroring: %s\n", rom.Mirroring())
 	fmt.Fprintf(w, "Mapper: %d\n", rom.Mapper())
-	fmt.Fprintf(w, "Trainer: %t\n", rom.HasTrainer())
-	fmt.Fprintf(w, "Persistent: %t\n", rom.HasPersistent())
+	fmt.Fprintf(w, "Trainer: %s\n", yesno(rom.HasTrainer()))
+	fmt.Fprintf(w, "Persistent: %s\n", yesno(rom.HasPersistence()))
 }
 
 // ReadRom loads a rom from an iNES file.
@@ -59,18 +67,20 @@ func Decode(buf []byte) (*Rom, error) {
 	}
 
 	// PRG rom data
-	if len(buf) < off+rom.prgsz {
+	prgRomSize := 0x4000 * rom.prgsz
+	if len(buf) < off+prgRomSize {
 		return nil, fmt.Errorf("incomplete PRG section")
 	}
-	rom.PRGROM = buf[off : off+rom.prgsz]
-	off += rom.prgsz
+	rom.PRGROM = buf[off : off+prgRomSize]
+	off += prgRomSize
 
 	// CHR rom data
-	if len(buf) < off+rom.chrsz {
+	chrRomSize := 0x2000 * rom.chrsz
+	if len(buf) < off+chrRomSize {
 		return nil, fmt.Errorf("incomplete CHR section")
 	}
-	rom.CHRROM = buf[off : off+rom.chrsz]
-	off += rom.chrsz
+	rom.CHRROM = buf[off : off+chrRomSize]
+	off += chrRomSize
 
 	return rom, nil
 }
@@ -86,8 +96,8 @@ func (hdr *header) decode(p []byte) error {
 	}
 	copy(hdr.raw[:], p[:16])
 
-	hdr.prgsz = int(hdr.raw[4]) * 16384
-	hdr.chrsz = int(hdr.raw[5]) * 8192
+	hdr.prgsz = int(hdr.raw[4])
+	hdr.chrsz = int(hdr.raw[5])
 	return nil
 }
 
@@ -97,14 +107,14 @@ type header struct {
 	chrsz int
 }
 
-// Has Trainer indicates the presence of a trainer section in the rom.
-func (hdr *header) HasTrainer() bool {
-	return hdr.raw[6]&0x04 != 0
+// PRGROMSlots returns the number of 16kB slots of PRGROM.
+func (hdr *header) PRGROMSlots() int {
+	return hdr.prgsz
 }
 
-// HasPersistent indicates the presence of persistent memory in the rom.
-func (hdr *header) HasPersistent() bool {
-	return hdr.raw[6]&0x02 != 0
+// CHRROMSlots returns the number of 8kB slots of CHRROM.
+func (hdr *header) CHRROMSlots() int {
+	return hdr.chrsz
 }
 
 // Mapper returns the mapper number.
@@ -135,8 +145,18 @@ func (m Mirroring) String() string {
 }
 
 func (hdr *header) Mirroring() Mirroring {
-	if hdr.raw[6]&1 != 0 {
+	if hdr.raw[6]&(1<<0) != 0 {
 		return VertMirroring
 	}
 	return HorzMirroring
+}
+
+// HasPersistence indicates the presence of persistent saved memory in the rom.
+func (hdr *header) HasPersistence() bool {
+	return hdr.raw[6]&(1<<1) != 0
+}
+
+// Has Trainer indicates the presence of a trainer section in the rom.
+func (hdr *header) HasTrainer() bool {
+	return hdr.raw[6]&(1<<2) != 0
 }

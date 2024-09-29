@@ -95,7 +95,7 @@ func runAndCheckState(t *testing.T, cpu *CPU, ncycles int64, states ...any) {
 				case 'v':
 					checkbool("Pv", int(btou8(cpu.P.overflow())), bit)
 				case 'b':
-					checkbool("Pb", int(btou8(cpu.P.b())), bit)
+					checkbool("Pb", int(btou8(cpu.P.brk())), bit)
 				case 'd':
 					checkbool("Pd", int(btou8(cpu.P.decimal())), bit)
 				case 'i':

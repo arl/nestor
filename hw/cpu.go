@@ -4,7 +4,9 @@ package hw
 
 import (
 	"io"
+
 	"nestor/emu/hwio"
+	"nestor/emu/log"
 )
 
 // Locations reserved for vector pointers.
@@ -144,6 +146,11 @@ func (c *CPU) Run(ncycles int64) bool {
 		ops[opcode](c)
 
 		if c.doHalt {
+			log.ModCPU.WarnZ("CPU halted").
+				Hex16("PC", c.PC).
+				Hex8("opcode", opcode).
+				Uint("self jumps", c.selfjumps).
+				End()
 			return false
 		}
 
@@ -254,7 +261,7 @@ func BRK(cpu *CPU) {
 	cpu.push16(cpu.PC + 1)
 
 	p := cpu.P
-	p.setB(true)
+	p.setBrk(true)
 	p.setUnused(true)
 	if cpu.needNmi {
 		cpu.needNmi = false
@@ -282,14 +289,14 @@ func (c *CPU) IRQ() {
 	if c.needNmi {
 		c.needNmi = false
 		p := c.P
-		p.setB(true)
+		p.setBrk(true)
 		c.push8(uint8(p))
 		c.P.setIntDisable(true)
 		c.PC = c.Read16(NMIVector)
 		c.dbg.Interrupt(prevpc, c.PC, true)
 	} else {
 		p := c.P
-		p.setB(true)
+		p.setBrk(true)
 		c.push8(uint8(p))
 		c.P.setIntDisable(true)
 		c.PC = c.Read16(IRQVector)

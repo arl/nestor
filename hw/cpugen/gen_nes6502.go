@@ -337,7 +337,7 @@ var flagOps = [8][2]string{
 	{"zero", "setZero"},
 	{"intDisable", "setIntDisable"},
 	{"decimal", "setDecimal"},
-	{"b", "setB"},
+	{"brk", "setBrk"},
 	{"unused", "setUnused"},
 	{"overflow", "setOverflow"},
 	{"negative", "setNegative"},
@@ -961,8 +961,9 @@ func (g *Generator) disasmAddrModes() {
 		g.printf(``)
 
 		abxy := func(xy byte) {
-			g.printf(`pointee := cpu.Bus.Peek8(operaddr + uint16(cpu.%c))`, xy)
-			g.printf(`oper = fmt.Sprintf("$%%04X,%c = $%%02X", operaddr, pointee)`, xy)
+			g.printf(`addr := operaddr + uint16(cpu.%c)`, xy)
+			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
+			g.printf(`oper = fmt.Sprintf("%%s,%c [%%s] = $%%02X", formatAddr(operaddr), formatAddr(addr), pointee)`, xy)
 		}
 
 		switch name {
@@ -977,14 +978,14 @@ func (g *Generator) disasmAddrModes() {
 			g.printf(`hi := cpu.Bus.Peek8((0xff00 & operaddr) | (0x00ff & (operaddr + 1)))`)
 			g.printf(`dest := uint16(hi)<<8 | uint16(lo)`)
 			g.printf(`pointee := cpu.Bus.Peek8(dest)`)
-			g.printf(`oper = fmt.Sprintf("($%%04X) = $%%02X", operaddr, pointee)`)
+			g.printf(`oper = fmt.Sprintf("(%%s) [%%s] = $%%02X", formatAddr(operaddr), formatAddr(dest), pointee)`)
 		case "abs":
 			g.printf(`if oper0 == 0x20 || oper0 == 0x4C {`)
 			g.printf("        // JSR / JMP")
 			g.printf(`        oper = fmt.Sprintf("$%%04X", operaddr)`)
 			g.printf(`} else {`)
 			g.printf(`        pointee := cpu.Bus.Peek8(operaddr)`)
-			g.printf(`        oper = fmt.Sprintf("$%%04X = $%%02X", operaddr, pointee)`)
+			g.printf(`        oper = fmt.Sprintf("%%s = $%%02X", formatAddr(operaddr), pointee)`)
 			g.printf(`}`)
 		case "abx":
 			abxy('X')
@@ -999,12 +1000,12 @@ func (g *Generator) disasmAddrModes() {
 			g.printf(`addr := uint16(oper1) + uint16(cpu.X)`)
 			g.printf(`addr &= 0xff`)
 			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
-			g.printf(`oper = fmt.Sprintf("$%%02X,X = $%%02X", oper1, pointee)`)
+			g.printf(`oper = fmt.Sprintf("$%%02X,X [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
 		case "zpy":
 			g.printf(`addr := uint16(oper1) + uint16(cpu.Y)`)
 			g.printf(`addr &= 0xff`)
 			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
-			g.printf(`oper = fmt.Sprintf("$%%02X,Y = $%%02X", oper1, pointee)`)
+			g.printf(`oper = fmt.Sprintf("$%%02X,Y [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
 		case "zp":
 			g.printf(`oper = fmt.Sprintf("$%%02X", oper1)`)
 		case "izx":
@@ -1014,7 +1015,7 @@ func (g *Generator) disasmAddrModes() {
 			g.printf(`hi := cpu.Bus.Peek8(uint16(uint8(addr) + 1))`)
 			g.printf(`addr = uint16(hi)<<8 | uint16(lo)`)
 			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
-			g.printf(`oper = fmt.Sprintf("($%%02X,X) = $%%02X", oper1, pointee)`)
+			g.printf(`oper = fmt.Sprintf("($%%02X,X) [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
 		case "izy":
 			g.printf(`// read 16 bytes from the zero page, handling page wrap`)
 			g.printf(`lo := cpu.Bus.Peek8(uint16(oper1))`)
@@ -1022,7 +1023,7 @@ func (g *Generator) disasmAddrModes() {
 			g.printf(`addr := uint16(hi)<<8 | uint16(lo)`)
 			g.printf(`addr += uint16(cpu.Y)`)
 			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
-			g.printf(`oper = fmt.Sprintf("($%%02X),Y = $%%02X", oper1, pointee)`)
+			g.printf(`oper = fmt.Sprintf("($%%02X),Y [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
 		}
 
 		g.printf(``)

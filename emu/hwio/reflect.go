@@ -115,8 +115,40 @@ func InitRegs(data any) error {
 		// Set the register name with its name in the structure
 		valueField.FieldByName("Name").SetString(varField.Name)
 
-		if _, ok := valueField.Interface().(Mem); ok {
+		switch valueField.Interface().(type) {
+		case Manual:
+			if ssize := tag.Get("size"); ssize != "" {
+				if size, err := strconv.ParseInt(ssize, 0, 30); err != nil {
+					return fmt.Errorf("invalid size: %q", ssize)
+				} else if size&(size-1) != 0 {
+					return fmt.Errorf("size not pow2: %q", ssize)
+				} else {
+					valueField.FieldByName("Size").SetInt(size)
+				}
+			}
 
+			// Use the specified rcb or use Read<FIELDNAME>
+			rcb := tag.Get("rcb")
+			if rcb == "" {
+				rcb = "Read" + strings.ToUpper(varField.Name)
+			}
+			if meth := val.Addr().MethodByName(rcb); !meth.IsValid() {
+				return fmt.Errorf("cannot find method: %q", rcb)
+			} else {
+				valueField.FieldByName("ReadCb").Set(meth)
+			}
+
+			wcb := tag.Get("wcb")
+			if wcb == "" {
+				wcb = "Write" + strings.ToUpper(varField.Name)
+			}
+			if meth := val.Addr().MethodByName(wcb); !meth.IsValid() {
+				return fmt.Errorf("cannot find method: %q", wcb)
+			} else {
+				valueField.FieldByName("WriteCb").Set(meth)
+			}
+
+		case Mem:
 			if ssize := tag.Get("size"); ssize != "" {
 				if size, err := strconv.ParseInt(ssize, 0, 30); err != nil {
 					return fmt.Errorf("invalid size: %q", ssize)
@@ -140,15 +172,7 @@ func InitRegs(data any) error {
 				}
 			}
 
-			flags := MemFlag8
-
-			switch tag.Get("rw8") {
-			case "on", "true", "":
-			case "off", "false":
-				flags &^= MemFlag8
-			default:
-				return fmt.Errorf("invalid rw8: %q", tag.Get("rw8"))
-			}
+			var flags MemFlags
 
 			if ro := tag.Get("readonly"); ro != "" {
 				flags |= MemFlag8ReadOnly
@@ -166,67 +190,64 @@ func InitRegs(data any) error {
 			}
 
 			valueField.FieldByName("Flags").SetInt(int64(flags))
-			continue
-		}
 
-		nbits := 0
-		switch valueField.Interface().(type) {
 		case Reg8:
-			nbits = 8
+			const nbits = 8
+
+			if rwmask := tag.Get("rwmask"); rwmask != "" {
+				if mask, err := strconv.ParseUint(rwmask, 0, nbits); err != nil {
+					return fmt.Errorf("invalid rwmask: %q", rwmask)
+				} else {
+					valueField.FieldByName("RoMask").SetUint(^uint64(mask))
+				}
+			}
+
+			if reset := tag.Get("reset"); reset != "" {
+				if rst, err := strconv.ParseUint(reset, 0, nbits); err != nil {
+					return fmt.Errorf("invalid reset: %q", reset)
+				} else {
+					valueField.FieldByName("Value").SetUint(uint64(rst))
+				}
+			}
+
+			if rcb := tag.Get("rcb"); rcb != "" {
+				if rcb == "true" {
+					rcb = "Read" + strings.ToUpper(varField.Name)
+				}
+				if meth := val.Addr().MethodByName(rcb); !meth.IsValid() {
+					return fmt.Errorf("cannot find method: %q", rcb)
+				} else {
+					valueField.FieldByName("ReadCb").Set(meth)
+				}
+			}
+
+			if wcb := tag.Get("wcb"); wcb != "" {
+				if wcb == "true" {
+					wcb = "Write" + strings.ToUpper(varField.Name)
+				}
+				if meth := val.Addr().MethodByName(wcb); !meth.IsValid() {
+					return fmt.Errorf("cannot find method: %q", wcb)
+				} else {
+					valueField.FieldByName("WriteCb").Set(meth)
+				}
+			}
+
+			flags := RegFlags(0)
+			if ro := tag.Get("readonly"); ro != "" {
+				flags |= RegFlagReadOnly
+			}
+			if wo := tag.Get("writeonly"); wo != "" {
+				if flags&RegFlagReadOnly != 0 {
+					return fmt.Errorf("register both readonly and writeonly")
+				}
+				flags |= RegFlagWriteOnly
+			}
+			if flags != 0 {
+				valueField.FieldByName("Flags").SetUint(uint64(flags))
+			}
+
 		default:
 			return fmt.Errorf("unsupported regtype: %T", valueField.Interface())
-		}
-
-		if rwmask := tag.Get("rwmask"); rwmask != "" {
-			if mask, err := strconv.ParseUint(rwmask, 0, nbits); err != nil {
-				return fmt.Errorf("invalid rwmask: %q", rwmask)
-			} else {
-				valueField.FieldByName("RoMask").SetUint(^uint64(mask))
-			}
-		}
-
-		if reset := tag.Get("reset"); reset != "" {
-			if rst, err := strconv.ParseUint(reset, 0, nbits); err != nil {
-				return fmt.Errorf("invalid reset: %q", reset)
-			} else {
-				valueField.FieldByName("Value").SetUint(uint64(rst))
-			}
-		}
-
-		if rcb := tag.Get("rcb"); rcb != "" {
-			if rcb == "true" {
-				rcb = "Read" + strings.ToUpper(varField.Name)
-			}
-			if meth := val.Addr().MethodByName(rcb); !meth.IsValid() {
-				return fmt.Errorf("cannot find method: %q", rcb)
-			} else {
-				valueField.FieldByName("ReadCb").Set(meth)
-			}
-		}
-
-		if wcb := tag.Get("wcb"); wcb != "" {
-			if wcb == "true" {
-				wcb = "Write" + strings.ToUpper(varField.Name)
-			}
-			if meth := val.Addr().MethodByName(wcb); !meth.IsValid() {
-				return fmt.Errorf("cannot find method: %q", wcb)
-			} else {
-				valueField.FieldByName("WriteCb").Set(meth)
-			}
-		}
-
-		flags := RegFlags(0)
-		if ro := tag.Get("readonly"); ro != "" {
-			flags |= RegFlagReadOnly
-		}
-		if wo := tag.Get("writeonly"); wo != "" {
-			if flags&RegFlagReadOnly != 0 {
-				return fmt.Errorf("register both readonly and writeonly")
-			}
-			flags |= RegFlagWriteOnly
-		}
-		if flags != 0 {
-			valueField.FieldByName("Flags").SetUint(uint64(flags))
 		}
 	}
 
@@ -238,7 +259,7 @@ type bankRegInfo struct {
 	offset uint16
 }
 
-// Given a structure, parse the hwid to extract the description of a bank
+// Given a structure, parse the hwio tag to extract the description of a bank
 func bankGetRegs(data any, bankNum int) ([]bankRegInfo, error) {
 	val := reflect.ValueOf(data).Elem()
 

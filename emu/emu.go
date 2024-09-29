@@ -3,16 +3,10 @@ package emu
 import (
 	"fmt"
 	"image"
-	"io"
 
 	"nestor/hw"
 	"nestor/ines"
 )
-
-type Config struct {
-	Input    hw.InputConfig `toml:"input"`
-	TraceOut io.WriteCloser `toml:"-"`
-}
 
 type Emulator struct {
 	NES *NES
@@ -46,7 +40,6 @@ func PowerUp(rom *ines.Rom, cfg Config) (*Emulator, error) {
 
 	// CPU trace setup.
 	if cfg.TraceOut != nil {
-		defer cfg.TraceOut.Close()
 		nes.CPU.SetTraceOutput(cfg.TraceOut)
 	}
 

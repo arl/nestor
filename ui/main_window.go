@@ -45,7 +45,7 @@ func newMainWindow() (*mainWindow, error) {
 
 	mw := &mainWindow{
 		Window: build[gtk.Window](builder, "window1"),
-		cfg:    LoadConfigOrDefault(),
+		cfg:    emu.LoadConfigOrDefault(),
 	}
 
 	mw.Connect("destroy", func() { mw.Close(nil) })
@@ -61,7 +61,7 @@ func newMainWindow() (*mainWindow, error) {
 	})
 	build[gtk.MenuItem](builder, "menu_controls").Connect("activate", func(m *gtk.MenuItem) {
 		openInputConfigDialog(&mw.cfg.Input)
-		if err := SaveConfig(mw.cfg); err != nil {
+		if err := emu.SaveConfig(mw.cfg); err != nil {
 			modGUI.Warnf("failed to save config: %s", err)
 		}
 	})

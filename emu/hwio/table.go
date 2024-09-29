@@ -27,7 +27,6 @@ func Read16(b BankIO8, addr uint16) uint16 {
 
 type Table struct {
 	Name string
-	ws   int
 
 	table8 radixTree
 }
@@ -37,10 +36,6 @@ func NewTable(name string) *Table {
 	t.Name = name
 	t.Reset()
 	return t
-}
-
-func (t *Table) SetWaitStates(ws int) {
-	t.ws = ws
 }
 
 func (t *Table) Reset() {
@@ -72,6 +67,8 @@ func (t *Table) MapBank(addr uint16, bank any, bankNum int) {
 			t.MapMem(addr+reg.offset, r)
 		case *Reg8:
 			t.MapReg8(addr+reg.offset, r)
+		case *Manual:
+			t.MapManual(addr+reg.offset, r)
 		default:
 			panic(fmt.Errorf("invalid reg type: %T", r))
 		}
@@ -107,6 +104,10 @@ func (t *Table) MapReg8(addr uint16, io *Reg8) {
 	t.mapBus8(addr, 1, io, false)
 }
 
+func (t *Table) MapManual(addr uint16, io *Manual) {
+	t.mapBus8(addr, uint16(io.Size), io, false)
+}
+
 func (t *Table) MapMem(addr uint16, mem *Mem) {
 	log.ModHwIo.DebugZ("mapping mem").
 		Hex16("addr", addr).
@@ -119,10 +120,7 @@ func (t *Table) MapMem(addr uint16, mem *Mem) {
 		panic("memory buffer size is not pow2")
 	}
 
-	b8 := mem.BankIO8()
-	if b8 != nil {
-		t.mapBus8(addr, uint16(mem.VSize), b8, false)
-	}
+	t.mapBus8(addr, uint16(mem.VSize), mem.BankIO8(), false)
 }
 
 func (t *Table) MapMemorySlice(addr, end uint16, mem []uint8, readonly bool) {
@@ -133,7 +131,7 @@ func (t *Table) MapMemorySlice(addr, end uint16, mem []uint8, readonly bool) {
 		Bool("ro", readonly).
 		End()
 
-	flags := MemFlag8
+	var flags MemFlags
 	if readonly {
 		flags |= MemFlag8ReadOnly
 	}
@@ -157,7 +155,7 @@ func (t *Table) Read8(addr uint16) uint8 {
 			End()
 		return 0
 	}
-	if mem, ok := io.(*memUnalignedLE); ok {
+	if mem, ok := io.(*mem); ok {
 		return mem.Read8(addr)
 	}
 	return io.(BankIO8).Read8(addr)
@@ -172,7 +170,7 @@ func (t *Table) Peek8(addr uint16) uint8 {
 		return 0
 	}
 	switch io := io.(type) {
-	case *memUnalignedLE:
+	case *mem:
 		return io.Peek8(addr)
 	case *Reg8:
 		return io.Value
@@ -192,7 +190,7 @@ func (t *Table) Write8(addr uint16, val uint8) {
 			End()
 		return
 	}
-	if mem, ok := io.(*memUnalignedLE); ok {
+	if mem, ok := io.(*mem); ok {
 		// NOTE: we use the CheckRO format so that the success codepath
 		// (that is, when the memory is read-write) is fully inlined and
 		// requires no function call.
@@ -211,12 +209,8 @@ func (t *Table) Write8(addr uint16, val uint8) {
 
 func (t *Table) FetchPointer(addr uint16) []uint8 {
 	io := t.table8.Search(addr)
-	if mem, ok := io.(*memUnalignedLE); ok {
+	if mem, ok := io.(*mem); ok {
 		return mem.FetchPointer(addr)
 	}
 	return nil
-}
-
-func (t *Table) WaitStates() int {
-	return t.ws
 }

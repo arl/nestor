@@ -68,7 +68,7 @@ func _newWindow(title string, width, height int) (*window, error) {
 		return nil, fmt.Errorf("vertex shader compliation: %s", err)
 	}
 
-	frag, err := compileShader(crtFragmentShaderSource, gl.FRAGMENT_SHADER)
+	frag, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
 	if err != nil {
 		return nil, fmt.Errorf("fragment shader compilation: %s", err)
 	}
@@ -165,6 +165,7 @@ void main() {
 }
 ` + "\x00"
 
+//lint:ignore U1000 keep that for now
 const crtFragmentShaderSource = `
 #version 330 core
 out vec4 FragColor;

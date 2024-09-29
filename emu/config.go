@@ -1,37 +1,47 @@
-package ui
+package emu
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
 
-	"nestor/emu"
+	"nestor/emu/log"
+	"nestor/hw"
 
 	"github.com/BurntSushi/toml"
 	"github.com/kirsle/configdir"
 )
 
+type Config struct {
+	Input    hw.InputConfig `toml:"input"`
+	TraceOut io.WriteCloser `toml:"-"`
+}
+
 var ConfigDir string = sync.OnceValue(func() string {
 	dir := configdir.LocalConfig("nestor")
 	if err := configdir.MakePath(dir); err != nil {
-		modGUI.Fatalf("failed to create directory %s: %v", dir, err)
+		log.ModEmu.Fatalf("failed to create directory %s: %v", dir, err)
 	}
 	return dir
 })()
 
 const cfgFilename = "config.toml"
 
-func LoadConfigOrDefault() emu.Config {
-	var cfg emu.Config
+// LoadConfigOrDefault loads the configuration from the nestor config directory,
+// or provide a default one.
+func LoadConfigOrDefault() Config {
+	var cfg Config
 	_, err := toml.DecodeFile(filepath.Join(ConfigDir, cfgFilename), &cfg)
 	if err != nil {
 		// TODO: specify default config
-		return emu.Config{}
+		return Config{}
 	}
 	return cfg
 }
 
-func SaveConfig(cfg emu.Config) error {
+// SaveConfig into nestor config directory.
+func SaveConfig(cfg Config) error {
 	buf, err := toml.Marshal(cfg)
 	if err != nil {
 		return err
