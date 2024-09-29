@@ -11,6 +11,8 @@ import (
 const (
 	NumScanlines = 262 // Number of scanlines per frame.
 	NumCycles    = 341 // Number of PPU cycles per scanline.
+
+	ntscDivider = 4
 )
 
 // Throwaway frame buffer for the first PPU cycles,
@@ -21,8 +23,9 @@ type PPU struct {
 	Bus *hwio.Table
 	CPU *CPU
 
-	Cycle    int // Current cycle/pixel in scanline
-	Scanline int // Current scanline being drawn
+	masterClock uint64
+	Cycle       int // Current cycle/pixel in scanline
+	Scanline    int // Current scanline being drawn
 
 	preventVblank bool
 
@@ -153,6 +156,16 @@ func (p *PPU) Reset() {
 
 	for i := range p.oamMem {
 		p.oamMem[i] = 0x00
+	}
+}
+
+func (p *PPU) Run(until uint64) {
+	for {
+		p.Tick()
+		p.masterClock += ntscDivider
+		if p.masterClock+ntscDivider > until {
+			break
+		}
 	}
 }
 

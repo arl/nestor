@@ -17,9 +17,10 @@ const (
 )
 
 type CPU struct {
-	Bus   *hwio.Table
-	Ram   [0x800]byte // Internal RAM
-	Clock int64       // cycles
+	Bus         *hwio.Table
+	Ram         [0x800]byte // Internal RAM
+	Cycles      int64       // CPU cycles
+	masterClock int64
 
 	selfjumps uint // infinite loop detection: count successive jumps to same PC.
 	doHalt    bool
@@ -106,7 +107,8 @@ func (c *CPU) Reset() {
 	c.SP = 0xFD
 	c.P.setIntDisable(true)
 	c.runIRQ = false
-	c.Clock = -1
+	c.Cycles = -1
+	c.nmiFlag = false
 
 	c.ppuDMA.reset()
 
@@ -114,10 +116,14 @@ func (c *CPU) Reset() {
 	c.PC = hwio.Read16(c.Bus, ResetVector)
 	c.dbg.Reset()
 
+	const ntscCPUDivider = 12
+	c.masterClock = ntscCPUDivider
+
 	// The CPU takes 8 cycles before it starts executing the ROM's code
 	// after a reset/power up
 	for i := 0; i < 8; i++ {
-		c.tick()
+		c.cycleBegin(true)
+		c.cycleEnd(true)
 	}
 }
 
@@ -125,8 +131,8 @@ func (c *CPU) setNMIflag()   { c.nmiFlag = true }
 func (c *CPU) clearNMIflag() { c.nmiFlag = false }
 
 func (c *CPU) Run(ncycles int64) bool {
-	until := c.Clock + ncycles
-	for c.Clock < until {
+	until := c.Cycles + ncycles
+	for c.Cycles < until {
 		opcode := c.Read8(c.PC)
 		if c.tracer != nil {
 			c.tracer.write(cpuState{
@@ -135,7 +141,7 @@ func (c *CPU) Run(ncycles int64) bool {
 				Y:        c.Y,
 				P:        c.P,
 				SP:       c.SP,
-				Clock:    c.Clock,
+				Clock:    c.Cycles,
 				PPUCycle: c.ppu.Cycle,
 				Scanline: c.ppu.Scanline,
 				PC:       c.PC,
@@ -162,30 +168,51 @@ func (c *CPU) Run(ncycles int64) bool {
 	return true
 }
 
-func (c *CPU) tick() {
+const (
+	NTSCstartClockCount = 6
+	NTSCendClockCount   = 6
+
+	ppuOffset = 1
+)
+
+func (c *CPU) cycleBegin(forRead bool) {
+	if forRead {
+		c.masterClock += NTSCstartClockCount - 1
+	} else {
+		c.masterClock += NTSCstartClockCount + 1
+	}
+	c.Cycles++
+
 	if c.ppuAbsent {
-		c.Clock++
 		return
 	}
 
-	c.ppu.Tick()
-	c.ppu.Tick()
-	c.ppu.Tick()
-	c.Clock++
+	c.ppu.Run(uint64(c.masterClock - ppuOffset))
+}
+
+func (c *CPU) cycleEnd(forRead bool) {
+	if forRead {
+		c.masterClock += NTSCendClockCount + 1
+	} else {
+		c.masterClock += NTSCendClockCount - 1
+	}
+	c.ppu.Run(uint64(c.masterClock - ppuOffset))
+
+	c.handleInterrupts()
 }
 
 func (c *CPU) Read8(addr uint16) uint8 {
-	c.tick()
 	c.dmaTransfer()
+	c.cycleBegin(true)
 	val := c.Bus.Read8(addr)
-	c.handleInterrupts()
+	c.cycleEnd(true)
 	return val
 }
 
 func (c *CPU) Write8(addr uint16, val uint8) {
-	c.tick()
+	c.cycleBegin(false)
 	c.Bus.Write8(addr, val)
-	c.handleInterrupts()
+	c.cycleEnd(false)
 }
 
 func (c *CPU) Read16(addr uint16) uint16 {
@@ -229,7 +256,7 @@ func (c *CPU) pull16() uint16 {
 /* DMA */
 
 func (c *CPU) dmaTransfer() {
-	c.ppuDMA.process(c.Clock)
+	c.ppuDMA.process()
 }
 
 /* interrupt handling */
@@ -256,7 +283,8 @@ func (c *CPU) handleInterrupts() {
 }
 
 func BRK(cpu *CPU) {
-	cpu.tick()
+	// dummy read.
+	_ = cpu.Read8(cpu.PC)
 
 	cpu.push16(cpu.PC + 1)
 
@@ -280,8 +308,8 @@ func BRK(cpu *CPU) {
 }
 
 func (c *CPU) IRQ() {
-	c.tick()
-	c.tick()
+	c.Read8(c.PC) // dummy reads
+	c.Read8(c.PC)
 
 	prevpc := c.PC
 	c.push16(c.PC)
@@ -291,13 +319,15 @@ func (c *CPU) IRQ() {
 		p := c.P
 		p.setBrk(true)
 		c.push8(uint8(p))
+
 		c.P.setIntDisable(true)
 		c.PC = c.Read16(NMIVector)
 		c.dbg.Interrupt(prevpc, c.PC, true)
 	} else {
 		p := c.P
-		p.setBrk(true)
+		p.setUnused(true)
 		c.push8(uint8(p))
+
 		c.P.setIntDisable(true)
 		c.PC = c.Read16(IRQVector)
 		c.dbg.Interrupt(prevpc, c.PC, false)

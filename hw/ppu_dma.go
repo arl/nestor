@@ -9,7 +9,7 @@ import (
 type ppuDMA struct {
 	// oam    []byte
 	cpuBus hwio.BankIO8
-	cpu    ticker
+	cpu    *CPU
 
 	page       uint8
 	inProgress bool
@@ -39,11 +39,7 @@ func (dma *ppuDMA) WriteOAMDMA(_, val uint8) {
 	dma.inProgress = true
 }
 
-type ticker interface {
-	tick()
-}
-
-func (dma *ppuDMA) process(cpuTicks int64) {
+func (dma *ppuDMA) process() {
 	if !dma.inProgress {
 		return
 	}
@@ -53,13 +49,12 @@ func (dma *ppuDMA) process(cpuTicks int64) {
 	val := uint8(0)
 
 	cpuTick := func() {
-		dma.cpu.tick()
-		cpuTicks++
+		dma.cpu.cycleBegin(true)
 	}
 
 	for dma.inProgress {
 		cpuTick()
-		if cpuTicks&0x01 == 0 {
+		if dma.cpu.Cycles == 0 {
 			// read cycle.
 			addr := uint16(dma.page)<<8 | uint16(spriteAddr)
 			val = dma.cpuBus.Read8(addr)
