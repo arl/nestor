@@ -13,7 +13,7 @@ type cpuState struct {
 	PC      uint16
 
 	Clock    int64
-	PPUCycle int
+	PPUCycle uint32
 	Scanline int
 }
 

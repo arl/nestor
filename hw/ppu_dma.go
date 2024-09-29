@@ -48,26 +48,31 @@ func (dma *ppuDMA) process() {
 	spriteAddr := uint8(0)
 	val := uint8(0)
 
-	cpuTick := func() {
-		dma.cpu.cycleBegin(true)
-	}
+	dma.cpu.cycleBegin(true)
+	dma.cpu.cycleEnd(true)
 
 	for dma.inProgress {
-		cpuTick()
-		if dma.cpu.Cycles == 0 {
+		if (dma.cpu.Cycles & 0x01) == 0 {
 			// read cycle.
+			dma.cpu.cycleBegin(true)
 			addr := uint16(dma.page)<<8 | uint16(spriteAddr)
 			val = dma.cpuBus.Read8(addr)
+			dma.cpu.cycleEnd(true)
 			spriteAddr++
 			counter++
 		} else {
 			// write cycle.
 			if counter&0x01 != 0 {
+				dma.cpu.cycleBegin(true)
 				dma.cpuBus.Write8(0x2004, val)
+				dma.cpu.cycleEnd(true)
 				counter++
 				if counter == 0x200 {
 					dma.inProgress = false
 				}
+			} else {
+				dma.cpu.cycleBegin(true)
+				dma.cpu.cycleEnd(true)
 			}
 		}
 	}

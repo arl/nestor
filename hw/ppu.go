@@ -24,8 +24,8 @@ type PPU struct {
 	CPU *CPU
 
 	masterClock uint64
-	Cycle       int // Current cycle/pixel in scanline
-	Scanline    int // Current scanline being drawn
+	Cycle       uint32 // Current cycle/pixel in scanline
+	Scanline    int    // Current scanline being drawn
 
 	preventVblank bool
 
@@ -140,8 +140,8 @@ func (p *PPU) SetMirroring(m Mirroring) {
 }
 
 func (p *PPU) Reset() {
-	p.Scanline = 0
-	p.Cycle = 0
+	p.Scanline = -1
+	p.Cycle = 339
 	p.writeLatch = false
 	p.vramAddr = 0
 	p.PPUCTRL.Value = 0
@@ -170,6 +170,7 @@ func (p *PPU) Run(until uint64) {
 }
 
 func (p *PPU) Tick() {
+
 	switch {
 	case p.Scanline < 240:
 		p.doScanline(renderMode)
@@ -434,10 +435,10 @@ func (p *PPU) renderPixel() {
 	var palette uint8
 	var objPalette uint8
 	objPriority := false
-	var x = p.Cycle - 2
+	var x = int(p.Cycle) - 2
 
 	mask := ppumask(p.PPUMASK.Value)
-	if p.Scanline < 240 && p.Cycle >= 0 && p.Cycle < 256 {
+	if p.Scanline < 240 /*&& p.Cycle >= 0*/ && p.Cycle < 256 {
 
 		// Background
 		if mask.bg() && !(mask.bgLeft() && x < 8) {
