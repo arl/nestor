@@ -124,17 +124,12 @@ func TestInterruptsV2(t *testing.T) {
 	}
 }
 
-func TestOAMRead(t *testing.T) {
-	romPath := filepath.Join(tests.RomsPath(t), "oam_read", "oam_read.nes")
-
-	runTestRom(romPath)(t)
-}
-
-func TestOAMStress(t *testing.T) {
-	t.Skip("failing for now")
-	romPath := filepath.Join(tests.RomsPath(t), "oam_stress", "oam_stress.nes")
-
-	runTestRom(romPath)(t)
+func TestOAM(t *testing.T) {
+	t.Run("read", runTestRom(filepath.Join(tests.RomsPath(t), "oam_read", "oam_read.nes")))
+	t.Run("stress", func(t *testing.T) {
+		t.Skip("failing for now")
+		runTestRom(filepath.Join(tests.RomsPath(t), "oam_stress", "oam_stress.nes"))
+	})
 }
 
 func runTestRom(path string) func(t *testing.T) {
