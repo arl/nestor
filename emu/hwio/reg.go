@@ -19,7 +19,7 @@ type Reg8 struct {
 	RoMask uint8
 
 	Flags   RegFlags
-	ReadCb  func(val uint8) uint8
+	ReadCb  func(val uint8, peek bool) uint8
 	WriteCb func(old uint8, val uint8)
 }
 
@@ -54,7 +54,11 @@ func (reg *Reg8) Write8(addr uint16, val uint8) {
 	reg.write(val, 0)
 }
 
-func (reg *Reg8) Read8(addr uint16) uint8 {
+func (reg *Reg8) Read8(addr uint16, peek bool) uint8 {
+	if peek && reg.ReadCb != nil {
+		return reg.ReadCb(reg.Value, true)
+	}
+
 	if reg.Flags&RegFlagWriteOnly != 0 {
 		log.ModHwIo.ErrorZ("invalid Read8 from writeonly reg").
 			String("name", reg.Name).
@@ -63,11 +67,7 @@ func (reg *Reg8) Read8(addr uint16) uint8 {
 		return 0
 	}
 	if reg.ReadCb != nil {
-		return reg.ReadCb(reg.Value)
+		return reg.ReadCb(reg.Value, false)
 	}
-	return reg.Value
-}
-
-func (reg *Reg8) Peek8(addr uint16) uint8 {
 	return reg.Value
 }

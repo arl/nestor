@@ -204,7 +204,7 @@ func (c *CPU) cycleEnd(forRead bool) {
 func (c *CPU) Read8(addr uint16) uint8 {
 	c.dmaTransfer()
 	c.cycleBegin(true)
-	val := c.Bus.Read8(addr)
+	val := c.Bus.Read8(addr, false)
 	c.cycleEnd(true)
 	return val
 }

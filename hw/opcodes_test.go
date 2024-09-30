@@ -173,7 +173,7 @@ func testOpcodes(opfile string) func(t *testing.T) {
 				for _, row := range tt.Final.RAM {
 					addr := row[0]
 					val := uint8(row[1])
-					got := cpu.Bus.Read8(uint16(addr))
+					got := cpu.Bus.Read8(uint16(addr), false)
 					if got != val {
 						t.Errorf("ram[0x%x] = 0x%x, want 0x%x", addr, got, val)
 					}

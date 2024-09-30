@@ -7,8 +7,7 @@ import (
 
 // ppuDMA handles the DMA transfer of OAM (sprites attributes) to the PPU.
 type ppuDMA struct {
-	// oam    []byte
-	cpuBus hwio.BankIO8
+	cpuBus *hwio.Table
 	cpu    *CPU
 
 	page       uint8
@@ -21,7 +20,7 @@ type ppuDMA struct {
 	dummy bool
 }
 
-func (dma *ppuDMA) InitBus(cpubus hwio.BankIO8) {
+func (dma *ppuDMA) InitBus(cpubus *hwio.Table) {
 	hwio.MustInitRegs(dma)
 	dma.cpuBus = cpubus
 	dma.reset()
@@ -48,31 +47,32 @@ func (dma *ppuDMA) process() {
 	spriteAddr := uint8(0)
 	val := uint8(0)
 
-	dma.cpu.cycleBegin(true)
-	dma.cpu.cycleEnd(true)
+	cpu := dma.cpu
+	cpu.cycleBegin(true)
+	cpu.cycleEnd(true)
 
 	for dma.inProgress {
-		if (dma.cpu.Cycles & 0x01) == 0 {
+		if (cpu.Cycles & 0x01) == 0 {
 			// read cycle.
-			dma.cpu.cycleBegin(true)
+			cpu.cycleBegin(true)
 			addr := uint16(dma.page)<<8 | uint16(spriteAddr)
-			val = dma.cpuBus.Read8(addr)
-			dma.cpu.cycleEnd(true)
+			val = dma.cpuBus.Read8(addr, false)
+			cpu.cycleEnd(true)
 			spriteAddr++
 			counter++
 		} else {
 			// write cycle.
 			if counter&0x01 != 0 {
-				dma.cpu.cycleBegin(true)
+				cpu.cycleBegin(true)
 				dma.cpuBus.Write8(0x2004, val)
-				dma.cpu.cycleEnd(true)
+				cpu.cycleEnd(true)
 				counter++
 				if counter == 0x200 {
 					dma.inProgress = false
 				}
 			} else {
-				dma.cpu.cycleBegin(true)
-				dma.cpu.cycleEnd(true)
+				cpu.cycleBegin(true)
+				cpu.cycleEnd(true)
 			}
 		}
 	}

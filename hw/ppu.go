@@ -601,7 +601,7 @@ func (p *PPU) WritePPUMASK(old, val uint8) {
 }
 
 // PPUSTATUS: $2002
-func (p *PPU) ReadPPUSTATUS(val uint8) uint8 {
+func (p *PPU) ReadPPUSTATUS(val uint8, peek bool) uint8 {
 	p.writeLatch = false
 
 	cur := ppustatus(val)
@@ -610,6 +610,9 @@ func (p *PPU) ReadPPUSTATUS(val uint8) uint8 {
 	ret.setSpriteOverflow(cur.spriteOverflow())
 	ret.setSpriteHit(cur.spriteHit())
 	ret.setVblank(cur.vblank())
+	if peek {
+		return uint8(ret)
+	}
 
 	cur.setVblank(false)
 	p.CPU.clearNMIflag()
@@ -656,10 +659,13 @@ func (p *PPU) WritePPUADDR(old, val uint8) {
 }
 
 // PPUDATA: $2007
-func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
+func (p *PPU) ReadPPUDATA(_ uint8, peek bool) uint8 {
 	// Reading VRAM is too slow so the actual data
 	// will be returned at the next read.
 	val := p.ppuDataRbuf
+	if peek {
+		return val
+	}
 	p.ppuDataRbuf = p.Read8(p.vramAddr.addr())
 
 	if p.busAddr&0x3FFF >= 0x3F00 {
@@ -668,7 +674,8 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 		// vram address). (passes Blargg's vram_access test)
 		val = (p.readPalette(p.busAddr) & 0x3F)
 		const mask uint16 = 1 << 12
-		p.ppuDataRbuf = p.Bus.Read8(p.busAddr & ^mask)
+		// TODO (peek)
+		p.ppuDataRbuf = p.Bus.Read8(p.busAddr & ^mask, false)
 	}
 
 	p.vramIncr()
@@ -702,7 +709,7 @@ func (p *PPU) vramIncr() {
 
 func (p *PPU) Read8(addr uint16) uint8 {
 	p.busAddr = addr
-	return p.Bus.Read8(addr)
+	return p.Bus.Read8(addr, false)
 }
 
 func (p *PPU) Write8(addr uint16, val uint8) {
@@ -774,9 +781,11 @@ func (p *PPU) WriteOAMADDR(_, val uint8) {
 }
 
 // OAMDATA: $2004
-func (p *PPU) ReadOAMDATA(_ uint8) uint8 {
+func (p *PPU) ReadOAMDATA(_ uint8, peek bool) uint8 {
 	val := p.oamMem[p.oamAddr]
-	log.ModPPU.DebugZ("Read from OAMDATA").Hex8("val", val).End()
+	if !peek {
+		log.ModPPU.DebugZ("Read from OAMDATA").Hex8("val", val).End()
+	}
 	return val
 }
 
@@ -864,7 +873,7 @@ func (p *PPU) loadSprites() {
 		}
 		addr += uint16(sprY + (sprY & 8)) // Select the second tile if on 8x16.
 
-		p.oam[i].dataL = p.Bus.Read8(addr)
-		p.oam[i].dataH = p.Bus.Read8(addr + 8)
+		p.oam[i].dataL = p.Bus.Read8(addr, false)
+		p.oam[i].dataH = p.Bus.Read8(addr+8, false)
 	}
 }

@@ -231,7 +231,7 @@ func TestNametableMirroring(t *testing.T) {
 	}
 	var nts []byte
 	for _, a := range addrs {
-		nts = append(nts, nes.PPU.Bus.Read8(a))
+		nts = append(nts, nes.PPU.Bus.Read8(a, false))
 	}
 
 	if string(nts) != "AABBAABB" {

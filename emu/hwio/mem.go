@@ -37,13 +37,10 @@ func (m *mem) FetchPointer(addr uint16) []uint8 {
 	return buf[:len:len]
 }
 
-func (m *mem) Read8(addr uint16) uint8 {
+func (m *mem) Read8(addr uint16, peek bool) uint8 {
+	_ = peek
 	off := uintptr(addr & m.mask)
 	return *(*uint8)(unsafe.Pointer(uintptr(m.ptr) + off))
-}
-
-func (m *mem) Peek8(addr uint16) uint8 {
-	return m.Read8(addr)
 }
 
 func (m *mem) Write8CheckRO(addr uint16, val uint8) bool {
@@ -115,12 +112,8 @@ type Manual struct {
 	WriteCb func(addr uint16, val uint8)
 }
 
-func (m *Manual) Read8(addr uint16) uint8 {
-	return m.ReadCb(addr, false)
-}
-
-func (m *Manual) Peek8(addr uint16) uint8 {
-	return m.ReadCb(addr, true)
+func (m *Manual) Read8(addr uint16, peek bool) uint8 {
+	return m.ReadCb(addr, peek)
 }
 
 func (m *Manual) Write8(addr uint16, val uint8) {
