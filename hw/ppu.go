@@ -602,17 +602,25 @@ func (p *PPU) WritePPUMASK(old, val uint8) {
 
 // PPUSTATUS: $2002
 func (p *PPU) ReadPPUSTATUS(val uint8, peek bool) uint8 {
-	p.writeLatch = false
-
 	cur := ppustatus(val)
+	if peek {
+		ret := ppustatus(0)
+		ret.setSpriteOverflow(cur.spriteOverflow())
+		ret.setSpriteHit(cur.spriteHit())
+		ret.setVblank(cur.vblank())
 
+		if p.Scanline == 241 && p.Cycle < 3 {
+			ret.setVblank(false)
+		}
+
+		return uint8(ret)
+	}
+
+	p.writeLatch = false
 	ret := ppustatus(0)
 	ret.setSpriteOverflow(cur.spriteOverflow())
 	ret.setSpriteHit(cur.spriteHit())
 	ret.setVblank(cur.vblank())
-	if peek {
-		return uint8(ret)
-	}
 
 	cur.setVblank(false)
 	p.CPU.clearNMIflag()
