@@ -91,6 +91,20 @@ func TestInstructionsV5(t *testing.T) {
 	}
 }
 
+func TestCPUDummyWrites(t *testing.T) {
+	romsDir := filepath.Join(tests.RomsPath(t))
+	dir := filepath.Join(romsDir, "cpu_dummy_writes")
+
+	files := []string{
+		// "cpu_dummy_writes_ppumem.nes",
+		"cpu_dummy_writes_oam.nes",
+	}
+
+	for _, path := range files {
+		t.Run(path, runTestRom(filepath.Join(dir, path)))
+	}
+}
+
 func TestInterruptsV2(t *testing.T) {
 	t.Skip("all failing for now")
 
@@ -137,6 +151,10 @@ func runTestRom(path string) func(t *testing.T) {
 	// data at $6000+ is valid, as opposed to some other NES program, $DE $B0
 	// $G1 is written to $6001-$6003.
 	return func(t *testing.T) {
+		if !testing.Verbose() {
+			log.SetOutput(io.Discard)
+		}
+
 		rom, err := ines.ReadRom(path)
 		if err != nil {
 			t.Fatal(err)
