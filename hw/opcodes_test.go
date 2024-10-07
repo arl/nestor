@@ -3,13 +3,15 @@ package hw
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 
 	"nestor/emu/hwio"
+	"nestor/emu/log"
 	"nestor/tests"
 )
 
@@ -22,8 +24,8 @@ func TestAllOpcodesAreImplemented(t *testing.T) {
 }
 
 func TestOpcodes(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping long test")
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
 	}
 
 	testsDir := tests.TomHarteProcTestsPath(t)
@@ -41,20 +43,41 @@ func TestOpcodes(t *testing.T) {
 	}
 }
 
-var slicePool = sync.Pool{
-	New: func() any {
-		s := make([]uint8, 0x10000)
-		return &s
-	},
+type testMem struct {
+	MEM      hwio.Manual      `hwio:"offset=0x0000,size=0x10000"`
+	m        map[uint16]uint8 // actual mapped mem
+	accesses []memAccess      // stores all accesses
 }
 
-func newSlice() *[]uint8 {
-	return slicePool.Get().(*[]uint8)
+type memAccess struct {
+	addr uint16
+	val  uint8
+	typ  string // "r" or "w"
 }
 
-func putSlice(s *[]uint8) {
-	clear(*s)
-	slicePool.Put(s)
+func (tm *testMem) prefill(addr uint16, val uint8) {
+	if tm.m == nil {
+		tm.m = make(map[uint16]uint8)
+	}
+	tm.m[addr] = val
+}
+
+func (tm *testMem) clear() {
+	tm.accesses = nil
+	tm.m = nil
+}
+
+func (tm *testMem) ReadMEM(addr uint16, _ bool) uint8 {
+	tm.accesses = append(tm.accesses, memAccess{addr, 0, "r"})
+	if val, ok := tm.m[addr]; ok {
+		return val
+	}
+	return 0
+}
+
+func (tm *testMem) WriteMEM(addr uint16, val uint8) {
+	tm.accesses = append(tm.accesses, memAccess{addr, val, "w"})
+	tm.m[addr] = val
 }
 
 // testOpcodes runs the opcodes tests in the given json file path (should be of
@@ -91,13 +114,20 @@ func testOpcodes(opfile string) func(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		if testing.Short() {
+			t.Log("with --short, just test a single case per opcode, random")
+			idx := rand.IntN(len(tests))
+			tests = []TestCase{tests[idx]}
+		}
+
+		bus := hwio.NewTable("cputest")
+
+		tmem := testMem{}
+		hwio.MustInitRegs(&tmem)
+
 		for _, tt := range tests {
 			t.Run(tt.Name, func(t *testing.T) {
-				slice := newSlice()
-				defer putSlice(slice)
-
-				cpu := NewCPU(NewPPU())
-				cpu.ppuAbsent = true
+				cpu := NewCPU(noPPU)
 				cpu.A = uint8(tt.Initial.A)
 				cpu.X = uint8(tt.Initial.X)
 				cpu.Y = uint8(tt.Initial.Y)
@@ -106,14 +136,12 @@ func testOpcodes(opfile string) func(t *testing.T) {
 				cpu.PC = uint16(tt.Initial.PC)
 
 				// Preload RAM with test values.
-				cpu.Bus = hwio.NewTable("cputest")
-				cpu.Bus.MapMem(0x0000, &hwio.Mem{
-					Data:  *slice,
-					VSize: int(0x10000),
-				})
+				cpu.Bus = bus
+				cpu.Bus.MapBank(0, &tmem, 0)
 
+				tmem.clear()
 				for _, row := range tt.Initial.RAM {
-					cpu.Bus.Write8(uint16(row[0]), uint8(row[1]))
+					tmem.prefill(uint16(row[0]), uint8(row[1]))
 				}
 
 				if testing.Verbose() {
@@ -134,15 +162,17 @@ func testOpcodes(opfile string) func(t *testing.T) {
 				)
 
 				// check cycles
-				if len(tt.Cycles) != int(cpu.Clock) {
-					t.Errorf("cycles count mismatch: got %d want %d\ndebug:\n%s", cpu.Clock, len(tt.Cycles), strings.Join(prettyCycles(tt.Cycles), "\n"))
+				if len(tt.Cycles) != int(cpu.Cycles) {
+					cyclesStr := strings.Join(prettyCycles(tt.Cycles), "\n")
+					t.Errorf("cycles count mismatch: got %d want %d\ndebug:\n%s",
+						cpu.Cycles, len(tt.Cycles), cyclesStr)
 				}
 
 				// check ram
 				for _, row := range tt.Final.RAM {
 					addr := row[0]
 					val := uint8(row[1])
-					got := cpu.Bus.Read8(uint16(addr))
+					got := cpu.Bus.Read8(uint16(addr), false)
 					if got != val {
 						t.Errorf("ram[0x%x] = 0x%x, want 0x%x", addr, got, val)
 					}
@@ -167,7 +197,7 @@ func TestCPx(t *testing.T) {
 		// LDX #$40
 		// CPX #$41
 		cpu := loadCPUWith(t, `0600: a2 40 e0 41`)
-		cpu.Clock = 0
+		cpu.Cycles = 0
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		runAndCheckState(t, cpu, 4,
@@ -181,7 +211,7 @@ func TestCPx(t *testing.T) {
 		// LDX #$40
 		// CPX #$40
 		cpu := loadCPUWith(t, `0600: a2 40 e0 40`)
-		cpu.Clock = 0
+		cpu.Cycles = 0
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		runAndCheckState(t, cpu, 4,
@@ -195,7 +225,7 @@ func TestCPx(t *testing.T) {
 		// LDX #$40
 		// CPX #$39
 		cpu := loadCPUWith(t, `0600: a2 40 e0 39`)
-		cpu.Clock = 0
+		cpu.Cycles = 0
 		cpu.PC = 0x0600
 		cpu.P = 0b00110000
 		runAndCheckState(t, cpu, 4,
@@ -210,7 +240,7 @@ func TestCPx(t *testing.T) {
 func TestLDA_STA(t *testing.T) {
 	dump := `0600: a9 01 8d 00 02 a9 05 8d 01 02 a9 08 8d 02 02`
 	cpu := loadCPUWith(t, dump)
-	cpu.Clock = 0
+	cpu.Cycles = 0
 	cpu.PC = 0x0600
 	runAndCheckState(t, cpu, 6*3,
 		"A", 0x08,
@@ -225,7 +255,7 @@ func TestEOR(t *testing.T) {
 0000: 06
 0100: 45 00`
 		cpu := loadCPUWith(t, dump)
-		cpu.Clock = 0
+		cpu.Cycles = 0
 		cpu.PC = 0x0100
 		cpu.A = 0x80
 		runAndCheckState(t, cpu, 3,
@@ -270,7 +300,7 @@ func TestStack(t *testing.T) {
 FFFC: 00 06
 `
 	cpu := loadCPUWith(t, dump)
-	cpu.Clock = 0
+	cpu.Cycles = 0
 	cpu.P = 0x30
 	cpu.SP = 0xFF
 	runAndCheckState(t, cpu, 562,
@@ -294,7 +324,7 @@ func TestStackSmall(t *testing.T) {
 # instructions
 0600: a9 aa 48 a9 11 68`
 	cpu := loadCPUWith(t, dump)
-	cpu.Clock = 0
+	cpu.Cycles = 0
 	cpu.PC = 0x0600
 	cpu.P = 0x30
 	cpu.SP = 0xFF

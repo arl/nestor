@@ -218,6 +218,14 @@ func (ip *InputPorts) regval(port uint8) uint8 {
 	return 0x40 | ret
 }
 
+// like regval but without side effects.
+func (ip *InputPorts) regvalPeek(port uint8) uint8 {
+	ret := ip.state[port] & 1
+
+	// Emulate open bus behavior.
+	return 0x40 | ret
+}
+
 // capture state of all connected input devices.
 func (ip *InputPorts) loadstate() {
 	if ip.provider == nil {
@@ -240,7 +248,10 @@ func (ip *InputPorts) WriteIN(old, val uint8) {
 	}
 }
 
-func (ip *InputPorts) ReadIN(_ uint8) uint8 {
+func (ip *InputPorts) ReadIN(_ uint8, peek bool) uint8 {
+	if peek {
+		return ip.regvalPeek(0)
+	}
 	if ip.strobe {
 		ip.loadstate()
 	}
@@ -248,7 +259,10 @@ func (ip *InputPorts) ReadIN(_ uint8) uint8 {
 }
 
 // Out: $4017
-func (ip *InputPorts) ReadOUT(_ uint8) uint8 {
+func (ip *InputPorts) ReadOUT(_ uint8, peek bool) uint8 {
+	if peek {
+		return ip.regvalPeek(1)
+	}
 	if ip.strobe {
 		ip.loadstate()
 	}

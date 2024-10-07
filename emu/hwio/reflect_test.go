@@ -12,7 +12,7 @@ func (t *test1) WriteREG1(old, val uint8) {
 	t.called = true
 }
 
-func (t *test1) ReadREG2(val uint8) uint8 {
+func (t *test1) ReadREG2(val uint8, peek bool) uint8 {
 	return val | 1
 }
 
@@ -29,11 +29,11 @@ func TestReflect(t *testing.T) {
 		t.Error("invalid names:", ts.Reg1, ts.Reg2)
 	}
 
-	if ts.Reg2.Read8(0) != 1 {
-		t.Error("invalid read8:", ts.Reg2.Read8(0))
+	if got := ts.Reg2.Read8(0, false); got != 1 {
+		t.Error("invalid read8:", got)
 	}
 
-	val := ts.Reg1.Read8(0)
+	val := ts.Reg1.Read8(0, false)
 	if val != 0x23 {
 		t.Error("invalid read8", val)
 	}
@@ -92,13 +92,13 @@ func TestReadWriteOnly(t *testing.T) {
 	}
 
 	ts.Reg1.Write8(0, 0) // this should be ignored
-	if ts.Reg1.Read8(0) != 0x23 {
-		t.Error("invalid reg1 read:", ts.Reg1.Read8(0))
+	if got := ts.Reg1.Read8(0, false); got != 0x23 {
+		t.Error("invalid reg1 read:", got)
 	}
 
 	ts.Reg2.Write8(0, 0x23)
-	if ts.Reg2.Read8(0) != 0 {
-		t.Error("invalid reg2 read:", ts.Reg2.Read8(0))
+	if got := ts.Reg2.Read8(0, false); got != 0 {
+		t.Error("invalid reg2 read:", got)
 	}
 }
 

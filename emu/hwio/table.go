@@ -7,8 +7,9 @@ import (
 )
 
 type BankIO8 interface {
-	Read8(addr uint16) uint8
-	Peek8(addr uint16) uint8 // Like Read8 but without side effects.
+	// Read8 reads a byte from the given address. If peek is true, the read
+	// shouldn't have any side effects (debugging/tracing).
+	Read8(addr uint16, peek bool) uint8
 	Write8(addr uint16, val uint8)
 }
 
@@ -20,8 +21,8 @@ func Write16(b BankIO8, addr uint16, val uint16) {
 }
 
 func Read16(b BankIO8, addr uint16) uint16 {
-	lo := b.Read8(addr)
-	hi := b.Read8(addr + 1)
+	lo := b.Read8(addr, false)
+	hi := b.Read8(addr+1, false)
 	return uint16(hi)<<8 | uint16(lo)
 }
 
@@ -146,38 +147,26 @@ func (t *Table) Unmap(begin, end uint16) {
 	t.table8.RemoveRange(begin, end)
 }
 
-func (t *Table) Read8(addr uint16) uint8 {
+// Read8 searches in the table for the device mapped at the given address and
+// forward the read to it. Accesses to unmapped addresses are logged as errors
+// if peek is false.
+func (t *Table) Read8(addr uint16, peek bool) uint8 {
 	io := t.table8.Search(addr)
 	if io == nil {
-		log.ModHwIo.ErrorZ("unmapped Read8").
-			String("name", t.Name).
-			Hex16("addr", addr).
-			End()
+		if !peek {
+			log.ModHwIo.ErrorZ("unmapped Read8").
+				String("name", t.Name).
+				Hex16("addr", addr).
+				End()
+		}
 		return 0
 	}
-	if mem, ok := io.(*mem); ok {
-		return mem.Read8(addr)
-	}
-	return io.(BankIO8).Read8(addr)
+	return io.(BankIO8).Read8(addr, peek)
 }
 
-// Peek8 is like Read8, but always succeeds, and never logs.
-// Useful for debugging for example.
-// Returns 00 if the address is unmapped.
+// Peek8 is a convenience function.
 func (t *Table) Peek8(addr uint16) uint8 {
-	io := t.table8.Search(addr)
-	if io == nil {
-		return 0
-	}
-	switch io := io.(type) {
-	case *mem:
-		return io.Peek8(addr)
-	case *Reg8:
-		return io.Value
-	case BankIO8:
-		return io.Peek8(addr)
-	}
-	panic(fmt.Errorf("invalid io type: %T", io))
+	return t.Read8(addr, true)
 }
 
 func (t *Table) Write8(addr uint16, val uint8) {

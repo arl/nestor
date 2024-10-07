@@ -11,6 +11,8 @@ import (
 const (
 	NumScanlines = 262 // Number of scanlines per frame.
 	NumCycles    = 341 // Number of PPU cycles per scanline.
+
+	ntscDivider = 4
 )
 
 // Throwaway frame buffer for the first PPU cycles,
@@ -21,8 +23,9 @@ type PPU struct {
 	Bus *hwio.Table
 	CPU *CPU
 
-	Cycle    int // Current cycle/pixel in scanline
-	Scanline int // Current scanline being drawn
+	masterClock uint64
+	Cycle       uint32 // Current cycle/pixel in scanline
+	Scanline    int    // Current scanline being drawn
 
 	preventVblank bool
 
@@ -137,8 +140,8 @@ func (p *PPU) SetMirroring(m Mirroring) {
 }
 
 func (p *PPU) Reset() {
-	p.Scanline = 0
-	p.Cycle = 0
+	p.Scanline = -1
+	p.Cycle = 339
 	p.writeLatch = false
 	p.vramAddr = 0
 	p.PPUCTRL.Value = 0
@@ -156,7 +159,18 @@ func (p *PPU) Reset() {
 	}
 }
 
+func (p *PPU) Run(until uint64) {
+	for {
+		p.Tick()
+		p.masterClock += ntscDivider
+		if p.masterClock+ntscDivider > until {
+			break
+		}
+	}
+}
+
 func (p *PPU) Tick() {
+
 	switch {
 	case p.Scanline < 240:
 		p.doScanline(renderMode)
@@ -287,6 +301,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 				ppustatus := ppustatus(p.PPUSTATUS.Value)
 				ppustatus.setVblank(false)
 				p.PPUSTATUS.Value = uint8(ppustatus)
+				p.CPU.clearNMIflag()
 			}
 		case p.Cycle == 321, p.Cycle == 339:
 			p.bg.addrLatch = p.ntAddr()
@@ -421,10 +436,10 @@ func (p *PPU) renderPixel() {
 	var palette uint8
 	var objPalette uint8
 	objPriority := false
-	var x = p.Cycle - 2
+	var x = int(p.Cycle) - 2
 
 	mask := ppumask(p.PPUMASK.Value)
-	if p.Scanline < 240 && p.Cycle >= 0 && p.Cycle < 256 {
+	if p.Scanline < 240 /*&& p.Cycle >= 0*/ && p.Cycle < 256 {
 
 		// Background
 		if mask.bg() && !(mask.bgLeft() && x < 8) {
@@ -587,11 +602,22 @@ func (p *PPU) WritePPUMASK(old, val uint8) {
 }
 
 // PPUSTATUS: $2002
-func (p *PPU) ReadPPUSTATUS(val uint8) uint8 {
-	p.writeLatch = false
-
+func (p *PPU) ReadPPUSTATUS(val uint8, peek bool) uint8 {
 	cur := ppustatus(val)
+	if peek {
+		ret := ppustatus(0)
+		ret.setSpriteOverflow(cur.spriteOverflow())
+		ret.setSpriteHit(cur.spriteHit())
+		ret.setVblank(cur.vblank())
 
+		if p.Scanline == 241 && p.Cycle < 3 {
+			ret.setVblank(false)
+		}
+
+		return uint8(ret)
+	}
+
+	p.writeLatch = false
 	ret := ppustatus(0)
 	ret.setSpriteOverflow(cur.spriteOverflow())
 	ret.setSpriteHit(cur.spriteHit())
@@ -600,7 +626,7 @@ func (p *PPU) ReadPPUSTATUS(val uint8) uint8 {
 	cur.setVblank(false)
 	p.CPU.clearNMIflag()
 
-	if p.Scanline == 241 && p.Cycle == 0 {
+	if p.Scanline == 241 && p.Cycle == 1 {
 		// From https://www.nesdev.org/wiki/PPU_registers#PPUSTATUS (notes):
 		// Race Condition Warning: Reading PPUSTATUS within two cycles of the
 		// start of vertical blank will return 0 in bit 7 but clear the latch
@@ -642,10 +668,13 @@ func (p *PPU) WritePPUADDR(old, val uint8) {
 }
 
 // PPUDATA: $2007
-func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
+func (p *PPU) ReadPPUDATA(_ uint8, peek bool) uint8 {
 	// Reading VRAM is too slow so the actual data
 	// will be returned at the next read.
 	val := p.ppuDataRbuf
+	if peek {
+		return val
+	}
 	p.ppuDataRbuf = p.Read8(p.vramAddr.addr())
 
 	if p.busAddr&0x3FFF >= 0x3F00 {
@@ -654,7 +683,8 @@ func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 		// vram address). (passes Blargg's vram_access test)
 		val = (p.readPalette(p.busAddr) & 0x3F)
 		const mask uint16 = 1 << 12
-		p.ppuDataRbuf = p.Bus.Read8(p.busAddr & ^mask)
+		// TODO (peek)
+		p.ppuDataRbuf = p.Bus.Read8(p.busAddr & ^mask, false)
 	}
 
 	p.vramIncr()
@@ -688,7 +718,7 @@ func (p *PPU) vramIncr() {
 
 func (p *PPU) Read8(addr uint16) uint8 {
 	p.busAddr = addr
-	return p.Bus.Read8(addr)
+	return p.Bus.Read8(addr, false)
 }
 
 func (p *PPU) Write8(addr uint16, val uint8) {
@@ -760,9 +790,11 @@ func (p *PPU) WriteOAMADDR(_, val uint8) {
 }
 
 // OAMDATA: $2004
-func (p *PPU) ReadOAMDATA(_ uint8) uint8 {
+func (p *PPU) ReadOAMDATA(_ uint8, peek bool) uint8 {
 	val := p.oamMem[p.oamAddr]
-	log.ModPPU.DebugZ("Read from OAMDATA").Hex8("val", val).End()
+	if !peek {
+		log.ModPPU.DebugZ("Read from OAMDATA").Hex8("val", val).End()
+	}
 	return val
 }
 
@@ -850,7 +882,7 @@ func (p *PPU) loadSprites() {
 		}
 		addr += uint16(sprY + (sprY & 8)) // Select the second tile if on 8x16.
 
-		p.oam[i].dataL = p.Bus.Read8(addr)
-		p.oam[i].dataH = p.Bus.Read8(addr + 8)
+		p.oam[i].dataL = p.Bus.Read8(addr, false)
+		p.oam[i].dataH = p.Bus.Read8(addr+8, false)
 	}
 }

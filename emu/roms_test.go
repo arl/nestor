@@ -9,6 +9,8 @@ import (
 	"testing"
 	"unsafe"
 
+	"github.com/google/go-cmp/cmp"
+
 	"nestor/emu/hwio"
 	"nestor/emu/log"
 	"nestor/hw"
@@ -62,68 +64,126 @@ func TestNestest(t *testing.T) {
 	}
 }
 
-func TestInstructionsV5(t *testing.T) {
+type testdir struct {
+	dir   string
+	files []string
+}
+
+func tdir(dir string, items ...any) *testdir {
+	td := testdir{
+		dir: dir,
+	}
+	for _, item := range items {
+		switch v := item.(type) {
+		case string:
+			td.files = append(td.files, filepath.Join(dir, v))
+		case *testdir:
+			for _, v := range v.files {
+				td.files = append(td.files, filepath.Join(dir, v))
+			}
+		}
+	}
+	return &td
+}
+
+func (td *testdir) list(fn func(string)) {
+	for _, f := range td.files {
+		fn(f)
+	}
+}
+
+func Test_testdir(t *testing.T) {
+	var got []string
+	tdir("a",
+		tdir("b",
+			"b1",
+			"b2",
+			"b3",
+		),
+		tdir("c",
+			"c1",
+			"c2",
+			tdir("c2",
+				"c2a",
+				"c2b",
+			),
+		),
+	).list(func(path string) { got = append(got, path) })
+
+	want := []string{
+		filepath.Join("a", "b", "b1"),
+		filepath.Join("a", "b", "b2"),
+		filepath.Join("a", "b", "b3"),
+		filepath.Join("a", "c", "c1"),
+		filepath.Join("a", "c", "c2"),
+		filepath.Join("a", "c", "c2", "c2a"),
+		filepath.Join("a", "c", "c2", "c2b"),
+	}
+
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestBlarggRoms(t *testing.T) {
+	// Various tests from blargg's test roms. They're easily to automate since they
+	// write to a specific memory location to signal the test status.
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
+	}
+
 	romsDir := filepath.Join(tests.RomsPath(t))
 
-	dir := filepath.Join(romsDir, "instr_test-v5", "rom_singles")
-	files := []string{
-		"01-basics.nes",
-		"02-implied.nes",
-		// "03-immediate.nes", uses unofficial  0xAB (LXA)
-		"04-zero_page.nes",
-		"05-zp_xy.nes",
-		"06-absolute.nes",
-		// "07-abs_xy.nes", uses unofficial 0x9C (SHY)
-		"08-ind_x.nes",
-		"09-ind_y.nes",
-		"10-branches.nes",
-		"11-stack.nes",
-		"12-jmp_jsr.nes",
-		"13-rts.nes",
-		"14-rti.nes",
-		"15-brk.nes",
-		"16-special.nes",
-	}
+	tdir(romsDir,
+		tdir("instr_test-v5",
+			tdir("rom_singles",
+				"01-basics.nes",
+				"02-implied.nes",
+				// "03-immediate.nes", // uses unofficial  0xAB (LXA)
+				"04-zero_page.nes",
+				"05-zp_xy.nes",
+				"06-absolute.nes",
+				// "07-abs_xy.nes",// uses unofficial 0x9C (SHY)
+				"08-ind_x.nes",
+				"09-ind_y.nes",
+				"10-branches.nes",
+				"11-stack.nes",
+				"12-jmp_jsr.nes",
+				"13-rts.nes",
+				"14-rti.nes",
+				"15-brk.nes",
+				"16-special.nes",
+			),
+		),
+		tdir("instr_misc",
+			tdir("rom_singles",
+				"01-abs_x_wrap.nes",
+				"02-branch_wrap.nes",
+				// "03-dummy_reads.nes",
+				// "04-dummy_reads_apu.nes",
+			),
+		),
+		tdir("cpu_dummy_writes",
+			// "cpu_dummy_writes_ppumem.nes",
+			"cpu_dummy_writes_oam.nes",
+		),
+		tdir("cpu_interrupts_v2",
+			tdir("rom_singles"), // all failing for now
+			// "1-cli_latency.nes", // APU should generate IRQ when $4017 = $00
+			// "2-nmi_and_brk.nes",
+			// "3-nmi_and_irq.nes",
+			// "4-irq_and_dma.nes",
+			// "5-branch_delays_irq.nes",
 
-	log.SetOutput(io.Discard)
-	for _, path := range files {
-		t.Run(path, runTestRom(filepath.Join(dir, path)))
-	}
+		),
+		tdir("oam_read", "oam_read.nes"),
+		// tdir("oam_stress", "oam_stress.nes"),
+	).list(func(path string) {
+		t.Run(filepath.Base(path), runBlarggTestRom(path))
+	})
 }
 
-func TestInterruptsV2(t *testing.T) {
-	t.Skip("all failing for now")
-
-	romsDir := filepath.Join(tests.RomsPath(t))
-	dir := filepath.Join(romsDir, "cpu_interrupts_v2", "rom_singles")
-
-	files := []string{
-		"1-cli_latency.nes", // APU should generate IRQ when $4017 = $00
-		"2-nmi_and_brk.nes",
-		"3-nmi_and_irq.nes",
-		"4-irq_and_dma.nes",
-		"5-branch_delays_irq.nes",
-	}
-
-	for _, path := range files {
-		t.Run(path, runTestRom(filepath.Join(dir, path)))
-	}
-}
-
-func TestOAMRead(t *testing.T) {
-	romPath := filepath.Join(tests.RomsPath(t), "oam_read", "oam_read.nes")
-
-	runTestRom(romPath)(t)
-}
-
-func TestOAMStress(t *testing.T) {
-	t.Skip("failing for now")
-	romPath := filepath.Join(tests.RomsPath(t), "oam_stress", "oam_stress.nes")
-
-	runTestRom(romPath)(t)
-}
-
-func runTestRom(path string) func(t *testing.T) {
+func runBlarggTestRom(path string) func(t *testing.T) {
 	// All text output is written starting at $6004, with a zero-byte terminator
 	// at the end. As more text is written, the terminator is moved forward, so
 	// an emulator can print the current text at any time.
@@ -231,11 +291,59 @@ func TestNametableMirroring(t *testing.T) {
 	}
 	var nts []byte
 	for _, a := range addrs {
-		nts = append(nts, nes.PPU.Bus.Read8(a))
+		nts = append(nts, nes.PPU.Bus.Read8(a, false))
 	}
 
 	if string(nts) != "AABBAABB" {
 		t.Errorf("mirrors = %s", nts)
+	}
+}
+
+func TestBlarggPPUtests(t *testing.T) {
+	const frameidx = 25
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"palette_ram.nes",
+		"power_up_palette.nes",
+		"vram_access.nes",
+		"sprite_ram.nes",
+		"vbl_clear_time.nes",
+	}
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(tests.RomsPath(t), "blargg_ppu_tests_2005.09.15b", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
+func TestTimingVBlankNMI(t *testing.T) {
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
+	}
+
+	const frameidx = 200
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"1.frame_basics.nes", // onlt this passes for now
+		"2.vbl_timing.nes",
+		"3.even_odd_frames.nes",
+		"4.vbl_clear_timing.nes",
+		"5.nmi_suppression.nes",
+		"6.nmi_disable.nes",
+		"7.nmi_timing.nes",
+	}
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(tests.RomsPath(t), "vbl_nmi_timing", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
 	}
 }
 
@@ -263,48 +371,4 @@ func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string
 	nes.Run()
 
 	out.CompareFrame(t)
-}
-
-func TestBlarggPPUtests(t *testing.T) {
-	const frameidx = 25
-
-	outdir := filepath.Join("testdata", t.Name())
-	os.Mkdir(outdir, 0755)
-
-	roms := []string{
-		"palette_ram.nes",
-		"power_up_palette.nes",
-		"vram_access.nes",
-		"sprite_ram.nes",
-		"vbl_clear_time.nes",
-	}
-	for _, romName := range roms {
-		t.Run(romName, func(t *testing.T) {
-			romPath := filepath.Join(tests.RomsPath(t), "blargg_ppu_tests_2005.09.15b", romName)
-			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
-		})
-	}
-}
-
-func TestTimingVBlankNMI(t *testing.T) {
-	const frameidx = 200
-
-	outdir := filepath.Join("testdata", t.Name())
-	os.Mkdir(outdir, 0755)
-
-	roms := []string{
-		"1.frame_basics.nes", // onlt this passes for now
-		// "2.vbl_timing.nes",
-		// "3.even_odd_frames.nes",
-		// "4.vbl_clear_timing.nes",
-		// "5.nmi_suppression.nes",
-		// "6.nmi_disable.nes",
-		// "7.nmi_timing.nes",
-	}
-	for _, romName := range roms {
-		t.Run(romName, func(t *testing.T) {
-			romPath := filepath.Join(tests.RomsPath(t), "vbl_nmi_timing", romName)
-			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
-		})
-	}
 }
