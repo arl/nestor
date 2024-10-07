@@ -17,18 +17,20 @@ const (
 )
 
 type CPU struct {
-	Bus         *hwio.Table
-	Ram         [0x800]byte // Internal RAM
-	Cycles      int64       // CPU cycles
-	masterClock int64
+	Bus *hwio.Table
+	Ram [0x800]byte // Internal RAM
 
-	selfjumps uint // infinite loop detection: count successive jumps to same PC.
-	doHalt    bool
-
-	ppu    *PPU
+	ppu    *PPU // non-nil when there's a PPU.
 	ppuDMA ppuDMA
 
+	// Non-nil when execution tracing is enabled.
+	tracer *tracer
+	dbg    FwdDebugger
+
 	input InputPorts
+
+	Cycles      int64 // CPU cycles
+	masterClock int64
 
 	// cpu registers
 	A, X, Y, SP uint8
@@ -41,10 +43,8 @@ type CPU struct {
 	runIRQ, prevRunIRQ   bool
 	irqFlag              bool
 
-	dbg FwdDebugger
-
-	// Non-nil when execution tracing is enabled.
-	tracer *tracer
+	selfjumps uint // infinite loop detection: count successive jumps to same PC.
+	doHalt    bool
 }
 
 // NewCPU creates a new CPU at power-up state.
