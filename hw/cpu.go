@@ -25,9 +25,8 @@ type CPU struct {
 	selfjumps uint // infinite loop detection: count successive jumps to same PC.
 	doHalt    bool
 
-	ppu       *PPU
-	ppuAbsent bool // allow to disconnect PPU during CPU tests
-	ppuDMA    ppuDMA
+	ppu    *PPU
+	ppuDMA ppuDMA
 
 	input InputPorts
 
@@ -130,23 +129,32 @@ func (c *CPU) Reset() {
 func (c *CPU) setNMIflag()   { c.nmiFlag = true }
 func (c *CPU) clearNMIflag() { c.nmiFlag = false }
 
+func (c *CPU) traceOp() {
+	if c.tracer == nil {
+		return
+	}
+
+	state := cpuState{
+		A:     c.A,
+		X:     c.X,
+		Y:     c.Y,
+		P:     c.P,
+		SP:    c.SP,
+		Clock: c.Cycles,
+		PC:    c.PC,
+	}
+	if c.ppu != nil {
+		state.PPUCycle = c.ppu.Cycle
+		state.Scanline = c.ppu.Scanline
+	}
+	c.tracer.write(state)
+}
+
 func (c *CPU) Run(ncycles int64) bool {
 	until := c.Cycles + ncycles
 	for c.Cycles < until {
 		opcode := c.Read8(c.PC)
-		if c.tracer != nil {
-			c.tracer.write(cpuState{
-				A:        c.A,
-				X:        c.X,
-				Y:        c.Y,
-				P:        c.P,
-				SP:       c.SP,
-				Clock:    c.Cycles,
-				PPUCycle: c.ppu.Cycle,
-				Scanline: c.ppu.Scanline,
-				PC:       c.PC,
-			})
-		}
+		c.traceOp()
 		c.dbg.Trace(c.PC)
 		c.PC++
 		ops[opcode](c)
@@ -183,11 +191,9 @@ func (c *CPU) cycleBegin(forRead bool) {
 	}
 	c.Cycles++
 
-	if c.ppuAbsent {
-		return
+	if c.ppu != nil {
+		c.ppu.Run(uint64(c.masterClock - ppuOffset))
 	}
-
-	c.ppu.Run(uint64(c.masterClock - ppuOffset))
 }
 
 func (c *CPU) cycleEnd(forRead bool) {
@@ -196,7 +202,10 @@ func (c *CPU) cycleEnd(forRead bool) {
 	} else {
 		c.masterClock += NTSCendClockCount - 1
 	}
-	c.ppu.Run(uint64(c.masterClock - ppuOffset))
+
+	if c.ppu != nil {
+		c.ppu.Run(uint64(c.masterClock - ppuOffset))
+	}
 
 	c.handleInterrupts()
 }

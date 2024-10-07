@@ -127,8 +127,7 @@ func testOpcodes(opfile string) func(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.Name, func(t *testing.T) {
-				cpu := NewCPU(NewPPU())
-				cpu.ppuAbsent = true
+				cpu := NewCPU(noPPU)
 				cpu.A = uint8(tt.Initial.A)
 				cpu.X = uint8(tt.Initial.X)
 				cpu.Y = uint8(tt.Initial.Y)

@@ -181,12 +181,13 @@ func nextpow2(v uint64) uint64 {
 	return v + 1
 }
 
+var noPPU *PPU = nil
+
 // loadCPUWith loads a CPU with a memory dump.
 func loadCPUWith(tb testing.TB, dump string) *CPU {
 	tb.Helper()
 
-	cpu := NewCPU(NewPPU())
-	cpu.ppuAbsent = true
+	cpu := NewCPU(noPPU)
 	lines := loadDump(tb, dump)
 	for _, line := range lines {
 		hd := hex.Dump(line.bytes)
