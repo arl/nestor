@@ -332,10 +332,10 @@ func TestTimingVBlankNMI(t *testing.T) {
 
 	roms := []string{
 		"1.frame_basics.nes", // onlt this passes for now
-		// "2.vbl_timing.nes",
-		// "3.even_odd_frames.nes",
+		"2.vbl_timing.nes",
+		"3.even_odd_frames.nes",
 		"4.vbl_clear_timing.nes",
-		// "5.nmi_suppression.nes",
+		"5.nmi_suppression.nes",
 		"6.nmi_disable.nes",
 		"7.nmi_timing.nes",
 	}

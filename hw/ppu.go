@@ -626,7 +626,7 @@ func (p *PPU) ReadPPUSTATUS(val uint8, peek bool) uint8 {
 	cur.setVblank(false)
 	p.CPU.clearNMIflag()
 
-	if p.Scanline == 241 && p.Cycle == 0 {
+	if p.Scanline == 241 && p.Cycle == 1 {
 		// From https://www.nesdev.org/wiki/PPU_registers#PPUSTATUS (notes):
 		// Race Condition Warning: Reading PPUSTATUS within two cycles of the
 		// start of vertical blank will return 0 in bit 7 but clear the latch
