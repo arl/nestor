@@ -169,11 +169,11 @@ func TestBlarggRoms(t *testing.T) {
 		),
 		tdir("cpu_interrupts_v2",
 			tdir("rom_singles"), // all failing for now
-			//"1-cli_latency.nes", // APU should generate IRQ when $4017 = $00
-			//"2-nmi_and_brk.nes",
-			//"3-nmi_and_irq.nes",
-			//"4-irq_and_dma.nes",
-			//"5-branch_delays_irq.nes",
+			// "1-cli_latency.nes", // APU should generate IRQ when $4017 = $00
+			// "2-nmi_and_brk.nes",
+			// "3-nmi_and_irq.nes",
+			// "4-irq_and_dma.nes",
+			// "5-branch_delays_irq.nes",
 
 		),
 		tdir("oam_read", "oam_read.nes"),
@@ -321,6 +321,10 @@ func TestBlarggPPUtests(t *testing.T) {
 }
 
 func TestTimingVBlankNMI(t *testing.T) {
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
+	}
+
 	const frameidx = 200
 
 	outdir := filepath.Join("testdata", t.Name())

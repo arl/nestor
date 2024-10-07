@@ -301,6 +301,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 				ppustatus := ppustatus(p.PPUSTATUS.Value)
 				ppustatus.setVblank(false)
 				p.PPUSTATUS.Value = uint8(ppustatus)
+				p.CPU.clearNMIflag()
 			}
 		case p.Cycle == 321, p.Cycle == 339:
 			p.bg.addrLatch = p.ntAddr()
