@@ -212,7 +212,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 
 				if ppuctrl(p.PPUCTRL.Value).nmi() {
 					p.CPU.setNMIflag()
-					log.ModPPU.DebugZ("Set NMI flag").End()
+					log.ModPPU.DebugZ("Set NMI flag").String("src", "vblank").End()
 				}
 			}
 			p.preventVblank = false
@@ -576,6 +576,7 @@ func (p *PPU) WritePPUCTRL(old, val uint8) {
 		p.CPU.clearNMIflag()
 	} else if ppustatus.vblank() {
 		p.CPU.setNMIflag()
+		log.ModPPU.DebugZ("Set NMI flag").String("src", "PPUCTRL").End()
 	}
 }
 
