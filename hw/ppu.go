@@ -311,7 +311,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 			p.bg.nt = p.Read8(p.bg.addrLatch)
 		case p.Cycle == 340:
 			p.bg.nt = p.Read8(p.bg.addrLatch)
-			if sm == preRender && p.renderingEnabled() && p.oddFrame {
+			if sm == preRender && p.isRenderingEnabled() && p.oddFrame {
 				p.Cycle++
 			}
 		}
@@ -358,7 +358,7 @@ func (p *PPU) refillShifters() {
 }
 
 func (p *PPU) horzScroll() {
-	if !p.renderingEnabled() {
+	if !p.isRenderingEnabled() {
 		return
 	}
 	if p.vramAddr.coarsex() == 31 {
@@ -369,7 +369,7 @@ func (p *PPU) horzScroll() {
 }
 
 func (p *PPU) vertScroll() {
-	if !p.renderingEnabled() {
+	if !p.isRenderingEnabled() {
 		return
 	}
 	if finey := p.vramAddr.finey(); finey < 7 {
@@ -389,20 +389,20 @@ func (p *PPU) vertScroll() {
 }
 
 func (p *PPU) horzUpdate() {
-	if !p.renderingEnabled() {
+	if !p.isRenderingEnabled() {
 		return
 	}
 	p.vramAddr.setVal((p.vramAddr.val() & ^uint16(0x041F)) | (p.vramTmp.val() & 0x041F))
 }
 
 func (p *PPU) vertUpdate() {
-	if !p.renderingEnabled() {
+	if !p.isRenderingEnabled() {
 		return
 	}
 	p.vramAddr.setVal((p.vramAddr.val() & ^uint16(0x7BE0)) | (p.vramTmp.val() & 0x7BE0))
 }
 
-func (p *PPU) renderingEnabled() bool {
+func (p *PPU) isRenderingEnabled() bool {
 	mask := ppumask(p.PPUMASK.Value)
 	return mask.bg() || mask.sprites()
 }
@@ -413,23 +413,6 @@ func (p *PPU) spriteHeight() int {
 		return 16
 	}
 	return 8
-}
-
-func nthbit8(val uint8, n uint8) uint8    { return (val >> n) & 1 }
-func nthbit16(val uint16, n uint8) uint16 { return (val >> n) & 1 }
-
-func b2u8(b bool) uint8 {
-	if b {
-		return 1
-	}
-	return 0
-}
-
-func b2u16(b bool) uint16 {
-	if b {
-		return 1
-	}
-	return 0
 }
 
 func (p *PPU) renderPixel() {
@@ -488,7 +471,7 @@ func (p *PPU) renderPixel() {
 		}
 
 		var paddr uint16
-		if p.renderingEnabled() {
+		if p.isRenderingEnabled() {
 			paddr += uint16(palette)
 		}
 		pidx := p.Read8(0x3F00 + paddr)
@@ -829,7 +812,7 @@ func (p *PPU) clearOAM() {
 
 // Prepare sprites info in secondary OAM for next scanline
 func (p *PPU) evalSprites() {
-	if !p.renderingEnabled() {
+	if !p.isRenderingEnabled() {
 		return
 	}
 	n := 0
@@ -885,4 +868,21 @@ func (p *PPU) loadSprites() {
 		p.oam[i].dataL = p.Bus.Read8(addr, false)
 		p.oam[i].dataH = p.Bus.Read8(addr+8, false)
 	}
+}
+
+func nthbit8(val uint8, n uint8) uint8    { return (val >> n) & 1 }
+func nthbit16(val uint16, n uint8) uint16 { return (val >> n) & 1 }
+
+func b2u8(b bool) uint8 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func b2u16(b bool) uint16 {
+	if b {
+		return 1
+	}
+	return 0
 }

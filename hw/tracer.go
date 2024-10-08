@@ -26,6 +26,12 @@ type tracer struct {
 	w io.Writer
 }
 
+func hexEncode(dst []byte, v byte) {
+	const hextable = "0123456789ABCDEF"
+	dst[0] = hextable[v>>4]
+	dst[1] = hextable[v&0x0f]
+}
+
 // write the execution trace for current cycle.
 func (t *tracer) write(state cpuState) {
 	const totallen = 88
@@ -133,12 +139,6 @@ func (d DisasmOp) Bytes() []byte {
 	}
 
 	return buf
-}
-
-func hexEncode(dst []byte, v byte) {
-	const hextable = "0123456789ABCDEF"
-	dst[0] = hextable[v>>4]
-	dst[1] = hextable[v&0x0f]
 }
 
 var addressLabels = map[uint16]string{
