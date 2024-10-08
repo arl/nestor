@@ -1236,15 +1236,6 @@ func opcode4C(cpu *CPU) {
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	_ = oper
-	// basic heuristic for infinite loop detection
-	if cpu.PC == oper {
-		cpu.selfjumps++
-		if cpu.selfjumps > 1000 {
-			cpu.doHalt = true
-		}
-	} else {
-		cpu.selfjumps = 0
-	}
 	cpu.PC = oper
 }
 
@@ -1821,15 +1812,6 @@ func opcode6C(cpu *CPU) {
 	hi := cpu.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
 	oper = uint16(hi)<<8 | uint16(lo)
 	_ = oper
-	// basic heuristic for infinite loop detection
-	if cpu.PC == oper {
-		cpu.selfjumps++
-		if cpu.selfjumps > 1000 {
-			cpu.doHalt = true
-		}
-	} else {
-		cpu.selfjumps = 0
-	}
 	cpu.PC = oper
 }
 

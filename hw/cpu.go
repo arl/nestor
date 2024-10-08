@@ -164,6 +164,7 @@ func (c *CPU) Run(ncycles int64) bool {
 			Hex8("opcode", opcode).
 			Uint("self jumps", c.selfjumps).
 			End()
+		return false
 	}
 
 	return true
