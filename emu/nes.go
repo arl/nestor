@@ -22,15 +22,13 @@ type NES struct {
 
 func powerUp(rom *ines.Rom) (*NES, error) {
 	ppu := hw.NewPPU()
-	ppu.InitBus()
 
 	cpu := hw.NewCPU(ppu)
 	cpu.InitBus()
-	// TODO: gtk3
-	// dbg := debugger.NewDebugger(cpu)
 	ppu.CPU = cpu
 
-	// Load mapper, applying cartridge memory and hardware based on mapper.
+	// Load mapper, applying cartridge memory
+	// and hardware based on mapper.
 	mapper, ok := mappers.All[rom.Mapper()]
 	if !ok {
 		return nil, fmt.Errorf("unsupported mapper %03d", rom.Mapper())
@@ -43,8 +41,6 @@ func powerUp(rom *ines.Rom) (*NES, error) {
 		CPU: cpu,
 		PPU: ppu,
 		Rom: rom,
-		// TODO: gtk3
-		// Debugger: dbg,
 	}
 	nes.Reset()
 	return nes, nil
@@ -75,8 +71,6 @@ func (nes *NES) Run() {
 	for nes.Out.Poll() {
 		vbuf = nes.Out.BeginFrame()
 		halted := !nes.RunOneFrame(vbuf)
-		// TODO: gtk3
-		// nes.Debugger.FrameEnd()
 		nes.Out.EndFrame(vbuf)
 
 		if halted {

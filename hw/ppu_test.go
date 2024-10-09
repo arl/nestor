@@ -6,7 +6,6 @@ import (
 
 func TestPPUScroll(t *testing.T) {
 	ppu := NewPPU()
-	ppu.InitBus()
 	cpu := NewCPU(ppu)
 	cpu.InitBus()
 	ppu.CPU = cpu
