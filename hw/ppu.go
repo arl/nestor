@@ -15,10 +15,6 @@ const (
 	ntscDivider = 4
 )
 
-// Throwaway frame buffer for the first PPU cycles,
-// before an actual one for the actual output.
-var tmpFramebuf = make([]uint32, 256*240)
-
 type PPU struct {
 	Bus *hwio.Table
 	CPU *CPU
@@ -80,12 +76,15 @@ type PPU struct {
 
 func NewPPU() *PPU {
 	return &PPU{
-		Bus:      hwio.NewTable("ppu"),
-		framebuf: tmpFramebuf,
+		Bus: hwio.NewTable("ppu"),
+		// Throwaway frame buffer for the first PPU cycles,
+		// before one is provided for the frame.
+		framebuf: make([]uint32, 256*240),
 	}
 }
 
 func (p *PPU) SetFrameBuffer(framebuf []byte) {
+	// we're using a RGBA8 framebuffer.
 	p.framebuf = unsafe.Slice((*uint32)(unsafe.Pointer(&framebuf[0])), len(framebuf)/4)
 }
 
@@ -108,34 +107,38 @@ const (
 	VertMirroring
 )
 
+// called from the mapper.
 func (p *PPU) SetMirroring(m Mirroring) {
+	A := p.Nametables[:0x400]
+	B := p.Nametables[0x400:0x800]
+
 	// NameTables
 	switch m {
-	case HorzMirroring: // A A B B
-		// 4 nametables
-		p.Bus.MapMemorySlice(0x2000, 0x23FF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x2400, 0x27FF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x2800, 0x2BFF, p.Nametables[0x400:0x800], false)
-		p.Bus.MapMemorySlice(0x2C00, 0x2FFF, p.Nametables[0x400:0x800], false)
+	case HorzMirroring:
+		// A A B B
+		p.Bus.MapMemorySlice(0x2000, 0x23FF, A, false)
+		p.Bus.MapMemorySlice(0x2400, 0x27FF, A, false)
+		p.Bus.MapMemorySlice(0x2800, 0x2BFF, B, false)
+		p.Bus.MapMemorySlice(0x2C00, 0x2FFF, B, false)
 
-		// mirrors of the nametable area
-		p.Bus.MapMemorySlice(0x3000, 0x33FF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x3400, 0x37FF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x3800, 0x3BFF, p.Nametables[0x400:0x800], false)
-		p.Bus.MapMemorySlice(0x3C00, 0x3EFF, p.Nametables[0x400:0x800], false)
+		// nametables mirrors
+		p.Bus.MapMemorySlice(0x3000, 0x33FF, A, false)
+		p.Bus.MapMemorySlice(0x3400, 0x37FF, A, false)
+		p.Bus.MapMemorySlice(0x3800, 0x3BFF, B, false)
+		p.Bus.MapMemorySlice(0x3C00, 0x3EFF, B, false)
 
-	case VertMirroring: // A B A B
-		// 4 nametables
-		p.Bus.MapMemorySlice(0x2000, 0x23FF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x2400, 0x27FF, p.Nametables[0x400:0x800], false)
-		p.Bus.MapMemorySlice(0x2800, 0x2BFF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x2C00, 0x2FFF, p.Nametables[0x400:0x800], false)
+	case VertMirroring:
+		// A B A B
+		p.Bus.MapMemorySlice(0x2000, 0x23FF, A, false)
+		p.Bus.MapMemorySlice(0x2400, 0x27FF, B, false)
+		p.Bus.MapMemorySlice(0x2800, 0x2BFF, A, false)
+		p.Bus.MapMemorySlice(0x2C00, 0x2FFF, B, false)
 
-		// mirrors of the nametable area
-		p.Bus.MapMemorySlice(0x3000, 0x33FF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x3400, 0x37FF, p.Nametables[0x400:0x800], false)
-		p.Bus.MapMemorySlice(0x3800, 0x3BFF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x3C00, 0x3EFF, p.Nametables[0x400:0x800], false)
+		// nametables mirrors
+		p.Bus.MapMemorySlice(0x3000, 0x33FF, A, false)
+		p.Bus.MapMemorySlice(0x3400, 0x37FF, B, false)
+		p.Bus.MapMemorySlice(0x3800, 0x3BFF, A, false)
+		p.Bus.MapMemorySlice(0x3C00, 0x3EFF, B, false)
 	}
 }
 
@@ -220,8 +223,8 @@ func (p *PPU) doScanline(sm scanlineMode) {
 	case postRender:
 		// nothing to do
 		if p.Cycle == 1 {
-			// At the start of vblank, the bus address is set back to
-			// VideoRamAddr.
+			// At the start of vblank, the bus address is set back
+			// to VRAM address.
 			p.busAddr = p.vramAddr.addr()
 		}
 
