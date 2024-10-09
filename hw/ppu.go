@@ -23,53 +23,38 @@ type PPU struct {
 	Cycle       uint32 // Current cycle/pixel in scanline
 	Scanline    int    // Current scanline being drawn
 
-	preventVblank bool
-
-	//	$0000-$0FFF	$1000	Pattern table 0
-	//	$1000-$1FFF	$1000	Pattern table 1
+	Nametables    [0x800]byte
 	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000,wcb"`
-
-	// Nametables mapping depends on rom/mapper.
-	//  $2000-$23FF	$0400	Nametable 0
-	//  $2400-$27FF	$0400	Nametable 1
-	//  $2800-$2BFF	$0400	Nametable 2
-	//  $2C00-$2FFF	$0400	Nametable 3
-	//  $3000-$3EFF	$0F00	Mirrors of $2000-$2EFF
-	Nametables [0x800]byte
 
 	// $3F00-$3F1F	$0020	Palette RAM indexes
 	// $3F20-$3FFF	$00E0	Mirrors of $3F00-$3F1F
 	Palettes hwio.Mem `hwio:"offset=0x3F00,size=0x20,vsize=0x100,wcb"`
 
-	// CPU-exposed memory-mapped PPU registers
-	// mapped from $2000 to $2007, mirrored up to $3fff
 	PPUCTRL   hwio.Reg8 `hwio:"bank=1,offset=0x0,writeonly,wcb"`
 	PPUMASK   hwio.Reg8 `hwio:"bank=1,offset=0x1,writeonly,wcb"`
 	PPUSTATUS hwio.Reg8 `hwio:"bank=1,offset=0x2,readonly,rcb"`
-
-	// Object attribute memory
 	OAMADDR   hwio.Reg8 `hwio:"bank=1,offset=0x3,writeonly,wcb"`
 	OAMDATA   hwio.Reg8 `hwio:"bank=1,offset=0x4,rcb,wcb"`
-	oamMem    [0x100]byte
-	oamAddr   byte
-	oam, oam2 [8]sprite
-
 	PPUSCROLL hwio.Reg8 `hwio:"bank=1,offset=0x5,writeonly,wcb"`
 	PPUADDR   hwio.Reg8 `hwio:"bank=1,offset=0x6,writeonly,wcb"`
 	PPUDATA   hwio.Reg8 `hwio:"bank=1,offset=0x7,rcb,wcb"`
 
-	// OAMDMA hwio.Reg8 `hwio:"bank=2,writeonly,wcb"`
+	oamMem     [0x100]byte
+	oamAddr    byte
+	oam, oam2  [8]sprite
+	ppudataBuf uint8 // only used for PPUDATA reads
 
 	framebuf []uint32 // RGBA framebuffer
-	oddFrame bool
+
+	oddFrame      bool
+	preventVblank bool
 
 	// VRAM read/write
 	vramAddr   loopy
 	vramTmp    loopy
 	writeLatch bool
 
-	ppuDataRbuf uint8 // only used for PPUDATA reads
-	busAddr     uint16
+	busAddr uint16
 
 	bg bgregs
 }
@@ -658,11 +643,11 @@ func (p *PPU) WritePPUADDR(old, val uint8) {
 func (p *PPU) ReadPPUDATA(_ uint8, peek bool) uint8 {
 	// Reading VRAM is too slow so the actual data
 	// will be returned at the next read.
-	val := p.ppuDataRbuf
+	val := p.ppudataBuf
 	if peek {
 		return val
 	}
-	p.ppuDataRbuf = p.Read8(p.vramAddr.addr())
+	p.ppudataBuf = p.Read8(p.vramAddr.addr())
 
 	if p.busAddr&0x3FFF >= 0x3F00 {
 		// This is a palette read, they're immediate but they still overwrite
@@ -671,7 +656,7 @@ func (p *PPU) ReadPPUDATA(_ uint8, peek bool) uint8 {
 		val = (p.readPalette(p.busAddr) & 0x3F)
 		const mask uint16 = 1 << 12
 		// TODO (peek)
-		p.ppuDataRbuf = p.Bus.Read8(p.busAddr & ^mask, false)
+		p.ppudataBuf = p.Bus.Read8(p.busAddr & ^mask, false)
 	}
 
 	p.vramIncr()
