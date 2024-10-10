@@ -15,21 +15,23 @@ type window struct {
 	context sdl.GLContext
 }
 
-func newWindow(title string, width, height int) (*window, error) {
+// create opengl window with a full screen texture buffer of size (texw, texh).
+// The window is scaled by wscale.
+func newWindow(title string, texw, texh, wscale int) (*window, error) {
 	type result struct {
 		w   *window
 		err error
 	}
 	errc := make(chan result, 1)
 	sdl.Do(func() {
-		w, err := _newWindow(title, width, height)
+		w, err := _newWindow(title, texw, texh, wscale)
 		errc <- result{w, err}
 	})
 	res := <-errc
 	return res.w, res.err
 }
 
-func _newWindow(title string, width, height int) (*window, error) {
+func _newWindow(title string, texw, texh, wscale int) (*window, error) {
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_JOYSTICK); err != nil {
 		return nil, fmt.Errorf("failed to initialize SDL: %s", err)
 	}
@@ -38,9 +40,11 @@ func _newWindow(title string, width, height int) (*window, error) {
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 3)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
 
+	winw := int32(texw * wscale)
+	winh := int32(texh * wscale)
 	w, err := sdl.CreateWindow(title,
-		sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
-		int32(width*2), int32(height*2), sdl.WINDOW_OPENGL|sdl.WINDOW_SHOWN|sdl.WINDOW_RESIZABLE)
+		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
+		int32(winw), int32(winh), sdl.WINDOW_OPENGL|sdl.WINDOW_SHOWN|sdl.WINDOW_RESIZABLE)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create window: %s", err)
 	}
@@ -55,12 +59,12 @@ func _newWindow(title string, width, height int) (*window, error) {
 	}
 
 	// Create empty texture buffer.
-	tbuf := make([]byte, height*width*4)
+	tbuf := make([]byte, winh*winw*4)
 
 	var texture uint32
 	gl.GenTextures(1, &texture)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&tbuf[0]))
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(texw), int32(texh), 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&tbuf[0]))
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 
 	vert, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)

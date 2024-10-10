@@ -23,6 +23,9 @@ type OutputConfig struct {
 
 	// Window title.
 	Title string
+
+	// Window scale factor (defaults to 2).
+	ScaleFactor uint
 }
 
 func OutputNTSC() OutputConfig {
@@ -76,7 +79,11 @@ func NewOutput(cfg OutputConfig) *Output {
 
 func (out *Output) EnableVideo(enable bool) error {
 	if enable && !out.videoEnabled {
-		window, err := newWindow(out.cfg.Title, out.cfg.Width, out.cfg.Height)
+		wscale := 2
+		if out.cfg.ScaleFactor != 0 {
+			wscale = int(out.cfg.ScaleFactor)
+		}
+		window, err := newWindow(out.cfg.Title, out.cfg.Width, out.cfg.Height, wscale)
 		if err != nil {
 			return fmt.Errorf("failed to create emulator window: %s", err)
 		}
