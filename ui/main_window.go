@@ -94,9 +94,15 @@ func (mw *mainWindow) runROM(path string) {
 		defer mw.SetSensitive(true)
 
 		emulator, err := emu.PowerUp(rom, mw.cfg)
+		if err != nil {
+			errc <- err
+		}
+
+		ctrlWin, err := showGamePanel()
 		errc <- err // Release gtk thread asap.
 
 		emulator.Run()
+		ctrlWin.Close()
 
 		screenshot := emulator.Screenshot()
 

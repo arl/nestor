@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with Glade 3.38.2 -->
+<interface>
+  <requires lib="gtk+" version="3.24"/>
+  <object class="GtkWindow" id="window1">
+    <property name="title">Emulator Controls</property>
+    <property name="default-width">400</property>
+    <property name="default-height">100</property>
+    <property name="resizable">False</property>
+    <child>
+      <object class="GtkBox" id="button_box">
+        <property name="visible">True</property>
+        <property name="orientation">horizontal</property>
+        <property name="spacing">10</property>
+        <property name="margin">10</property>
+        <child>
+          <object class="GtkButton" id="button_pause">
+            <property name="visible">True</property>
+            <property name="label">Pause</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="button_stop">
+            <property name="visible">True</property>
+            <property name="label">Stop</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="button_reset">
+            <property name="visible">True</property>
+            <property name="label">Reset</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="button_restart">
+            <property name="visible">True</property>
+            <property name="label">Restart</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
