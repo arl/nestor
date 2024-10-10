@@ -44,7 +44,8 @@ func _newWindow(title string, texw, texh, wscale int) (*window, error) {
 	winh := int32(texh * wscale)
 	w, err := sdl.CreateWindow(title,
 		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
-		int32(winw), int32(winh), sdl.WINDOW_OPENGL|sdl.WINDOW_SHOWN|sdl.WINDOW_RESIZABLE)
+		int32(winw), int32(winh),
+		sdl.WINDOW_OPENGL|sdl.WINDOW_SHOWN|sdl.WINDOW_RESIZABLE)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create window: %s", err)
 	}

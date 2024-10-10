@@ -20,10 +20,16 @@ func showGamePanel() (*gamePanel, error) {
 		Window: build[gtk.Window](builder, "window1"),
 	}
 
-	// Show the panel on top of the emulator window, which always starts at the
-	// center of the screen.
-	// pos := gtk.Pos
-	// mw.SetPosition(gtk.WIN_POS_CENTER)
+	// We know the emulator window starts at the center of the screen and has a
+	// scale factor of 2. We want to show the panel on top of it (best effort)
+	panelw, panelh := gp.GetSize()
+	screenw, screenh := getWorkArea()
+	emuh := 240 * 2
+
+	x := (screenw - panelw) / 2
+	y := (screenh - panelh) / 2
+	y -= (emuh + panelh) / 2
+	gp.Move(x, y)
 
 	gp.SetVisible(true)
 	return gp, nil

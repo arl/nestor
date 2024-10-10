@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
@@ -58,4 +59,13 @@ func openFileDialog(parent *gtk.Window) (string, bool) {
 		return "", false
 	}
 	return dlg.GetFilename(), true
+}
+
+// Get the work area of the primary monitor.
+// TODO: should we ensure that nestor has been started on this area?
+func getWorkArea() (int, int) {
+	display := mustT(gdk.DisplayGetDefault())
+	monitor := mustT(display.GetPrimaryMonitor())
+	workarea := monitor.GetWorkarea()
+	return workarea.GetWidth(), workarea.GetHeight()
 }

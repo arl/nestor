@@ -26,6 +26,8 @@ func PowerUp(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		Width:           256,
 		Height:          240,
 		NumVideoBuffers: 2,
+		Title:           "Nestor",
+		ScaleFactor:     2,
 	})
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err
