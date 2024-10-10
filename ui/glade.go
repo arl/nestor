@@ -1,15 +1,11 @@
 package ui
 
 import (
-	_ "embed"
 	"fmt"
 
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
-
-//go:embed nestor.glade
-var gladeUI string
 
 func build[T glib.IObject, P *T](builder *gtk.Builder, name string) *T {
 	gobj, err := builder.GetObject(name)

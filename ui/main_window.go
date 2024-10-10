@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"image"
 	"image/png"
@@ -17,6 +18,9 @@ import (
 )
 
 var modGUI = log.NewModule("gui")
+
+//go:embed main_window.glade
+var mainWindowUI string
 
 // ShowMainWindow creates and shows the main window, blocking until it's closed.
 func ShowMainWindow() error {
@@ -38,7 +42,7 @@ type mainWindow struct {
 
 func newMainWindow() (*mainWindow, error) {
 	gtk.Init(nil)
-	builder, err := gtk.BuilderNewFromString(gladeUI)
+	builder, err := gtk.BuilderNewFromString(mainWindowUI)
 	if err != nil {
 		return nil, fmt.Errorf("builder: can't load UI file: %s", err)
 	}
