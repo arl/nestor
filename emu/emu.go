@@ -3,18 +3,29 @@ package emu
 import (
 	"fmt"
 	"image"
+	"io"
 
+	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/ines"
 )
 
-type Emulator struct {
-	NES *NES
+type Output interface {
+	io.Closer
+
+	BeginFrame() hw.Frame
+	EndFrame(hw.Frame)
+	Poll() bool
+	Screenshot() image.Image
 }
 
-// PowerUp configures controllers, loads up the rom and creates the output
-// streams. It returns a NES emulator ready to run.
-func PowerUp(rom *ines.Rom, cfg Config) (*Emulator, error) {
+type Emulator struct {
+	NES *NES
+	out Output
+}
+
+// Start instantiates an emulator, setup controllers, output streams and window.
+func Start(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	nes, err := powerUp(rom)
 	if err != nil {
 		return nil, fmt.Errorf("power up failed: %s", err)
@@ -32,7 +43,6 @@ func PowerUp(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err
 	}
-	nes.SetOutput(out)
 
 	input, err := hw.NewInputProvider(cfg.Input)
 	if err != nil {
@@ -47,13 +57,26 @@ func PowerUp(rom *ines.Rom, cfg Config) (*Emulator, error) {
 
 	return &Emulator{
 		NES: nes,
+		out: out,
 	}, nil
 }
 
 func (e *Emulator) Run() {
-	e.NES.Run()
+	for e.out.Poll() {
+		frame := e.out.BeginFrame()
+		halted := !e.NES.RunOneFrame(frame)
+		e.out.EndFrame(frame)
+
+		if halted {
+			break
+		}
+	}
+	log.ModEmu.InfoZ("Emulation stopped").End()
+	if err := e.out.Close(); err != nil {
+		log.ModEmu.WarnZ("Error closing emulator window").Error("error", err).End()
+	}
 }
 
 func (e *Emulator) Screenshot() image.Image {
-	return e.NES.Out.Screenshot()
+	return e.out.Screenshot()
 }

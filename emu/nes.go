@@ -3,9 +3,7 @@ package emu
 import (
 	"fmt"
 	"image"
-	"io"
 
-	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/hw/mappers"
 	"nestor/ines"
@@ -17,7 +15,6 @@ type NES struct {
 	Rom *ines.Rom
 
 	Frames chan image.RGBA
-	Out    Output
 }
 
 func powerUp(rom *ines.Rom) (*NES, error) {
@@ -51,39 +48,7 @@ func (nes *NES) Reset() {
 	nes.CPU.Reset()
 }
 
-type Output interface {
-	io.Closer
-
-	BeginFrame() []byte
-	EndFrame([]byte)
-	Poll() bool
-	Screenshot() image.Image
-}
-
-func (nes *NES) SetOutput(out Output) {
-	nes.Out = out
-}
-
-// Run run the emulator loop until the CPU halts
-// or the output window is closed.
-func (nes *NES) Run() {
-	var vbuf []byte
-	for nes.Out.Poll() {
-		vbuf = nes.Out.BeginFrame()
-		halted := !nes.RunOneFrame(vbuf)
-		nes.Out.EndFrame(vbuf)
-
-		if halted {
-			break
-		}
-	}
-	log.ModEmu.InfoZ("Emulation stopped").End()
-	if err := nes.Out.Close(); err != nil {
-		log.ModEmu.WarnZ("Error closing emulator window").Error("error", err).End()
-	}
-}
-
-func (nes *NES) RunOneFrame(vbuf []byte) bool {
-	nes.PPU.SetFrameBuffer(vbuf)
+func (nes *NES) RunOneFrame(frame hw.Frame) bool {
+	nes.PPU.SetFrameBuffer(frame.Video)
 	return nes.CPU.Run(29781)
 }

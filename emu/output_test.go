@@ -48,8 +48,8 @@ func (to *TestingOutput) Close() error {
 	return nil
 }
 
-func (to *TestingOutput) BeginFrame() (video []byte) {
-	return to.framebuf
+func (to *TestingOutput) BeginFrame() (frame hw.Frame) {
+	return hw.Frame{Video: to.framebuf}
 }
 
 func (to *TestingOutput) framePath(isGolden bool) string {
@@ -65,7 +65,7 @@ func (to *TestingOutput) Screenshot() image.Image {
 	return hw.FramebufImage(to.framebuf, to.cfg.Width, to.cfg.Height)
 }
 
-func (to *TestingOutput) EndFrame(video []byte) {
+func (to *TestingOutput) EndFrame(_ hw.Frame) {
 	if to.framecounter == int(to.cfg.SaveFrameNum) {
 		if err := hw.SaveAsPNG(to.Screenshot(), to.framePath(false)); err != nil {
 			panic("failed to save frame: " + err.Error())

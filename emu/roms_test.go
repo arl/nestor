@@ -43,12 +43,15 @@ func TestNestest(t *testing.T) {
 	nes.CPU.SetTraceOutput(flog)
 
 	// Configure a headless testing output.
-	outcfg := TestingOutputConfig{
+	cfg := TestingOutputConfig{
 		Height: hw.OutputNTSC().Height,
 		Width:  hw.OutputNTSC().Width,
 	}
-	nes.SetOutput(newTestingOutput(outcfg))
-	nes.Run()
+	e := Emulator{
+		NES: nes,
+		out: newTestingOutput(cfg),
+	}
+	e.Run()
 
 	result := nes.CPU.Read16(0x02)
 	if result != 0 {
@@ -357,8 +360,6 @@ func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string
 		t.Fatal(err)
 	}
 
-	filepath.SplitList(romPath)
-
 	out := newTestingOutput(
 		TestingOutputConfig{
 			Height:        hw.OutputNTSC().Height,
@@ -366,9 +367,13 @@ func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string
 			SaveFrameDir:  frameDir,
 			SaveFrameFile: framePath,
 			SaveFrameNum:  frame,
-		})
-	nes.SetOutput(out)
-	nes.Run()
+		},
+	)
+	e := Emulator{
+		NES: nes,
+		out: out,
+	}
+	e.Run()
 
 	out.CompareFrame(t)
 }

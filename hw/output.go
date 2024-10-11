@@ -35,6 +35,13 @@ func OutputNTSC() OutputConfig {
 	}
 }
 
+// A Frame holds the audio/video buffers the emulator
+// should fill for a single frame.
+type Frame struct {
+	Video []byte
+	_     []byte // TODO: Audio
+}
+
 type Output struct {
 	framebufidx  int
 	framebuf     [][]byte
@@ -100,22 +107,20 @@ func (out *Output) EnableVideo(enable bool) error {
 	return nil
 }
 
-type Frame struct {
-	Video []byte
-}
-
-func (out *Output) BeginFrame() (video []byte) {
+func (out *Output) BeginFrame() Frame {
 	out.framebufidx++
 	if out.framebufidx == out.cfg.NumVideoBuffers {
 		out.framebufidx = 0
 	}
 
-	return out.framebuf[out.framebufidx]
+	return Frame{
+		Video: out.framebuf[out.framebufidx],
+	}
 }
 
-func (out *Output) EndFrame(video []byte) {
+func (out *Output) EndFrame(frame Frame) {
 	out.framecounter++
-	out.framech <- Frame{Video: video}
+	out.framech <- frame
 }
 
 // Stop output flow.
