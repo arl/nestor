@@ -39,6 +39,7 @@ func Start(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		NumVideoBuffers: 2,
 		Title:           "Nestor",
 		ScaleFactor:     2,
+		DisableVSync:    cfg.Video.DisableVSync,
 	})
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err

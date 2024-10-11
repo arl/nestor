@@ -14,8 +14,14 @@ import (
 )
 
 type Config struct {
-	Input    hw.InputConfig `toml:"input"`
+	Input hw.InputConfig `toml:"input"`
+	Video VideoConfig    `toml:"video"`
+
 	TraceOut io.WriteCloser `toml:"-"`
+}
+
+type VideoConfig struct {
+	DisableVSync bool `toml:"disable_vsync"`
 }
 
 var ConfigDir string = sync.OnceValue(func() string {
