@@ -29,7 +29,7 @@ func opcode02(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.doHalt = true
+	cpu.halt()
 }
 
 // SLO - indexed addressing (abs, X).
@@ -274,7 +274,7 @@ func opcode12(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.doHalt = true
+	cpu.halt()
 }
 
 // SLO - indexed addressing (abs),Y.
@@ -544,7 +544,7 @@ func opcode22(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.doHalt = true
+	cpu.halt()
 }
 
 // RLA - indexed addressing (abs, X).
@@ -807,7 +807,7 @@ func opcode32(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.doHalt = true
+	cpu.halt()
 }
 
 // RLA - indexed addressing (abs),Y.
@@ -1090,7 +1090,7 @@ func opcode42(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.doHalt = true
+	cpu.halt()
 }
 
 // SRE - indexed addressing (abs, X).
@@ -1340,7 +1340,7 @@ func opcode52(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.doHalt = true
+	cpu.halt()
 }
 
 // SRE - indexed addressing (abs),Y.
@@ -1622,7 +1622,7 @@ func opcode62(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.doHalt = true
+	cpu.halt()
 }
 
 // RRA - indexed addressing (abs, X).
@@ -1940,7 +1940,7 @@ func opcode72(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.doHalt = true
+	cpu.halt()
 }
 
 // RRA - indexed addressing (abs),Y.
@@ -2450,7 +2450,7 @@ func opcode92(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.doHalt = true
+	cpu.halt()
 }
 
 // SHA - indexed addressing (abs),Y.
@@ -2858,7 +2858,7 @@ func opcodeB2(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.doHalt = true
+	cpu.halt()
 }
 
 // LAX - indexed addressing (abs),Y.
@@ -3328,7 +3328,7 @@ func opcodeD2(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.doHalt = true
+	cpu.halt()
 }
 
 // DCP - indexed addressing (abs),Y.
@@ -3869,7 +3869,7 @@ func opcodeF2(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.doHalt = true
+	cpu.halt()
 }
 
 // ISC - indexed addressing (abs),Y.

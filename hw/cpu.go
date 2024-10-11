@@ -43,8 +43,7 @@ type CPU struct {
 	runIRQ, prevRunIRQ   bool
 	irqFlag              bool
 
-	selfjumps uint // infinite loop detection: count successive jumps to same PC.
-	doHalt    bool
+	halted bool
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -140,7 +139,7 @@ func (c *CPU) traceOp() {
 	c.dbg.Trace(c.PC)
 }
 
-func (c *CPU) Run(ncycles int64) bool {
+func (c *CPU) Run(ncycles int64) {
 	until := c.Cycles + ncycles
 	var opcode uint8
 	for c.Cycles < until {
@@ -149,7 +148,7 @@ func (c *CPU) Run(ncycles int64) bool {
 		c.PC++
 		ops[opcode](c)
 
-		if c.doHalt {
+		if c.halted {
 			break
 		}
 
@@ -158,16 +157,20 @@ func (c *CPU) Run(ncycles int64) bool {
 		}
 	}
 
-	if c.doHalt {
+	if c.halted {
 		log.ModCPU.WarnZ("CPU halted").
 			Hex16("PC", c.PC).
 			Hex8("opcode", opcode).
-			Uint("self jumps", c.selfjumps).
 			End()
-		return false
 	}
+}
 
-	return true
+func (c *CPU) halt() {
+	c.halted = true
+}
+
+func (c *CPU) IsHalted() bool {
+	return c.halted
 }
 
 const (

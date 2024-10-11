@@ -48,7 +48,7 @@ func (nes *NES) Reset() {
 	nes.CPU.Reset()
 }
 
-func (nes *NES) RunOneFrame(frame hw.Frame) bool {
+func (nes *NES) RunOneFrame(frame hw.Frame) {
 	nes.PPU.SetFrameBuffer(frame.Video)
-	return nes.CPU.Run(29781)
+	nes.CPU.Run(29781)
 }

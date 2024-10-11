@@ -64,11 +64,8 @@ func Start(rom *ines.Rom, cfg Config) (*Emulator, error) {
 
 func (e *Emulator) Run() {
 	for e.out.Poll() {
-		frame := e.out.BeginFrame()
-		halted := !e.NES.RunOneFrame(frame)
-		e.out.EndFrame(frame)
-
-		if halted {
+		e.RunOneFrame()
+		if e.NES.CPU.IsHalted() {
 			break
 		}
 	}
@@ -76,6 +73,12 @@ func (e *Emulator) Run() {
 	if err := e.out.Close(); err != nil {
 		log.ModEmu.WarnZ("Error closing emulator window").Error("error", err).End()
 	}
+}
+
+func (e *Emulator) RunOneFrame() {
+	frame := e.out.BeginFrame()
+	e.NES.RunOneFrame(frame)
+	e.out.EndFrame(frame)
 }
 
 func (e *Emulator) Screenshot() image.Image {

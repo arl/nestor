@@ -544,7 +544,7 @@ func copybits(dst, src, mask string) string {
 
 func (g *Generator) STP(def opdef) {
 	g.unstable = append(g.unstable, def.i)
-	g.printf(`cpu.doHalt = true`)
+	g.printf(`cpu.halt()`)
 }
 
 func (g *Generator) ADC(_ opdef) {
