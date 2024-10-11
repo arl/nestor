@@ -26,6 +26,9 @@ type OutputConfig struct {
 
 	// Window scale factor (defaults to 2).
 	ScaleFactor uint
+
+	// Do not synchronize updates with vertical retrace (i.e immediate updates).
+	DisableVSync bool
 }
 
 func OutputNTSC() OutputConfig {
@@ -90,7 +93,7 @@ func (out *Output) EnableVideo(enable bool) error {
 		if out.cfg.ScaleFactor != 0 {
 			wscale = int(out.cfg.ScaleFactor)
 		}
-		window, err := newWindow(out.cfg.Title, out.cfg.Width, out.cfg.Height, wscale)
+		window, err := newWindow(out.cfg.Title, !out.cfg.DisableVSync, out.cfg.Width, out.cfg.Height, wscale)
 		if err != nil {
 			return fmt.Errorf("failed to create emulator window: %s", err)
 		}

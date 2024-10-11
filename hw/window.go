@@ -16,22 +16,22 @@ type window struct {
 }
 
 // create opengl window with a full screen texture buffer of size (texw, texh).
-// The window is scaled by wscale.
-func newWindow(title string, texw, texh, wscale int) (*window, error) {
+// The window is scaled by wscale. Vsync if enforced if vsync is true.
+func newWindow(title string, vsync bool, texw, texh, wscale int) (*window, error) {
 	type result struct {
 		w   *window
 		err error
 	}
 	errc := make(chan result, 1)
 	sdl.Do(func() {
-		w, err := _newWindow(title, texw, texh, wscale)
+		w, err := _newWindow(title, vsync, texw, texh, wscale)
 		errc <- result{w, err}
 	})
 	res := <-errc
 	return res.w, res.err
 }
 
-func _newWindow(title string, texw, texh, wscale int) (*window, error) {
+func _newWindow(title string, vsync bool, texw, texh, wscale int) (*window, error) {
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_JOYSTICK); err != nil {
 		return nil, fmt.Errorf("failed to initialize SDL: %s", err)
 	}
@@ -57,6 +57,10 @@ func _newWindow(title string, texw, texh, wscale int) (*window, error) {
 
 	if err := gl.Init(); err != nil {
 		return nil, fmt.Errorf("failed to initialize opengl: %s", err)
+	}
+
+	if !vsync {
+		sdl.GLSetSwapInterval(0)
 	}
 
 	// Create empty texture buffer.
@@ -91,10 +95,10 @@ func _newWindow(title string, texw, texh, wscale int) (*window, error) {
 	gl.BindVertexArray(VAO)
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, gl.Ptr(vertices), gl.STATIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, gl.Ptr(&vertices[0]), gl.STATIC_DRAW)
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
-	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indices)*4, gl.Ptr(indices), gl.STATIC_DRAW)
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indices)*4, gl.Ptr(&indices[0]), gl.STATIC_DRAW)
 
 	// Position attributes
 	gl.VertexAttribPointerWithOffset(0, 3, gl.FLOAT, false, 5*4, 0)
@@ -129,9 +133,9 @@ func (w *window) Close() error {
 	return <-errc
 }
 
-// Columns are position and texture coordinates.
 // Rows are the quad vertices in clockwise order.
-var vertices = []float32{
+// Columns are vertices position in (x y z) and texture coords (z t).
+var vertices = [20]float32{
 	// x, y, z, s, t
 	1.0, 1.0, 0, 1, 0, // top right
 	1.0, -1.0, 0, 1, 1, // bottom right
@@ -139,7 +143,7 @@ var vertices = []float32{
 	-1.0, 1.0, 0, 0, 0, // top left
 }
 
-var indices = []uint32{
+var indices = [6]uint32{
 	0, 1, 3,
 	1, 2, 3,
 }
