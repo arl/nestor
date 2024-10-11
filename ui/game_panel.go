@@ -2,7 +2,6 @@ package ui
 
 import (
 	_ "embed"
-	"fmt"
 
 	"github.com/gotk3/gotk3/gtk"
 )
@@ -10,11 +9,8 @@ import (
 //go:embed game_panel.glade
 var gamePanelUI string
 
-func showGamePanel() (*gamePanel, error) {
-	builder, err := gtk.BuilderNewFromString(gamePanelUI)
-	if err != nil {
-		return nil, fmt.Errorf("builder: can't load UI file: %s", err)
-	}
+func showGamePanel() *gamePanel {
+	builder := mustT(gtk.BuilderNewFromString(gamePanelUI))
 
 	gp := &gamePanel{
 		Window: build[gtk.Window](builder, "game_panel_window"),
@@ -29,7 +25,7 @@ func showGamePanel() (*gamePanel, error) {
 	gp.Move((screenw-panelw)/2, (screenh-2*panelh-emuh)/2-winmenuh)
 	gp.SetVisible(true)
 
-	return gp, nil
+	return gp
 }
 
 type gamePanel struct {
