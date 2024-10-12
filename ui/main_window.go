@@ -111,7 +111,7 @@ func (mw *mainWindow) runROM(path string) {
 		panel := showGamePanel(mw.Window)
 		defer panel.Close()
 
-		emulator, err := emu.Launch(rom, mw.cfg)
+		emulator, err := emu.Launch(rom, mw.cfg, mw.monitorIndex())
 		errc <- err // Release gtk thread asap.
 
 		panel.connect(emulator)
@@ -129,6 +129,17 @@ func (mw *mainWindow) runROM(path string) {
 		modGUI.Fatalf("failed to start emulator window: %v", err)
 		gtk.MainQuit()
 	}
+}
+
+func (mw *mainWindow) monitorIndex() int32 {
+	gdkw := mustT(mw.GetWindow())
+	display := mustT(gdk.DisplayGetDefault())
+	monitor := mustT(display.GetMonitorAtWindow(gdkw))
+
+	if monitor.IsPrimary() {
+		return 0
+	}
+	return 1
 }
 
 func (mw *mainWindow) addRecentROM(romPath string, screenshot image.Image) error {

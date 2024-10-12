@@ -3,6 +3,7 @@ package ui
 import (
 	_ "embed"
 
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
 
 	"nestor/emu"
@@ -18,22 +19,35 @@ type gamePanel struct {
 
 func showGamePanel(parent *gtk.Window) *gamePanel {
 	builder := mustT(gtk.BuilderNewFromString(gamePanelUI))
+	win := build[gtk.Window](builder, "game_panel_window")
+
+	gdkw := mustT(parent.GetWindow())
+	display := mustT(gdk.DisplayGetDefault())
+
+	monitor := mustT(display.GetMonitorAtWindow(gdkw))
+	geom := monitor.GetGeometry()
+	monx, mony, monw, monh := geom.GetX(), geom.GetY(), geom.GetWidth(), geom.GetHeight()
 
 	// We know the emulator window starts at the center of the screen and has a
-	// scale factor of 2. We want to show the panel on top of it (best effort)
-	win := build[gtk.Window](builder, "game_panel_window")
+	// scale factor of 2. We want to show the panel on top of it (best effort).
+	const emuh = 240
+	const windecoh = 32 // window decoration bar height
+
 	panelw, panelh := win.GetSize()
-	screenw, screenh := getWorkArea()
-	const emuh = 240 * 2
-	const winmenuh = 28
+
+	// panel coordinate if it was centered on the screen
+	centerx := monx + (monw-panelw)/2
+	centery := mony + (monh-panelh)/2
+
+	// move the panel to the top of the emulator window
+	centery -= emuh + windecoh + panelh/2
 	win.SetParent(parent)
-	win.Move((screenw-panelw)/2, (screenh-2*panelh-emuh)/2-winmenuh)
+	win.Move(centerx, centery)
 	win.SetVisible(true)
 	return &gamePanel{
 		Window:  win,
 		builder: builder,
 	}
-
 }
 
 func (gp *gamePanel) connect(emulator *emu.Emulator) {

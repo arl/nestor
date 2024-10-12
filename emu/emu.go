@@ -30,7 +30,7 @@ type Emulator struct {
 }
 
 // Launch instantiates an emulator, setup controllers, output streams and window.
-func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
+func Launch(rom *ines.Rom, cfg Config, monidx int32) (*Emulator, error) {
 	nes, err := powerUp(rom)
 	if err != nil {
 		return nil, fmt.Errorf("power up failed: %s", err)
@@ -45,6 +45,7 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		Title:           "Nestor",
 		ScaleFactor:     2,
 		DisableVSync:    cfg.Video.DisableVSync,
+		Monitor:         monidx,
 	})
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err
