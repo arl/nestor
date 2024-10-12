@@ -15,23 +15,31 @@ type window struct {
 	context sdl.GLContext
 }
 
-// create opengl window with a full screen texture buffer of size (texw, texh).
-// The window is scaled by wscale. Vsync if enforced if vsync is true.
-func newWindow(title string, vsync bool, texw, texh, wscale int) (*window, error) {
+type windowConfig struct {
+	title      string
+	vsync      bool  // enforce vsync?
+	scale      int   // window scale factor
+	texw, texh int   // dimensions of the fullscreen texture buffer
+	monidx     int32 // monitor index
+}
+
+// create an opengl window that renders an unique texture
+// which takes up the whole viewport.
+func newWindow(cfg windowConfig) (*window, error) {
 	type result struct {
 		w   *window
 		err error
 	}
 	errc := make(chan result, 1)
 	sdl.Do(func() {
-		w, err := _newWindow(title, vsync, texw, texh, wscale)
+		w, err := _newWindow(cfg)
 		errc <- result{w, err}
 	})
 	res := <-errc
 	return res.w, res.err
 }
 
-func _newWindow(title string, vsync bool, texw, texh, wscale int) (*window, error) {
+func _newWindow(cfg windowConfig) (*window, error) {
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_JOYSTICK); err != nil {
 		return nil, fmt.Errorf("failed to initialize SDL: %s", err)
 	}
@@ -40,14 +48,15 @@ func _newWindow(title string, vsync bool, texw, texh, wscale int) (*window, erro
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 3)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
 
-	winw := int32(texw * wscale)
-	winh := int32(texh * wscale)
-	w, err := sdl.CreateWindow(title,
-		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
-		int32(winw), int32(winh),
-		sdl.WINDOW_OPENGL|sdl.WINDOW_SHOWN|sdl.WINDOW_RESIZABLE)
+	x := sdl.WINDOWPOS_CENTERED_MASK | cfg.monidx
+	y := sdl.WINDOWPOS_CENTERED_MASK | cfg.monidx
+	winw := int32(cfg.texw * cfg.scale)
+	winh := int32(cfg.texh * cfg.scale)
+	const flags = sdl.WINDOW_OPENGL | sdl.WINDOW_SHOWN | sdl.WINDOW_RESIZABLE
+
+	w, err := sdl.CreateWindow(cfg.title, x, y, winw, winh, flags)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create window: %s", err)
+		return nil, fmt.Errorf("failed to create sdl window: %s", err)
 	}
 
 	context, err := w.GLCreateContext()
@@ -59,7 +68,7 @@ func _newWindow(title string, vsync bool, texw, texh, wscale int) (*window, erro
 		return nil, fmt.Errorf("failed to initialize opengl: %s", err)
 	}
 
-	if !vsync {
+	if !cfg.vsync {
 		sdl.GLSetSwapInterval(0)
 	}
 
@@ -69,7 +78,7 @@ func _newWindow(title string, vsync bool, texw, texh, wscale int) (*window, erro
 	var texture uint32
 	gl.GenTextures(1, &texture)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(texw), int32(texh), 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&tbuf[0]))
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(cfg.texw), int32(cfg.texh), 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&tbuf[0]))
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 
 	vert, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)

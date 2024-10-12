@@ -15,6 +15,8 @@ import (
 	"nestor/emu/log"
 )
 
+const PrimaryMonitor = 0
+
 type OutputConfig struct {
 	// Dimensions of the video buffer (in pixels).
 	Width, Height int
@@ -27,6 +29,10 @@ type OutputConfig struct {
 
 	// Window scale factor (defaults to 2).
 	ScaleFactor uint
+
+	// Monitor on which to display the window.
+	// 0: primary monitor, 1: secondary monitor, etc.
+	Monitor int32
 
 	// Do not synchronize updates with vertical retrace (i.e immediate updates).
 	DisableVSync bool
@@ -89,18 +95,28 @@ func NewOutput(cfg OutputConfig) *Output {
 }
 
 func (out *Output) EnableVideo(enable bool) error {
-	if enable && !out.videoEnabled {
+	switch {
+	case enable && !out.videoEnabled:
 		wscale := 2
 		if out.cfg.ScaleFactor != 0 {
 			wscale = int(out.cfg.ScaleFactor)
 		}
-		window, err := newWindow(out.cfg.Title, !out.cfg.DisableVSync, out.cfg.Width, out.cfg.Height, wscale)
+
+		window, err := newWindow(windowConfig{
+			title:  out.cfg.Title,
+			vsync:  !out.cfg.DisableVSync,
+			texw:   out.cfg.Width,
+			texh:   out.cfg.Height,
+			scale:  wscale,
+			monidx: out.cfg.Monitor,
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create emulator window: %s", err)
 		}
 		out.window = window
 		out.videoEnabled = true
-	} else if !enable && out.videoEnabled {
+
+	case !enable && out.videoEnabled:
 		err := out.window.Close()
 		if err != nil {
 			return fmt.Errorf("failed to close emulator window: %s", err)
