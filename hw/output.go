@@ -6,6 +6,7 @@ import (
 	"image/png"
 	"os"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
@@ -57,7 +58,7 @@ type Output struct {
 	videoEnabled bool
 	window       *window
 
-	quit bool
+	quit atomic.Bool
 	stop chan struct{}
 	wg   sync.WaitGroup // workers loops
 
@@ -182,26 +183,27 @@ func (out *Output) renderVideo(video []byte) {
 }
 
 // Poll reports whether input polling is ongoing.
-// (i.e false if user requested to quit).
+// (i.e false if user requested to quit)
+// Safe for concurrent use.
 func (out *Output) Poll() bool {
-	return !out.quit
+	return !out.quit.Load()
 }
 
 func (out *Output) poll() {
 	defer out.wg.Done()
 
-	for !out.quit {
+	for out.Poll() {
 		sdl.Do(func() {
 			for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 				switch e := event.(type) {
 				case *sdl.KeyboardEvent:
 					if e.Type == sdl.KEYDOWN && e.Keysym.Sym == sdl.K_ESCAPE {
-						out.quit = true
+						out.quit.Store(true)
 						return
 					}
 
 				case *sdl.QuitEvent:
-					out.quit = true
+					out.quit.Store(true)
 				case *sdl.JoyButtonEvent:
 				case *sdl.WindowEvent:
 					if e.Event == sdl.WINDOWEVENT_RESIZED {
