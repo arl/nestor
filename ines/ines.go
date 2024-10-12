@@ -24,8 +24,8 @@ func yesno(b bool) string {
 
 func (rom *Rom) PrintInfos(w io.Writer) {
 	fmt.Fprintf(w, "iNES2.0 : %s\n", yesno(rom.IsNES20()))
-	fmt.Fprintf(w, "PRG ROM: %dx16kB\n", rom.header.PRGROMSlots())
-	fmt.Fprintf(w, "CHR ROM: %dx8kB\n", rom.header.CHRROMSlots())
+	fmt.Fprintf(w, "PRG ROM: %dx16k\n", rom.header.PRGROMSlots())
+	fmt.Fprintf(w, "CHR ROM: %dx8k\n", rom.header.CHRROMSlots())
 	fmt.Fprintf(w, "Nametable mirroring: %s\n", rom.Mirroring())
 	fmt.Fprintf(w, "Mapper: %d\n", rom.Mapper())
 	fmt.Fprintf(w, "Trainer: %s\n", yesno(rom.HasTrainer()))

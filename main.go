@@ -21,16 +21,26 @@ func main() {
 
 func main1() {
 	cfg := parseArgs(os.Args[1:])
-	cfg.validate() // fails if necessary
 
 	switch cfg.mode {
 	case guiMode:
 		guiMain()
+	case romInfosMode:
+		romInfosMain(cfg.RomInfos.RomPath)
 	case runMode:
 		emuMain(cfg.Run)
 	case mapInputMode:
 		hw.MapInputMain(cfg.MapInput.Button)
 	}
+}
+
+func romInfosMain(romPath string) {
+	rom, err := ines.ReadRom(romPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error reading ROM: %s", err)
+		os.Exit(1)
+	}
+	rom.PrintInfos(os.Stdout)
 }
 
 // guiMain runs Nestor graphical user interface.
@@ -52,11 +62,6 @@ func emuMain(cfg Run) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading ROM: %s", err)
 		os.Exit(1)
-	}
-
-	if cfg.Infos {
-		rom.PrintInfos(os.Stdout)
-		os.Exit(0)
 	}
 
 	var traceout io.WriteCloser
