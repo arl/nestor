@@ -36,4 +36,13 @@ func showGamePanel(parent *gtk.Window) *gamePanel {
 
 }
 
+func (gp *gamePanel) connect(emulator *emu.Emulator) {
+	build[gtk.ToggleButton](gp.builder, "pause_button").Connect("pressed", func(btn *gtk.ToggleButton) {
+		switch emulator.Pause() {
+		case true:
+			btn.SetLabel("Resume")
+		case false:
+			btn.SetLabel("Pause")
+		}
+	})
 }

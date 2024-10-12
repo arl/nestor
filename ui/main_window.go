@@ -114,6 +114,7 @@ func (mw *mainWindow) runROM(path string) {
 		emulator, err := emu.Launch(rom, mw.cfg)
 		errc <- err // Release gtk thread asap.
 
+		panel.connect(emulator)
 		emulator.Run()
 		screenshot := emulator.Screenshot()
 
