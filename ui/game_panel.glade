@@ -33,7 +33,7 @@
                       <class name="button-box"/>
                     </style>
                     <child>
-                      <object class="GtkButton" id="button_pause">
+                      <object class="GtkToggleButton" id="pause_button">
                         <property name="visible">True</property>
                         <property name="label">Pause</property>
                         <property name="hexpand">False</property>
@@ -41,7 +41,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkButton" id="button_stop">
+                      <object class="GtkButton" id="stop_button">
                         <property name="visible">True</property>
                         <property name="label">Stop</property>
                         <property name="hexpand">False</property>
@@ -49,7 +49,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkButton" id="button_reset">
+                      <object class="GtkButton" id="reset_button">
                         <property name="visible">True</property>
                         <property name="label">Reset</property>
                         <property name="hexpand">False</property>
@@ -57,7 +57,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkButton" id="button_restart">
+                      <object class="GtkButton" id="restart_button">
                         <property name="visible">True</property>
                         <property name="label">Restart</property>
                         <property name="hexpand">False</property>

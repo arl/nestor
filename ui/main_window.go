@@ -108,13 +108,13 @@ func (mw *mainWindow) runROM(path string) {
 		defer mw.wg.Done()
 		defer mw.SetSensitive(true)
 
-		ctrlWin := showGamePanel()
-		emulator, err := emu.Start(rom, mw.cfg)
+		panel := showGamePanel(mw.Window)
+		defer panel.Close()
+
+		emulator, err := emu.Launch(rom, mw.cfg)
 		errc <- err // Release gtk thread asap.
 
 		emulator.Run()
-		ctrlWin.Close()
-
 		screenshot := emulator.Screenshot()
 
 		glib.IdleAdd(func() {

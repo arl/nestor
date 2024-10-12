@@ -4,30 +4,36 @@ import (
 	_ "embed"
 
 	"github.com/gotk3/gotk3/gtk"
+
+	"nestor/emu"
 )
 
 //go:embed game_panel.glade
 var gamePanelUI string
 
-func showGamePanel() *gamePanel {
-	builder := mustT(gtk.BuilderNewFromString(gamePanelUI))
+type gamePanel struct {
+	*gtk.Window
+	builder *gtk.Builder
+}
 
-	gp := &gamePanel{
-		Window: build[gtk.Window](builder, "game_panel_window"),
-	}
+func showGamePanel(parent *gtk.Window) *gamePanel {
+	builder := mustT(gtk.BuilderNewFromString(gamePanelUI))
 
 	// We know the emulator window starts at the center of the screen and has a
 	// scale factor of 2. We want to show the panel on top of it (best effort)
-	panelw, panelh := gp.GetSize()
+	win := build[gtk.Window](builder, "game_panel_window")
+	panelw, panelh := win.GetSize()
 	screenw, screenh := getWorkArea()
 	const emuh = 240 * 2
 	const winmenuh = 28
-	gp.Move((screenw-panelw)/2, (screenh-2*panelh-emuh)/2-winmenuh)
-	gp.SetVisible(true)
+	win.SetParent(parent)
+	win.Move((screenw-panelw)/2, (screenh-2*panelh-emuh)/2-winmenuh)
+	win.SetVisible(true)
+	return &gamePanel{
+		Window:  win,
+		builder: builder,
+	}
 
-	return gp
 }
 
-type gamePanel struct {
-	*gtk.Window
 }
