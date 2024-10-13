@@ -39,13 +39,13 @@ func powerUp(rom *ines.Rom) (*NES, error) {
 		PPU: ppu,
 		Rom: rom,
 	}
-	nes.Reset()
+	nes.Reset(false)
 	return nes, nil
 }
 
-func (nes *NES) Reset() {
+func (nes *NES) Reset(soft bool) {
 	nes.PPU.Reset()
-	nes.CPU.Reset()
+	nes.CPU.Reset(soft)
 }
 
 func (nes *NES) RunOneFrame(frame hw.Frame) {

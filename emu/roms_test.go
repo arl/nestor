@@ -108,6 +108,9 @@ func TestBlarggRoms(t *testing.T) {
 
 		"oam_read/oam_read.nes",
 		// "oam_stress/oam_stress.nes",
+
+		"cpu_reset/ram_after_reset.nes",
+		"cpu_reset/registers.nes",
 	}
 
 	for _, romName := range tests {
@@ -150,6 +153,10 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			Width:  hw.OutputNTSC().Width,
 		})
 
+		// When reset is required, it needs to be pressed 100ms later, so we
+		// start a frame counter to keep track of the time.
+		framesBeforeReset := -1 // not requested
+
 		for {
 			vbuf := out.BeginFrame()
 			nes.RunOneFrame(vbuf)
@@ -175,9 +182,17 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			if result == 0x80 {
 				t.Log("test still running...")
 			}
-			if result == 0x81 {
-				t.Log("needs reset button pressed in the next 100ms")
-				panic("not implemented")
+
+			// Handle Reset request
+			switch {
+			case framesBeforeReset == 0:
+				nes.Reset(true)
+				framesBeforeReset = -1
+			case framesBeforeReset > 0:
+				framesBeforeReset--
+			case result == 0x81:
+				framesBeforeReset = 20 // in 20 frames >= 100ms
+				t.Log("RESET required")
 			}
 		}
 		if result != 0x00 {

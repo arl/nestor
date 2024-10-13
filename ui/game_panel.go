@@ -61,6 +61,9 @@ func (gp *gamePanel) moveAndShow(parent *gtk.Window) {
 }
 
 func (gp *gamePanel) connect(emulator *emu.Emulator) {
+	gp.Connect("destroy", emulator.Stop)
+	gp.reset.Connect("pressed", emulator.Reset)
+	gp.restart.Connect("pressed", emulator.Restart)
 	gp.pause.Connect("toggled", func(btn *gtk.ToggleButton) {
 		paused := btn.GetActive()
 		emulator.SetPause(paused)
@@ -76,6 +79,4 @@ func (gp *gamePanel) connect(emulator *emu.Emulator) {
 		emulator.Stop()
 		gp.Close()
 	})
-	gp.Connect("destroy", emulator.Stop)
-
 }

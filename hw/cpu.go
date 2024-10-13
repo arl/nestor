@@ -92,26 +92,33 @@ func (c *CPU) InitBus() {
 	// unused
 }
 
-func (c *CPU) Reset() {
-	c.A = 0x00
-	c.X = 0x00
-	c.Y = 0x00
-	c.SP = 0xFD
-	c.P.setIntDisable(true)
-	c.runIRQ = false
-	c.Cycles = -1
-	c.nmiFlag = false
+func (c *CPU) Reset(soft bool) {
+	if soft {
+		c.SP -= 0x03
+		c.P.setIntDisable(true)
+	} else {
+		c.A = 0x00
+		c.X = 0x00
+		c.Y = 0x00
+		c.runIRQ = false
+
+		c.SP = 0xFD
+		c.P = 0x00
+		c.P.setIntDisable(true)
+	}
 
 	c.ppuDMA.reset()
 
-	// Directly read from the bus to prevent ticking the clock.
+	// Directly read from the bus to avoid side effects.
 	c.PC = hwio.Read16(c.Bus, ResetVector)
 	c.dbg.Reset()
 
+	c.Cycles = -1
+	c.nmiFlag = false
 	c.masterClock = ntscCPUDivider
 
-	// The CPU takes 8 cycles before it starts executing the ROM's code
-	// after a reset/power up
+	// After a reset/power up, the CPU takes burns 8 cycles
+	// before going on with ROM execution.
 	for i := 0; i < 8; i++ {
 		c.cycleBegin(true)
 		c.cycleEnd(true)

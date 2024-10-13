@@ -195,7 +195,7 @@ func loadCPUWith(tb testing.TB, dump string) *CPU {
 		cpu.Bus.MapMemorySlice(line.off, line.off+uint16(len(line.bytes))-1, line.bytes, false)
 	}
 
-	cpu.Reset()
+	cpu.Reset(false)
 	return cpu
 }
 

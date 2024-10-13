@@ -245,7 +245,7 @@ func TestLDA_STA(t *testing.T) {
 	runAndCheckState(t, cpu, 6*3,
 		"A", 0x08,
 		"PC", 0x060F,
-		"SP", 0xfd,
+		"SP", 0xFD,
 	)
 }
 

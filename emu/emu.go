@@ -27,6 +27,7 @@ type Emulator struct {
 
 	quit   atomic.Bool
 	paused atomic.Bool
+	reset  atomic.Bool
 }
 
 // Launch instantiates an emulator, setup controllers, output streams and window.
@@ -80,14 +81,15 @@ func (e *Emulator) RunOneFrame() {
 
 func (e *Emulator) Run() {
 	for {
+		// Handle pause.
 		if !e.paused.Load() {
 			e.RunOneFrame()
 		} else {
-			// don't burn cpu.
+			// Don't burn cpu.
 			time.Sleep(100 * time.Millisecond)
 		}
 
-		// stop conditions
+		// Stop conditions
 		if e.quit.Load() ||
 			!e.out.Poll() ||
 			e.NES.CPU.IsHalted() {
@@ -96,16 +98,21 @@ func (e *Emulator) Run() {
 			}
 			break
 		}
+
+		if e.reset.Load() {
+			e.NES.Reset(true)
+			e.reset.Store(false)
+		}
 	}
 	log.ModEmu.InfoZ("Emulation loop exited").End()
 }
 
 func (e *Emulator) SetPause(pause bool) {
-	if !e.paused.CompareAndSwap(!pause, pause) {
-		return
-	}
+	e.paused.CompareAndSwap(!pause, pause)
 }
 
-func (e *Emulator) Stop() {
-	e.quit.Store(true)
-}
+func (e *Emulator) Stop()  { e.quit.Store(true) }
+func (e *Emulator) Reset() { e.reset.Store(true) }
+
+func (e *Emulator) Restart() {}
+func (e *Emulator) restart() {}
