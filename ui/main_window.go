@@ -49,6 +49,8 @@ type mainWindow struct {
 	rrv *recentROMsView
 	wg  sync.WaitGroup
 	cfg emu.Config
+
+	stopEmu func()
 }
 
 func newMainWindow() (*mainWindow, error) {
@@ -59,8 +61,9 @@ func newMainWindow() (*mainWindow, error) {
 	}
 
 	mw := &mainWindow{
-		Window: build[gtk.Window](builder, "main_window"),
-		cfg:    emu.LoadConfigOrDefault(),
+		Window:  build[gtk.Window](builder, "main_window"),
+		cfg:     emu.LoadConfigOrDefault(),
+		stopEmu: func() {},
 	}
 
 	mw.Connect("destroy", func() bool { mw.Close(nil); return true })
@@ -89,6 +92,10 @@ func (mw *mainWindow) Close(err error) {
 		modGUI.Warnf("closing UI with error: %s", err)
 	}
 
+	if mw.stopEmu != nil {
+		mw.stopEmu()
+	}
+
 	mw.wg.Wait()
 	gtk.MainQuit()
 }
@@ -102,33 +109,32 @@ func (mw *mainWindow) runROM(path string) {
 		return
 	}
 
-	errc := make(chan error)
+	emulator, err := emu.Launch(rom, mw.cfg, mw.monitorIndex())
+	if err != nil {
+		modGUI.Fatalf("failed to start emulator window: %v", err)
+		gtk.MainQuit()
+	}
+	mw.stopEmu = emulator.Stop
+
+	panel := showGamePanel(mw.Window)
+	panel.connect(emulator)
+
 	mw.wg.Add(1)
 	go func() {
-		defer mw.wg.Done()
 		defer mw.SetSensitive(true)
+		defer mw.wg.Done()
 
-		panel := showGamePanel(mw.Window)
-		defer panel.Close()
-
-		emulator, err := emu.Launch(rom, mw.cfg, mw.monitorIndex())
-		errc <- err // Release gtk thread asap.
-
-		panel.connect(emulator)
 		emulator.Run()
-		screenshot := emulator.Screenshot()
+		mw.stopEmu = func() {}
+		panel.Close()
 
+		screenshot := emulator.Screenshot()
 		glib.IdleAdd(func() {
 			if err := mw.addRecentROM(path, screenshot); err != nil {
 				modGUI.Warnf("failed to add recent ROM: %s", err)
 			}
 		})
 	}()
-
-	if err := <-errc; err != nil {
-		modGUI.Fatalf("failed to start emulator window: %v", err)
-		gtk.MainQuit()
-	}
 }
 
 func (mw *mainWindow) monitorIndex() int32 {

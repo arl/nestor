@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"sync/atomic"
 	"time"
 
 	"nestor/emu/log"
@@ -24,9 +25,8 @@ type Emulator struct {
 	NES *NES
 	out Output
 
-	userAction chan func()
-	paused     bool
-	pauseCh    chan struct{}
+	quit   atomic.Bool
+	paused atomic.Bool
 }
 
 // Launch instantiates an emulator, setup controllers, output streams and window.
@@ -63,68 +63,13 @@ func Launch(rom *ines.Rom, cfg Config, monidx int32) (*Emulator, error) {
 	}
 
 	return &Emulator{
-		NES:        nes,
-		out:        out,
-		userAction: make(chan func(), 1),
-		paused:     false,
-		pauseCh:    make(chan struct{}),
+		NES: nes,
+		out: out,
 	}, nil
 }
 
-func (e *Emulator) handleUserAction() {
-	select {
-	case a := <-e.userAction:
-		a()
-	default:
-	}
-}
-func (e *Emulator) Pause() (paused bool) {
-	e.paused = !e.paused
-	go func() {
-		if !e.paused {
-			e.play()
-			return
-		}
-		e.userAction <- e.pause
-	}()
-	return e.paused
-}
-
-// pause blocks the emulator loop until either play()
-// is called or the output window is closed.
-func (e *Emulator) pause() {
-	outpoll := time.NewTicker(100 * time.Millisecond)
-	defer outpoll.Stop()
-	e.pauseCh = make(chan struct{})
-
-	for {
-		select {
-		case <-e.pauseCh:
-			return
-		case <-outpoll.C:
-			// poll the output window.
-			if !e.out.Poll() {
-				return
-			}
-		}
-	}
-}
-
-func (e *Emulator) play() { close(e.pauseCh) }
-
-func (e *Emulator) Run() {
-	for e.out.Poll() {
-		e.RunOneFrame()
-		if e.NES.CPU.IsHalted() {
-			break
-		}
-		e.handleUserAction()
-	}
-
-	log.ModEmu.InfoZ("Emulation stopped").End()
-	if err := e.out.Close(); err != nil {
-		log.ModEmu.WarnZ("Error closing emulator window").Error("error", err).End()
-	}
+func (e *Emulator) Screenshot() image.Image {
+	return e.out.Screenshot()
 }
 
 func (e *Emulator) RunOneFrame() {
@@ -133,6 +78,34 @@ func (e *Emulator) RunOneFrame() {
 	e.out.EndFrame(frame)
 }
 
-func (e *Emulator) Screenshot() image.Image {
-	return e.out.Screenshot()
+func (e *Emulator) Run() {
+	for {
+		if !e.paused.Load() {
+			e.RunOneFrame()
+		} else {
+			// don't burn cpu.
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		// stop conditions
+		if e.quit.Load() ||
+			!e.out.Poll() ||
+			e.NES.CPU.IsHalted() {
+			if err := e.out.Close(); err != nil {
+				log.ModEmu.WarnZ("Error closing emulator window").Error("error", err).End()
+			}
+			break
+		}
+	}
+	log.ModEmu.InfoZ("Emulation loop exited").End()
+}
+
+func (e *Emulator) SetPause(pause bool) {
+	if !e.paused.CompareAndSwap(!pause, pause) {
+		return
+	}
+}
+
+func (e *Emulator) Stop() {
+	e.quit.Store(true)
 }

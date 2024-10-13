@@ -14,13 +14,27 @@ var gamePanelUI string
 
 type gamePanel struct {
 	*gtk.Window
-	builder *gtk.Builder
+
+	pause   *gtk.ToggleButton
+	stop    *gtk.Button
+	reset   *gtk.Button
+	restart *gtk.Button
 }
 
 func showGamePanel(parent *gtk.Window) *gamePanel {
 	builder := mustT(gtk.BuilderNewFromString(gamePanelUI))
-	win := build[gtk.Window](builder, "game_panel_window")
+	gp := &gamePanel{
+		Window:  build[gtk.Window](builder, "game_panel_window"),
+		pause:   build[gtk.ToggleButton](builder, "pause_button"),
+		stop:    build[gtk.Button](builder, "stop_button"),
+		reset:   build[gtk.Button](builder, "reset_button"),
+		restart: build[gtk.Button](builder, "restart_button"),
+	}
+	gp.moveAndShow(parent)
+	return gp
+}
 
+func (gp *gamePanel) moveAndShow(parent *gtk.Window) {
 	gdkw := mustT(parent.GetWindow())
 	display := mustT(gdk.DisplayGetDefault())
 
@@ -33,7 +47,7 @@ func showGamePanel(parent *gtk.Window) *gamePanel {
 	const emuh = 240
 	const windecoh = 32 // window decoration bar height
 
-	panelw, panelh := win.GetSize()
+	panelw, panelh := gp.GetSize()
 
 	// panel coordinate if it was centered on the screen
 	centerx := monx + (monw-panelw)/2
@@ -41,22 +55,27 @@ func showGamePanel(parent *gtk.Window) *gamePanel {
 
 	// move the panel to the top of the emulator window
 	centery -= emuh + windecoh + panelh/2
-	win.SetParent(parent)
-	win.Move(centerx, centery)
-	win.SetVisible(true)
-	return &gamePanel{
-		Window:  win,
-		builder: builder,
-	}
+	gp.SetParent(parent)
+	gp.Move(centerx, centery)
+	gp.SetVisible(true)
 }
 
 func (gp *gamePanel) connect(emulator *emu.Emulator) {
-	build[gtk.ToggleButton](gp.builder, "pause_button").Connect("pressed", func(btn *gtk.ToggleButton) {
-		switch emulator.Pause() {
-		case true:
+	gp.pause.Connect("toggled", func(btn *gtk.ToggleButton) {
+		paused := btn.GetActive()
+		emulator.SetPause(paused)
+		if paused {
 			btn.SetLabel("Resume")
-		case false:
+		} else {
 			btn.SetLabel("Pause")
 		}
+		gp.reset.SetSensitive(!paused)
+		gp.restart.SetSensitive(!paused)
 	})
+	gp.stop.Connect("pressed", func() {
+		emulator.Stop()
+		gp.Close()
+	})
+	gp.Connect("destroy", emulator.Stop)
+
 }

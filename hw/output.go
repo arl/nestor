@@ -147,11 +147,13 @@ func (out *Output) EndFrame(frame Frame) {
 func (out *Output) Close() error {
 	log.ModEmu.DebugZ("Terminating output streams").End()
 	close(out.stop)
+	out.quit.Store(true)
 
 	// Flow is stopped by now, but window may still be rendering.
 	if out.window != nil {
 		out.window.SetTitle("halted")
 	}
+
 	out.wg.Wait()
 
 	if out.window != nil {
@@ -166,6 +168,7 @@ func (out *Output) render() {
 	for {
 		select {
 		case <-out.stop:
+			log.ModEmu.DebugZ("Stopped rendering loop").End()
 			return
 		case frame := <-out.framech:
 			if out.videoEnabled {
