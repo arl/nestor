@@ -2,7 +2,6 @@ package emu
 
 import (
 	"fmt"
-	"image"
 
 	"nestor/hw"
 	"nestor/hw/mappers"
@@ -13,8 +12,6 @@ type NES struct {
 	CPU *hw.CPU
 	PPU *hw.PPU
 	Rom *ines.Rom
-
-	Frames chan image.RGBA
 }
 
 func powerUp(rom *ines.Rom) (*NES, error) {
@@ -24,8 +21,7 @@ func powerUp(rom *ines.Rom) (*NES, error) {
 	cpu.InitBus()
 	ppu.CPU = cpu
 
-	// Load mapper, applying cartridge memory
-	// and hardware based on mapper.
+	// Load mapper.
 	mapper, ok := mappers.All[rom.Mapper()]
 	if !ok {
 		return nil, fmt.Errorf("unsupported mapper %03d", rom.Mapper())

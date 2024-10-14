@@ -23,9 +23,10 @@ type Emulator struct {
 	NES *NES
 	out Output
 
-	quit   atomic.Bool
-	paused atomic.Bool
-	reset  atomic.Bool
+	quit    atomic.Bool
+	paused  atomic.Bool
+	reset   atomic.Bool
+	restart atomic.Bool
 }
 
 // Launch instantiates an emulator, setup controllers, output streams and window.
@@ -36,7 +37,6 @@ func Launch(rom *ines.Rom, cfg Config, monidx int32) (*Emulator, error) {
 	}
 
 	// Output setup.
-	nes.Frames = make(chan image.RGBA)
 	out := hw.NewOutput(hw.OutputConfig{
 		Width:           256,
 		Height:          240,
@@ -80,33 +80,43 @@ func (e *Emulator) RunOneFrame() {
 func (e *Emulator) Run() {
 	for {
 		// Handle pause.
-		if !e.paused.Load() {
+		if e.isPaused() {
 			// Don't burn cpu while paused.
 			time.Sleep(100 * time.Millisecond)
 		} else {
 			e.RunOneFrame()
 		}
-
-		// handle stop conditions.
-		if e.quit.Load() || !e.out.Poll() || e.NES.CPU.IsHalted() {
+		if e.shouldStop() {
 			e.out.Close()
 			break
 		}
-
-		// handle reset.
-		if e.reset.Load() {
-			e.NES.Reset(true)
-			e.reset.Store(false)
-		}
+		e.handleReset()
 	}
 	log.ModEmu.InfoZ("Emulation loop exited").End()
 }
 
-func (e *Emulator) SetPause(pause bool) {
-	e.paused.CompareAndSwap(!pause, pause)
+// SetPause, Stop, Reset and Restart allows to control the emulator loop in a
+// concurrent-safe way.
+
+func (e *Emulator) SetPause(pause bool) { e.paused.CompareAndSwap(!pause, pause) }
+func (e *Emulator) Stop()               { e.quit.Store(true) }
+func (e *Emulator) Reset()              { e.reset.Store(true) }
+func (e *Emulator) Restart()            { e.restart.Store(true) }
+
+func (e *Emulator) isPaused() bool {
+	return e.paused.Load()
 }
 
-func (e *Emulator) Stop()    { e.quit.Store(true) }
-func (e *Emulator) Reset()   { e.reset.Store(true) }
-func (e *Emulator) Restart() {}
-func (e *Emulator) restart() {}
+func (e *Emulator) shouldStop() bool {
+	return e.quit.Load() || !e.out.Poll() || e.NES.CPU.IsHalted()
+}
+
+func (e *Emulator) handleReset() {
+	if e.reset.CompareAndSwap(true, false) {
+		log.ModEmu.InfoZ("Performing soft reset").End()
+		e.NES.Reset(true)
+	} else if e.restart.CompareAndSwap(true, false) {
+		log.ModEmu.InfoZ("Performing hard reset").End()
+		e.NES.Reset(false)
+	}
+}
