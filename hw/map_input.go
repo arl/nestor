@@ -15,9 +15,9 @@ import (
 
 const mapInputNone = "none"
 
-// ShowMapInputWindow shows the user a small window,
+// AskForKeybding shows the user a small window,
 // capturing the next key or joystick press.
-func ShowMapInputWindow(btnName string) (string, error) {
+func AskForKeybding(btnName string) (string, error) {
 	cmd := exec.Command(os.Args[0], "map-input", "--button="+btnName)
 	out, err := cmd.Output()
 	if err != nil {

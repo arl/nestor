@@ -13,11 +13,11 @@ import (
 	"nestor/hw"
 )
 
-func openInputConfigDialog(cfg *hw.InputConfig) {
+func showControllerConfig(cfg *hw.InputConfig) {
 	dlg := mustT(gtk.DialogNew())
 	dlg.SetTitle("NES Controller Configuration")
 	dlg.SetModal(true)
-	dlg.SetDefaultSize(800, 400)
+	dlg.SetDefaultSize(550, 250)
 
 	tabs := mustT(gtk.NotebookNew())
 
@@ -93,7 +93,7 @@ type controllerConfig struct {
 	listStore   *gtk.ListStore
 	padcfg      *hw.PaddleConfig
 
-	bboxes [hw.PadButtonCount]boundingBox
+	bboxes [hw.PadButtonCount]aabb
 
 	scale float64
 }
@@ -104,12 +104,14 @@ func createPropertyList() (*gtk.TreeView, *gtk.ListStore) {
 	treeView := mustT(gtk.TreeViewNewWithModel(listStore))
 
 	// Create the Button Name column
-	col := mustT(gtk.TreeViewColumnNewWithAttribute("Button", mustT(gtk.CellRendererTextNew()), "text", 0))
+	col := mustT(gtk.TreeViewColumnNewWithAttribute("Button",
+		mustT(gtk.CellRendererTextNew()), "text", 0))
 	col.SetResizable(true)
 	treeView.AppendColumn(col)
 
 	// Create the Assigned Key column
-	col = mustT(gtk.TreeViewColumnNewWithAttribute("Assigned Key", mustT(gtk.CellRendererTextNew()), "text", 1))
+	col = mustT(gtk.TreeViewColumnNewWithAttribute("Assigned Key",
+		mustT(gtk.CellRendererTextNew()), "text", 1))
 	col.SetResizable(true)
 	treeView.AppendColumn(col)
 
@@ -124,7 +126,8 @@ func (cc *controllerConfig) updatePropertyList() {
 
 	for btn := hw.PadA; btn <= hw.PadRight; btn++ {
 		iter := cc.listStore.Append()
-		must(cc.listStore.Set(iter, []int{0, 1}, []any{btn.String(), cc.padcfg.GetMapping(btn)}))
+		mapping := cc.padcfg.GetMapping(btn)
+		must(cc.listStore.Set(iter, []int{0, 1}, []any{btn.String(), mapping}))
 	}
 }
 
@@ -134,15 +137,15 @@ func (cc *controllerConfig) computeScale() {
 		ymax = 42.0
 	)
 
-	allocation := cc.drawingArea.GetAllocation()
-	width := float64(allocation.GetWidth())
-	height := float64(allocation.GetHeight())
+	alloc := cc.drawingArea.GetAllocation()
+	w := float64(alloc.GetWidth())
+	h := float64(alloc.GetHeight())
 
 	// Compute scale to maintain aspect ratio
-	if width/height >= xmax/ymax {
-		cc.scale = height / ymax
+	if w/h >= xmax/ymax {
+		cc.scale = h / ymax
 	} else {
-		cc.scale = width / xmax
+		cc.scale = w / xmax
 	}
 }
 
@@ -152,42 +155,41 @@ func (cc *controllerConfig) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cc.computeScale()
 	cr.Scale(cc.scale, cc.scale)
 
-	// Draw controller body.
+	// Controller body.
 	cr.SetSourceRGB(0.8, 0.8, 0.8) // Light grey
 	cr.Rectangle(0, 0, 100, 42)
 	drawRoundedRectangle(cr, 0, 0, 100, 42, 2, allCorners)
 	cr.Fill()
 
-	// Draw internal panel.
+	// Internal panel.
 	cr.SetSourceRGB(0.3, 0.3, 0.3) // Dark grey
 	drawRoundedRectangle(cr, 3, 6, 94, 32, 1.5)
 	cr.Fill()
 
-	// Draw directional pad panel.
+	// Directional pad panel.
 	cr.SetSourceRGB(0.1, 0.1, 0.1) // Nearly black
 	cr.Rectangle(7, 21, 18, 6)
 	cr.Rectangle(13, 15, 6, 18)
 	cr.Fill()
 
-	// Make the dpad prettier.
 	cr.SetSourceRGB(0.2, 0.2, 0.2)
-	drawArrow(cr, 14, 16, 4, 4, ArrowUp)
+	drawArrow(cr, 14, 16, 4, 4, arrowUp)
 	cr.Fill()
-	drawArrow(cr, 14, 28, 4, 4, ArrowDown)
+	drawArrow(cr, 14, 28, 4, 4, arrowDown)
 	cr.Fill()
-	drawArrow(cr, 8, 22, 4, 4, ArrowLeft)
+	drawArrow(cr, 8, 22, 4, 4, arrowLeft)
 	cr.Fill()
-	drawArrow(cr, 20, 22, 4, 4, ArrowRight)
+	drawArrow(cr, 20, 22, 4, 4, arrowRight)
 	cr.Fill()
 	cr.Arc(16, 24, 2, 0, 2*math.Pi)
 	cr.Fill()
 
-	cc.bboxes[hw.PadUp] = boundingBox{13, 15, 20, 21}
-	cc.bboxes[hw.PadDown] = boundingBox{13, 27, 20, 33}
-	cc.bboxes[hw.PadLeft] = boundingBox{7, 21, 13, 27}
-	cc.bboxes[hw.PadRight] = boundingBox{20, 21, 27, 27}
+	cc.bboxes[hw.PadUp] = aabb{13, 15, 20, 21}
+	cc.bboxes[hw.PadDown] = aabb{13, 27, 20, 33}
+	cc.bboxes[hw.PadLeft] = aabb{7, 21, 13, 27}
+	cc.bboxes[hw.PadRight] = aabb{20, 21, 27, 27}
 
-	// Draw central horizontal lines.
+	// Central H lines.
 	cr.SetSourceRGB(0.5, 0.5, 0.5)
 	drawRoundedRectangle(cr, 31, 6, 28, 5, 1.5, bottomLeft, bottomRight)
 	cr.Fill()
@@ -198,69 +200,65 @@ func (cc *controllerConfig) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 	drawRoundedRectangle(cr, 31, 35, 28, 3, 1.5, topLeft, topRight)
 	cr.Fill()
 
-	// Draw select and start texts.
+	// Select/Start
+	//
 	cr.SelectFontFace("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
 	cr.SetFontSize(2.4)
 
-	text := "SELECT"
 	cr.SetSourceRGB(0.9, 0, 0)
 	cr.MoveTo(33, 21.5)
-	cr.ShowText(text)
+	cr.ShowText("SELECT")
 
-	text = "START"
 	cr.SetSourceRGB(0.9, 0, 0)
 	cr.MoveTo(47, 21.5)
-	cr.ShowText(text)
+	cr.ShowText("START")
 
-	// Draw select/start panel.
+	// Select/start panel.
 	cr.SetSourceRGB(0.9, 0.9, 0.9)
 	drawRoundedRectangle(cr, 31, 24, 28, 9, 1.5)
 	cr.Fill()
 
-	// Draw select/start buttons.
+	// Select/start buttons.
 	cr.SetSourceRGB(0.1, 0.1, 0.1)
 	drawRoundedRectangle(cr, 34, 27.5, 8, 3, 1.5)
 	cr.Fill()
 	drawRoundedRectangle(cr, 48, 27.5, 8, 3, 1.5)
 	cr.Fill()
 
-	cc.bboxes[hw.PadSelect] = boundingBox{34, 27.5, 42, 30.5}
-	cc.bboxes[hw.PadStart] = boundingBox{48, 27.5, 56, 30.5}
+	cc.bboxes[hw.PadSelect] = aabb{34, 27.5, 42, 30.5}
+	cc.bboxes[hw.PadStart] = aabb{48, 27.5, 56, 30.5}
 
-	// Draw B/A panels.
+	// B/A
+
+	// B/A panels.
 	cr.SetSourceRGB(0.9, 0.9, 0.9)
 	drawRoundedRectangle(cr, 65, 24, 10, 10, 1.5)
 	cr.Fill()
 	drawRoundedRectangle(cr, 77, 24, 10, 10, 1.5)
 	cr.Fill()
 
-	cc.bboxes[hw.PadB] = boundingBox{65, 24, 75, 34}
-	cc.bboxes[hw.PadA] = boundingBox{77, 24, 87, 34}
+	cc.bboxes[hw.PadB] = aabb{65, 24, 75, 34}
+	cc.bboxes[hw.PadA] = aabb{77, 24, 87, 34}
 
-	// Draw B/A buttons.
+	// B/A buttons.
 	cr.SetSourceRGB(1, 0, 0)
 	cr.Arc(70, 29, 4, 0, 2*math.Pi)
 	cr.Arc(82, 29, 4, 0, 2*math.Pi)
 	cr.Fill()
 
 	cr.SetFontSize(2.6)
-	text = "B"
 	cr.MoveTo(73, 37)
-	cr.ShowText(text)
+	cr.ShowText("B")
 
-	text = "A"
 	cr.MoveTo(85, 37)
-	cr.ShowText(text)
+	cr.ShowText("A")
 }
 
-// onClick handles mouse clicks
 func (cc *controllerConfig) onClick(da *gtk.DrawingArea, event *gdk.Event) {
-	// Ensure the transformation parameters are computed
 	cc.computeScale()
 
-	// Get the click coordinates
-	buttonEvent := gdk.EventButtonNewFromEvent(event)
-	x, y := buttonEvent.MotionVal()
+	evbtn := gdk.EventButtonNewFromEvent(event)
+	x, y := evbtn.MotionVal()
 
 	// Account for scaling.
 	x /= cc.scale
@@ -269,7 +267,7 @@ func (cc *controllerConfig) onClick(da *gtk.DrawingArea, event *gdk.Event) {
 	for i, bbox := range cc.bboxes {
 		if bbox.contains(x, y) {
 			btn := hw.PaddleButton(i)
-			code, err := hw.ShowMapInputWindow(btn.String())
+			code, err := hw.AskForKeybding(btn.String())
 			if err != nil {
 				gtk.MessageDialogNew(nil, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, "Error: %s", err).Run()
 				return
@@ -284,16 +282,16 @@ func (cc *controllerConfig) onClick(da *gtk.DrawingArea, event *gdk.Event) {
 	}
 }
 
-type arrowDirection int
+type arrowDir int
 
 const (
-	ArrowUp arrowDirection = iota
-	ArrowDown
-	ArrowLeft
-	ArrowRight
+	arrowUp arrowDir = iota
+	arrowDown
+	arrowLeft
+	arrowRight
 )
 
-func drawArrow(cr *cairo.Context, x, y, length, width float64, direction arrowDirection) {
+func drawArrow(cr *cairo.Context, x, y, length, width float64, dir arrowDir) {
 	cr.NewPath()
 
 	// Dimensions for the arrow
@@ -307,26 +305,26 @@ func drawArrow(cr *cairo.Context, x, y, length, width float64, direction arrowDi
 		headx1, heady1 float64
 		headx2, heady2 float64
 	)
-	switch direction {
-	case ArrowUp:
+	switch dir {
+	case arrowUp:
 		shaftx, shafty = x+(width-shaftWidth)/2, y+headLength
 		shaftw, shafth = shaftWidth, length-headLength
 		headx0, heady0 = x+width/2, y
 		headx1, heady1 = x, y+headLength
 		headx2, heady2 = x+width, y+headLength
-	case ArrowDown:
+	case arrowDown:
 		shaftx, shafty = x+(width-shaftWidth)/2, y
 		shaftw, shafth = shaftWidth, length-headLength
 		headx0, heady0 = x+width/2, y+length
 		headx1, heady1 = x, y+length-headLength
 		headx2, heady2 = x+width, y+length-headLength
-	case ArrowLeft:
+	case arrowLeft:
 		shaftx, shafty = x+headLength, y+(width-shaftWidth)/2
 		shaftw, shafth = length-headLength, shaftWidth
 		headx0, heady0 = x, y+width/2
 		headx1, heady1 = x+headLength, y
 		headx2, heady2 = x+headLength, y+width
-	case ArrowRight:
+	case arrowRight:
 		shaftx, shafty = x, y+(width-shaftWidth)/2
 		shaftw, shafth = length-headLength, shaftWidth
 		headx0, heady0 = x+length, y+width/2
@@ -412,12 +410,10 @@ func drawRoundedRectangle(cr *cairo.Context, x, y, width, height, radius float64
 	cr.ClosePath()
 }
 
-// boundingBox is an axis-aligned bounding box.
-type boundingBox struct {
+type aabb struct {
 	xmin, ymin, xmax, ymax float64
 }
 
-// contains reports whether the point (x,y) is inside bb.
-func (bb boundingBox) contains(x, y float64) bool {
+func (bb aabb) contains(x, y float64) bool {
 	return x >= bb.xmin && x <= bb.xmax && y >= bb.ymin && y <= bb.ymax
 }

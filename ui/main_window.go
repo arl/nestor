@@ -78,7 +78,7 @@ func newMainWindow() (*mainWindow, error) {
 		mw.runROM(path)
 	})
 	build[gtk.MenuItem](builder, "menu_controls").Connect("activate", func(m *gtk.MenuItem) {
-		openInputConfigDialog(&mw.cfg.Input)
+		showControllerConfig(&mw.cfg.Input)
 		if err := emu.SaveConfig(mw.cfg); err != nil {
 			modGUI.Warnf("failed to save config: %s", err)
 		}
