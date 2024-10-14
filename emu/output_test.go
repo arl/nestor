@@ -44,9 +44,7 @@ func newTestingOutput(cfg TestingOutputConfig) *TestingOutput {
 	}
 }
 
-func (to *TestingOutput) Close() error {
-	return nil
-}
+func (to *TestingOutput) Close() {}
 
 func (to *TestingOutput) BeginFrame() (frame hw.Frame) {
 	return hw.Frame{Video: to.framebuf}

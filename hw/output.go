@@ -144,7 +144,7 @@ func (out *Output) EndFrame(frame Frame) {
 }
 
 // Stop output flow.
-func (out *Output) Close() error {
+func (out *Output) Close() {
 	log.ModEmu.DebugZ("Terminating output streams").End()
 	close(out.stop)
 	out.quit.Store(true)
@@ -155,12 +155,15 @@ func (out *Output) Close() error {
 	}
 
 	out.wg.Wait()
-
-	if out.window != nil {
-		log.ModEmu.DebugZ("Closing SDL window").End()
-		return out.window.Close()
+	if out.window == nil {
+		return
 	}
-	return nil
+
+	if err := out.window.Close(); err != nil {
+		log.ModEmu.WarnZ("Error closing SDL window").Error("error", err).End()
+		return
+	}
+	log.ModEmu.DebugZ("Closing SDL window").End()
 }
 
 func (out *Output) render() {

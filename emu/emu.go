@@ -3,7 +3,6 @@ package emu
 import (
 	"fmt"
 	"image"
-	"io"
 	"sync/atomic"
 	"time"
 
@@ -13,11 +12,10 @@ import (
 )
 
 type Output interface {
-	io.Closer
-
 	BeginFrame() hw.Frame
 	EndFrame(hw.Frame)
 	Poll() bool
+	Close()
 	Screenshot() image.Image
 }
 
@@ -83,22 +81,19 @@ func (e *Emulator) Run() {
 	for {
 		// Handle pause.
 		if !e.paused.Load() {
-			e.RunOneFrame()
-		} else {
-			// Don't burn cpu.
+			// Don't burn cpu while paused.
 			time.Sleep(100 * time.Millisecond)
+		} else {
+			e.RunOneFrame()
 		}
 
-		// Stop conditions
-		if e.quit.Load() ||
-			!e.out.Poll() ||
-			e.NES.CPU.IsHalted() {
-			if err := e.out.Close(); err != nil {
-				log.ModEmu.WarnZ("Error closing emulator window").Error("error", err).End()
-			}
+		// handle stop conditions.
+		if e.quit.Load() || !e.out.Poll() || e.NES.CPU.IsHalted() {
+			e.out.Close()
 			break
 		}
 
+		// handle reset.
 		if e.reset.Load() {
 			e.NES.Reset(true)
 			e.reset.Store(false)
@@ -111,8 +106,7 @@ func (e *Emulator) SetPause(pause bool) {
 	e.paused.CompareAndSwap(!pause, pause)
 }
 
-func (e *Emulator) Stop()  { e.quit.Store(true) }
-func (e *Emulator) Reset() { e.reset.Store(true) }
-
+func (e *Emulator) Stop()    { e.quit.Store(true) }
+func (e *Emulator) Reset()   { e.reset.Store(true) }
 func (e *Emulator) Restart() {}
 func (e *Emulator) restart() {}
