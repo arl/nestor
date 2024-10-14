@@ -267,7 +267,7 @@ func (cc *controllerConfig) onClick(da *gtk.DrawingArea, event *gdk.Event) {
 	for i, bbox := range cc.bboxes {
 		if bbox.contains(x, y) {
 			btn := hw.PaddleButton(i)
-			code, err := hw.AskForKeybding(btn.String())
+			code, err := hw.ShowKeybindingWindow(btn.String())
 			if err != nil {
 				gtk.MessageDialogNew(nil, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, "Error: %s", err).Run()
 				return

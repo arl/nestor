@@ -10,7 +10,6 @@ import (
 
 	"nestor/emu"
 	"nestor/emu/log"
-	"nestor/hw"
 	"nestor/ines"
 	"nestor/ui"
 )
@@ -29,8 +28,6 @@ func main1() {
 		romInfosMain(cfg.RomInfos.RomPath)
 	case runMode:
 		emuMain(cfg.Run)
-	case mapInputMode:
-		hw.MapInputMain(cfg.MapInput.Button)
 	}
 }
 

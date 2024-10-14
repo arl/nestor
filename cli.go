@@ -17,7 +17,6 @@ const (
 	guiMode      mode = iota // Start Nestor GUI
 	runMode                  // Just run a ROM
 	romInfosMode             // Show ROM infos
-	mapInputMode             // keyboard/joystick mapping window
 )
 
 type (
@@ -25,8 +24,6 @@ type (
 		GUI      GUI      `cmd:"" help:"Run Nestor graphical user interface. The default if no commands are given." default:"1"`
 		Run      Run      `cmd:"" help:"Run ROM in emulator."`
 		RomInfos RomInfos `cmd:"" help:"Show ROM infos." name:"rom-infos"`
-
-		MapInput MapInput `cmd:"" name:"map-input" hidden:""`
 
 		mode mode
 	}
@@ -75,8 +72,6 @@ func parseArgs(args []string) CLI {
 		cfg.mode = guiMode
 	case "rom-infos </path/to/rom>":
 		cfg.mode = romInfosMode
-	case "map-input":
-		cfg.mode = mapInputMode
 	default:
 		cfg.mode = runMode
 	}
