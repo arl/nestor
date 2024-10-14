@@ -9,9 +9,9 @@ import (
 	"testing"
 	"unsafe"
 
-	"nestor/emu/hwio"
 	"nestor/emu/log"
 	"nestor/hw"
+	"nestor/hw/hwio"
 	"nestor/ines"
 	"nestor/tests"
 )

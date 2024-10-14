@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"nestor/emu/hwio"
 	"nestor/emu/log"
+	"nestor/hw/hwio"
 	"nestor/tests"
 )
 

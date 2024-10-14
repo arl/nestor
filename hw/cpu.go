@@ -5,8 +5,8 @@ package hw
 import (
 	"io"
 
-	"nestor/emu/hwio"
 	"nestor/emu/log"
+	"nestor/hw/hwio"
 )
 
 // Locations reserved for vector pointers.

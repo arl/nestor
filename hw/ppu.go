@@ -4,8 +4,8 @@ import (
 	"image/color"
 	"unsafe"
 
-	"nestor/emu/hwio"
 	"nestor/emu/log"
+	"nestor/hw/hwio"
 )
 
 const (
