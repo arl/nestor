@@ -22,8 +22,8 @@ func showControllerConfig(cfg *hw.InputConfig) {
 	tabs := mustT(gtk.NotebookNew())
 
 	for i := range cfg.Paddles {
-		tabLabel := fmt.Sprintf("Controller %d", i+1)
 		content := createControllerTab(&cfg.Paddles[i])
+		tabLabel := fmt.Sprintf("Controller %d", i+1)
 		tabs.AppendPage(content, mustT(gtk.LabelNew(tabLabel)))
 	}
 
@@ -48,7 +48,6 @@ func createControllerTab(padcfg *hw.PaddleConfig) *gtk.Widget {
 
 	treeView, listStore := createPropertyList()
 
-	// Checkbox for the plugged state.
 	plugcheck := mustT(gtk.CheckButtonNewWithLabel("Plugged"))
 	plugcheck.SetActive(padcfg.Plugged)
 	plugcheck.Connect("toggled", func(cb *gtk.CheckButton) {
@@ -59,7 +58,6 @@ func createControllerTab(padcfg *hw.PaddleConfig) *gtk.Widget {
 	vbox := mustT(gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 5))
 	vbox.PackStart(treeView, false, true, 0)
 	vbox.PackStart(plugcheck, false, false, 0)
-
 	frame := mustT(gtk.FrameNew(""))
 	frame.SetShadowType(gtk.SHADOW_ETCHED_IN)
 	frame.SetBorderWidth(5)
@@ -72,10 +70,10 @@ func createControllerTab(padcfg *hw.PaddleConfig) *gtk.Widget {
 	hbox.PackStart(frame, false, false, 0)
 
 	cc := &controllerConfig{
-		drawingArea: area,
-		treeView:    treeView,
-		listStore:   listStore,
-		padcfg:      padcfg,
+		drawArea:  area,
+		treeView:  treeView,
+		listStore: listStore,
+		padcfg:    padcfg,
 	}
 
 	// Initialize property list.
@@ -88,10 +86,10 @@ func createControllerTab(padcfg *hw.PaddleConfig) *gtk.Widget {
 }
 
 type controllerConfig struct {
-	drawingArea *gtk.DrawingArea
-	treeView    *gtk.TreeView
-	listStore   *gtk.ListStore
-	padcfg      *hw.PaddleConfig
+	drawArea  *gtk.DrawingArea
+	treeView  *gtk.TreeView
+	listStore *gtk.ListStore
+	padcfg    *hw.PaddleConfig
 
 	bboxes [hw.PadButtonCount]aabb
 
@@ -137,7 +135,7 @@ func (cc *controllerConfig) computeScale() {
 		ymax = 42.0
 	)
 
-	alloc := cc.drawingArea.GetAllocation()
+	alloc := cc.drawArea.GetAllocation()
 	w := float64(alloc.GetWidth())
 	h := float64(alloc.GetHeight())
 
@@ -158,12 +156,12 @@ func (cc *controllerConfig) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 	// Controller body.
 	cr.SetSourceRGB(0.8, 0.8, 0.8) // Light grey
 	cr.Rectangle(0, 0, 100, 42)
-	drawRoundedRectangle(cr, 0, 0, 100, 42, 2, allCorners)
+	roundedRect(cr, 0, 0, 100, 42, 2, allCorners)
 	cr.Fill()
 
 	// Internal panel.
 	cr.SetSourceRGB(0.3, 0.3, 0.3) // Dark grey
-	drawRoundedRectangle(cr, 3, 6, 94, 32, 1.5)
+	roundedRect(cr, 3, 6, 94, 32, 1.5)
 	cr.Fill()
 
 	// Directional pad panel.
@@ -173,13 +171,13 @@ func (cc *controllerConfig) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.Fill()
 
 	cr.SetSourceRGB(0.2, 0.2, 0.2)
-	drawArrow(cr, 14, 16, 4, 4, arrowUp)
+	arrow(cr, 14, 16, 4, 4, arrowUp)
 	cr.Fill()
-	drawArrow(cr, 14, 28, 4, 4, arrowDown)
+	arrow(cr, 14, 28, 4, 4, arrowDown)
 	cr.Fill()
-	drawArrow(cr, 8, 22, 4, 4, arrowLeft)
+	arrow(cr, 8, 22, 4, 4, arrowLeft)
 	cr.Fill()
-	drawArrow(cr, 20, 22, 4, 4, arrowRight)
+	arrow(cr, 20, 22, 4, 4, arrowRight)
 	cr.Fill()
 	cr.Arc(16, 24, 2, 0, 2*math.Pi)
 	cr.Fill()
@@ -191,13 +189,13 @@ func (cc *controllerConfig) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 
 	// Central H lines.
 	cr.SetSourceRGB(0.5, 0.5, 0.5)
-	drawRoundedRectangle(cr, 31, 6, 28, 5, 1.5, bottomLeft, bottomRight)
+	roundedRect(cr, 31, 6, 28, 5, 1.5, bottomLeft, bottomRight)
 	cr.Fill()
-	drawRoundedRectangle(cr, 31, 12, 28, 5, 1.5)
+	roundedRect(cr, 31, 12, 28, 5, 1.5)
 	cr.Fill()
-	drawRoundedRectangle(cr, 31, 18, 28, 5, 1.5)
+	roundedRect(cr, 31, 18, 28, 5, 1.5)
 	cr.Fill()
-	drawRoundedRectangle(cr, 31, 35, 28, 3, 1.5, topLeft, topRight)
+	roundedRect(cr, 31, 35, 28, 3, 1.5, topLeft, topRight)
 	cr.Fill()
 
 	// Select/Start
@@ -215,14 +213,14 @@ func (cc *controllerConfig) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 
 	// Select/start panel.
 	cr.SetSourceRGB(0.9, 0.9, 0.9)
-	drawRoundedRectangle(cr, 31, 24, 28, 9, 1.5)
+	roundedRect(cr, 31, 24, 28, 9, 1.5)
 	cr.Fill()
 
 	// Select/start buttons.
 	cr.SetSourceRGB(0.1, 0.1, 0.1)
-	drawRoundedRectangle(cr, 34, 27.5, 8, 3, 1.5)
+	roundedRect(cr, 34, 27.5, 8, 3, 1.5)
 	cr.Fill()
-	drawRoundedRectangle(cr, 48, 27.5, 8, 3, 1.5)
+	roundedRect(cr, 48, 27.5, 8, 3, 1.5)
 	cr.Fill()
 
 	cc.bboxes[hw.PadSelect] = aabb{34, 27.5, 42, 30.5}
@@ -232,9 +230,9 @@ func (cc *controllerConfig) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 
 	// B/A panels.
 	cr.SetSourceRGB(0.9, 0.9, 0.9)
-	drawRoundedRectangle(cr, 65, 24, 10, 10, 1.5)
+	roundedRect(cr, 65, 24, 10, 10, 1.5)
 	cr.Fill()
-	drawRoundedRectangle(cr, 77, 24, 10, 10, 1.5)
+	roundedRect(cr, 77, 24, 10, 10, 1.5)
 	cr.Fill()
 
 	cc.bboxes[hw.PadB] = aabb{65, 24, 75, 34}
@@ -291,7 +289,7 @@ const (
 	arrowRight
 )
 
-func drawArrow(cr *cairo.Context, x, y, length, width float64, dir arrowDir) {
+func arrow(cr *cairo.Context, x, y, length, width float64, dir arrowDir) {
 	cr.NewPath()
 
 	// Dimensions for the arrow
@@ -357,7 +355,7 @@ const (
 	allCorners = topLeft | topRight | bottomLeft | bottomRight
 )
 
-func drawRoundedRectangle(cr *cairo.Context, x, y, width, height, radius float64, corners ...corner) {
+func roundedRect(cr *cairo.Context, x, y, width, height, radius float64, corners ...corner) {
 	cr.NewPath()
 
 	c := allCorners
