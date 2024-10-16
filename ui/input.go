@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"fmt"
+	_ "embed"
 	"math"
 	"strings"
 
@@ -9,163 +9,95 @@ import (
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
+	"github.com/gotk3/gotk3/pango"
 
 	"nestor/hw"
 )
 
+//go:embed input.glade
+var inputUI string
+
+type paddlesCfgDialog struct {
+	*gtk.Dialog
+
+	padcfg *hw.PaddleConfig // depends on current radio button
+
+	drawArea  *gtk.DrawingArea
+	listStore *gtk.ListStore
+	plugcheck *gtk.CheckButton
+	bboxes    [hw.PadButtonCount]aabbox
+
+	drawScale float64
+}
+
 func showControllerConfig(cfg *hw.InputConfig) {
-	dlg := mustT(gtk.DialogNew())
-	dlg.SetTitle("NES Controller Configuration")
-	dlg.SetModal(true)
-	dlg.SetDefaultSize(550, 250)
-
-	tabs := mustT(gtk.NotebookNew())
-
-	for i := range cfg.Paddles {
-		content := createControllerTab(&cfg.Paddles[i])
-		tabLabel := fmt.Sprintf("Controller %d", i+1)
-		tabs.AppendPage(content, mustT(gtk.LabelNew(tabLabel)))
+	builder := mustT(gtk.BuilderNewFromString(inputUI))
+	dlg := paddlesCfgDialog{
+		Dialog:    build[gtk.Dialog](builder, "input_dialog"),
+		plugcheck: build[gtk.CheckButton](builder, "plugged_chk"),
+		drawArea:  build[gtk.DrawingArea](builder, "paddle_drawing"),
+		listStore: mustT(gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING)),
+		padcfg:    &cfg.Paddles[0],
+		drawScale: 3.6,
 	}
+	radioPad1 := build[gtk.RadioButton](builder, "paddle1_radio")
+	radioPad2 := build[gtk.RadioButton](builder, "paddle2_radio")
+	treeView := build[gtk.TreeView](builder, "treeview")
 
-	area := mustT(dlg.GetContentArea())
-	area.Add(tabs)
+	treeView.SetModel(dlg.listStore)
+	btncell := mustT(gtk.CellRendererTextNew())
+	keycell := mustT(gtk.CellRendererTextNew())
+	btncell.SetProperty("weight", pango.WEIGHT_NORMAL)
+	keycell.SetProperty("weight", pango.WEIGHT_LIGHT)
+	btncol := mustT(gtk.TreeViewColumnNewWithAttribute("Button", btncell, "text", 0))
+	keycol := mustT(gtk.TreeViewColumnNewWithAttribute("Assigned Key", keycell, "text", 1))
+	treeView.AppendColumn(btncol)
+	treeView.AppendColumn(keycol)
 
+	dlg.drawArea.Connect("draw", dlg.onDraw)
+	dlg.drawArea.Connect("button-press-event", dlg.onClick)
+	dlg.plugcheck.Connect("toggled", func(cb *gtk.CheckButton) { dlg.padcfg.Plugged = cb.GetActive() })
+	radioPad1.Connect("clicked", func() { dlg.padcfg = &cfg.Paddles[0]; dlg.onClickedPaddle() })
+	radioPad2.Connect("clicked", func() { dlg.padcfg = &cfg.Paddles[1]; dlg.onClickedPaddle() })
+
+	dlg.onClickedPaddle()
 	dlg.ShowAll()
 	dlg.Run()
 	dlg.Destroy()
 }
 
-// createControllerTab creates the content for each controller tab.
-func createControllerTab(padcfg *hw.PaddleConfig) *gtk.Widget {
-	area := mustT(gtk.DrawingAreaNew())
-	area.SetEvents(int(gdk.BUTTON_PRESS_MASK))
-
-	const margin = 10
-	area.SetMarginStart(margin)
-	area.SetMarginEnd(margin)
-	area.SetMarginTop(margin)
-	area.SetMarginBottom(margin)
-
-	treeView, listStore := createPropertyList()
-
-	plugcheck := mustT(gtk.CheckButtonNewWithLabel("Plugged"))
-	plugcheck.SetActive(padcfg.Plugged)
-	plugcheck.Connect("toggled", func(cb *gtk.CheckButton) {
-		padcfg.Plugged = cb.GetActive()
-	})
-
-	// Wrap treeview and checkbox into a vbox and into a frame.
-	vbox := mustT(gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 5))
-	vbox.PackStart(treeView, false, true, 0)
-	vbox.PackStart(plugcheck, false, false, 0)
-	frame := mustT(gtk.FrameNew(""))
-	frame.SetShadowType(gtk.SHADOW_ETCHED_IN)
-	frame.SetBorderWidth(5)
-	frame.Add(vbox)
-	frame.SetSizeRequest(200, -1)
-
-	// Pack the drawing area and frame into a hbox.
-	hbox := mustT(gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 5))
-	hbox.PackStart(area, true, true, 0)
-	hbox.PackStart(frame, false, false, 0)
-
-	cc := &controllerConfig{
-		drawArea:  area,
-		treeView:  treeView,
-		listStore: listStore,
-		padcfg:    padcfg,
-	}
-
-	// Initialize property list.
-	cc.updatePropertyList()
-
-	area.Connect("draw", cc.onDraw)
-	area.Connect("button-press-event", cc.onClick)
-
-	return &hbox.Container.Widget
+func (dlg *paddlesCfgDialog) onClickedPaddle() {
+	dlg.plugcheck.SetActive(dlg.padcfg.Plugged)
+	dlg.updatePropertyList()
 }
 
-type controllerConfig struct {
-	drawArea  *gtk.DrawingArea
-	treeView  *gtk.TreeView
-	listStore *gtk.ListStore
-	padcfg    *hw.PaddleConfig
-
-	bboxes [hw.PadButtonCount]aabb
-
-	scale float64
-}
-
-// createPropertyList creates the TreeView and ListStore for the property list
-func createPropertyList() (*gtk.TreeView, *gtk.ListStore) {
-	listStore := mustT(gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING))
-	treeView := mustT(gtk.TreeViewNewWithModel(listStore))
-
-	// Create the Button Name column
-	col := mustT(gtk.TreeViewColumnNewWithAttribute("Button",
-		mustT(gtk.CellRendererTextNew()), "text", 0))
-	col.SetResizable(true)
-	treeView.AppendColumn(col)
-
-	// Create the Assigned Key column
-	col = mustT(gtk.TreeViewColumnNewWithAttribute("Assigned Key",
-		mustT(gtk.CellRendererTextNew()), "text", 1))
-	col.SetResizable(true)
-	treeView.AppendColumn(col)
-
-	// Set grid lines to make it look like a table
-	treeView.SetGridLines(gtk.TREE_VIEW_GRID_LINES_BOTH)
-
-	return treeView, listStore
-}
-
-func (cc *controllerConfig) updatePropertyList() {
-	cc.listStore.Clear()
+func (dlg *paddlesCfgDialog) updatePropertyList() {
+	dlg.listStore.Clear()
 
 	for btn := hw.PadA; btn <= hw.PadRight; btn++ {
-		iter := cc.listStore.Append()
-		mapping := cc.padcfg.GetMapping(btn)
-		must(cc.listStore.Set(iter, []int{0, 1}, []any{btn.String(), mapping}))
-	}
-}
-
-func (cc *controllerConfig) computeScale() {
-	const (
-		xmax = 100.0
-		ymax = 42.0
-	)
-
-	alloc := cc.drawArea.GetAllocation()
-	w := float64(alloc.GetWidth())
-	h := float64(alloc.GetHeight())
-
-	// Compute scale to maintain aspect ratio
-	if w/h >= xmax/ymax {
-		cc.scale = h / ymax
-	} else {
-		cc.scale = w / xmax
+		iter := dlg.listStore.Append()
+		mapping := dlg.padcfg.GetMapping(btn)
+		must(dlg.listStore.Set(iter, []int{0, 1}, []any{btn.String(), mapping}))
 	}
 }
 
 // onDraw handles the drawing event
-func (cc *controllerConfig) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
-	// Set the transformation matrix
-	cc.computeScale()
-	cr.Scale(cc.scale, cc.scale)
+func (dlg *paddlesCfgDialog) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
+	cr.Scale(dlg.drawScale, dlg.drawScale)
 
-	// Controller body.
-	cr.SetSourceRGB(0.8, 0.8, 0.8) // Light grey
+	// Paddle body.
+	cr.SetSourceRGB(0.8, 0.8, 0.8)
 	cr.Rectangle(0, 0, 100, 42)
 	roundedRect(cr, 0, 0, 100, 42, 2, allCorners)
 	cr.Fill()
 
 	// Internal panel.
-	cr.SetSourceRGB(0.3, 0.3, 0.3) // Dark grey
+	cr.SetSourceRGB(0.3, 0.3, 0.3)
 	roundedRect(cr, 3, 6, 94, 32, 1.5)
 	cr.Fill()
 
-	// Directional pad panel.
-	cr.SetSourceRGB(0.1, 0.1, 0.1) // Nearly black
+	// Dpad panel.
+	cr.SetSourceRGB(0.1, 0.1, 0.1)
 	cr.Rectangle(7, 21, 18, 6)
 	cr.Rectangle(13, 15, 6, 18)
 	cr.Fill()
@@ -182,10 +114,10 @@ func (cc *controllerConfig) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.Arc(16, 24, 2, 0, 2*math.Pi)
 	cr.Fill()
 
-	cc.bboxes[hw.PadUp] = aabb{13, 15, 20, 21}
-	cc.bboxes[hw.PadDown] = aabb{13, 27, 20, 33}
-	cc.bboxes[hw.PadLeft] = aabb{7, 21, 13, 27}
-	cc.bboxes[hw.PadRight] = aabb{20, 21, 27, 27}
+	dlg.bboxes[hw.PadUp] = aabbox{13, 15, 20, 21}
+	dlg.bboxes[hw.PadDown] = aabbox{13, 27, 20, 33}
+	dlg.bboxes[hw.PadLeft] = aabbox{7, 21, 13, 27}
+	dlg.bboxes[hw.PadRight] = aabbox{20, 21, 27, 27}
 
 	// Central H lines.
 	cr.SetSourceRGB(0.5, 0.5, 0.5)
@@ -198,8 +130,6 @@ func (cc *controllerConfig) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 	roundedRect(cr, 31, 35, 28, 3, 1.5, topLeft, topRight)
 	cr.Fill()
 
-	// Select/Start
-	//
 	cr.SelectFontFace("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
 	cr.SetFontSize(2.4)
 
@@ -223,10 +153,8 @@ func (cc *controllerConfig) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 	roundedRect(cr, 48, 27.5, 8, 3, 1.5)
 	cr.Fill()
 
-	cc.bboxes[hw.PadSelect] = aabb{34, 27.5, 42, 30.5}
-	cc.bboxes[hw.PadStart] = aabb{48, 27.5, 56, 30.5}
-
-	// B/A
+	dlg.bboxes[hw.PadSelect] = aabbox{34, 27.5, 42, 30.5}
+	dlg.bboxes[hw.PadStart] = aabbox{48, 27.5, 56, 30.5}
 
 	// B/A panels.
 	cr.SetSourceRGB(0.9, 0.9, 0.9)
@@ -235,34 +163,27 @@ func (cc *controllerConfig) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 	roundedRect(cr, 77, 24, 10, 10, 1.5)
 	cr.Fill()
 
-	cc.bboxes[hw.PadB] = aabb{65, 24, 75, 34}
-	cc.bboxes[hw.PadA] = aabb{77, 24, 87, 34}
+	dlg.bboxes[hw.PadB] = aabbox{65, 24, 75, 34}
+	dlg.bboxes[hw.PadA] = aabbox{77, 24, 87, 34}
 
 	// B/A buttons.
 	cr.SetSourceRGB(1, 0, 0)
 	cr.Arc(70, 29, 4, 0, 2*math.Pi)
 	cr.Arc(82, 29, 4, 0, 2*math.Pi)
 	cr.Fill()
-
 	cr.SetFontSize(2.6)
 	cr.MoveTo(73, 37)
 	cr.ShowText("B")
-
 	cr.MoveTo(85, 37)
 	cr.ShowText("A")
 }
 
-func (cc *controllerConfig) onClick(da *gtk.DrawingArea, event *gdk.Event) {
-	cc.computeScale()
+func (dlg *paddlesCfgDialog) onClick(da *gtk.DrawingArea, event *gdk.Event) {
+	x, y := gdk.EventButtonNewFromEvent(event).MotionVal()
+	x /= dlg.drawScale
+	y /= dlg.drawScale
 
-	evbtn := gdk.EventButtonNewFromEvent(event)
-	x, y := evbtn.MotionVal()
-
-	// Account for scaling.
-	x /= cc.scale
-	y /= cc.scale
-
-	for i, bbox := range cc.bboxes {
+	for i, bbox := range dlg.bboxes {
 		if bbox.contains(x, y) {
 			btn := hw.PaddleButton(i)
 			code, err := hw.ShowKeybindingWindow(btn.String())
@@ -272,8 +193,8 @@ func (cc *controllerConfig) onClick(da *gtk.DrawingArea, event *gdk.Event) {
 			}
 			code = strings.TrimSpace(code)
 			if code != "" {
-				cc.padcfg.SetMapping(btn, code)
-				cc.updatePropertyList()
+				dlg.padcfg.SetMapping(btn, code)
+				dlg.updatePropertyList()
 			}
 			return
 		}
@@ -292,9 +213,8 @@ const (
 func arrow(cr *cairo.Context, x, y, length, width float64, dir arrowDir) {
 	cr.NewPath()
 
-	// Dimensions for the arrow
-	shaftWidth := width * 0.6  // Width of the arrow shaft
-	headLength := length * 0.4 // Length of the arrow head
+	shaftWidth := width * 0.6  // arrow shaft width
+	headLength := length * 0.4 // arrow head length
 
 	var (
 		shaftx, shafty float64
@@ -332,11 +252,8 @@ func arrow(cr *cairo.Context, x, y, length, width float64, dir arrowDir) {
 		panic("unexpected arrow direction")
 	}
 
-	// Draw shaft
 	cr.Rectangle(shaftx, shafty, shaftw, shafth)
 	cr.Fill()
-
-	// Draw head
 	cr.MoveTo(headx0, heady0)
 	cr.LineTo(headx1, heady1)
 	cr.LineTo(headx2, heady2)
@@ -408,10 +325,10 @@ func roundedRect(cr *cairo.Context, x, y, width, height, radius float64, corners
 	cr.ClosePath()
 }
 
-type aabb struct {
+type aabbox struct {
 	xmin, ymin, xmax, ymax float64
 }
 
-func (bb aabb) contains(x, y float64) bool {
+func (bb aabbox) contains(x, y float64) bool {
 	return x >= bb.xmin && x <= bb.xmax && y >= bb.ymin && y <= bb.ymax
 }
