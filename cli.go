@@ -16,14 +16,14 @@ type mode byte
 const (
 	guiMode      mode = iota // Start Nestor GUI
 	runMode                  // Just run a ROM
-	mapInputMode             // keyboard/joystick mapping window
+	romInfosMode             // Show ROM infos
 )
 
 type (
 	CLI struct {
 		GUI      GUI      `cmd:"" help:"Run Nestor graphical user interface. The default if no commands are given." default:"1"`
 		Run      Run      `cmd:"" help:"Run ROM in emulator."`
-		MapInput MapInput `cmd:"" name:"map-input" hidden:""`
+		RomInfos RomInfos `cmd:"" help:"Show ROM infos." name:"rom-infos"`
 
 		mode mode
 	}
@@ -37,8 +37,11 @@ type (
 		CPUProfile string     `name:"cpuprofile" help:"${cpuprofile_help}" type:"path"`
 		RomPath    string     `arg:"" name:"/path/to/rom" optional:"" help:"${rompath_help}" type:"existingfile"`
 		Log        logModMask `help:"${log_help}" placeholder:"mod0,mod1,..."`
-		Infos      bool       `name:"infos" help:"Show information about the ROM and exit."`
 		Trace      *outfile   `name:"trace" help:"Write CPU trace log." placeholder:"FILE|stdout|stderr"`
+	}
+
+	RomInfos struct {
+		RomPath string `arg:"" name:"/path/to/rom" type:"existingfile"`
 	}
 )
 
@@ -46,19 +49,6 @@ var vars = kong.Vars{
 	"rompath_help":    "Run the ROM directly, skip the graphical user interface.",
 	"cpuprofile_help": "Write CPU profile to file. (only when running a ROM)",
 	"log_help":        "Enable logging for specified modules. See 'Log Modules'.",
-}
-
-func (cfg CLI) validate() {
-	switch cfg.mode {
-	case runMode:
-		cfg := cfg.Run
-		if cfg.RomPath == "" {
-			// gui mode
-			if cfg.CPUProfile != "" {
-				fatalf("cpuprofile option is only available when running a ROM")
-			}
-		}
-	}
 }
 
 func parseArgs(args []string) CLI {
@@ -80,8 +70,8 @@ func parseArgs(args []string) CLI {
 	switch ctx.Command() {
 	case "gui":
 		cfg.mode = guiMode
-	case "map-input":
-		cfg.mode = mapInputMode
+	case "rom-infos </path/to/rom>":
+		cfg.mode = romInfosMode
 	default:
 		cfg.mode = runMode
 	}

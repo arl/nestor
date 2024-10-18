@@ -2,10 +2,7 @@ package emu
 
 import (
 	"fmt"
-	"image"
-	"io"
 
-	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/hw/mappers"
 	"nestor/ines"
@@ -15,22 +12,16 @@ type NES struct {
 	CPU *hw.CPU
 	PPU *hw.PPU
 	Rom *ines.Rom
-
-	Frames chan image.RGBA
-	Out    Output
 }
 
 func powerUp(rom *ines.Rom) (*NES, error) {
 	ppu := hw.NewPPU()
-	ppu.InitBus()
 
 	cpu := hw.NewCPU(ppu)
 	cpu.InitBus()
-	// TODO: gtk3
-	// dbg := debugger.NewDebugger(cpu)
 	ppu.CPU = cpu
 
-	// Load mapper, applying cartridge memory and hardware based on mapper.
+	// Load mapper.
 	mapper, ok := mappers.All[rom.Mapper()]
 	if !ok {
 		return nil, fmt.Errorf("unsupported mapper %03d", rom.Mapper())
@@ -43,53 +34,17 @@ func powerUp(rom *ines.Rom) (*NES, error) {
 		CPU: cpu,
 		PPU: ppu,
 		Rom: rom,
-		// TODO: gtk3
-		// Debugger: dbg,
 	}
-	nes.Reset()
+	nes.Reset(false)
 	return nes, nil
 }
 
-func (nes *NES) Reset() {
+func (nes *NES) Reset(soft bool) {
 	nes.PPU.Reset()
-	nes.CPU.Reset()
+	nes.CPU.Reset(soft)
 }
 
-type Output interface {
-	io.Closer
-
-	BeginFrame() []byte
-	EndFrame([]byte)
-	Poll() bool
-	Screenshot() image.Image
-}
-
-func (nes *NES) SetOutput(out Output) {
-	nes.Out = out
-}
-
-// Run run the emulator loop until the CPU halts
-// or the output window is closed.
-func (nes *NES) Run() {
-	var vbuf []byte
-	for nes.Out.Poll() {
-		vbuf = nes.Out.BeginFrame()
-		halted := !nes.RunOneFrame(vbuf)
-		// TODO: gtk3
-		// nes.Debugger.FrameEnd()
-		nes.Out.EndFrame(vbuf)
-
-		if halted {
-			break
-		}
-	}
-	log.ModEmu.InfoZ("Emulation stopped").End()
-	if err := nes.Out.Close(); err != nil {
-		log.ModEmu.WarnZ("Error closing emulator window").Error("error", err).End()
-	}
-}
-
-func (nes *NES) RunOneFrame(vbuf []byte) bool {
-	nes.PPU.SetFrameBuffer(vbuf)
-	return nes.CPU.Run(29781)
+func (nes *NES) RunOneFrame(frame hw.Frame) {
+	nes.PPU.SetFrameBuffer(frame.Video)
+	nes.CPU.Run(29781)
 }

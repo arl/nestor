@@ -5,8 +5,8 @@ package hw
 import (
 	"io"
 
-	"nestor/emu/hwio"
 	"nestor/emu/log"
+	"nestor/hw/hwio"
 )
 
 // Locations reserved for vector pointers.
@@ -25,7 +25,7 @@ type CPU struct {
 
 	// Non-nil when execution tracing is enabled.
 	tracer *tracer
-	dbg    FwdDebugger
+	dbg    Debugger
 
 	input InputPorts
 
@@ -43,8 +43,7 @@ type CPU struct {
 	runIRQ, prevRunIRQ   bool
 	irqFlag              bool
 
-	selfjumps uint // infinite loop detection: count successive jumps to same PC.
-	doHalt    bool
+	halted bool
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -54,10 +53,11 @@ func NewCPU(ppu *PPU) *CPU {
 		A:   0x00,
 		X:   0x00,
 		Y:   0x00,
-		// SP:  0xFD,
+		SP:  0xFD,
 		P:   0x00,
 		PC:  0x0000,
 		ppu: ppu,
+		dbg: nopDebugger{},
 	}
 	cpu.ppuDMA.cpu = cpu
 	return cpu
@@ -67,20 +67,16 @@ func (c *CPU) PlugInputDevice(ip *InputProvider) {
 	c.input.provider = ip
 }
 
-func (c *CPU) SetTraceOutput(w io.Writer) {
-	c.tracer = &tracer{w: w, d: c}
-}
-
 func (c *CPU) InitBus() {
-	// 0x0000-0x1FFF -> RAM, mirrored.
+	// Map the 2kB ram to 8kB, mirrored.
 	c.Bus.MapMemorySlice(0x0000, 0x07FF, c.Ram[:], false)
 	c.Bus.MapMemorySlice(0x0800, 0x0FFF, c.Ram[:], false)
 	c.Bus.MapMemorySlice(0x1000, 0x17FF, c.Ram[:], false)
 	c.Bus.MapMemorySlice(0x1800, 0x1FFF, c.Ram[:], false)
 
-	// 0x2000-0x3FFF -> PPU registers, mirrored.
-	for i := uint16(0x2000); i < 0x4000; i += 8 {
-		c.Bus.MapBank(i, c.ppu, 1)
+	// Map the 8 PPU registers (bank 1) from 0x2000 to 0x3FFF.
+	for off := 0x2000; off < 0x4000; off += 8 {
+		c.Bus.MapBank(uint16(off), c.ppu, 1)
 	}
 
 	// Map PPU OAMDMA register.
@@ -94,78 +90,73 @@ func (c *CPU) InitBus() {
 	// TODO
 	// 0x4018-0x401F -> APU and IO registers (test mode).
 	// unused
-
-	// 0x4020-0xFFFF -> Cartridge space (PRG-ROM, PRG-RAM, mapper registers).
-	// performed by the mapper.
 }
 
-func (c *CPU) Reset() {
-	c.A = 0x00
-	c.X = 0x00
-	c.Y = 0x00
-	c.SP = 0xFD
-	c.P.setIntDisable(true)
-	c.runIRQ = false
-	c.Cycles = -1
-	c.nmiFlag = false
+func (c *CPU) Reset(soft bool) {
+	if soft {
+		c.SP -= 0x03
+		c.P.setIntDisable(true)
+	} else {
+		c.A = 0x00
+		c.X = 0x00
+		c.Y = 0x00
+		c.runIRQ = false
+
+		c.SP = 0xFD
+		c.P = 0x00
+		c.P.setIntDisable(true)
+	}
 
 	c.ppuDMA.reset()
 
-	// Directly read from the bus to prevent ticking the clock.
+	// Directly read from the bus to avoid side effects.
 	c.PC = hwio.Read16(c.Bus, ResetVector)
 	c.dbg.Reset()
 
-	const ntscCPUDivider = 12
+	c.Cycles = -1
+	c.nmiFlag = false
 	c.masterClock = ntscCPUDivider
 
-	// The CPU takes 8 cycles before it starts executing the ROM's code
-	// after a reset/power up
+	// After a reset/power up, the CPU takes burns 8 cycles
+	// before going on with ROM execution.
 	for i := 0; i < 8; i++ {
 		c.cycleBegin(true)
 		c.cycleEnd(true)
 	}
 }
 
-func (c *CPU) setNMIflag()   { c.nmiFlag = true }
-func (c *CPU) clearNMIflag() { c.nmiFlag = false }
-
 func (c *CPU) traceOp() {
-	if c.tracer == nil {
-		return
+	if c.tracer != nil {
+		state := cpuState{
+			A:     c.A,
+			X:     c.X,
+			Y:     c.Y,
+			P:     c.P,
+			SP:    c.SP,
+			Clock: c.Cycles,
+			PC:    c.PC,
+		}
+		if c.ppu != nil {
+			state.PPUCycle = c.ppu.Cycle
+			state.Scanline = c.ppu.Scanline
+		}
+		c.tracer.write(state)
 	}
 
-	state := cpuState{
-		A:     c.A,
-		X:     c.X,
-		Y:     c.Y,
-		P:     c.P,
-		SP:    c.SP,
-		Clock: c.Cycles,
-		PC:    c.PC,
-	}
-	if c.ppu != nil {
-		state.PPUCycle = c.ppu.Cycle
-		state.Scanline = c.ppu.Scanline
-	}
-	c.tracer.write(state)
+	c.dbg.Trace(c.PC)
 }
 
-func (c *CPU) Run(ncycles int64) bool {
+func (c *CPU) Run(ncycles int64) {
 	until := c.Cycles + ncycles
+	var opcode uint8
 	for c.Cycles < until {
-		opcode := c.Read8(c.PC)
+		opcode = c.Read8(c.PC)
 		c.traceOp()
-		c.dbg.Trace(c.PC)
 		c.PC++
 		ops[opcode](c)
 
-		if c.doHalt {
-			log.ModCPU.WarnZ("CPU halted").
-				Hex16("PC", c.PC).
-				Hex8("opcode", opcode).
-				Uint("self jumps", c.selfjumps).
-				End()
-			return false
+		if c.halted {
+			break
 		}
 
 		if c.prevRunIRQ || c.prevNeedNmi {
@@ -173,21 +164,35 @@ func (c *CPU) Run(ncycles int64) bool {
 		}
 	}
 
-	return true
+	if c.halted {
+		log.ModCPU.WarnZ("CPU halted").
+			Hex16("PC", c.PC).
+			Hex8("opcode", opcode).
+			End()
+	}
+}
+
+func (c *CPU) halt() {
+	c.halted = true
+}
+
+func (c *CPU) IsHalted() bool {
+	return c.halted
 }
 
 const (
-	NTSCstartClockCount = 6
-	NTSCendClockCount   = 6
+	ntscStartClockCount = 6
+	ntscEndClockCount   = 6
+	ntscCPUDivider      = 12
 
 	ppuOffset = 1
 )
 
 func (c *CPU) cycleBegin(forRead bool) {
 	if forRead {
-		c.masterClock += NTSCstartClockCount - 1
+		c.masterClock += ntscStartClockCount - 1
 	} else {
-		c.masterClock += NTSCstartClockCount + 1
+		c.masterClock += ntscStartClockCount + 1
 	}
 	c.Cycles++
 
@@ -198,9 +203,9 @@ func (c *CPU) cycleBegin(forRead bool) {
 
 func (c *CPU) cycleEnd(forRead bool) {
 	if forRead {
-		c.masterClock += NTSCendClockCount + 1
+		c.masterClock += ntscEndClockCount + 1
 	} else {
-		c.masterClock += NTSCendClockCount - 1
+		c.masterClock += ntscEndClockCount - 1
 	}
 
 	if c.ppu != nil {
@@ -269,6 +274,9 @@ func (c *CPU) dmaTransfer() {
 }
 
 /* interrupt handling */
+
+func (c *CPU) setNMIflag()   { c.nmiFlag = true }
+func (c *CPU) clearNMIflag() { c.nmiFlag = false }
 
 func (c *CPU) handleInterrupts() {
 	// The internal signal goes high during φ1 of the cycle that follows the one
@@ -343,8 +351,14 @@ func (c *CPU) IRQ() {
 	}
 }
 
+/* tracing / debugging */
+
+func (c *CPU) SetTraceOutput(w io.Writer) {
+	c.tracer = &tracer{w: w, d: c}
+}
+
 func (cpu *CPU) SetDebugger(dbg Debugger) {
-	cpu.dbg.fwd = dbg
+	cpu.dbg = dbg
 }
 
 func (cpu *CPU) Disasm(pc uint16) DisasmOp {
@@ -352,43 +366,12 @@ func (cpu *CPU) Disasm(pc uint16) DisasmOp {
 	return disasmOps[opcode](cpu, pc)
 }
 
-// FwdDebugger is a no-op Debugger if fwd is nil.
-type FwdDebugger struct {
-	fwd Debugger
-}
+type nopDebugger struct{}
 
-func (d *FwdDebugger) Reset() {
-	if d.fwd != nil {
-		d.Reset()
-	}
-}
-func (d *FwdDebugger) Trace(pc uint16) {
-	if d.fwd != nil {
-		d.Trace(pc)
-	}
-}
-func (d *FwdDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {
-	if d.fwd != nil {
-		d.Interrupt(prevpc, curpc, isNMI)
-	}
-}
-func (d *FwdDebugger) WatchRead(addr uint16) {
-	if d.fwd != nil {
-		d.WatchRead(addr)
-	}
-}
-func (d *FwdDebugger) WatchWrite(addr uint16, val uint16) {
-	if d.fwd != nil {
-		d.WatchWrite(addr, val)
-	}
-}
-func (d *FwdDebugger) Break(msg string) {
-	if d.fwd != nil {
-		d.Break(msg)
-	}
-}
-func (d *FwdDebugger) FrameEnd() {
-	if d.fwd != nil {
-		d.FrameEnd()
-	}
-}
+func (nopDebugger) Reset()                                     {}
+func (nopDebugger) Trace(pc uint16)                            {}
+func (nopDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {}
+func (nopDebugger) WatchRead(addr uint16)                      {}
+func (nopDebugger) WatchWrite(addr uint16, val uint16)         {}
+func (nopDebugger) Break(msg string)                           {}
+func (nopDebugger) FrameEnd()                                  {}

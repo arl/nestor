@@ -3,8 +3,8 @@ package mappers
 import (
 	"fmt"
 
-	"nestor/emu/hwio"
 	"nestor/hw"
+	"nestor/hw/hwio"
 	"nestor/ines"
 )
 

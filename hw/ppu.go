@@ -4,8 +4,8 @@ import (
 	"image/color"
 	"unsafe"
 
-	"nestor/emu/hwio"
 	"nestor/emu/log"
+	"nestor/hw/hwio"
 )
 
 const (
@@ -15,10 +15,6 @@ const (
 	ntscDivider = 4
 )
 
-// Throwaway frame buffer for the first PPU cycles,
-// before an actual one for the actual output.
-var tmpFramebuf = make([]uint32, 256*240)
-
 type PPU struct {
 	Bus *hwio.Table
 	CPU *CPU
@@ -27,78 +23,67 @@ type PPU struct {
 	Cycle       uint32 // Current cycle/pixel in scanline
 	Scanline    int    // Current scanline being drawn
 
-	preventVblank bool
-
-	//	$0000-$0FFF	$1000	Pattern table 0
-	//	$1000-$1FFF	$1000	Pattern table 1
+	Nametables    [0x800]byte
 	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000,wcb"`
-
-	// Nametables mapping depends on rom/mapper.
-	//  $2000-$23FF	$0400	Nametable 0
-	//  $2400-$27FF	$0400	Nametable 1
-	//  $2800-$2BFF	$0400	Nametable 2
-	//  $2C00-$2FFF	$0400	Nametable 3
-	//  $3000-$3EFF	$0F00	Mirrors of $2000-$2EFF
-	Nametables [0x800]byte
 
 	// $3F00-$3F1F	$0020	Palette RAM indexes
 	// $3F20-$3FFF	$00E0	Mirrors of $3F00-$3F1F
 	Palettes hwio.Mem `hwio:"offset=0x3F00,size=0x20,vsize=0x100,wcb"`
 
-	// CPU-exposed memory-mapped PPU registers
-	// mapped from $2000 to $2007, mirrored up to $3fff
 	PPUCTRL   hwio.Reg8 `hwio:"bank=1,offset=0x0,writeonly,wcb"`
 	PPUMASK   hwio.Reg8 `hwio:"bank=1,offset=0x1,writeonly,wcb"`
 	PPUSTATUS hwio.Reg8 `hwio:"bank=1,offset=0x2,readonly,rcb"`
-
-	// Object attribute memory
 	OAMADDR   hwio.Reg8 `hwio:"bank=1,offset=0x3,writeonly,wcb"`
 	OAMDATA   hwio.Reg8 `hwio:"bank=1,offset=0x4,rcb,wcb"`
-	oamMem    [0x100]byte
-	oamAddr   byte
-	oam, oam2 [8]sprite
-
 	PPUSCROLL hwio.Reg8 `hwio:"bank=1,offset=0x5,writeonly,wcb"`
 	PPUADDR   hwio.Reg8 `hwio:"bank=1,offset=0x6,writeonly,wcb"`
 	PPUDATA   hwio.Reg8 `hwio:"bank=1,offset=0x7,rcb,wcb"`
 
-	// OAMDMA hwio.Reg8 `hwio:"bank=2,writeonly,wcb"`
+	oamMem     [0x100]byte
+	oamAddr    byte
+	oam, oam2  [8]sprite
+	ppudataBuf uint8 // only used for PPUDATA reads
 
 	framebuf []uint32 // RGBA framebuffer
-	oddFrame bool
+
+	oddFrame      bool
+	preventVblank bool
 
 	// VRAM read/write
 	vramAddr   loopy
 	vramTmp    loopy
 	writeLatch bool
 
-	ppuDataRbuf uint8 // only used for PPUDATA reads
-	busAddr     uint16
+	busAddr uint16
 
 	bg bgregs
 }
 
 func NewPPU() *PPU {
-	return &PPU{
-		Bus:      hwio.NewTable("ppu"),
-		framebuf: tmpFramebuf,
+	p := &PPU{
+		Bus: hwio.NewTable("ppu"),
+		// Throwaway frame buffer for the first PPU cycles,
+		// before one is provided for the frame.
+		framebuf: make([]uint32, 256*240),
 	}
-}
 
-func (p *PPU) SetFrameBuffer(framebuf []byte) {
-	p.framebuf = unsafe.Slice((*uint32)(unsafe.Pointer(&framebuf[0])), len(framebuf)/4)
-}
-
-func (p *PPU) InitBus() {
 	hwio.MustInitRegs(p)
 	p.Bus.MapBank(0x0000, p, 0)
 
-	// At power up, palette ram is pre-filled. Use Blargg's NES values.
-	bootPalette := [0x20]byte{
-		0x09, 0x01, 0x00, 0x01, 0x00, 0x02, 0x02, 0x0D, 0x08, 0x10, 0x08, 0x24, 0x00, 0x00, 0x04, 0x2C,
-		0x09, 0x01, 0x34, 0x03, 0x00, 0x04, 0x00, 0x14, 0x08, 0x3A, 0x00, 0x02, 0x00, 0x20, 0x2C, 0x08,
-	}
-	copy(p.Palettes.Data, bootPalette[:])
+	// At power up, palette ram is pre-filled. (use Blargg's NES values).
+	copy(p.Palettes.Data, []byte{
+		0x09, 0x01, 0x00, 0x01, 0x00, 0x02, 0x02, 0x0D,
+		0x08, 0x10, 0x08, 0x24, 0x00, 0x00, 0x04, 0x2C,
+		0x09, 0x01, 0x34, 0x03, 0x00, 0x04, 0x00, 0x14,
+		0x08, 0x3A, 0x00, 0x02, 0x00, 0x20, 0x2C, 0x08,
+	})
+
+	return p
+}
+
+func (p *PPU) SetFrameBuffer(framebuf []byte) {
+	// we're using a RGBA8 framebuffer.
+	p.framebuf = unsafe.Slice((*uint32)(unsafe.Pointer(&framebuf[0])), len(framebuf)/4)
 }
 
 type Mirroring int
@@ -108,34 +93,38 @@ const (
 	VertMirroring
 )
 
+// called from the mapper.
 func (p *PPU) SetMirroring(m Mirroring) {
+	A := p.Nametables[:0x400]
+	B := p.Nametables[0x400:0x800]
+
 	// NameTables
 	switch m {
-	case HorzMirroring: // A A B B
-		// 4 nametables
-		p.Bus.MapMemorySlice(0x2000, 0x23FF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x2400, 0x27FF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x2800, 0x2BFF, p.Nametables[0x400:0x800], false)
-		p.Bus.MapMemorySlice(0x2C00, 0x2FFF, p.Nametables[0x400:0x800], false)
+	case HorzMirroring:
+		// A A B B
+		p.Bus.MapMemorySlice(0x2000, 0x23FF, A, false)
+		p.Bus.MapMemorySlice(0x2400, 0x27FF, A, false)
+		p.Bus.MapMemorySlice(0x2800, 0x2BFF, B, false)
+		p.Bus.MapMemorySlice(0x2C00, 0x2FFF, B, false)
 
-		// mirrors of the nametable area
-		p.Bus.MapMemorySlice(0x3000, 0x33FF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x3400, 0x37FF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x3800, 0x3BFF, p.Nametables[0x400:0x800], false)
-		p.Bus.MapMemorySlice(0x3C00, 0x3EFF, p.Nametables[0x400:0x800], false)
+		// nametables mirrors
+		p.Bus.MapMemorySlice(0x3000, 0x33FF, A, false)
+		p.Bus.MapMemorySlice(0x3400, 0x37FF, A, false)
+		p.Bus.MapMemorySlice(0x3800, 0x3BFF, B, false)
+		p.Bus.MapMemorySlice(0x3C00, 0x3EFF, B, false)
 
-	case VertMirroring: // A B A B
-		// 4 nametables
-		p.Bus.MapMemorySlice(0x2000, 0x23FF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x2400, 0x27FF, p.Nametables[0x400:0x800], false)
-		p.Bus.MapMemorySlice(0x2800, 0x2BFF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x2C00, 0x2FFF, p.Nametables[0x400:0x800], false)
+	case VertMirroring:
+		// A B A B
+		p.Bus.MapMemorySlice(0x2000, 0x23FF, A, false)
+		p.Bus.MapMemorySlice(0x2400, 0x27FF, B, false)
+		p.Bus.MapMemorySlice(0x2800, 0x2BFF, A, false)
+		p.Bus.MapMemorySlice(0x2C00, 0x2FFF, B, false)
 
-		// mirrors of the nametable area
-		p.Bus.MapMemorySlice(0x3000, 0x33FF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x3400, 0x37FF, p.Nametables[0x400:0x800], false)
-		p.Bus.MapMemorySlice(0x3800, 0x3BFF, p.Nametables[:0x400], false)
-		p.Bus.MapMemorySlice(0x3C00, 0x3EFF, p.Nametables[0x400:0x800], false)
+		// nametables mirrors
+		p.Bus.MapMemorySlice(0x3000, 0x33FF, A, false)
+		p.Bus.MapMemorySlice(0x3400, 0x37FF, B, false)
+		p.Bus.MapMemorySlice(0x3800, 0x3BFF, A, false)
+		p.Bus.MapMemorySlice(0x3C00, 0x3EFF, B, false)
 	}
 }
 
@@ -212,7 +201,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 
 				if ppuctrl(p.PPUCTRL.Value).nmi() {
 					p.CPU.setNMIflag()
-					log.ModPPU.DebugZ("Set NMI flag").End()
+					log.ModPPU.DebugZ("Set NMI flag").String("src", "vblank").End()
 				}
 			}
 			p.preventVblank = false
@@ -220,8 +209,8 @@ func (p *PPU) doScanline(sm scanlineMode) {
 	case postRender:
 		// nothing to do
 		if p.Cycle == 1 {
-			// At the start of vblank, the bus address is set back to
-			// VideoRamAddr.
+			// At the start of vblank, the bus address is set back
+			// to VRAM address.
 			p.busAddr = p.vramAddr.addr()
 		}
 
@@ -311,7 +300,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 			p.bg.nt = p.Read8(p.bg.addrLatch)
 		case p.Cycle == 340:
 			p.bg.nt = p.Read8(p.bg.addrLatch)
-			if sm == preRender && p.renderingEnabled() && p.oddFrame {
+			if sm == preRender && p.isRenderingEnabled() && p.oddFrame {
 				p.Cycle++
 			}
 		}
@@ -358,7 +347,7 @@ func (p *PPU) refillShifters() {
 }
 
 func (p *PPU) horzScroll() {
-	if !p.renderingEnabled() {
+	if !p.isRenderingEnabled() {
 		return
 	}
 	if p.vramAddr.coarsex() == 31 {
@@ -369,7 +358,7 @@ func (p *PPU) horzScroll() {
 }
 
 func (p *PPU) vertScroll() {
-	if !p.renderingEnabled() {
+	if !p.isRenderingEnabled() {
 		return
 	}
 	if finey := p.vramAddr.finey(); finey < 7 {
@@ -389,20 +378,20 @@ func (p *PPU) vertScroll() {
 }
 
 func (p *PPU) horzUpdate() {
-	if !p.renderingEnabled() {
+	if !p.isRenderingEnabled() {
 		return
 	}
 	p.vramAddr.setVal((p.vramAddr.val() & ^uint16(0x041F)) | (p.vramTmp.val() & 0x041F))
 }
 
 func (p *PPU) vertUpdate() {
-	if !p.renderingEnabled() {
+	if !p.isRenderingEnabled() {
 		return
 	}
 	p.vramAddr.setVal((p.vramAddr.val() & ^uint16(0x7BE0)) | (p.vramTmp.val() & 0x7BE0))
 }
 
-func (p *PPU) renderingEnabled() bool {
+func (p *PPU) isRenderingEnabled() bool {
 	mask := ppumask(p.PPUMASK.Value)
 	return mask.bg() || mask.sprites()
 }
@@ -413,23 +402,6 @@ func (p *PPU) spriteHeight() int {
 		return 16
 	}
 	return 8
-}
-
-func nthbit8(val uint8, n uint8) uint8    { return (val >> n) & 1 }
-func nthbit16(val uint16, n uint8) uint16 { return (val >> n) & 1 }
-
-func b2u8(b bool) uint8 {
-	if b {
-		return 1
-	}
-	return 0
-}
-
-func b2u16(b bool) uint16 {
-	if b {
-		return 1
-	}
-	return 0
 }
 
 func (p *PPU) renderPixel() {
@@ -488,7 +460,7 @@ func (p *PPU) renderPixel() {
 		}
 
 		var paddr uint16
-		if p.renderingEnabled() {
+		if p.isRenderingEnabled() {
 			paddr += uint16(palette)
 		}
 		pidx := p.Read8(0x3F00 + paddr)
@@ -507,11 +479,6 @@ func (p *PPU) renderPixel() {
 	p.bg.atShifthi = (p.bg.atShifthi << 1) | btou8(p.bg.atLatchhi)
 }
 
-func colorToU32(col color.RGBA) uint32 {
-	// little-endian.
-	return uint32(col.R)<<24 | uint32(col.G)<<16 | uint32(col.B)<<8 | 0xff
-}
-
 func u8tob(v uint8) bool {
 	return v != 0
 }
@@ -523,10 +490,16 @@ func btou8(b bool) uint8 {
 	return 0
 }
 
+//lint:ignore U1000 not supporting emphasis yet so unused for now.
+func colorToU32(col color.RGBA) uint32 {
+	// little-endian.
+	return uint32(col.R)<<24 | uint32(col.G)<<16 | uint32(col.B)<<8 | 0xff
+}
+
 // TODO: use LUT or a faster way.
 // Test it with game/rom that support color emphasis.
 //
-//lint:ignore U1000
+//lint:ignore U1000 not supporting emphasis yet so unused for now.
 func emphasis(rgbmask byte, abgr uint32) uint32 {
 	r := float64(abgr & 0xFF)
 	g := float64((0xFF00 & abgr) >> 8)
@@ -593,6 +566,7 @@ func (p *PPU) WritePPUCTRL(old, val uint8) {
 		p.CPU.clearNMIflag()
 	} else if ppustatus.vblank() {
 		p.CPU.setNMIflag()
+		log.ModPPU.DebugZ("Set NMI flag").String("src", "PPUCTRL").End()
 	}
 }
 
@@ -671,11 +645,11 @@ func (p *PPU) WritePPUADDR(old, val uint8) {
 func (p *PPU) ReadPPUDATA(_ uint8, peek bool) uint8 {
 	// Reading VRAM is too slow so the actual data
 	// will be returned at the next read.
-	val := p.ppuDataRbuf
+	val := p.ppudataBuf
 	if peek {
 		return val
 	}
-	p.ppuDataRbuf = p.Read8(p.vramAddr.addr())
+	p.ppudataBuf = p.Read8(p.vramAddr.addr())
 
 	if p.busAddr&0x3FFF >= 0x3F00 {
 		// This is a palette read, they're immediate but they still overwrite
@@ -684,7 +658,7 @@ func (p *PPU) ReadPPUDATA(_ uint8, peek bool) uint8 {
 		val = (p.readPalette(p.busAddr) & 0x3F)
 		const mask uint16 = 1 << 12
 		// TODO (peek)
-		p.ppuDataRbuf = p.Bus.Read8(p.busAddr & ^mask, false)
+		p.ppudataBuf = p.Bus.Read8(p.busAddr & ^mask, false)
 	}
 
 	p.vramIncr()
@@ -829,7 +803,7 @@ func (p *PPU) clearOAM() {
 
 // Prepare sprites info in secondary OAM for next scanline
 func (p *PPU) evalSprites() {
-	if !p.renderingEnabled() {
+	if !p.isRenderingEnabled() {
 		return
 	}
 	n := 0
@@ -885,4 +859,14 @@ func (p *PPU) loadSprites() {
 		p.oam[i].dataL = p.Bus.Read8(addr, false)
 		p.oam[i].dataH = p.Bus.Read8(addr+8, false)
 	}
+}
+
+func nthbit8(val uint8, n uint8) uint8    { return (val >> n) & 1 }
+func nthbit16(val uint16, n uint8) uint16 { return (val >> n) & 1 }
+
+func b2u16(b bool) uint16 {
+	if b {
+		return 1
+	}
+	return 0
 }

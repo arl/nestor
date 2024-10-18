@@ -9,11 +9,9 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/google/go-cmp/cmp"
-
-	"nestor/emu/hwio"
 	"nestor/emu/log"
 	"nestor/hw"
+	"nestor/hw/hwio"
 	"nestor/ines"
 	"nestor/tests"
 )
@@ -43,12 +41,15 @@ func TestNestest(t *testing.T) {
 	nes.CPU.SetTraceOutput(flog)
 
 	// Configure a headless testing output.
-	outcfg := TestingOutputConfig{
+	cfg := TestingOutputConfig{
 		Height: hw.OutputNTSC().Height,
 		Width:  hw.OutputNTSC().Width,
 	}
-	nes.SetOutput(newTestingOutput(outcfg))
-	nes.Run()
+	e := Emulator{
+		NES: nes,
+		out: newTestingOutput(cfg),
+	}
+	e.Run()
 
 	result := nes.CPU.Read16(0x02)
 	if result != 0 {
@@ -64,67 +65,6 @@ func TestNestest(t *testing.T) {
 	}
 }
 
-type testdir struct {
-	dir   string
-	files []string
-}
-
-func tdir(dir string, items ...any) *testdir {
-	td := testdir{
-		dir: dir,
-	}
-	for _, item := range items {
-		switch v := item.(type) {
-		case string:
-			td.files = append(td.files, filepath.Join(dir, v))
-		case *testdir:
-			for _, v := range v.files {
-				td.files = append(td.files, filepath.Join(dir, v))
-			}
-		}
-	}
-	return &td
-}
-
-func (td *testdir) list(fn func(string)) {
-	for _, f := range td.files {
-		fn(f)
-	}
-}
-
-func Test_testdir(t *testing.T) {
-	var got []string
-	tdir("a",
-		tdir("b",
-			"b1",
-			"b2",
-			"b3",
-		),
-		tdir("c",
-			"c1",
-			"c2",
-			tdir("c2",
-				"c2a",
-				"c2b",
-			),
-		),
-	).list(func(path string) { got = append(got, path) })
-
-	want := []string{
-		filepath.Join("a", "b", "b1"),
-		filepath.Join("a", "b", "b2"),
-		filepath.Join("a", "b", "b3"),
-		filepath.Join("a", "c", "c1"),
-		filepath.Join("a", "c", "c2"),
-		filepath.Join("a", "c", "c2", "c2a"),
-		filepath.Join("a", "c", "c2", "c2b"),
-	}
-
-	if diff := cmp.Diff(got, want); diff != "" {
-		t.Errorf("got %v, want %v", got, want)
-	}
-}
-
 func TestBlarggRoms(t *testing.T) {
 	// Various tests from blargg's test roms. They're easily to automate since they
 	// write to a specific memory location to signal the test status.
@@ -134,53 +74,50 @@ func TestBlarggRoms(t *testing.T) {
 
 	romsDir := filepath.Join(tests.RomsPath(t))
 
-	tdir(romsDir,
-		tdir("instr_test-v5",
-			tdir("rom_singles",
-				"01-basics.nes",
-				"02-implied.nes",
-				// "03-immediate.nes", // uses unofficial  0xAB (LXA)
-				"04-zero_page.nes",
-				"05-zp_xy.nes",
-				"06-absolute.nes",
-				// "07-abs_xy.nes",// uses unofficial 0x9C (SHY)
-				"08-ind_x.nes",
-				"09-ind_y.nes",
-				"10-branches.nes",
-				"11-stack.nes",
-				"12-jmp_jsr.nes",
-				"13-rts.nes",
-				"14-rti.nes",
-				"15-brk.nes",
-				"16-special.nes",
-			),
-		),
-		tdir("instr_misc",
-			tdir("rom_singles",
-				"01-abs_x_wrap.nes",
-				"02-branch_wrap.nes",
-				// "03-dummy_reads.nes",
-				// "04-dummy_reads_apu.nes",
-			),
-		),
-		tdir("cpu_dummy_writes",
-			// "cpu_dummy_writes_ppumem.nes",
-			"cpu_dummy_writes_oam.nes",
-		),
-		tdir("cpu_interrupts_v2",
-			tdir("rom_singles"), // all failing for now
-			// "1-cli_latency.nes", // APU should generate IRQ when $4017 = $00
-			// "2-nmi_and_brk.nes",
-			// "3-nmi_and_irq.nes",
-			// "4-irq_and_dma.nes",
-			// "5-branch_delays_irq.nes",
+	tests := []string{
+		"instr_test-v5/rom_singles/01-basics.nes",
+		"instr_test-v5/rom_singles/02-implied.nes",
+		// "instr_test-v5/rom_singles/03-immediate.nes", // uses unofficial  0xAB (LXA)
+		"instr_test-v5/rom_singles/04-zero_page.nes",
+		"instr_test-v5/rom_singles/05-zp_xy.nes",
+		"instr_test-v5/rom_singles/06-absolute.nes",
+		// "instr_test-v5/rom_singles/07-abs_xy.nes",// uses unofficial 0x9C (SHY)
+		"instr_test-v5/rom_singles/08-ind_x.nes",
+		"instr_test-v5/rom_singles/09-ind_y.nes",
+		"instr_test-v5/rom_singles/10-branches.nes",
+		"instr_test-v5/rom_singles/11-stack.nes",
+		"instr_test-v5/rom_singles/12-jmp_jsr.nes",
+		"instr_test-v5/rom_singles/13-rts.nes",
+		"instr_test-v5/rom_singles/14-rti.nes",
+		"instr_test-v5/rom_singles/15-brk.nes",
+		"instr_test-v5/rom_singles/16-special.nes",
 
-		),
-		tdir("oam_read", "oam_read.nes"),
-		// tdir("oam_stress", "oam_stress.nes"),
-	).list(func(path string) {
-		t.Run(filepath.Base(path), runBlarggTestRom(path))
-	})
+		"instr_misc/rom_singles/01-abs_x_wrap.nes",
+		"instr_misc/rom_singles/02-branch_wrap.nes",
+		// "instr_misc/rom_singles/03-dummy_reads.nes",
+		// "instr_misc/rom_singles/04-dummy_reads_apu.nes",
+
+		// "cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
+		"cpu_dummy_writes/cpu_dummy_writes_oam.nes",
+
+		// "cpu_interrupts_v2/rom_singles/1-cli_latency.nes",
+		// "cpu_interrupts_v2/rom_singles/2-nmi_and_brk.nes",
+		// "cpu_interrupts_v2/rom_singles/3-nmi_and_irq.nes",
+		// "cpu_interrupts_v2/rom_singles/4-irq_and_dma.nes",
+		// "cpu_interrupts_v2/rom_singles/5-branch_delays_irq.nes",
+
+		"oam_read/oam_read.nes",
+		// "oam_stress/oam_stress.nes",
+
+		"cpu_reset/ram_after_reset.nes",
+		"cpu_reset/registers.nes",
+	}
+
+	for _, romName := range tests {
+		// Ensure tests run on all platforms.
+		romPath := filepath.Join(romsDir, filepath.FromSlash(romName))
+		t.Run(romName, runBlarggTestRom(romPath))
+	}
 }
 
 func runBlarggTestRom(path string) func(t *testing.T) {
@@ -216,6 +153,10 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			Width:  hw.OutputNTSC().Width,
 		})
 
+		// When reset is required, it needs to be pressed 100ms later, so we
+		// start a frame counter to keep track of the time.
+		framesBeforeReset := -1 // not requested
+
 		for {
 			vbuf := out.BeginFrame()
 			nes.RunOneFrame(vbuf)
@@ -241,9 +182,17 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			if result == 0x80 {
 				t.Log("test still running...")
 			}
-			if result == 0x81 {
-				t.Log("needs reset button pressed in the next 100ms")
-				panic("not implemented")
+
+			// Handle Reset request
+			switch {
+			case framesBeforeReset == 0:
+				nes.Reset(true)
+				framesBeforeReset = -1
+			case framesBeforeReset > 0:
+				framesBeforeReset--
+			case result == 0x81:
+				framesBeforeReset = 20 // in 20 frames >= 100ms
+				t.Log("RESET required")
 			}
 		}
 		if result != 0x00 {
@@ -357,8 +306,6 @@ func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string
 		t.Fatal(err)
 	}
 
-	filepath.SplitList(romPath)
-
 	out := newTestingOutput(
 		TestingOutputConfig{
 			Height:        hw.OutputNTSC().Height,
@@ -366,9 +313,13 @@ func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string
 			SaveFrameDir:  frameDir,
 			SaveFrameFile: framePath,
 			SaveFrameNum:  frame,
-		})
-	nes.SetOutput(out)
-	nes.Run()
+		},
+	)
+	e := Emulator{
+		NES: nes,
+		out: out,
+	}
+	e.Run()
 
 	out.CompareFrame(t)
 }

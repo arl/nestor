@@ -1,21 +1,24 @@
-package emu
+package ui
 
 import (
-	"io"
 	"os"
 	"path/filepath"
 	"sync"
 
-	"nestor/emu/log"
-	"nestor/hw"
-
 	"github.com/BurntSushi/toml"
 	"github.com/kirsle/configdir"
+
+	"nestor/emu"
+	"nestor/emu/log"
 )
 
+type GeneralConfig struct {
+	ShowSplash bool `toml:"show_splash"`
+}
+
 type Config struct {
-	Input    hw.InputConfig `toml:"input"`
-	TraceOut io.WriteCloser `toml:"-"`
+	emu.Config
+	General GeneralConfig `toml:"general"`
 }
 
 var ConfigDir string = sync.OnceValue(func() string {

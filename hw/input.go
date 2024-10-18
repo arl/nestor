@@ -5,7 +5,7 @@ import (
 
 	"github.com/veandco/go-sdl2/sdl"
 
-	"nestor/emu/hwio"
+	"nestor/hw/hwio"
 )
 
 type PaddleButton byte

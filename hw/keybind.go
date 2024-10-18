@@ -3,8 +3,6 @@ package hw
 import (
 	_ "embed"
 	"fmt"
-	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/veandco/go-sdl2/sdl"
@@ -13,36 +11,8 @@ import (
 	"nestor/resource"
 )
 
-const mapInputNone = "none"
-
-// ShowMapInputWindow shows the user a small window,
-// capturing the next key or joystick press.
-func ShowMapInputWindow(btnName string) (string, error) {
-	cmd := exec.Command(os.Args[0], "map-input", "--button="+btnName)
-	out, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-	return string(out), nil
-}
-
-func MapInputMain(btnname string) {
-	pressed, err := runMapInput(btnname)
-	if err != nil {
-		fmt.Fprint(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	if pressed == mapInputNone {
-		os.Exit(0)
-	}
-
-	fmt.Println(pressed)
-	os.Exit(0)
-}
-
-func runMapInput(btnName string) (pressed string, err error) {
-	pressed = mapInputNone
+func ShowKeybindingWindow(btnName string) (pressed string, err error) {
+	pressed = ""
 
 	// Initialize SDL
 	if err := sdl.Init(sdl.INIT_VIDEO); err != nil {

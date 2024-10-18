@@ -1,8 +1,8 @@
 package hw
 
 import (
-	"nestor/emu/hwio"
 	"nestor/emu/log"
+	"nestor/hw/hwio"
 )
 
 // ppuDMA handles the DMA transfer of OAM (sprites attributes) to the PPU.

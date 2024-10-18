@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"nestor/emu/hwio"
+	"nestor/hw/hwio"
 	"nestor/ines"
 	"nestor/tests"
 )

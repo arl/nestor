@@ -15,21 +15,31 @@ type window struct {
 	context sdl.GLContext
 }
 
-func newWindow(title string, width, height int) (*window, error) {
+type windowConfig struct {
+	title      string
+	vsync      bool  // enforce vsync?
+	scale      int   // window scale factor
+	texw, texh int   // dimensions of the fullscreen texture buffer
+	monidx     int32 // monitor index
+}
+
+// create an opengl window that renders an unique texture
+// which takes up the whole viewport.
+func newWindow(cfg windowConfig) (*window, error) {
 	type result struct {
 		w   *window
 		err error
 	}
 	errc := make(chan result, 1)
 	sdl.Do(func() {
-		w, err := _newWindow(title, width, height)
+		w, err := _newWindow(cfg)
 		errc <- result{w, err}
 	})
 	res := <-errc
 	return res.w, res.err
 }
 
-func _newWindow(title string, width, height int) (*window, error) {
+func _newWindow(cfg windowConfig) (*window, error) {
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_JOYSTICK); err != nil {
 		return nil, fmt.Errorf("failed to initialize SDL: %s", err)
 	}
@@ -38,11 +48,15 @@ func _newWindow(title string, width, height int) (*window, error) {
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 3)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
 
-	w, err := sdl.CreateWindow(title,
-		sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
-		int32(width*2), int32(height*2), sdl.WINDOW_OPENGL|sdl.WINDOW_SHOWN|sdl.WINDOW_RESIZABLE)
+	x := sdl.WINDOWPOS_CENTERED_MASK | cfg.monidx
+	y := sdl.WINDOWPOS_CENTERED_MASK | cfg.monidx
+	winw := int32(cfg.texw * cfg.scale)
+	winh := int32(cfg.texh * cfg.scale)
+	const flags = sdl.WINDOW_OPENGL | sdl.WINDOW_SHOWN | sdl.WINDOW_RESIZABLE
+
+	w, err := sdl.CreateWindow(cfg.title, x, y, winw, winh, flags)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create window: %s", err)
+		return nil, fmt.Errorf("failed to create sdl window: %s", err)
 	}
 
 	context, err := w.GLCreateContext()
@@ -54,13 +68,17 @@ func _newWindow(title string, width, height int) (*window, error) {
 		return nil, fmt.Errorf("failed to initialize opengl: %s", err)
 	}
 
+	if !cfg.vsync {
+		sdl.GLSetSwapInterval(0)
+	}
+
 	// Create empty texture buffer.
-	tbuf := make([]byte, height*width*4)
+	tbuf := make([]byte, winh*winw*4)
 
 	var texture uint32
 	gl.GenTextures(1, &texture)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&tbuf[0]))
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(cfg.texw), int32(cfg.texh), 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&tbuf[0]))
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 
 	vert, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
@@ -86,10 +104,10 @@ func _newWindow(title string, width, height int) (*window, error) {
 	gl.BindVertexArray(VAO)
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, gl.Ptr(vertices), gl.STATIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, gl.Ptr(&vertices[0]), gl.STATIC_DRAW)
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
-	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indices)*4, gl.Ptr(indices), gl.STATIC_DRAW)
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indices)*4, gl.Ptr(&indices[0]), gl.STATIC_DRAW)
 
 	// Position attributes
 	gl.VertexAttribPointerWithOffset(0, 3, gl.FLOAT, false, 5*4, 0)
@@ -124,9 +142,9 @@ func (w *window) Close() error {
 	return <-errc
 }
 
-// Columns are position and texture coordinates.
 // Rows are the quad vertices in clockwise order.
-var vertices = []float32{
+// Columns are vertices position in (x y z) and texture coords (z t).
+var vertices = [20]float32{
 	// x, y, z, s, t
 	1.0, 1.0, 0, 1, 0, // top right
 	1.0, -1.0, 0, 1, 1, // bottom right
@@ -134,7 +152,7 @@ var vertices = []float32{
 	-1.0, 1.0, 0, 0, 0, // top left
 }
 
-var indices = []uint32{
+var indices = [6]uint32{
 	0, 1, 3,
 	1, 2, 3,
 }

@@ -6,6 +6,7 @@ import (
 	"image/png"
 	"os"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
@@ -13,6 +14,8 @@ import (
 
 	"nestor/emu/log"
 )
+
+const PrimaryMonitor = 0
 
 type OutputConfig struct {
 	// Dimensions of the video buffer (in pixels).
@@ -23,6 +26,16 @@ type OutputConfig struct {
 
 	// Window title.
 	Title string
+
+	// Window scale factor (defaults to 2).
+	ScaleFactor uint
+
+	// Monitor on which to display the window.
+	// 0: primary monitor, 1: secondary monitor, etc.
+	Monitor int32
+
+	// Do not synchronize updates with vertical retrace (i.e immediate updates).
+	DisableVSync bool
 }
 
 func OutputNTSC() OutputConfig {
@@ -30,6 +43,13 @@ func OutputNTSC() OutputConfig {
 		Width:  256,
 		Height: 240,
 	}
+}
+
+// A Frame holds the audio/video buffers the emulator
+// should fill for a single frame.
+type Frame struct {
+	Video []byte
+	_     []byte // TODO: Audio
 }
 
 type Output struct {
@@ -44,7 +64,7 @@ type Output struct {
 	videoEnabled bool
 	window       *window
 
-	quit bool
+	quit atomic.Bool
 	stop chan struct{}
 	wg   sync.WaitGroup // workers loops
 
@@ -75,14 +95,28 @@ func NewOutput(cfg OutputConfig) *Output {
 }
 
 func (out *Output) EnableVideo(enable bool) error {
-	if enable && !out.videoEnabled {
-		window, err := newWindow(out.cfg.Title, out.cfg.Width, out.cfg.Height)
+	switch {
+	case enable && !out.videoEnabled:
+		wscale := 2
+		if out.cfg.ScaleFactor != 0 {
+			wscale = int(out.cfg.ScaleFactor)
+		}
+
+		window, err := newWindow(windowConfig{
+			title:  out.cfg.Title,
+			vsync:  !out.cfg.DisableVSync,
+			texw:   out.cfg.Width,
+			texh:   out.cfg.Height,
+			scale:  wscale,
+			monidx: out.cfg.Monitor,
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create emulator window: %s", err)
 		}
 		out.window = window
 		out.videoEnabled = true
-	} else if !enable && out.videoEnabled {
+
+	case !enable && out.videoEnabled:
 		err := out.window.Close()
 		if err != nil {
 			return fmt.Errorf("failed to close emulator window: %s", err)
@@ -93,40 +127,43 @@ func (out *Output) EnableVideo(enable bool) error {
 	return nil
 }
 
-type Frame struct {
-	Video []byte
-}
-
-func (out *Output) BeginFrame() (video []byte) {
+func (out *Output) BeginFrame() Frame {
 	out.framebufidx++
 	if out.framebufidx == out.cfg.NumVideoBuffers {
 		out.framebufidx = 0
 	}
 
-	return out.framebuf[out.framebufidx]
+	return Frame{
+		Video: out.framebuf[out.framebufidx],
+	}
 }
 
-func (out *Output) EndFrame(video []byte) {
+func (out *Output) EndFrame(frame Frame) {
 	out.framecounter++
-	out.framech <- Frame{Video: video}
+	out.framech <- frame
 }
 
 // Stop output flow.
-func (out *Output) Close() error {
+func (out *Output) Close() {
 	log.ModEmu.DebugZ("Terminating output streams").End()
 	close(out.stop)
+	out.quit.Store(true)
 
 	// Flow is stopped by now, but window may still be rendering.
 	if out.window != nil {
 		out.window.SetTitle("halted")
 	}
-	out.wg.Wait()
 
-	if out.window != nil {
-		log.ModEmu.DebugZ("Closing SDL window").End()
-		return out.window.Close()
+	out.wg.Wait()
+	if out.window == nil {
+		return
 	}
-	return nil
+
+	if err := out.window.Close(); err != nil {
+		log.ModEmu.WarnZ("Error closing SDL window").Error("error", err).End()
+		return
+	}
+	log.ModEmu.DebugZ("Closing SDL window").End()
 }
 
 func (out *Output) render() {
@@ -134,6 +171,7 @@ func (out *Output) render() {
 	for {
 		select {
 		case <-out.stop:
+			log.ModEmu.DebugZ("Stopped rendering loop").End()
 			return
 		case frame := <-out.framech:
 			if out.videoEnabled {
@@ -167,26 +205,27 @@ func (out *Output) renderVideo(video []byte) {
 }
 
 // Poll reports whether input polling is ongoing.
-// (i.e false if user requested to quit).
+// (i.e false if user requested to quit)
+// Safe for concurrent use.
 func (out *Output) Poll() bool {
-	return !out.quit
+	return !out.quit.Load()
 }
 
 func (out *Output) poll() {
 	defer out.wg.Done()
 
-	for !out.quit {
+	for out.Poll() {
 		sdl.Do(func() {
 			for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 				switch e := event.(type) {
 				case *sdl.KeyboardEvent:
 					if e.Type == sdl.KEYDOWN && e.Keysym.Sym == sdl.K_ESCAPE {
-						out.quit = true
+						out.quit.Store(true)
 						return
 					}
 
 				case *sdl.QuitEvent:
-					out.quit = true
+					out.quit.Store(true)
 				case *sdl.JoyButtonEvent:
 				case *sdl.WindowEvent:
 					if e.Event == sdl.WINDOWEVENT_RESIZED {

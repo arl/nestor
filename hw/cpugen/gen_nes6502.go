@@ -314,10 +314,6 @@ var addrModes = map[string]addrmode{
 	"zpy": {f: zpy, n: 2, human: `indexed addressing: zeropage,Y.`},
 }
 
-// used for infinite loop detection.
-// max JMP to self before halting the CPU.
-const maxSelfJumps = 1000
-
 //
 // Process status flag constants
 //
@@ -548,7 +544,7 @@ func copybits(dst, src, mask string) string {
 
 func (g *Generator) STP(def opdef) {
 	g.unstable = append(g.unstable, def.i)
-	g.printf(`cpu.doHalt = true`)
+	g.printf(`cpu.halt()`)
 }
 
 func (g *Generator) ADC(_ opdef) {
@@ -633,15 +629,6 @@ func (g *Generator) ISC(def opdef) {
 }
 
 func (g *Generator) JMP(_ opdef) {
-	g.printf(`// basic heuristic for infinite loop detection`)
-	g.printf(`if cpu.PC == oper {`)
-	g.printf(`	cpu.selfjumps++`)
-	g.printf(`	if cpu.selfjumps > %v {`, maxSelfJumps)
-	g.printf(`		cpu.doHalt = true`)
-	g.printf(`	}`)
-	g.printf(`} else {`)
-	g.printf(`	cpu.selfjumps = 0`)
-	g.printf(`}`)
 	g.printf(`cpu.PC = oper`)
 }
 

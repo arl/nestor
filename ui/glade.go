@@ -1,15 +1,12 @@
 package ui
 
 import (
-	_ "embed"
 	"fmt"
 
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
-
-//go:embed nestor.glade
-var gladeUI string
 
 func build[T glib.IObject, P *T](builder *gtk.Builder, name string) *T {
 	gobj, err := builder.GetObject(name)
@@ -62,4 +59,23 @@ func openFileDialog(parent *gtk.Window) (string, bool) {
 		return "", false
 	}
 	return dlg.GetFilename(), true
+}
+
+func pixbufFromBytes(data []byte) (*gdk.Pixbuf, error) {
+	loader := mustT(gdk.PixbufLoaderNew())
+	if _, err := loader.Write(data); err != nil {
+		return nil, err
+	}
+	// Finalize loading before getting the buffer.
+	loader.Close()
+	return loader.GetPixbuf()
+}
+
+// returns a gtk.Image from the bytes of an image file.
+func imageFromBytes(data []byte) (*gtk.Image, error) {
+	buf, err := pixbufFromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+	return gtk.ImageNewFromPixbuf(buf)
 }
