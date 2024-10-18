@@ -95,8 +95,8 @@ func (e *Emulator) Run() {
 	log.ModEmu.InfoZ("Emulation loop exited").End()
 }
 
-// SetPause, Stop, Reset and Restart allows to control the emulator loop in a
-// concurrent-safe way.
+// SetPause, Stop, Reset and Restart allows to control
+// the emulator loop in a concurrent-safe way.
 
 func (e *Emulator) SetPause(pause bool) { e.paused.CompareAndSwap(!pause, pause) }
 func (e *Emulator) Stop()               { e.quit.Store(true) }
