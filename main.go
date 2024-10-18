@@ -9,7 +9,6 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 
 	"nestor/emu"
-	"nestor/emu/log"
 	"nestor/ines"
 	"nestor/ui"
 )
@@ -23,7 +22,7 @@ func main1() {
 
 	switch args.mode {
 	case guiMode:
-		guiMain()
+		ui.RunApp()
 	case romInfosMode:
 		romInfosMain(args.RomInfos.RomPath)
 	case runMode:
@@ -38,19 +37,6 @@ func romInfosMain(romPath string) {
 		os.Exit(1)
 	}
 	rom.PrintInfos(os.Stdout)
-}
-
-// guiMain runs Nestor graphical user interface.
-func guiMain() {
-	ch := make(chan struct{}, 1)
-	go func() {
-		defer close(ch)
-		if err := ui.ShowMainWindow(); err != nil {
-			log.ModEmu.FatalZ("failed to show main window").Error("error", err).End()
-		}
-	}()
-	<-ch
-	log.ModEmu.InfoZ("Nestor exit").End()
 }
 
 // emuMain runs the emulator directly with the given rom.

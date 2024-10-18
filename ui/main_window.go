@@ -27,26 +27,23 @@ var mainWindowUI string
 //go:embed nestor.css
 var stylesUI string
 
-// ShowMainWindow creates and shows the main window, blocking until it's closed.
-func ShowMainWindow() error {
+// RunApp creates and shows the main window,
+// blocking until it's closed.
+func RunApp() {
 	gtk.Init(nil)
 	css := mustT(gtk.CssProviderNew())
 	must(css.LoadFromData(stylesUI))
 	screen := mustT(gdk.ScreenGetDefault())
 	gtk.AddProviderForScreen(screen, css, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
-	win, err := newMainWindow()
-	if err != nil {
-		return err
-	}
-	_ = win
-
 	cfg := LoadConfigOrDefault()
+
+	showMainWindow()
 	if cfg.General.ShowSplash {
 		splashScreen(360, 360)
 	}
 	gtk.Main()
-	return nil
+	modGUI.InfoZ("Exited gtk").End()
 }
 
 type mainWindow struct {
@@ -58,7 +55,7 @@ type mainWindow struct {
 	stopEmu func()
 }
 
-func newMainWindow() (*mainWindow, error) {
+func showMainWindow() {
 	builder := mustT(gtk.BuilderNewFromString(mainWindowUI))
 
 	mw := &mainWindow{
@@ -84,8 +81,6 @@ func newMainWindow() (*mainWindow, error) {
 			modGUI.Warnf("failed to save config: %s", err)
 		}
 	})
-
-	return mw, nil
 }
 
 func (mw *mainWindow) Close(err error) {
@@ -110,7 +105,7 @@ func (mw *mainWindow) runROM(path string) {
 		return
 	}
 
-	emulator, err := emu.Launch(rom, mw.cfg.Config, mw.monitorIndex())
+	emulator, err := emu.Launch(rom, mw.cfg.Config, mw.monitorIdx())
 	if err != nil {
 		modGUI.Fatalf("failed to start emulator window: %v", err)
 		gtk.MainQuit()
@@ -138,11 +133,10 @@ func (mw *mainWindow) runROM(path string) {
 	}()
 }
 
-func (mw *mainWindow) monitorIndex() int32 {
-	gdkw := mustT(mw.GetWindow())
+func (mw *mainWindow) monitorIdx() int32 {
 	display := mustT(gdk.DisplayGetDefault())
+	gdkw := mustT(mw.GetWindow())
 	monitor := mustT(display.GetMonitorAtWindow(gdkw))
-
 	if monitor.IsPrimary() {
 		return 0
 	}
