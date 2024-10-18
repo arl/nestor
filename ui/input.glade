@@ -53,7 +53,6 @@
                     <property name="halign">start</property>
                     <property name="active">True</property>
                     <property name="draw-indicator">True</property>
-                    <property name="group">paddle2_radio</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -69,6 +68,8 @@
                     <property name="receives-default">False</property>
                     <property name="halign">start</property>
                     <property name="draw-indicator">True</property>
+                    <property name="active">False</property>
+                    <property name="group">paddle1_radio</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
