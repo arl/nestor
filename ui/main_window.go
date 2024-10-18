@@ -55,10 +55,7 @@ type mainWindow struct {
 
 func newMainWindow() (*mainWindow, error) {
 	gtk.Init(nil)
-	builder, err := gtk.BuilderNewFromString(mainWindowUI)
-	if err != nil {
-		return nil, fmt.Errorf("builder: can't load UI file: %s", err)
-	}
+	builder := mustT(gtk.BuilderNewFromString(mainWindowUI))
 
 	mw := &mainWindow{
 		Window:  build[gtk.Window](builder, "main_window"),

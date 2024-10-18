@@ -61,11 +61,21 @@ func openFileDialog(parent *gtk.Window) (string, bool) {
 	return dlg.GetFilename(), true
 }
 
-// Get the work area of the primary monitor.
-// TODO: should we ensure that nestor has been started on this area?
-func getWorkArea() (int, int) {
-	display := mustT(gdk.DisplayGetDefault())
-	monitor := mustT(display.GetPrimaryMonitor())
-	workarea := monitor.GetWorkarea()
-	return workarea.GetWidth(), workarea.GetHeight()
+func pixbufFromBytes(data []byte) (*gdk.Pixbuf, error) {
+	loader := mustT(gdk.PixbufLoaderNew())
+	if _, err := loader.Write(data); err != nil {
+		return nil, err
+	}
+	// Finalize loading before getting the buffer.
+	loader.Close()
+	return loader.GetPixbuf()
+}
+
+// returns a gtk.Image from the bytes of an image file.
+func imageFromBytes(data []byte) (*gtk.Image, error) {
+	buf, err := pixbufFromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+	return gtk.ImageNewFromPixbuf(buf)
 }
