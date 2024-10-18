@@ -55,7 +55,6 @@ func (gp *gamePanel) moveAndShow(parent *gtk.Window) {
 
 	// move the panel to the top of the emulator window
 	centery -= emuh + windecoh + panelh/2
-	gp.SetParent(parent)
 	gp.Move(centerx, centery)
 	gp.SetVisible(true)
 }
