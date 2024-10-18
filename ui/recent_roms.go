@@ -15,14 +15,12 @@ import (
 
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/kirsle/configdir"
-
-	"nestor/emu"
 )
 
 const recentROMextension = ".nrr"
 
 var RecentROMsDir string = sync.OnceValue(func() string {
-	dir := filepath.Join(emu.ConfigDir, "recent-roms")
+	dir := filepath.Join(ConfigDir, "recent-roms")
 	if err := configdir.MakePath(dir); err != nil {
 		modGUI.Fatalf("failed to create directory %s: %v", dir, err)
 	}

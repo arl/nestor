@@ -41,7 +41,7 @@ func ShowMainWindow() error {
 	}
 	_ = win
 
-	cfg := emu.LoadConfigOrDefault()
+	cfg := LoadConfigOrDefault()
 	if cfg.General.ShowSplash {
 		splashScreen(360, 360)
 	}
@@ -53,7 +53,7 @@ type mainWindow struct {
 	*gtk.Window
 	rrv *recentROMsView
 	wg  sync.WaitGroup
-	cfg emu.Config
+	cfg Config
 
 	stopEmu func()
 }
@@ -63,7 +63,7 @@ func newMainWindow() (*mainWindow, error) {
 
 	mw := &mainWindow{
 		Window:  build[gtk.Window](builder, "main_window"),
-		cfg:     emu.LoadConfigOrDefault(),
+		cfg:     LoadConfigOrDefault(),
 		stopEmu: func() {},
 	}
 
@@ -80,7 +80,7 @@ func newMainWindow() (*mainWindow, error) {
 	})
 	build[gtk.MenuItem](builder, "menu_controls").Connect("activate", func(m *gtk.MenuItem) {
 		showControllerConfig(&mw.cfg.Input)
-		if err := emu.SaveConfig(mw.cfg); err != nil {
+		if err := SaveConfig(mw.cfg); err != nil {
 			modGUI.Warnf("failed to save config: %s", err)
 		}
 	})
@@ -110,7 +110,7 @@ func (mw *mainWindow) runROM(path string) {
 		return
 	}
 
-	emulator, err := emu.Launch(rom, mw.cfg, mw.monitorIndex())
+	emulator, err := emu.Launch(rom, mw.cfg.Config, mw.monitorIndex())
 	if err != nil {
 		modGUI.Fatalf("failed to start emulator window: %v", err)
 		gtk.MainQuit()

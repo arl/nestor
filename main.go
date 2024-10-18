@@ -19,15 +19,15 @@ func main() {
 }
 
 func main1() {
-	cfg := parseArgs(os.Args[1:])
+	args := parseArgs(os.Args[1:])
 
-	switch cfg.mode {
+	switch args.mode {
 	case guiMode:
 		guiMain()
 	case romInfosMode:
-		romInfosMain(cfg.RomInfos.RomPath)
+		romInfosMain(args.RomInfos.RomPath)
 	case runMode:
-		emuMain(cfg.Run)
+		emuMain(args.Run)
 	}
 }
 
@@ -54,35 +54,35 @@ func guiMain() {
 }
 
 // emuMain runs the emulator directly with the given rom.
-func emuMain(cfg Run) {
-	rom, err := ines.ReadRom(cfg.RomPath)
+func emuMain(args Run) {
+	rom, err := ines.ReadRom(args.RomPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading ROM: %s", err)
 		os.Exit(1)
 	}
 
 	var traceout io.WriteCloser
-	if cfg.Trace != nil {
-		traceout = cfg.Trace
+	if args.Trace != nil {
+		traceout = args.Trace
 		defer traceout.Close()
 	}
 
-	emucfg := emu.LoadConfigOrDefault()
-	emucfg.TraceOut = traceout
-	nes, err := emu.Launch(rom, emucfg, 0)
+	cfg := ui.LoadConfigOrDefault()
+	cfg.TraceOut = traceout
+	nes, err := emu.Launch(rom, cfg.Config, 0)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to start emulator: %v\n", err)
 		os.Exit(1)
 	}
 
-	if cfg.CPUProfile != "" {
-		f, err := os.Create(cfg.CPUProfile)
+	if args.CPUProfile != "" {
+		f, err := os.Create(args.CPUProfile)
 		checkf(err, "failed to create cpu profile file")
 		checkf(pprof.StartCPUProfile(f), "failed to start cpu profile")
 		defer func() {
 			pprof.StopCPUProfile()
 			f.Close()
-			fmt.Println("CPU profile written to", cfg.CPUProfile)
+			fmt.Println("CPU profile written to", args.CPUProfile)
 		}()
 	}
 
