@@ -3,6 +3,7 @@ package emu
 import (
 	"fmt"
 	"image"
+	"io"
 	"sync/atomic"
 	"time"
 
@@ -19,6 +20,18 @@ type Output interface {
 	Screenshot() image.Image
 }
 
+type Config struct {
+	Input hw.InputConfig `toml:"input"`
+	Video VideoConfig    `toml:"video"`
+
+	TraceOut io.WriteCloser `toml:"-"`
+}
+
+type VideoConfig struct {
+	DisableVSync bool `toml:"disable_vsync"`
+	Monitor      int  `toml:"monitor"`
+}
+
 type Emulator struct {
 	NES *NES
 	out Output
@@ -30,7 +43,7 @@ type Emulator struct {
 }
 
 // Launch instantiates an emulator, setup controllers, output streams and window.
-func Launch(rom *ines.Rom, cfg Config, monidx int32) (*Emulator, error) {
+func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	nes, err := powerUp(rom)
 	if err != nil {
 		return nil, fmt.Errorf("power up failed: %s", err)
@@ -44,7 +57,7 @@ func Launch(rom *ines.Rom, cfg Config, monidx int32) (*Emulator, error) {
 		Title:           "Nestor",
 		ScaleFactor:     2,
 		DisableVSync:    cfg.Video.DisableVSync,
-		Monitor:         monidx,
+		Monitor:         int32(cfg.Video.Monitor),
 	})
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err

@@ -105,7 +105,10 @@ func (mw *mainWindow) runROM(path string) {
 		return
 	}
 
-	emulator, err := emu.Launch(rom, mw.cfg.Config, mw.monitorIdx())
+	// Select monitor based on current window.
+	mw.cfg.Video.Monitor = int(mw.monitorIdx())
+
+	emulator, err := emu.Launch(rom, mw.cfg.Config)
 	if err != nil {
 		modGUI.Fatalf("failed to start emulator window: %v", err)
 		gtk.MainQuit()
