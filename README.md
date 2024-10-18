@@ -1,4 +1,4 @@
-![Nestor](logo.png)
+![Nestor](./ui/logo.png)
 
 # Nestor - NES emulator
 
@@ -50,4 +50,6 @@ Run "nestor <command> --help" for more information on a command.
  - [x] gamepad/keyboard input
  - [ ] APU (sound)
  - [ ] debugger (WIP)
- - [ ] mappers (currently only NROM works)
+ - [x] mapper 0
+ - [x] mapper 2
+ - [ ] other mappers...
