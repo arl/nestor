@@ -29,17 +29,22 @@ var stylesUI string
 
 // ShowMainWindow creates and shows the main window, blocking until it's closed.
 func ShowMainWindow() error {
+	gtk.Init(nil)
+	css := mustT(gtk.CssProviderNew())
+	must(css.LoadFromData(stylesUI))
+	screen := mustT(gdk.ScreenGetDefault())
+	gtk.AddProviderForScreen(screen, css, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
 	win, err := newMainWindow()
 	if err != nil {
 		return err
 	}
 	_ = win
 
-	css := mustT(gtk.CssProviderNew())
-	must(css.LoadFromData(stylesUI))
-	screen := mustT(gdk.ScreenGetDefault())
-	gtk.AddProviderForScreen(screen, css, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-
+	cfg := emu.LoadConfigOrDefault()
+	if cfg.General.ShowSplash {
+		splashScreen(360, 360)
+	}
 	gtk.Main()
 	return nil
 }
@@ -54,7 +59,6 @@ type mainWindow struct {
 }
 
 func newMainWindow() (*mainWindow, error) {
-	gtk.Init(nil)
 	builder := mustT(gtk.BuilderNewFromString(mainWindowUI))
 
 	mw := &mainWindow{

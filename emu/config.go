@@ -14,10 +14,15 @@ import (
 )
 
 type Config struct {
-	Input hw.InputConfig `toml:"input"`
-	Video VideoConfig    `toml:"video"`
+	Input   hw.InputConfig `toml:"input"`
+	Video   VideoConfig    `toml:"video"`
+	General GeneralConfig  `toml:"general"`
 
 	TraceOut io.WriteCloser `toml:"-"`
+}
+
+type GeneralConfig struct {
+	ShowSplash bool `toml:"show_splash"`
 }
 
 type VideoConfig struct {
