@@ -479,11 +479,6 @@ func (p *PPU) renderPixel() {
 	p.bg.atShifthi = (p.bg.atShifthi << 1) | btou8(p.bg.atLatchhi)
 }
 
-func colorToU32(col color.RGBA) uint32 {
-	// little-endian.
-	return uint32(col.R)<<24 | uint32(col.G)<<16 | uint32(col.B)<<8 | 0xff
-}
-
 func u8tob(v uint8) bool {
 	return v != 0
 }
@@ -495,10 +490,16 @@ func btou8(b bool) uint8 {
 	return 0
 }
 
+//lint:ignore U1000 not supporting emphasis yet so unused for now.
+func colorToU32(col color.RGBA) uint32 {
+	// little-endian.
+	return uint32(col.R)<<24 | uint32(col.G)<<16 | uint32(col.B)<<8 | 0xff
+}
+
 // TODO: use LUT or a faster way.
 // Test it with game/rom that support color emphasis.
 //
-//lint:ignore U1000
+//lint:ignore U1000 not supporting emphasis yet so unused for now.
 func emphasis(rgbmask byte, abgr uint32) uint32 {
 	r := float64(abgr & 0xFF)
 	g := float64((0xFF00 & abgr) >> 8)
@@ -862,13 +863,6 @@ func (p *PPU) loadSprites() {
 
 func nthbit8(val uint8, n uint8) uint8    { return (val >> n) & 1 }
 func nthbit16(val uint16, n uint8) uint16 { return (val >> n) & 1 }
-
-func b2u8(b bool) uint8 {
-	if b {
-		return 1
-	}
-	return 0
-}
 
 func b2u16(b bool) uint16 {
 	if b {

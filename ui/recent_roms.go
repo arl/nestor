@@ -5,8 +5,6 @@ import (
 	"bytes"
 	"cmp"
 	"fmt"
-	"image"
-	"image/color"
 	"io"
 	"io/fs"
 	"os"
@@ -15,12 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/kirsle/configdir"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/basicfont"
-	"golang.org/x/image/math/fixed"
 
 	"nestor/emu"
 )
@@ -157,6 +151,10 @@ func removeExt(path string) string {
 	return path[:len(path)-len(filepath.Ext(path))]
 }
 
+// TODO: limit the number of recent roms we can view?
+// but not the number of saved roms.
+//
+//lint:ignore U1000 todo
 const maxRecentsRoms = 16
 
 type recentROMsView struct {
@@ -174,19 +172,6 @@ func newRecentRomsView(builder *gtk.Builder, runROM func(path string)) *recentRO
 
 	v.updateView()
 	return v
-}
-
-func addLabel(img *image.RGBA, x, y int, label string) {
-	col := color.RGBA{255, 0, 0, 255}
-	point := fixed.Point26_6{X: fixed.I(x), Y: fixed.I(y)}
-
-	d := &font.Drawer{
-		Dst:  img,
-		Src:  image.NewUniform(col),
-		Face: basicfont.Face7x13,
-		Dot:  point,
-	}
-	d.DrawString(label)
 }
 
 // addROM adds a new ROM to the list of recent roms.
@@ -225,31 +210,20 @@ func (v *recentROMsView) updateView() {
 	})
 
 	addItem := func(rom recentROM) error {
-		loader := mustT(gdk.PixbufLoaderNewWithType("png"))
-		defer loader.Close()
-
-		bufimg := make([]byte, len(rom.Image))
-		copy(bufimg, rom.Image)
-		mustT(loader.Write(bufimg))
-
-		buf := mustT(loader.GetPixbuf())
-		buf = mustT(buf.ScaleSimple(256, 256, gdk.INTERP_BILINEAR))
+		img, err := imageFromBytes(rom.Image)
+		if err != nil {
+			return fmt.Errorf("failed to load image: %v", err)
+		}
 
 		// Create a button to contain the image
-		img := mustT(gtk.ImageNewFromPixbuf(buf))
 		button := mustT(gtk.ButtonNew())
-
-		// Set the image as the button content
 		button.SetImage(img)
 		button.SetAlwaysShowImage(true)
 
-		// Create a box to contain the button and the label
 		box := mustT(gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 0))
 		label := mustT(gtk.LabelNew(rom.Name))
 		box.PackStart(button, false, false, 0)
 		box.PackStart(label, false, false, 0)
-
-		button.Connect("clicked", func() { v.runROM(rom.Path) })
 
 		v.flowbox.Insert(box, int(v.flowbox.GetChildren().Length()))
 
@@ -258,12 +232,14 @@ func (v *recentROMsView) updateView() {
 		box.SetVisible(true)
 		label.SetVisible(true)
 		img.SetVisible(true)
+
+		button.Connect("clicked", func() { v.runROM(rom.Path) })
 		return nil
 	}
 
 	for _, rom := range v.recentROMs {
 		if err := addItem(rom); err != nil {
-			modGUI.Warnf("failed to add recent ROM %q to view: %s", rom.Name, err)
+			modGUI.Warnf("failed to show recent ROM %q: %s", rom.Name, err)
 		}
 	}
 }
