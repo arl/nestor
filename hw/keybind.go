@@ -11,7 +11,9 @@ import (
 	"nestor/resource"
 )
 
-func ShowKeybindingWindow(btnName string) (pressed string, err error) {
+// CaptureInput waits for a next key or joystick button press and
+// returns a code identifying it, or "" if the user pressed Escape.
+func CaptureInput(btnName string) (pressed string, err error) {
 	pressed = ""
 
 	// Initialize SDL
@@ -59,7 +61,6 @@ func ShowKeybindingWindow(btnName string) (pressed string, err error) {
 	lines = append(lines, btnName)
 
 	for quit := false; !quit; {
-		// Poll for SDL events
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch e := event.(type) {
 			case sdl.QuitEvent:

@@ -17,7 +17,7 @@ import (
 //go:embed input.glade
 var inputUI string
 
-type paddlesCfgDialog struct {
+type controlCfgDialog struct {
 	*gtk.Dialog
 
 	padcfg *hw.PaddleConfig // depends on current radio button
@@ -32,7 +32,7 @@ type paddlesCfgDialog struct {
 
 func showControllerConfig(cfg *hw.InputConfig) {
 	builder := mustT(gtk.BuilderNewFromString(inputUI))
-	dlg := paddlesCfgDialog{
+	dlg := controlCfgDialog{
 		Dialog:    build[gtk.Dialog](builder, "input_dialog"),
 		plugcheck: build[gtk.CheckButton](builder, "plugged_chk"),
 		drawArea:  build[gtk.DrawingArea](builder, "paddle_drawing"),
@@ -50,28 +50,28 @@ func showControllerConfig(cfg *hw.InputConfig) {
 	btncell.SetProperty("weight", pango.WEIGHT_NORMAL)
 	keycell.SetProperty("weight", pango.WEIGHT_LIGHT)
 	btncol := mustT(gtk.TreeViewColumnNewWithAttribute("Button", btncell, "text", 0))
-	keycol := mustT(gtk.TreeViewColumnNewWithAttribute("Assigned Key", keycell, "text", 1))
+	keycol := mustT(gtk.TreeViewColumnNewWithAttribute("Binding", keycell, "text", 1))
 	treeView.AppendColumn(btncol)
 	treeView.AppendColumn(keycol)
 
 	dlg.drawArea.Connect("draw", dlg.onDraw)
 	dlg.drawArea.Connect("button-press-event", dlg.onClick)
 	dlg.plugcheck.Connect("toggled", func(cb *gtk.CheckButton) { dlg.padcfg.Plugged = cb.GetActive() })
-	radioPad1.Connect("clicked", func() { dlg.padcfg = &cfg.Paddles[0]; dlg.onClickedPaddle() })
-	radioPad2.Connect("clicked", func() { dlg.padcfg = &cfg.Paddles[1]; dlg.onClickedPaddle() })
+	radioPad1.Connect("clicked", func() { dlg.padcfg = &cfg.Paddles[0]; dlg.updatePaddleCfg() })
+	radioPad2.Connect("clicked", func() { dlg.padcfg = &cfg.Paddles[1]; dlg.updatePaddleCfg() })
 
-	dlg.onClickedPaddle()
+	dlg.updatePaddleCfg()
 	dlg.ShowAll()
 	dlg.Run()
 	dlg.Destroy()
 }
 
-func (dlg *paddlesCfgDialog) onClickedPaddle() {
+func (dlg *controlCfgDialog) updatePaddleCfg() {
 	dlg.plugcheck.SetActive(dlg.padcfg.Plugged)
 	dlg.updatePropertyList()
 }
 
-func (dlg *paddlesCfgDialog) updatePropertyList() {
+func (dlg *controlCfgDialog) updatePropertyList() {
 	dlg.listStore.Clear()
 
 	for btn := hw.PadA; btn <= hw.PadRight; btn++ {
@@ -82,7 +82,7 @@ func (dlg *paddlesCfgDialog) updatePropertyList() {
 }
 
 // onDraw handles the drawing event
-func (dlg *paddlesCfgDialog) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
+func (dlg *controlCfgDialog) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.Scale(dlg.drawScale, dlg.drawScale)
 
 	// Paddle body.
@@ -178,7 +178,7 @@ func (dlg *paddlesCfgDialog) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.ShowText("A")
 }
 
-func (dlg *paddlesCfgDialog) onClick(da *gtk.DrawingArea, event *gdk.Event) {
+func (dlg *controlCfgDialog) onClick(da *gtk.DrawingArea, event *gdk.Event) {
 	x, y := gdk.EventButtonNewFromEvent(event).MotionVal()
 	x /= dlg.drawScale
 	y /= dlg.drawScale
@@ -186,7 +186,7 @@ func (dlg *paddlesCfgDialog) onClick(da *gtk.DrawingArea, event *gdk.Event) {
 	for i, bbox := range dlg.bboxes {
 		if bbox.contains(x, y) {
 			btn := hw.PaddleButton(i)
-			code, err := hw.ShowKeybindingWindow(btn.String())
+			code, err := hw.CaptureInput(btn.String())
 			if err != nil {
 				gtk.MessageDialogNew(nil, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, "Error: %s", err).Run()
 				return

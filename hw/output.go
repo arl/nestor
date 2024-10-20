@@ -236,18 +236,18 @@ func (out *Output) poll() {
 	}
 }
 
-func scaleViewport(winw, winh int32, orgw, orgh int) {
+// scaleViewport scales the viewport so as to maintain nes aspect ratio.
+func scaleViewport(winw, winh int32, nesw, nesh int) {
 	winRatio := float64(winw) / float64(winh)
-	nesRatio := float64(orgw) / float64(orgh)
+	nesRatio := float64(nesw) / float64(nesh)
 
-	// We want the largest rectangle that maintains nes aspect ratio.
 	var vpw, vph int32
 	if winRatio > nesRatio {
-		// Window is wider than the NES aspect ratio.
+		// Window is wider than nes screen.
 		vph = winh
 		vpw = int32(float64(winh) * nesRatio)
 	} else {
-		// Window is taller or equal to the NES aspect ratio.
+		// Window is taller than nes screen.
 		vpw = winw
 		vph = int32(float64(winw) / nesRatio)
 	}
