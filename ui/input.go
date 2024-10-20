@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"fmt"
 	"math"
-	"strings"
 
 	"github.com/gotk3/gotk3/cairo"
 	"github.com/gotk3/gotk3/gdk"
@@ -189,6 +188,31 @@ func (dlg *controlCfgDialog) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.ShowText("A")
 }
 
+func (dlg *controlCfgDialog) captureInput(btn hw.PaddleButton) {
+	dlg.SetSensitive(false)
+
+	// The input capture window is SDL, not gtk, we to run it in a different
+	// goroutine to not block gtk event loop.
+	go func() {
+		text := fmt.Sprintf("%s (Paddle %d)", btn, dlg.curpad+1)
+		code, err := hw.CaptureInput(text)
+
+		glib.IdleAdd(func() {
+			defer dlg.SetSensitive(true)
+
+			if err != nil {
+				gtk.MessageDialogNew(nil, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, "Error: %s", err).Run()
+				return
+			}
+
+			if code != "" {
+				dlg.cfg.Paddles[dlg.curpad].SetMapping(btn, code)
+				dlg.updatePropertyList()
+			}
+		})
+	}()
+}
+
 func (dlg *controlCfgDialog) onClick(da *gtk.DrawingArea, event *gdk.Event) {
 	x, y := gdk.EventButtonNewFromEvent(event).MotionVal()
 	x /= dlg.drawScale
@@ -196,18 +220,7 @@ func (dlg *controlCfgDialog) onClick(da *gtk.DrawingArea, event *gdk.Event) {
 
 	for i, bbox := range dlg.bboxes {
 		if bbox.contains(x, y) {
-			btn := hw.PaddleButton(i)
-			text := fmt.Sprintf("%s (Paddle %d)", btn, dlg.curpad+1)
-			code, err := hw.CaptureInput(text)
-			if err != nil {
-				gtk.MessageDialogNew(nil, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, "Error: %s", err).Run()
-				return
-			}
-			code = strings.TrimSpace(code)
-			if code != "" {
-				dlg.cfg.Paddles[dlg.curpad].SetMapping(btn, code)
-				dlg.updatePropertyList()
-			}
+			dlg.captureInput(hw.PaddleButton(i))
 			return
 		}
 	}
