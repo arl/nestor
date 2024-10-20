@@ -13,7 +13,7 @@ import (
 
 // CaptureInput waits for a next key or joystick button press and
 // returns a code identifying it, or "" if the user pressed Escape.
-func CaptureInput(btnName string) (pressed string, err error) {
+func CaptureInput(padbtn string) (pressed string, err error) {
 	pressed = ""
 
 	// Initialize SDL
@@ -53,12 +53,12 @@ func CaptureInput(btnName string) (pressed string, err error) {
 		return pressed, fmt.Errorf("failed to load font: %s", err)
 	}
 
-	message := "Press key or joystick button for:"
+	message := "Press key or joystick button to assign to"
 
 	// Function to split the text into lines that fit within the given width
 	lines := wrapText(font, message, 380) // 380 is the maximum width of each line
 	lines = append(lines, "")
-	lines = append(lines, btnName)
+	lines = append(lines, padbtn)
 
 	for quit := false; !quit; {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {

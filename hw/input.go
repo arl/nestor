@@ -8,6 +8,7 @@ import (
 	"nestor/hw/hwio"
 )
 
+// A PaddleButton is one of the button of a standard NES controller/paddle.
 type PaddleButton byte
 
 const (
@@ -45,6 +46,7 @@ func (pd PaddleButton) String() string {
 	panic(fmt.Sprintf("unknown paddle button %d", pd))
 }
 
+// PaddleConfig holds the input mapping for a paddle.
 type PaddleConfig struct {
 	A       string `toml:"a"`
 	B       string `toml:"b"`
@@ -57,8 +59,9 @@ type PaddleConfig struct {
 	Plugged bool   `toml:"plugged"`
 }
 
-func (cfg *PaddleConfig) SetMapping(pd PaddleButton, val string) {
-	switch pd {
+// SetMapping defines the mapping for a PaddleButton.
+func (cfg *PaddleConfig) SetMapping(b PaddleButton, val string) {
+	switch b {
 	case PadA:
 		cfg.A = val
 	case PadB:
@@ -76,10 +79,11 @@ func (cfg *PaddleConfig) SetMapping(pd PaddleButton, val string) {
 	case PadRight:
 		cfg.Right = val
 	default:
-		panic(fmt.Sprintf("unknown paddle button %d", pd))
+		panic(fmt.Sprintf("unknown paddle button %d", b))
 	}
 }
 
+// GetMapping returns the mapping for a PaddleButton.
 func (cfg *PaddleConfig) GetMapping(pd PaddleButton) string {
 	switch pd {
 	case PadA:

@@ -2,6 +2,7 @@ package ui
 
 import (
 	_ "embed"
+	"fmt"
 	"math"
 	"strings"
 
@@ -20,7 +21,8 @@ var inputUI string
 type controlCfgDialog struct {
 	*gtk.Dialog
 
-	padcfg *hw.PaddleConfig // depends on current radio button
+	cfg    *hw.InputConfig
+	curpad int // currently configured paddle
 
 	drawArea  *gtk.DrawingArea
 	listStore *gtk.ListStore
@@ -33,12 +35,13 @@ type controlCfgDialog struct {
 func showControllerConfig(cfg *hw.InputConfig) {
 	builder := mustT(gtk.BuilderNewFromString(inputUI))
 	dlg := controlCfgDialog{
+		cfg:       cfg,
+		curpad:    0,
+		drawScale: 3.6,
 		Dialog:    build[gtk.Dialog](builder, "input_dialog"),
 		plugcheck: build[gtk.CheckButton](builder, "plugged_chk"),
 		drawArea:  build[gtk.DrawingArea](builder, "paddle_drawing"),
 		listStore: mustT(gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING)),
-		padcfg:    &cfg.Paddles[0],
-		drawScale: 3.6,
 	}
 	radioPad1 := build[gtk.RadioButton](builder, "paddle1_radio")
 	radioPad2 := build[gtk.RadioButton](builder, "paddle2_radio")
@@ -56,9 +59,17 @@ func showControllerConfig(cfg *hw.InputConfig) {
 
 	dlg.drawArea.Connect("draw", dlg.onDraw)
 	dlg.drawArea.Connect("button-press-event", dlg.onClick)
-	dlg.plugcheck.Connect("toggled", func(cb *gtk.CheckButton) { dlg.padcfg.Plugged = cb.GetActive() })
-	radioPad1.Connect("clicked", func() { dlg.padcfg = &cfg.Paddles[0]; dlg.updatePaddleCfg() })
-	radioPad2.Connect("clicked", func() { dlg.padcfg = &cfg.Paddles[1]; dlg.updatePaddleCfg() })
+	dlg.plugcheck.Connect("toggled", func(cb *gtk.CheckButton) {
+		dlg.cfg.Paddles[dlg.curpad].Plugged = cb.GetActive()
+	})
+	radioPad1.Connect("clicked", func() {
+		dlg.curpad = 0
+		dlg.updatePaddleCfg()
+	})
+	radioPad2.Connect("clicked", func() {
+		dlg.curpad = 1
+		dlg.updatePaddleCfg()
+	})
 
 	dlg.updatePaddleCfg()
 	dlg.ShowAll()
@@ -67,7 +78,7 @@ func showControllerConfig(cfg *hw.InputConfig) {
 }
 
 func (dlg *controlCfgDialog) updatePaddleCfg() {
-	dlg.plugcheck.SetActive(dlg.padcfg.Plugged)
+	dlg.plugcheck.SetActive(dlg.cfg.Paddles[dlg.curpad].Plugged)
 	dlg.updatePropertyList()
 }
 
@@ -76,7 +87,7 @@ func (dlg *controlCfgDialog) updatePropertyList() {
 
 	for btn := hw.PadA; btn <= hw.PadRight; btn++ {
 		iter := dlg.listStore.Append()
-		mapping := dlg.padcfg.GetMapping(btn)
+		mapping := dlg.cfg.Paddles[dlg.curpad].GetMapping(btn)
 		must(dlg.listStore.Set(iter, []int{0, 1}, []any{btn.String(), mapping}))
 	}
 }
@@ -186,14 +197,15 @@ func (dlg *controlCfgDialog) onClick(da *gtk.DrawingArea, event *gdk.Event) {
 	for i, bbox := range dlg.bboxes {
 		if bbox.contains(x, y) {
 			btn := hw.PaddleButton(i)
-			code, err := hw.CaptureInput(btn.String())
+			text := fmt.Sprintf("%s (Paddle %d)", btn, dlg.curpad+1)
+			code, err := hw.CaptureInput(text)
 			if err != nil {
 				gtk.MessageDialogNew(nil, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, "Error: %s", err).Run()
 				return
 			}
 			code = strings.TrimSpace(code)
 			if code != "" {
-				dlg.padcfg.SetMapping(btn, code)
+				dlg.cfg.Paddles[dlg.curpad].SetMapping(btn, code)
 				dlg.updatePropertyList()
 			}
 			return
