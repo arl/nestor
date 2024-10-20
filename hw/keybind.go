@@ -16,12 +16,6 @@ import (
 func CaptureInput(padbtn string) (pressed string, err error) {
 	pressed = ""
 
-	// Initialize SDL
-	if err := sdl.Init(sdl.INIT_VIDEO); err != nil {
-		return pressed, fmt.Errorf("failed to initialize SDL: %s", err)
-	}
-	defer sdl.Quit()
-
 	// Initialize SDL_ttf for text rendering
 	if err := ttf.Init(); err != nil {
 		return pressed, fmt.Errorf("failed to initialize SDL_ttf: %s", err)

@@ -40,7 +40,7 @@ func newWindow(cfg windowConfig) (*window, error) {
 }
 
 func _newWindow(cfg windowConfig) (*window, error) {
-	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_JOYSTICK); err != nil {
+	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
 		return nil, fmt.Errorf("failed to initialize SDL: %s", err)
 	}
 
