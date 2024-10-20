@@ -218,16 +218,14 @@ func (out *Output) poll() {
 		sdl.Do(func() {
 			for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 				switch e := event.(type) {
-				case *sdl.KeyboardEvent:
+				case sdl.QuitEvent:
+					out.quit.Store(true)
+				case sdl.KeyboardEvent:
 					if e.Type == sdl.KEYDOWN && e.Keysym.Sym == sdl.K_ESCAPE {
 						out.quit.Store(true)
 						return
 					}
-
-				case *sdl.QuitEvent:
-					out.quit.Store(true)
-				case *sdl.JoyButtonEvent:
-				case *sdl.WindowEvent:
+				case sdl.WindowEvent:
 					if e.Event == sdl.WINDOWEVENT_RESIZED {
 						width, height := e.Data1, e.Data2
 						scaleViewport(width, height, out.cfg.Width, out.cfg.Height)

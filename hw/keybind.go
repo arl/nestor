@@ -62,9 +62,9 @@ func ShowKeybindingWindow(btnName string) (pressed string, err error) {
 		// Poll for SDL events
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch e := event.(type) {
-			case *sdl.QuitEvent:
+			case sdl.QuitEvent:
 				quit = true
-			case *sdl.KeyboardEvent:
+			case sdl.KeyboardEvent:
 				if e.State == sdl.PRESSED {
 					if e.Keysym.Scancode != sdl.SCANCODE_ESCAPE {
 						pressed = sdl.GetScancodeName(e.Keysym.Scancode)

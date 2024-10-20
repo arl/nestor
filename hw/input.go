@@ -115,7 +115,7 @@ func (cfg PaddleConfig) keycodes() ([8]sdl.Scancode, error) {
 	codes[PadRight] = sdl.GetScancodeFromName(cfg.Right)
 
 	for btn, c := range codes {
-		if c == sdl.K_UNKNOWN {
+		if c == sdl.SCANCODE_UNKNOWN {
 			pbtn := PaddleButton(btn)
 			return codes, fmt.Errorf("unrecognized key for button %s: %q", pbtn, cfg.GetMapping(pbtn))
 		}
