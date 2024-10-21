@@ -1,24 +1,29 @@
 package hw
 
 import (
-	_ "embed"
 	"fmt"
+	"io"
 	"strings"
+	"time"
 
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 
+	"nestor/emu/log"
 	"nestor/resource"
 )
 
 // CaptureInput waits for a next key or joystick button press and
-// returns a code identifying it, or "" if the user pressed Escape.
-func CaptureInput(padbtn string) (pressed string, err error) {
-	pressed = ""
+// returns a MappingCodecode identifying it, or "" if the user pressed Escape.
+func CaptureInput(padbtn string) (InputCode, error) {
+	var code InputCode
 
-	// Initialize SDL_ttf for text rendering
+	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_GAMECONTROLLER); err != nil {
+		return code, fmt.Errorf("failed to initialize SDL: %s", err)
+	}
+
 	if err := ttf.Init(); err != nil {
-		return pressed, fmt.Errorf("failed to initialize SDL_ttf: %s", err)
+		return code, fmt.Errorf("failed to initialize SDL_ttf: %s", err)
 	}
 	defer ttf.Quit()
 
@@ -32,39 +37,77 @@ func CaptureInput(padbtn string) (pressed string, err error) {
 		sdl.WINDOW_SHOWN,
 	)
 	if err != nil {
-		return pressed, fmt.Errorf("failed to create window: %s", err)
+		return code, fmt.Errorf("failed to create window: %s", err)
 	}
 	defer win.Destroy()
 
 	renderer, err := sdl.CreateRenderer(win, -1, sdl.RENDERER_ACCELERATED)
 	if err != nil {
-		return pressed, fmt.Errorf("failed to create renderer: %s", err)
+		return code, fmt.Errorf("failed to create renderer: %s", err)
 	}
 	defer renderer.Destroy()
 
 	font, err := fontFromMem(resource.DejaVuSansFont)
 	if err != nil {
-		return pressed, fmt.Errorf("failed to load font: %s", err)
+		return code, fmt.Errorf("failed to load font: %s", err)
 	}
 
-	message := "Press key or joystick button to assign to"
-
 	// Function to split the text into lines that fit within the given width
-	lines := wrapText(font, message, 380) // 380 is the maximum width of each line
+	const message = "Press key or joystick button to assign to"
+	const maxwidth = 380
+	lines := wrapText(font, message, maxwidth)
 	lines = append(lines, "")
 	lines = append(lines, padbtn)
 
-	for quit := false; !quit; {
+	gamectrls := newGameControllers()
+
+	// Drain the events queue before starting. This removes previous events
+	// which could have been generated during the release of a joystick trigger
+	// for example.
+	drainEvents(200 * time.Millisecond)
+pollLoop:
+	for {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch e := event.(type) {
 			case sdl.QuitEvent:
-				quit = true
+				break pollLoop
+
 			case sdl.KeyboardEvent:
 				if e.State == sdl.PRESSED {
 					if e.Keysym.Scancode != sdl.SCANCODE_ESCAPE {
-						pressed = sdl.GetScancodeName(e.Keysym.Scancode)
+						code.Type = Keyboard
+						code.Scancode = e.Keysym.Scancode
 					}
-					quit = true
+					break pollLoop
+				}
+			case sdl.ControllerDeviceEvent:
+				gamectrls.updateDevices(e)
+
+			case sdl.ControllerButtonEvent:
+				ctrl := gamectrls.get(e.Which)
+				if ctrl == nil {
+					log.ModInput.Fatalf("controller %d not found", e.Which)
+				}
+
+				if e.Type == sdl.CONTROLLERBUTTONDOWN {
+					// name := sdl.GameControllerGetStringForButton(e.Button)
+					code.Type = ControllerButton
+					code.CtrlButton = e.Button
+					code.CtrlGUID = gamectrls.getGUID(e.Which)
+					break pollLoop
+				}
+
+			case sdl.ControllerAxisEvent:
+				if gamectrls.get(e.Which) == nil {
+					log.ModInput.Fatalf("controller %d not found", e.Which)
+				}
+
+				if e.Value < -joyAxisThreshold || e.Value > joyAxisThreshold {
+					code.Type = ControllerAxis
+					code.CtrlAxis = e.Axis
+					code.CtrlAxisDir = axissign(e.Value)
+					code.CtrlGUID = gamectrls.getGUID(e.Which)
+					break pollLoop
 				}
 			}
 		}
@@ -76,14 +119,53 @@ func CaptureInput(padbtn string) (pressed string, err error) {
 		winw, _ := win.GetSize()
 		col := sdl.Color{R: 255, G: 255, B: 255, A: 255}
 		if err := renderText(renderer, font, lines, col, 50, winw); err != nil {
-			return pressed, fmt.Errorf("renderText error: %s", err)
+			return code, fmt.Errorf("renderText error: %s", err)
 		}
 
 		renderer.Present()
 		sdl.Delay(16) // max out at 60fps
 	}
 
-	return pressed, nil
+	gamectrls.close()
+
+	return code, nil
+}
+
+// Drain the events queue before exiting. But since some joystick axes are
+// noisy, wait just long enough to drain 'actual' events, like for example
+// the events generated when releasing a joystick trigger.
+
+// debounceWriter is a wrapper around an io.Writer that debounces writes.
+//
+// When calling Write(val float64, format string, args ...any), the resulting
+// string will actually be forwarded to w in either of these cases:
+//   - debounce(val) returns true
+//   - the last write happened more than maxDur ago
+type debounceWriter[T comparable] struct {
+	w        io.Writer
+	debounce func(T) bool
+	maxDur   time.Duration
+	last     time.Time
+}
+
+func (dw *debounceWriter[T]) Write(val T, format string, args ...any) (n int, err error) {
+	if dw.debounce(val) || time.Since(dw.last) > dw.maxDur {
+		dw.last = time.Now()
+		return fmt.Fprintf(dw.w, format, args...)
+	}
+	return 0, nil
+}
+
+func drainEvents(maxwait time.Duration) {
+	deadline := time.Now().Add(maxwait)
+	for {
+		if event := sdl.PollEvent(); event == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			break
+		}
+	}
 }
 
 func fontFromMem(data []byte) (*ttf.Font, error) {

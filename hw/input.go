@@ -48,83 +48,7 @@ func (pd PaddleButton) String() string {
 
 // PaddlePreset holds the mapping configuration of a paddle.
 type PaddlePreset struct {
-	A      string `toml:"a"`
-	B      string `toml:"b"`
-	Select string `toml:"select"`
-	Start  string `toml:"start"`
-	Up     string `toml:"up"`
-	Down   string `toml:"down"`
-	Left   string `toml:"left"`
-	Right  string `toml:"right"`
-}
-
-// SetMapping defines the mapping for a PaddleButton.
-func (cfg *PaddlePreset) SetMapping(b PaddleButton, val string) {
-	switch b {
-	case PadA:
-		cfg.A = val
-	case PadB:
-		cfg.B = val
-	case PadSelect:
-		cfg.Select = val
-	case PadStart:
-		cfg.Start = val
-	case PadUp:
-		cfg.Up = val
-	case PadDown:
-		cfg.Down = val
-	case PadLeft:
-		cfg.Left = val
-	case PadRight:
-		cfg.Right = val
-	default:
-		panic(fmt.Sprintf("unknown paddle button %d", b))
-	}
-}
-
-// GetMapping returns the mapping for a PaddleButton.
-func (cfg *PaddlePreset) GetMapping(pd PaddleButton) string {
-	switch pd {
-	case PadA:
-		return cfg.A
-	case PadB:
-		return cfg.B
-	case PadSelect:
-		return cfg.Select
-	case PadStart:
-		return cfg.Start
-	case PadUp:
-		return cfg.Up
-	case PadDown:
-		return cfg.Down
-	case PadLeft:
-		return cfg.Left
-	case PadRight:
-		return cfg.Right
-	default:
-		panic(fmt.Sprintf("unknown paddle button %d", pd))
-	}
-}
-
-func (cfg PaddlePreset) keycodes() ([8]sdl.Scancode, error) {
-	var codes [8]sdl.Scancode
-	codes[PadA] = sdl.GetScancodeFromName(cfg.A)
-	codes[PadB] = sdl.GetScancodeFromName(cfg.B)
-	codes[PadSelect] = sdl.GetScancodeFromName(cfg.Select)
-	codes[PadStart] = sdl.GetScancodeFromName(cfg.Start)
-	codes[PadUp] = sdl.GetScancodeFromName(cfg.Up)
-	codes[PadDown] = sdl.GetScancodeFromName(cfg.Down)
-	codes[PadLeft] = sdl.GetScancodeFromName(cfg.Left)
-	codes[PadRight] = sdl.GetScancodeFromName(cfg.Right)
-
-	for btn, c := range codes {
-		if c == sdl.SCANCODE_UNKNOWN {
-			pbtn := PaddleButton(btn)
-			return codes, fmt.Errorf("unrecognized key for button %s: %q", pbtn, cfg.GetMapping(pbtn))
-		}
-	}
-
-	return codes, nil
+	Buttons [PadButtonCount]InputCode `toml:"buttons"`
 }
 
 const numPresets = 8
@@ -164,17 +88,6 @@ func NewInputProvider(cfg InputConfig) (*InputProvider, error) {
 		up.keystate = sdl.GetKeyboardState()
 	})
 
-	var err error
-	if cfg.Paddles[0].Plugged {
-		if up.keys[0], err = cfg.Paddles[0].Preset.keycodes(); err != nil {
-			return nil, fmt.Errorf("pad1: %s", err)
-		}
-	}
-	if cfg.Paddles[1].Plugged {
-		if up.keys[1], err = cfg.Paddles[1].Preset.keycodes(); err != nil {
-			return nil, fmt.Errorf("pad2: %s", err)
-		}
-	}
 	return up, nil
 }
 
@@ -185,11 +98,28 @@ func (ui *InputProvider) paddleState(idx int) uint8 {
 		return 0
 	}
 
+	preset := ui.cfg.Paddles[idx].Preset
+
 	state := uint8(0)
-	for btn, code := range ui.keys[idx] {
-		if ui.keystate[code] != 0 {
-			state |= 1 << uint(btn)
+	for i, code := range preset.Buttons {
+		pressed := uint8(0)
+		switch code.Type {
+		case Keyboard:
+			pressed = ui.keystate[code.Scancode]
+		case ControllerButton:
+			ctrl := gamectrls.getByGUID(code.CtrlGUID)
+			if ctrl != nil {
+				pressed = ctrl.Button(code.CtrlButton)
+			}
+		case ControllerAxis:
+			ctrl := gamectrls.getByGUID(code.CtrlGUID)
+			if ctrl != nil {
+				if ctrl.Axis(code.CtrlAxis) >= joyAxisThreshold {
+					pressed = 1
+				}
+			}
 		}
+		state |= pressed << i
 	}
 	return state
 }

@@ -52,6 +52,8 @@ type Frame struct {
 	_     []byte // TODO: Audio
 }
 
+var gamectrls *gameControllers
+
 type Output struct {
 	framebufidx  int
 	framebuf     [][]byte
@@ -86,6 +88,8 @@ func NewOutput(cfg OutputConfig) *Output {
 		framech:  make(chan Frame),
 		stop:     make(chan struct{}),
 	}
+
+	gamectrls = newGameControllers()
 
 	out.wg.Add(2)
 	go out.render()
@@ -230,6 +234,8 @@ func (out *Output) poll() {
 						width, height := e.Data1, e.Data2
 						scaleViewport(width, height, out.cfg.Width, out.cfg.Height)
 					}
+				case sdl.ControllerDeviceEvent:
+					gamectrls.updateDevices(e)
 				}
 			}
 		})
