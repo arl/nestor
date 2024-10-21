@@ -45,6 +45,7 @@ func showControllerConfig(cfg *hw.InputConfig) {
 	radioPad1 := build[gtk.RadioButton](builder, "paddle1_radio")
 	radioPad2 := build[gtk.RadioButton](builder, "paddle2_radio")
 	treeView := build[gtk.TreeView](builder, "treeview")
+	presets := build[gtk.ComboBoxText](builder, "presets_combo")
 
 	treeView.SetModel(dlg.listStore)
 	btncell := mustT(gtk.CellRendererTextNew())
@@ -56,7 +57,8 @@ func showControllerConfig(cfg *hw.InputConfig) {
 	treeView.AppendColumn(btncol)
 	treeView.AppendColumn(keycol)
 
-	dlg.drawArea.Connect("draw", dlg.onDraw)
+	dlg.drawArea.Connect("draw", dlg.onDrawPaddle)
+	presets.Connect("changed", dlg.onPresetChanged)
 	dlg.drawArea.Connect("button-press-event", dlg.onClick)
 	dlg.plugcheck.Connect("toggled", func(cb *gtk.CheckButton) {
 		dlg.cfg.Paddles[dlg.curpad].Plugged = cb.GetActive()
@@ -70,10 +72,17 @@ func showControllerConfig(cfg *hw.InputConfig) {
 		dlg.updatePaddleCfg()
 	})
 
-	dlg.updatePaddleCfg()
+	presets.SetActive(int(cfg.Paddles[0].PaddlePreset))
+
 	dlg.ShowAll()
 	dlg.Run()
 	dlg.Destroy()
+}
+
+func (dlg *controlCfgDialog) onPresetChanged(presets *gtk.ComboBoxText) {
+	dlg.cfg.Paddles[dlg.curpad].PaddlePreset = uint(presets.GetActive())
+	dlg.cfg.Paddles[dlg.curpad].Preset = &dlg.cfg.Presets[dlg.cfg.Paddles[dlg.curpad].PaddlePreset]
+	dlg.updatePaddleCfg()
 }
 
 func (dlg *controlCfgDialog) updatePaddleCfg() {
@@ -86,13 +95,12 @@ func (dlg *controlCfgDialog) updatePropertyList() {
 
 	for btn := hw.PadA; btn <= hw.PadRight; btn++ {
 		iter := dlg.listStore.Append()
-		mapping := dlg.cfg.Paddles[dlg.curpad].GetMapping(btn)
+		mapping := dlg.cfg.Paddles[dlg.curpad].Preset.GetMapping(btn)
 		must(dlg.listStore.Set(iter, []int{0, 1}, []any{btn.String(), mapping}))
 	}
 }
 
-// onDraw handles the drawing event
-func (dlg *controlCfgDialog) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
+func (dlg *controlCfgDialog) onDrawPaddle(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.Scale(dlg.drawScale, dlg.drawScale)
 
 	// Paddle body.
@@ -206,7 +214,7 @@ func (dlg *controlCfgDialog) captureInput(btn hw.PaddleButton) {
 			}
 
 			if code != "" {
-				dlg.cfg.Paddles[dlg.curpad].SetMapping(btn, code)
+				dlg.cfg.Paddles[dlg.curpad].Preset.SetMapping(btn, code)
 				dlg.updatePropertyList()
 			}
 		})
@@ -350,9 +358,7 @@ func roundedRect(cr *cairo.Context, x, y, width, height, radius float64, corners
 	cr.ClosePath()
 }
 
-type aabbox struct {
-	xmin, ymin, xmax, ymax float64
-}
+type aabbox struct{ xmin, ymin, xmax, ymax float64 }
 
 func (bb aabbox) contains(x, y float64) bool {
 	return x >= bb.xmin && x <= bb.xmax && y >= bb.ymin && y <= bb.ymax

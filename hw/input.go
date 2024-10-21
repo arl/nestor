@@ -46,21 +46,20 @@ func (pd PaddleButton) String() string {
 	panic(fmt.Sprintf("unknown paddle button %d", pd))
 }
 
-// PaddleConfig holds the input mapping for a paddle.
-type PaddleConfig struct {
-	A       string `toml:"a"`
-	B       string `toml:"b"`
-	Select  string `toml:"select"`
-	Start   string `toml:"start"`
-	Up      string `toml:"up"`
-	Down    string `toml:"down"`
-	Left    string `toml:"left"`
-	Right   string `toml:"right"`
-	Plugged bool   `toml:"plugged"`
+// PaddlePreset holds the mapping configuration of a paddle.
+type PaddlePreset struct {
+	A      string `toml:"a"`
+	B      string `toml:"b"`
+	Select string `toml:"select"`
+	Start  string `toml:"start"`
+	Up     string `toml:"up"`
+	Down   string `toml:"down"`
+	Left   string `toml:"left"`
+	Right  string `toml:"right"`
 }
 
 // SetMapping defines the mapping for a PaddleButton.
-func (cfg *PaddleConfig) SetMapping(b PaddleButton, val string) {
+func (cfg *PaddlePreset) SetMapping(b PaddleButton, val string) {
 	switch b {
 	case PadA:
 		cfg.A = val
@@ -84,7 +83,7 @@ func (cfg *PaddleConfig) SetMapping(b PaddleButton, val string) {
 }
 
 // GetMapping returns the mapping for a PaddleButton.
-func (cfg *PaddleConfig) GetMapping(pd PaddleButton) string {
+func (cfg *PaddlePreset) GetMapping(pd PaddleButton) string {
 	switch pd {
 	case PadA:
 		return cfg.A
@@ -107,7 +106,7 @@ func (cfg *PaddleConfig) GetMapping(pd PaddleButton) string {
 	}
 }
 
-func (cfg PaddleConfig) keycodes() ([8]sdl.Scancode, error) {
+func (cfg PaddlePreset) keycodes() ([8]sdl.Scancode, error) {
 	var codes [8]sdl.Scancode
 	codes[PadA] = sdl.GetScancodeFromName(cfg.A)
 	codes[PadB] = sdl.GetScancodeFromName(cfg.B)
@@ -128,8 +127,28 @@ func (cfg PaddleConfig) keycodes() ([8]sdl.Scancode, error) {
 	return codes, nil
 }
 
+const numPresets = 8
+
 type InputConfig struct {
-	Paddles [2]PaddleConfig
+	Paddles [2]PaddleConfig          `toml:"paddles"`
+	Presets [numPresets]PaddlePreset `toml:"presets"`
+}
+
+func (cfg *InputConfig) Init() {
+	if cfg.Paddles[0].PaddlePreset >= numPresets {
+		cfg.Paddles[0].PaddlePreset = 0
+	}
+	if cfg.Paddles[1].PaddlePreset >= numPresets {
+		cfg.Paddles[1].PaddlePreset = 0
+	}
+	cfg.Paddles[0].Preset = &cfg.Presets[cfg.Paddles[0].PaddlePreset]
+	cfg.Paddles[1].Preset = &cfg.Presets[cfg.Paddles[1].PaddlePreset]
+}
+
+type PaddleConfig struct {
+	Plugged      bool          `toml:"plugged"`
+	PaddlePreset uint          `toml:"preset"`
+	Preset       *PaddlePreset `toml:"-"`
 }
 
 type InputProvider struct {
@@ -147,12 +166,12 @@ func NewInputProvider(cfg InputConfig) (*InputProvider, error) {
 
 	var err error
 	if cfg.Paddles[0].Plugged {
-		if up.keys[0], err = cfg.Paddles[0].keycodes(); err != nil {
+		if up.keys[0], err = cfg.Paddles[0].Preset.keycodes(); err != nil {
 			return nil, fmt.Errorf("pad1: %s", err)
 		}
 	}
 	if cfg.Paddles[1].Plugged {
-		if up.keys[1], err = cfg.Paddles[1].keycodes(); err != nil {
+		if up.keys[1], err = cfg.Paddles[1].Preset.keycodes(); err != nil {
 			return nil, fmt.Errorf("pad2: %s", err)
 		}
 	}
