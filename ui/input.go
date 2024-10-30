@@ -21,7 +21,7 @@ var inputUI string
 type controlCfgDialog struct {
 	*gtk.Dialog
 
-	cfg    *input.InputConfig
+	cfg    *input.Config
 	curpad int // currently visible paddle
 
 	drawArea  *gtk.DrawingArea
@@ -34,7 +34,7 @@ type controlCfgDialog struct {
 	drawScale float64
 }
 
-func showControllerConfig(cfg *input.InputConfig) {
+func showControllerConfig(cfg *input.Config) {
 	builder := mustT(gtk.BuilderNewFromString(inputUI))
 	dlg := controlCfgDialog{
 		cfg:       cfg,

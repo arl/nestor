@@ -22,8 +22,8 @@ type Output interface {
 }
 
 type Config struct {
-	Input input.InputConfig `toml:"input"`
-	Video VideoConfig       `toml:"video"`
+	Input input.Config `toml:"input"`
+	Video VideoConfig  `toml:"video"`
 
 	TraceOut io.WriteCloser `toml:"-"`
 }

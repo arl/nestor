@@ -51,12 +51,12 @@ type PaddlePreset struct {
 
 const numPresets = 8
 
-type InputConfig struct {
+type Config struct {
 	Paddles [2]PaddleConfig          `toml:"paddles"`
 	Presets [numPresets]PaddlePreset `toml:"presets"`
 }
 
-func (cfg *InputConfig) Init() {
+func (cfg *Config) Init() {
 	if cfg.Paddles[0].PaddlePreset >= numPresets {
 		cfg.Paddles[0].PaddlePreset = 0
 	}
@@ -77,10 +77,10 @@ type Provider struct {
 	keys     [2][8]sdl.Scancode
 	keystate []uint8
 
-	cfg InputConfig
+	cfg Config
 }
 
-func NewProvider(cfg InputConfig) (*Provider, error) {
+func NewProvider(cfg Config) (*Provider, error) {
 	up := &Provider{cfg: cfg}
 	sdl.Do(func() {
 		up.keystate = sdl.GetKeyboardState()
