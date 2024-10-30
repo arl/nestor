@@ -9,6 +9,7 @@ import (
 
 	"nestor/emu/log"
 	"nestor/hw"
+	"nestor/hw/input"
 	"nestor/ines"
 )
 
@@ -21,8 +22,8 @@ type Output interface {
 }
 
 type Config struct {
-	Input hw.InputConfig `toml:"input"`
-	Video VideoConfig    `toml:"video"`
+	Input input.Config `toml:"input"`
+	Video VideoConfig  `toml:"video"`
 
 	TraceOut io.WriteCloser `toml:"-"`
 }
@@ -63,7 +64,7 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		return nil, err
 	}
 
-	input, err := hw.NewInputProvider(cfg.Input)
+	input, err := input.NewProvider(cfg.Input)
 	if err != nil {
 		return nil, fmt.Errorf("input provider: %s", err)
 	}
