@@ -8,6 +8,7 @@ import (
 	"nestor/hw/hwio"
 )
 
+// A PaddleButton is one of the button of a standard NES controller/paddle.
 type PaddleButton byte
 
 const (
@@ -45,87 +46,33 @@ func (pd PaddleButton) String() string {
 	panic(fmt.Sprintf("unknown paddle button %d", pd))
 }
 
-type PaddleConfig struct {
-	A       string `toml:"a"`
-	B       string `toml:"b"`
-	Select  string `toml:"select"`
-	Start   string `toml:"start"`
-	Up      string `toml:"up"`
-	Down    string `toml:"down"`
-	Left    string `toml:"left"`
-	Right   string `toml:"right"`
-	Plugged bool   `toml:"plugged"`
+// PaddlePreset holds the mapping configuration of a paddle.
+type PaddlePreset struct {
+	Buttons [PadButtonCount]InputCode `toml:"buttons"`
 }
 
-func (cfg *PaddleConfig) SetMapping(pd PaddleButton, val string) {
-	switch pd {
-	case PadA:
-		cfg.A = val
-	case PadB:
-		cfg.B = val
-	case PadSelect:
-		cfg.Select = val
-	case PadStart:
-		cfg.Start = val
-	case PadUp:
-		cfg.Up = val
-	case PadDown:
-		cfg.Down = val
-	case PadLeft:
-		cfg.Left = val
-	case PadRight:
-		cfg.Right = val
-	default:
-		panic(fmt.Sprintf("unknown paddle button %d", pd))
-	}
-}
-
-func (cfg *PaddleConfig) GetMapping(pd PaddleButton) string {
-	switch pd {
-	case PadA:
-		return cfg.A
-	case PadB:
-		return cfg.B
-	case PadSelect:
-		return cfg.Select
-	case PadStart:
-		return cfg.Start
-	case PadUp:
-		return cfg.Up
-	case PadDown:
-		return cfg.Down
-	case PadLeft:
-		return cfg.Left
-	case PadRight:
-		return cfg.Right
-	default:
-		panic(fmt.Sprintf("unknown paddle button %d", pd))
-	}
-}
-
-func (cfg PaddleConfig) keycodes() ([8]sdl.Scancode, error) {
-	var codes [8]sdl.Scancode
-	codes[PadA] = sdl.GetScancodeFromName(cfg.A)
-	codes[PadB] = sdl.GetScancodeFromName(cfg.B)
-	codes[PadSelect] = sdl.GetScancodeFromName(cfg.Select)
-	codes[PadStart] = sdl.GetScancodeFromName(cfg.Start)
-	codes[PadUp] = sdl.GetScancodeFromName(cfg.Up)
-	codes[PadDown] = sdl.GetScancodeFromName(cfg.Down)
-	codes[PadLeft] = sdl.GetScancodeFromName(cfg.Left)
-	codes[PadRight] = sdl.GetScancodeFromName(cfg.Right)
-
-	for btn, c := range codes {
-		if c == sdl.K_UNKNOWN {
-			pbtn := PaddleButton(btn)
-			return codes, fmt.Errorf("unrecognized key for button %s: %q", pbtn, cfg.GetMapping(pbtn))
-		}
-	}
-
-	return codes, nil
-}
+const numPresets = 8
 
 type InputConfig struct {
-	Paddles [2]PaddleConfig
+	Paddles [2]PaddleConfig          `toml:"paddles"`
+	Presets [numPresets]PaddlePreset `toml:"presets"`
+}
+
+func (cfg *InputConfig) Init() {
+	if cfg.Paddles[0].PaddlePreset >= numPresets {
+		cfg.Paddles[0].PaddlePreset = 0
+	}
+	if cfg.Paddles[1].PaddlePreset >= numPresets {
+		cfg.Paddles[1].PaddlePreset = 0
+	}
+	cfg.Paddles[0].Preset = &cfg.Presets[cfg.Paddles[0].PaddlePreset]
+	cfg.Paddles[1].Preset = &cfg.Presets[cfg.Paddles[1].PaddlePreset]
+}
+
+type PaddleConfig struct {
+	Plugged      bool          `toml:"plugged"`
+	PaddlePreset uint          `toml:"preset"`
+	Preset       *PaddlePreset `toml:"-"`
 }
 
 type InputProvider struct {
@@ -141,17 +88,6 @@ func NewInputProvider(cfg InputConfig) (*InputProvider, error) {
 		up.keystate = sdl.GetKeyboardState()
 	})
 
-	var err error
-	if cfg.Paddles[0].Plugged {
-		if up.keys[0], err = cfg.Paddles[0].keycodes(); err != nil {
-			return nil, fmt.Errorf("pad1: %s", err)
-		}
-	}
-	if cfg.Paddles[1].Plugged {
-		if up.keys[1], err = cfg.Paddles[1].keycodes(); err != nil {
-			return nil, fmt.Errorf("pad2: %s", err)
-		}
-	}
 	return up, nil
 }
 
@@ -162,11 +98,28 @@ func (ui *InputProvider) paddleState(idx int) uint8 {
 		return 0
 	}
 
+	preset := ui.cfg.Paddles[idx].Preset
+
 	state := uint8(0)
-	for btn, code := range ui.keys[idx] {
-		if ui.keystate[code] != 0 {
-			state |= 1 << uint(btn)
+	for i, code := range preset.Buttons {
+		pressed := uint8(0)
+		switch code.Type {
+		case Keyboard:
+			pressed = ui.keystate[code.Scancode]
+		case ControllerButton:
+			ctrl := gamectrls.getByGUID(code.CtrlGUID)
+			if ctrl != nil {
+				pressed = ctrl.Button(code.CtrlButton)
+			}
+		case ControllerAxis:
+			ctrl := gamectrls.getByGUID(code.CtrlGUID)
+			if ctrl != nil {
+				if ctrl.Axis(code.CtrlAxis) >= joyAxisThreshold {
+					pressed = 1
+				}
+			}
 		}
+		state |= pressed << i
 	}
 	return state
 }

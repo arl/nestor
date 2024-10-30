@@ -40,6 +40,7 @@ func LoadConfigOrDefault() Config {
 		// TODO: specify default config
 		return Config{}
 	}
+	cfg.Input.Init()
 	return cfg
 }
 

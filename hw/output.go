@@ -52,6 +52,8 @@ type Frame struct {
 	_     []byte // TODO: Audio
 }
 
+var gamectrls *gameControllers
+
 type Output struct {
 	framebufidx  int
 	framebuf     [][]byte
@@ -86,6 +88,8 @@ func NewOutput(cfg OutputConfig) *Output {
 		framech:  make(chan Frame),
 		stop:     make(chan struct{}),
 	}
+
+	gamectrls = newGameControllers()
 
 	out.wg.Add(2)
 	go out.render()
@@ -218,38 +222,38 @@ func (out *Output) poll() {
 		sdl.Do(func() {
 			for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 				switch e := event.(type) {
-				case *sdl.KeyboardEvent:
+				case sdl.QuitEvent:
+					out.quit.Store(true)
+				case sdl.KeyboardEvent:
 					if e.Type == sdl.KEYDOWN && e.Keysym.Sym == sdl.K_ESCAPE {
 						out.quit.Store(true)
 						return
 					}
-
-				case *sdl.QuitEvent:
-					out.quit.Store(true)
-				case *sdl.JoyButtonEvent:
-				case *sdl.WindowEvent:
+				case sdl.WindowEvent:
 					if e.Event == sdl.WINDOWEVENT_RESIZED {
 						width, height := e.Data1, e.Data2
 						scaleViewport(width, height, out.cfg.Width, out.cfg.Height)
 					}
+				case sdl.ControllerDeviceEvent:
+					gamectrls.updateDevices(e)
 				}
 			}
 		})
 	}
 }
 
-func scaleViewport(winw, winh int32, orgw, orgh int) {
+// scaleViewport scales the viewport so as to maintain nes aspect ratio.
+func scaleViewport(winw, winh int32, nesw, nesh int) {
 	winRatio := float64(winw) / float64(winh)
-	nesRatio := float64(orgw) / float64(orgh)
+	nesRatio := float64(nesw) / float64(nesh)
 
-	// We want the largest rectangle that maintains nes aspect ratio.
 	var vpw, vph int32
 	if winRatio > nesRatio {
-		// Window is wider than the NES aspect ratio.
+		// Window is wider than nes screen.
 		vph = winh
 		vpw = int32(float64(winh) * nesRatio)
 	} else {
-		// Window is taller or equal to the NES aspect ratio.
+		// Window is taller than nes screen.
 		vpw = winw
 		vph = int32(float64(winw) / nesRatio)
 	}

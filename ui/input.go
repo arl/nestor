@@ -2,8 +2,9 @@ package ui
 
 import (
 	_ "embed"
+	"fmt"
 	"math"
-	"strings"
+	"strconv"
 
 	"github.com/gotk3/gotk3/cairo"
 	"github.com/gotk3/gotk3/gdk"
@@ -17,72 +18,150 @@ import (
 //go:embed input.glade
 var inputUI string
 
-type paddlesCfgDialog struct {
+type controlCfgDialog struct {
 	*gtk.Dialog
 
-	padcfg *hw.PaddleConfig // depends on current radio button
+	cfg    *hw.InputConfig
+	curpad int // currently visible paddle
 
 	drawArea  *gtk.DrawingArea
 	listStore *gtk.ListStore
 	plugcheck *gtk.CheckButton
 	bboxes    [hw.PadButtonCount]aabbox
 
+	devices map[string]int // allows to give each joystick a number without using the GUID
+
 	drawScale float64
 }
 
 func showControllerConfig(cfg *hw.InputConfig) {
 	builder := mustT(gtk.BuilderNewFromString(inputUI))
-	dlg := paddlesCfgDialog{
+	dlg := controlCfgDialog{
+		cfg:       cfg,
+		curpad:    0,
+		drawScale: 3.6,
+		devices:   map[string]int{"": 0},
 		Dialog:    build[gtk.Dialog](builder, "input_dialog"),
 		plugcheck: build[gtk.CheckButton](builder, "plugged_chk"),
 		drawArea:  build[gtk.DrawingArea](builder, "paddle_drawing"),
-		listStore: mustT(gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING)),
-		padcfg:    &cfg.Paddles[0],
-		drawScale: 3.6,
+		listStore: mustT(gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING)),
 	}
 	radioPad1 := build[gtk.RadioButton](builder, "paddle1_radio")
 	radioPad2 := build[gtk.RadioButton](builder, "paddle2_radio")
 	treeView := build[gtk.TreeView](builder, "treeview")
+	presets := build[gtk.ComboBoxText](builder, "presets_combo")
 
 	treeView.SetModel(dlg.listStore)
-	btncell := mustT(gtk.CellRendererTextNew())
-	keycell := mustT(gtk.CellRendererTextNew())
-	btncell.SetProperty("weight", pango.WEIGHT_NORMAL)
-	keycell.SetProperty("weight", pango.WEIGHT_LIGHT)
-	btncol := mustT(gtk.TreeViewColumnNewWithAttribute("Button", btncell, "text", 0))
-	keycol := mustT(gtk.TreeViewColumnNewWithAttribute("Assigned Key", keycell, "text", 1))
-	treeView.AppendColumn(btncol)
-	treeView.AppendColumn(keycol)
+	typecell := mustT(gtk.CellRendererTextNew())
+	namecell := mustT(gtk.CellRendererTextNew())
+	devcell := mustT(gtk.CellRendererTextNew())
+	typecell.SetProperty("weight", pango.WEIGHT_LIGHT)
+	namecell.SetProperty("weight", pango.WEIGHT_NORMAL)
+	devcell.SetProperty("weight", pango.WEIGHT_NORMAL)
+	typecol := mustT(gtk.TreeViewColumnNewWithAttribute("Type", typecell, "text", 0))
+	namecol := mustT(gtk.TreeViewColumnNewWithAttribute("Name", namecell, "text", 1))
+	devcol := mustT(gtk.TreeViewColumnNewWithAttribute("Device", devcell, "text", 2))
+	treeView.AppendColumn(typecol)
+	treeView.AppendColumn(namecol)
+	treeView.AppendColumn(devcol)
 
-	dlg.drawArea.Connect("draw", dlg.onDraw)
+	dlg.drawArea.Connect("draw", dlg.onDrawPaddle)
+	presets.Connect("changed", dlg.onPresetChanged)
 	dlg.drawArea.Connect("button-press-event", dlg.onClick)
-	dlg.plugcheck.Connect("toggled", func(cb *gtk.CheckButton) { dlg.padcfg.Plugged = cb.GetActive() })
-	radioPad1.Connect("clicked", func() { dlg.padcfg = &cfg.Paddles[0]; dlg.onClickedPaddle() })
-	radioPad2.Connect("clicked", func() { dlg.padcfg = &cfg.Paddles[1]; dlg.onClickedPaddle() })
+	dlg.plugcheck.Connect("toggled", func(cb *gtk.CheckButton) {
+		dlg.cfg.Paddles[dlg.curpad].Plugged = cb.GetActive()
+	})
+	radioPad1.Connect("clicked", func() {
+		dlg.curpad = 0
+		presets.SetActive(int(cfg.Paddles[dlg.curpad].PaddlePreset))
+	})
+	radioPad2.Connect("clicked", func() {
+		dlg.curpad = 1
+		presets.SetActive(int(cfg.Paddles[dlg.curpad].PaddlePreset))
+	})
 
-	dlg.onClickedPaddle()
+	presets.SetActive(int(cfg.Paddles[0].PaddlePreset))
+
 	dlg.ShowAll()
 	dlg.Run()
 	dlg.Destroy()
 }
 
-func (dlg *paddlesCfgDialog) onClickedPaddle() {
-	dlg.plugcheck.SetActive(dlg.padcfg.Plugged)
+func (dlg *controlCfgDialog) onPresetChanged(presets *gtk.ComboBoxText) {
+	dlg.cfg.Paddles[dlg.curpad].PaddlePreset = uint(presets.GetActive())
+	dlg.cfg.Paddles[dlg.curpad].Preset = &dlg.cfg.Presets[dlg.cfg.Paddles[dlg.curpad].PaddlePreset]
+	dlg.updatePaddleCfg()
+}
+
+func (dlg *controlCfgDialog) updatePaddleCfg() {
+	dlg.plugcheck.SetActive(dlg.cfg.Paddles[dlg.curpad].Plugged)
 	dlg.updatePropertyList()
 }
 
-func (dlg *paddlesCfgDialog) updatePropertyList() {
+func (dlg *controlCfgDialog) updatePropertyList() {
 	dlg.listStore.Clear()
 
 	for btn := hw.PadA; btn <= hw.PadRight; btn++ {
 		iter := dlg.listStore.Append()
-		mapping := dlg.padcfg.GetMapping(btn)
-		must(dlg.listStore.Set(iter, []int{0, 1}, []any{btn.String(), mapping}))
+		mapping := dlg.cfg.Paddles[dlg.curpad].Preset.Buttons[btn]
+
+		typ := mapping.Type.String()
+		name := mapping.Name()
+		dev, ok := dlg.devices[mapping.CtrlGUID]
+		if !ok {
+			dev = len(dlg.devices)
+			dlg.devices[mapping.CtrlGUID] = dev
+		}
+		devstr := ""
+		if dev > 0 {
+			devstr = strconv.Itoa(dev)
+		}
+
+		must(dlg.listStore.Set(iter, []int{0, 1, 2}, []any{typ, name, devstr}))
 	}
 }
 
-// onDraw handles the drawing event
-func (dlg *paddlesCfgDialog) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
+func (dlg *controlCfgDialog) captureInput(btn hw.PaddleButton) {
+	dlg.SetSensitive(false)
+
+	// The input capture window is SDL, not gtk, we to run it in a different
+	// goroutine to not block gtk event loop.
+	go func() {
+		text := fmt.Sprintf("%s (Paddle %d)", btn, dlg.curpad+1)
+		code, err := hw.CaptureInput(text)
+
+		glib.IdleAdd(func() {
+			defer dlg.SetSensitive(true)
+
+			if err != nil {
+				gtk.MessageDialogNew(nil, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, "Error: %s", err).Run()
+				return
+			}
+
+			if code.Type == hw.UnsetController {
+				return
+			}
+
+			dlg.cfg.Paddles[dlg.curpad].Preset.Buttons[btn] = code
+			dlg.updatePropertyList()
+		})
+	}()
+}
+
+func (dlg *controlCfgDialog) onClick(da *gtk.DrawingArea, event *gdk.Event) {
+	x, y := gdk.EventButtonNewFromEvent(event).MotionVal()
+	x /= dlg.drawScale
+	y /= dlg.drawScale
+
+	for i, bbox := range dlg.bboxes {
+		if bbox.contains(x, y) {
+			dlg.captureInput(hw.PaddleButton(i))
+			return
+		}
+	}
+}
+
+func (dlg *controlCfgDialog) onDrawPaddle(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.Scale(dlg.drawScale, dlg.drawScale)
 
 	// Paddle body.
@@ -176,29 +255,6 @@ func (dlg *paddlesCfgDialog) onDraw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.ShowText("B")
 	cr.MoveTo(85, 37)
 	cr.ShowText("A")
-}
-
-func (dlg *paddlesCfgDialog) onClick(da *gtk.DrawingArea, event *gdk.Event) {
-	x, y := gdk.EventButtonNewFromEvent(event).MotionVal()
-	x /= dlg.drawScale
-	y /= dlg.drawScale
-
-	for i, bbox := range dlg.bboxes {
-		if bbox.contains(x, y) {
-			btn := hw.PaddleButton(i)
-			code, err := hw.ShowKeybindingWindow(btn.String())
-			if err != nil {
-				gtk.MessageDialogNew(nil, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, "Error: %s", err).Run()
-				return
-			}
-			code = strings.TrimSpace(code)
-			if code != "" {
-				dlg.padcfg.SetMapping(btn, code)
-				dlg.updatePropertyList()
-			}
-			return
-		}
-	}
 }
 
 type arrowDir int
@@ -325,9 +381,7 @@ func roundedRect(cr *cairo.Context, x, y, width, height, radius float64, corners
 	cr.ClosePath()
 }
 
-type aabbox struct {
-	xmin, ymin, xmax, ymax float64
-}
+type aabbox struct{ xmin, ymin, xmax, ymax float64 }
 
 func (bb aabbox) contains(x, y float64) bool {
 	return x >= bb.xmin && x <= bb.xmax && y >= bb.ymin && y <= bb.ymax
