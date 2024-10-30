@@ -1,4 +1,4 @@
-package hw
+package input
 
 import (
 	"fmt"
@@ -12,10 +12,10 @@ import (
 	"nestor/resource"
 )
 
-// CaptureInput waits for a next key or joystick button press and
+// Capture waits for a next key or joystick button press and
 // returns a MappingCodecode identifying it, or "" if the user pressed Escape.
-func CaptureInput(padbtn string) (InputCode, error) {
-	var code InputCode
+func Capture(padbtn string) (Code, error) {
+	var code Code
 
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_GAMECONTROLLER); err != nil {
 		return code, fmt.Errorf("failed to initialize SDL: %s", err)
@@ -57,7 +57,7 @@ func CaptureInput(padbtn string) (InputCode, error) {
 	lines = append(lines, "")
 	lines = append(lines, padbtn)
 
-	gamectrls := newGameControllers()
+	gamectrls := NewGameControllers()
 
 	// Drain the events queue before starting. This removes previous events
 	// which could have been generated during the release of a joystick trigger
@@ -79,10 +79,10 @@ pollLoop:
 					break pollLoop
 				}
 			case sdl.ControllerDeviceEvent:
-				gamectrls.updateDevices(e)
+				gamectrls.UpdateDevices(e)
 
 			case sdl.ControllerButtonEvent:
-				ctrl := gamectrls.get(e.Which)
+				ctrl := gamectrls.Get(e.Which)
 				if ctrl == nil {
 					log.ModInput.Fatalf("controller %d not found", e.Which)
 				}
@@ -90,20 +90,20 @@ pollLoop:
 				if e.Type == sdl.CONTROLLERBUTTONDOWN {
 					code.Type = ControllerButton
 					code.CtrlButton = e.Button
-					code.CtrlGUID = gamectrls.getGUID(e.Which)
+					code.CtrlGUID = gamectrls.GetGUID(e.Which)
 					break pollLoop
 				}
 
 			case sdl.ControllerAxisEvent:
-				if gamectrls.get(e.Which) == nil {
+				if gamectrls.Get(e.Which) == nil {
 					log.ModInput.Fatalf("controller %d not found", e.Which)
 				}
 
-				if e.Value < -joyAxisThreshold || e.Value > joyAxisThreshold {
+				if e.Value < -JoyAxisThreshold || e.Value > JoyAxisThreshold {
 					code.Type = ControllerAxis
 					code.CtrlAxis = e.Axis
 					code.CtrlAxisDir = axissign(e.Value)
-					code.CtrlGUID = gamectrls.getGUID(e.Which)
+					code.CtrlGUID = gamectrls.GetGUID(e.Which)
 					break pollLoop
 				}
 			}
@@ -122,7 +122,7 @@ pollLoop:
 		sdl.Delay(16) // max out at 60fps
 	}
 
-	gamectrls.close()
+	gamectrls.Close()
 
 	return code, nil
 }

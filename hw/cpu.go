@@ -1,12 +1,11 @@
 package hw
 
-//go:generate go run ./cpugen/gen_nes6502.go -out ./opcodes.go
-
 import (
 	"io"
 
 	"nestor/emu/log"
 	"nestor/hw/hwio"
+	_input "nestor/hw/input"
 )
 
 // Locations reserved for vector pointers.
@@ -63,7 +62,7 @@ func NewCPU(ppu *PPU) *CPU {
 	return cpu
 }
 
-func (c *CPU) PlugInputDevice(ip *InputProvider) {
+func (c *CPU) PlugInputDevice(ip *_input.Provider) {
 	c.input.provider = ip
 }
 

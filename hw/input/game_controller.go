@@ -1,4 +1,4 @@
-package hw
+package input
 
 import (
 	"fmt"
@@ -8,6 +8,8 @@ import (
 
 	"github.com/veandco/go-sdl2/sdl"
 )
+
+var Gamectrls *GameControllers
 
 type ControllerType uint8
 
@@ -30,9 +32,9 @@ func (t ControllerType) String() string {
 	return "not set"
 }
 
-// An InputCode describes the user input event (keyboard key, game controller
+// A Code describes the user input event (keyboard key, game controller
 // button/axis). Only one of these is valid.
-type InputCode struct {
+type Code struct {
 	Scancode sdl.Scancode
 
 	CtrlGUID    string
@@ -44,7 +46,7 @@ type InputCode struct {
 }
 
 // Name returns an user-friendly name for the input code.
-func (mc InputCode) Name() string {
+func (mc Code) Name() string {
 	switch mc.Type {
 	case Keyboard:
 		return sdl.GetScancodeName(mc.Scancode)
@@ -63,7 +65,7 @@ func (mc InputCode) Name() string {
 	return ""
 }
 
-func (mc InputCode) MarshalText() ([]byte, error) {
+func (mc Code) MarshalText() ([]byte, error) {
 	s := ""
 	name := mc.Name()
 	switch mc.Type {
@@ -78,7 +80,7 @@ func (mc InputCode) MarshalText() ([]byte, error) {
 	return []byte(s), nil
 }
 
-func (mc *InputCode) UnmarshalText(text []byte) error {
+func (mc *Code) UnmarshalText(text []byte) error {
 	s := string(text)
 
 	switch {
@@ -137,28 +139,28 @@ func (mc *InputCode) UnmarshalText(text []byte) error {
 
 // threshold for joystick axis to be considered as 'pressed'.
 // goes from -32768 to 32767
-const joyAxisThreshold = 32000
+const JoyAxisThreshold = 32000
 
-type gameControllers struct {
-	guids map[string]*sdl.GameController         // GUID -> controller
-	ids   map[sdl.JoystickID]*sdl.GameController // joystick ID -> controller
+type GameControllers struct {
+	Guids map[string]*sdl.GameController         // GUID -> controller
+	Ids   map[sdl.JoystickID]*sdl.GameController // joystick ID -> controller
 }
 
 // As soon as it's been created, update must be called for each controller event
 // in order to remain in sync.
-func newGameControllers() *gameControllers {
-	gcs := gameControllers{
-		guids: make(map[string]*sdl.GameController),
-		ids:   make(map[sdl.JoystickID]*sdl.GameController),
+func NewGameControllers() *GameControllers {
+	gcs := GameControllers{
+		Guids: make(map[string]*sdl.GameController),
+		Ids:   make(map[sdl.JoystickID]*sdl.GameController),
 	}
 	for i := range sdl.NumJoysticks() {
 		if sdl.IsGameController(i) {
 			c := sdl.GameControllerOpen(i)
 			joy := c.Joystick()
 			guid := sdl.JoystickGetGUIDString(joy.GUID())
-			gcs.guids[guid] = c
+			gcs.Guids[guid] = c
 			id := joy.InstanceID()
-			gcs.ids[id] = c
+			gcs.Ids[id] = c
 
 			log.ModInput.DebugZ("found controller").
 				Int32("id", int32(id)).
@@ -169,28 +171,33 @@ func newGameControllers() *gameControllers {
 	return &gcs
 }
 
-func (gcs *gameControllers) get(id sdl.JoystickID) *sdl.GameController {
-	return gcs.ids[id]
+// returns -1 for [-32768, 0) and 1 for [0, 32767]
+func axissign(v int16) int16 {
+	return int16(1 - 2*(uint16(v)>>15))
 }
 
-func (gcs *gameControllers) getGUID(id sdl.JoystickID) string {
-	gc := gcs.get(id)
+func (gcs *GameControllers) Get(id sdl.JoystickID) *sdl.GameController {
+	return gcs.Ids[id]
+}
+
+func (gcs *GameControllers) GetGUID(id sdl.JoystickID) string {
+	gc := gcs.Get(id)
 	guid := sdl.JoystickGetGUIDString(gc.Joystick().GUID())
 	return guid
 }
 
-func (gcs *gameControllers) getByGUID(guid string) *sdl.GameController {
-	return gcs.guids[guid]
+func (gcs *GameControllers) getByGUID(guid string) *sdl.GameController {
+	return gcs.Guids[guid]
 }
 
-func (gcs *gameControllers) updateDevices(e sdl.ControllerDeviceEvent) {
+func (gcs *GameControllers) UpdateDevices(e sdl.ControllerDeviceEvent) {
 	switch e.Type {
 	case sdl.CONTROLLERDEVICEADDED:
 		c := sdl.GameControllerOpen(int(e.Which))
 		guid := sdl.JoystickGetGUIDString(c.Joystick().GUID())
 		id := c.Joystick().InstanceID()
-		gcs.guids[guid] = c
-		gcs.ids[id] = c
+		gcs.Guids[guid] = c
+		gcs.Ids[id] = c
 
 		log.ModInput.InfoZ("added controller").
 			Int32("id", int32(id)).
@@ -198,15 +205,15 @@ func (gcs *gameControllers) updateDevices(e sdl.ControllerDeviceEvent) {
 			End()
 
 	case sdl.CONTROLLERDEVICEREMOVED:
-		c := gcs.get(e.Which)
+		c := gcs.Get(e.Which)
 		if c == nil {
 			log.ModInput.FatalZ("controller not found").
 				Int32("id", int32(e.Which)).
 				End()
 		}
 		guid := sdl.JoystickGetGUIDString(c.Joystick().GUID())
-		delete(gcs.guids, guid)
-		delete(gcs.ids, e.Which)
+		delete(gcs.Guids, guid)
+		delete(gcs.Ids, e.Which)
 		c.Close()
 
 		log.ModInput.InfoZ("removed controller").
@@ -216,15 +223,10 @@ func (gcs *gameControllers) updateDevices(e sdl.ControllerDeviceEvent) {
 	}
 }
 
-func (gcs *gameControllers) close() {
-	for _, c := range gcs.guids {
+func (gcs *GameControllers) Close() {
+	for _, c := range gcs.Guids {
 		c.Close()
 		c = nil
 	}
-	clear(gcs.guids)
-}
-
-// returns -1 for [-32768, 0) and 1 for [0, 32767]
-func axissign(v int16) int16 {
-	return int16(1 - 2*(uint16(v)>>15))
+	clear(gcs.Guids)
 }

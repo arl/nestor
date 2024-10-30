@@ -13,6 +13,7 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 
 	"nestor/emu/log"
+	"nestor/hw/input"
 )
 
 const PrimaryMonitor = 0
@@ -52,8 +53,6 @@ type Frame struct {
 	_     []byte // TODO: Audio
 }
 
-var gamectrls *gameControllers
-
 type Output struct {
 	framebufidx  int
 	framebuf     [][]byte
@@ -89,7 +88,7 @@ func NewOutput(cfg OutputConfig) *Output {
 		stop:     make(chan struct{}),
 	}
 
-	gamectrls = newGameControllers()
+	input.Gamectrls = input.NewGameControllers()
 
 	out.wg.Add(2)
 	go out.render()
@@ -235,7 +234,7 @@ func (out *Output) poll() {
 						scaleViewport(width, height, out.cfg.Width, out.cfg.Height)
 					}
 				case sdl.ControllerDeviceEvent:
-					gamectrls.updateDevices(e)
+					input.Gamectrls.UpdateDevices(e)
 				}
 			}
 		})

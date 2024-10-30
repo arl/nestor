@@ -12,7 +12,7 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/gotk3/gotk3/pango"
 
-	"nestor/hw"
+	"nestor/hw/input"
 )
 
 //go:embed input.glade
@@ -21,20 +21,20 @@ var inputUI string
 type controlCfgDialog struct {
 	*gtk.Dialog
 
-	cfg    *hw.InputConfig
+	cfg    *input.InputConfig
 	curpad int // currently visible paddle
 
 	drawArea  *gtk.DrawingArea
 	listStore *gtk.ListStore
 	plugcheck *gtk.CheckButton
-	bboxes    [hw.PadButtonCount]aabbox
+	bboxes    [input.PadButtonCount]aabbox
 
 	devices map[string]int // allows to give each joystick a number without using the GUID
 
 	drawScale float64
 }
 
-func showControllerConfig(cfg *hw.InputConfig) {
+func showControllerConfig(cfg *input.InputConfig) {
 	builder := mustT(gtk.BuilderNewFromString(inputUI))
 	dlg := controlCfgDialog{
 		cfg:       cfg,
@@ -101,7 +101,7 @@ func (dlg *controlCfgDialog) updatePaddleCfg() {
 func (dlg *controlCfgDialog) updatePropertyList() {
 	dlg.listStore.Clear()
 
-	for btn := hw.PadA; btn <= hw.PadRight; btn++ {
+	for btn := input.PadA; btn <= input.PadRight; btn++ {
 		iter := dlg.listStore.Append()
 		mapping := dlg.cfg.Paddles[dlg.curpad].Preset.Buttons[btn]
 
@@ -121,14 +121,14 @@ func (dlg *controlCfgDialog) updatePropertyList() {
 	}
 }
 
-func (dlg *controlCfgDialog) captureInput(btn hw.PaddleButton) {
+func (dlg *controlCfgDialog) captureInput(btn input.PaddleButton) {
 	dlg.SetSensitive(false)
 
 	// The input capture window is SDL, not gtk, we to run it in a different
 	// goroutine to not block gtk event loop.
 	go func() {
 		text := fmt.Sprintf("%s (Paddle %d)", btn, dlg.curpad+1)
-		code, err := hw.CaptureInput(text)
+		code, err := input.Capture(text)
 
 		glib.IdleAdd(func() {
 			defer dlg.SetSensitive(true)
@@ -138,7 +138,7 @@ func (dlg *controlCfgDialog) captureInput(btn hw.PaddleButton) {
 				return
 			}
 
-			if code.Type == hw.UnsetController {
+			if code.Type == input.UnsetController {
 				return
 			}
 
@@ -155,7 +155,7 @@ func (dlg *controlCfgDialog) onClick(da *gtk.DrawingArea, event *gdk.Event) {
 
 	for i, bbox := range dlg.bboxes {
 		if bbox.contains(x, y) {
-			dlg.captureInput(hw.PaddleButton(i))
+			dlg.captureInput(input.PaddleButton(i))
 			return
 		}
 	}
@@ -193,10 +193,10 @@ func (dlg *controlCfgDialog) onDrawPaddle(da *gtk.DrawingArea, cr *cairo.Context
 	cr.Arc(16, 24, 2, 0, 2*math.Pi)
 	cr.Fill()
 
-	dlg.bboxes[hw.PadUp] = aabbox{13, 15, 20, 21}
-	dlg.bboxes[hw.PadDown] = aabbox{13, 27, 20, 33}
-	dlg.bboxes[hw.PadLeft] = aabbox{7, 21, 13, 27}
-	dlg.bboxes[hw.PadRight] = aabbox{20, 21, 27, 27}
+	dlg.bboxes[input.PadUp] = aabbox{13, 15, 20, 21}
+	dlg.bboxes[input.PadDown] = aabbox{13, 27, 20, 33}
+	dlg.bboxes[input.PadLeft] = aabbox{7, 21, 13, 27}
+	dlg.bboxes[input.PadRight] = aabbox{20, 21, 27, 27}
 
 	// Central H lines.
 	cr.SetSourceRGB(0.5, 0.5, 0.5)
@@ -232,8 +232,8 @@ func (dlg *controlCfgDialog) onDrawPaddle(da *gtk.DrawingArea, cr *cairo.Context
 	roundedRect(cr, 48, 27.5, 8, 3, 1.5)
 	cr.Fill()
 
-	dlg.bboxes[hw.PadSelect] = aabbox{34, 27.5, 42, 30.5}
-	dlg.bboxes[hw.PadStart] = aabbox{48, 27.5, 56, 30.5}
+	dlg.bboxes[input.PadSelect] = aabbox{34, 27.5, 42, 30.5}
+	dlg.bboxes[input.PadStart] = aabbox{48, 27.5, 56, 30.5}
 
 	// B/A panels.
 	cr.SetSourceRGB(0.9, 0.9, 0.9)
@@ -242,8 +242,8 @@ func (dlg *controlCfgDialog) onDrawPaddle(da *gtk.DrawingArea, cr *cairo.Context
 	roundedRect(cr, 77, 24, 10, 10, 1.5)
 	cr.Fill()
 
-	dlg.bboxes[hw.PadB] = aabbox{65, 24, 75, 34}
-	dlg.bboxes[hw.PadA] = aabbox{77, 24, 87, 34}
+	dlg.bboxes[input.PadB] = aabbox{65, 24, 75, 34}
+	dlg.bboxes[input.PadA] = aabbox{77, 24, 87, 34}
 
 	// B/A buttons.
 	cr.SetSourceRGB(1, 0, 0)
