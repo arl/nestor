@@ -70,7 +70,7 @@ func (cfg *Config) Init() {
 type PaddleConfig struct {
 	Plugged      bool          `toml:"plugged"`
 	PaddlePreset uint          `toml:"preset"`
-	Preset       *PaddlePreset `toml:"-"`
+	Preset       *PaddlePreset `toml:"-"` // points to the current preset
 }
 
 type Provider struct {
