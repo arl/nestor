@@ -2,7 +2,6 @@ package hw
 
 import (
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -52,7 +51,6 @@ func CaptureInput(padbtn string) (InputCode, error) {
 		return code, fmt.Errorf("failed to load font: %s", err)
 	}
 
-	// Function to split the text into lines that fit within the given width
 	const message = "Press key or joystick button to assign to"
 	const maxwidth = 380
 	lines := wrapText(font, message, maxwidth)
@@ -90,7 +88,6 @@ pollLoop:
 				}
 
 				if e.Type == sdl.CONTROLLERBUTTONDOWN {
-					// name := sdl.GameControllerGetStringForButton(e.Button)
 					code.Type = ControllerButton
 					code.CtrlButton = e.Button
 					code.CtrlGUID = gamectrls.getGUID(e.Which)
@@ -115,7 +112,6 @@ pollLoop:
 		renderer.SetDrawColor(0, 0, 0, 255)
 		renderer.Clear()
 
-		// Render the text line by line
 		winw, _ := win.GetSize()
 		col := sdl.Color{R: 255, G: 255, B: 255, A: 255}
 		if err := renderText(renderer, font, lines, col, 50, winw); err != nil {
@@ -134,28 +130,6 @@ pollLoop:
 // Drain the events queue before exiting. But since some joystick axes are
 // noisy, wait just long enough to drain 'actual' events, like for example
 // the events generated when releasing a joystick trigger.
-
-// debounceWriter is a wrapper around an io.Writer that debounces writes.
-//
-// When calling Write(val float64, format string, args ...any), the resulting
-// string will actually be forwarded to w in either of these cases:
-//   - debounce(val) returns true
-//   - the last write happened more than maxDur ago
-type debounceWriter[T comparable] struct {
-	w        io.Writer
-	debounce func(T) bool
-	maxDur   time.Duration
-	last     time.Time
-}
-
-func (dw *debounceWriter[T]) Write(val T, format string, args ...any) (n int, err error) {
-	if dw.debounce(val) || time.Since(dw.last) > dw.maxDur {
-		dw.last = time.Now()
-		return fmt.Fprintf(dw.w, format, args...)
-	}
-	return 0, nil
-}
-
 func drainEvents(maxwait time.Duration) {
 	deadline := time.Now().Add(maxwait)
 	for {
