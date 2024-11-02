@@ -20,8 +20,8 @@ type CPU struct {
 
 	RAM hwio.Mem `hwio:"bank=0,offset=0x0,size=0x800,vsize=0x2000"`
 
-	ppu    *PPU // non-nil when there's a PPU.
-	ppuDMA ppuDMA
+	PPU    *PPU // non-nil when there's a PPU.
+	PPUDMA PPUDMA
 
 	// Non-nil when execution tracing is enabled.
 	tracer *tracer
@@ -56,10 +56,10 @@ func NewCPU(ppu *PPU) *CPU {
 		SP:  0xFD,
 		P:   0x00,
 		PC:  0x0000,
-		ppu: ppu,
+		PPU: ppu,
 		dbg: nopDebugger{},
 	}
-	cpu.ppuDMA.cpu = cpu
+	cpu.PPUDMA.cpu = cpu
 	return cpu
 }
 
@@ -73,13 +73,13 @@ func (c *CPU) InitBus() {
 	c.Bus.MapBank(0x0000, c, 0)
 
 	// Map the 8 PPU registers (bank 1) from 0x2000 to 0x3FFF.
-	for off := 0x2000; off < 0x4000; off += 8 {
-		c.Bus.MapBank(uint16(off), c.ppu, 1)
+	for off := uint16(0x2000); off < 0x4000; off += 8 {
+		c.Bus.MapBank(off, c.PPU, 1)
 	}
 
 	// Map PPU OAMDMA register.
-	c.ppuDMA.InitBus(c.Bus)
-	c.Bus.MapBank(0x4014, &c.ppuDMA, 0)
+	c.PPUDMA.InitBus(c.Bus)
+	c.Bus.MapBank(0x4014, &c.PPUDMA, 0)
 
 	c.input.initBus()
 	c.Bus.MapBank(0x4000, &c.input, 0)
@@ -105,7 +105,7 @@ func (c *CPU) Reset(soft bool) {
 		c.P.setIntDisable(true)
 	}
 
-	c.ppuDMA.reset()
+	c.PPUDMA.reset()
 
 	// Directly read from the bus to avoid side effects.
 	c.PC = hwio.Read16(c.Bus, ResetVector)
@@ -134,9 +134,9 @@ func (c *CPU) traceOp() {
 			Clock: c.Cycles,
 			PC:    c.PC,
 		}
-		if c.ppu != nil {
-			state.PPUCycle = c.ppu.Cycle
-			state.Scanline = c.ppu.Scanline
+		if c.PPU != nil {
+			state.PPUCycle = c.PPU.Cycle
+			state.Scanline = c.PPU.Scanline
 		}
 		c.tracer.write(state)
 	}
@@ -194,8 +194,8 @@ func (c *CPU) cycleBegin(forRead bool) {
 	}
 	c.Cycles++
 
-	if c.ppu != nil {
-		c.ppu.Run(uint64(c.masterClock - ppuOffset))
+	if c.PPU != nil {
+		c.PPU.Run(uint64(c.masterClock - ppuOffset))
 	}
 }
 
@@ -206,8 +206,8 @@ func (c *CPU) cycleEnd(forRead bool) {
 		c.masterClock += ntscEndClockCount - 1
 	}
 
-	if c.ppu != nil {
-		c.ppu.Run(uint64(c.masterClock - ppuOffset))
+	if c.PPU != nil {
+		c.PPU.Run(uint64(c.masterClock - ppuOffset))
 	}
 
 	c.handleInterrupts()
@@ -268,7 +268,7 @@ func (c *CPU) pull16() uint16 {
 /* DMA */
 
 func (c *CPU) dmaTransfer() {
-	c.ppuDMA.process()
+	c.PPUDMA.process()
 }
 
 /* interrupt handling */

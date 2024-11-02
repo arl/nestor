@@ -16,6 +16,10 @@ const (
 )
 
 type PPU struct {
+	// The PPU addresses a 14-bit (16kB) address space, $0000-$3FFF, completely
+	// separate from the CPU's address bus. It is either directly accessed by
+	// the PPU itself, or via the CPU with memory mapped registers at $2006 and
+	// $2007
 	Bus *hwio.Table
 	CPU *CPU
 
