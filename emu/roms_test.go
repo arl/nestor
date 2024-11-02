@@ -17,7 +17,9 @@ import (
 )
 
 func TestNestest(t *testing.T) {
-	log.SetOutput(io.Discard)
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
+	}
 
 	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
 	rom, err := ines.ReadRom(romPath)

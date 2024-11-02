@@ -63,6 +63,9 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err
 	}
+	if err := out.EnableAudio(true); err != nil {
+		return nil, err
+	}
 
 	input, err := input.NewProvider(cfg.Input)
 	if err != nil {
@@ -88,6 +91,7 @@ func (e *Emulator) Screenshot() image.Image {
 func (e *Emulator) RunOneFrame() {
 	frame := e.out.BeginFrame()
 	e.NES.RunOneFrame(frame)
+	e.NES.APU.EndFrame()
 	e.out.EndFrame(frame)
 }
 

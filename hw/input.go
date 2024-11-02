@@ -2,7 +2,7 @@ package hw
 
 import (
 	"nestor/hw/hwio"
-	_input "nestor/hw/input"
+	"nestor/hw/input"
 )
 
 // InputPorts handles I/O with an InputDevice (such as standard NES controller
@@ -11,28 +11,13 @@ type InputPorts struct {
 	In  hwio.Reg8 `hwio:"offset=0x16,rcb,wcb"`
 	Out hwio.Reg8 `hwio:"offset=0x17,rcb"`
 
-	// XXX: this is just to pass nestest.nes test diff,
-	// while we don't have an APU.
-	Stub1 hwio.Reg8 `hwio:"offset=0x04"`
-	Stub2 hwio.Reg8 `hwio:"offset=0x05"`
-	Stub3 hwio.Reg8 `hwio:"offset=0x06"`
-	Stub4 hwio.Reg8 `hwio:"offset=0x07"`
-
-	provider *_input.Provider // nil if no input device is connected.
-
-	prevStrobe, strobe bool     // to observe strobe falling edge.
-	state              [2]uint8 // state shift registers.
+	provider           *input.Provider // nil if no input device is connected.
+	prevStrobe, strobe bool            // to observe strobe falling edge.
+	state              [2]uint8        // state shift registers.
 }
 
 func (ip *InputPorts) initBus() {
 	hwio.MustInitRegs(ip)
-
-	// XXX: this is just to pass nestest.nes test diff,
-	// while we don't have an APU.
-	ip.Stub1.Value = 0x40
-	ip.Stub2.Value = 0x40
-	ip.Stub3.Value = 0x40
-	ip.Stub4.Value = 0x40
 }
 
 func (ip *InputPorts) regval(port uint8) uint8 {
@@ -41,7 +26,7 @@ func (ip *InputPorts) regval(port uint8) uint8 {
 
 	// After 8 bits are read, all subsequent bits will report 1 on a standard
 	// NES controller, but third party and other controllers may report other
-	// values here
+	// values here.
 	ip.state[port] |= 0x80
 
 	// Emulate open bus behavior.

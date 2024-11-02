@@ -9,17 +9,21 @@ import (
 )
 
 type NES struct {
-	CPU *hw.CPU
-	PPU *hw.PPU
-	Rom *ines.Rom
+	CPU   *hw.CPU
+	PPU   *hw.PPU
+	APU   *hw.APU
+	Rom   *ines.Rom
+	Mixer *hw.AudioMixer
 }
 
 func powerUp(rom *ines.Rom) (*NES, error) {
+	audioMixer := hw.NewAudioMixer()
 	ppu := hw.NewPPU()
-
 	cpu := hw.NewCPU(ppu)
+	apu := hw.NewAPU(cpu, audioMixer)
+
+	cpu.APU = apu
 	cpu.InitBus()
-	ppu.CPU = cpu
 
 	// Load mapper.
 	mapper, ok := mappers.All[rom.Mapper()]
@@ -31,9 +35,11 @@ func powerUp(rom *ines.Rom) (*NES, error) {
 	}
 
 	nes := &NES{
-		CPU: cpu,
-		PPU: ppu,
-		Rom: rom,
+		CPU:   cpu,
+		PPU:   ppu,
+		APU:   apu,
+		Rom:   rom,
+		Mixer: audioMixer,
 	}
 	nes.Reset(false)
 	return nes, nil
@@ -42,6 +48,8 @@ func powerUp(rom *ines.Rom) (*NES, error) {
 func (nes *NES) Reset(soft bool) {
 	nes.PPU.Reset()
 	nes.CPU.Reset(soft)
+	nes.APU.Reset(soft)
+	nes.Mixer.Reset()
 }
 
 func (nes *NES) RunOneFrame(frame hw.Frame) {

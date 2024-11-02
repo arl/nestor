@@ -5,7 +5,7 @@ import (
 
 	"nestor/emu/log"
 	"nestor/hw/hwio"
-	_input "nestor/hw/input"
+	"nestor/hw/input"
 )
 
 // Locations reserved for vector pointers.
@@ -22,6 +22,7 @@ type CPU struct {
 
 	PPU    *PPU // non-nil when there's a PPU.
 	PPUDMA PPUDMA
+	APU    *APU
 
 	// Non-nil when execution tracing is enabled.
 	tracer *tracer
@@ -41,7 +42,8 @@ type CPU struct {
 	nmiFlag, prevNmiFlag bool
 	needNmi, prevNeedNmi bool
 	runIRQ, prevRunIRQ   bool
-	irqFlag              bool
+	irqFlag              irqSource
+	irqMask              irqSource
 
 	halted bool
 }
@@ -59,17 +61,19 @@ func NewCPU(ppu *PPU) *CPU {
 		PPU: ppu,
 		dbg: nopDebugger{},
 	}
-	cpu.PPUDMA.cpu = cpu
+	if ppu != nil {
+		ppu.CPU = cpu
+	}
 	return cpu
 }
 
-func (c *CPU) PlugInputDevice(ip *_input.Provider) {
+func (c *CPU) PlugInputDevice(ip *input.Provider) {
 	c.input.provider = ip
 }
 
 func (c *CPU) InitBus() {
-	// CPU internal RAM, mirrored.
 	hwio.MustInitRegs(c)
+	// CPU internal RAM, mirrored.
 	c.Bus.MapBank(0x0000, c, 0)
 
 	// Map the 8 PPU registers (bank 1) from 0x2000 to 0x3FFF.
@@ -78,11 +82,18 @@ func (c *CPU) InitBus() {
 	}
 
 	// Map PPU OAMDMA register.
-	c.PPUDMA.InitBus(c.Bus)
+	c.PPUDMA.InitBus(c)
 	c.Bus.MapBank(0x4014, &c.PPUDMA, 0)
 
 	c.input.initBus()
 	c.Bus.MapBank(0x4000, &c.input, 0)
+
+	if c.APU != nil {
+		c.Bus.MapBank(0x4000, &c.APU.Sq0, 0)
+		c.Bus.MapBank(0x4004, &c.APU.Sq1, 0)
+		c.Bus.MapBank(0x4000, &c.APU.noise, 0)
+		c.Bus.MapBank(0x4000, &c.APU.Trg, 0)
+	}
 
 	// 0x4000-0x4017 -> APU and IO registers.
 	// TODO
@@ -197,6 +208,9 @@ func (c *CPU) cycleBegin(forRead bool) {
 	if c.PPU != nil {
 		c.PPU.Run(uint64(c.masterClock - ppuOffset))
 	}
+	if c.APU != nil && c.APU.enabled {
+		c.APU.Tick()
+	}
 }
 
 func (c *CPU) cycleEnd(forRead bool) {
@@ -273,6 +287,17 @@ func (c *CPU) dmaTransfer() {
 
 /* interrupt handling */
 
+type irqSource uint8
+
+const (
+	frameCounter irqSource = iota << 1
+	dmc
+)
+
+func (c *CPU) setIrqSource(src irqSource)      { c.irqFlag |= src }
+func (c *CPU) hasIrqSource(src irqSource) bool { return (c.irqFlag & src) != 0 }
+func (c *CPU) clearIrqSource(src irqSource)    { c.irqFlag &= ^src }
+
 func (c *CPU) setNMIflag()   { c.nmiFlag = true }
 func (c *CPU) clearNMIflag() { c.nmiFlag = false }
 
@@ -294,7 +319,7 @@ func (c *CPU) handleInterrupts() {
 	// second-to-last cycle that matters. Keep the IRQ lines values from the
 	// previous cycle. The before-to-last cycle's values will be used.
 	c.prevRunIRQ = c.runIRQ
-	c.runIRQ = c.irqFlag && !c.P.intDisable()
+	c.runIRQ = c.irqFlag != 0 && !c.P.intDisable()
 }
 
 func BRK(cpu *CPU) {

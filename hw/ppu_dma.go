@@ -21,9 +21,10 @@ type PPUDMA struct {
 	dummy bool
 }
 
-func (dma *PPUDMA) InitBus(cpubus *hwio.Table) {
+func (dma *PPUDMA) InitBus(cpu *CPU) {
 	hwio.MustInitRegs(dma)
-	dma.cpuBus = cpubus
+	dma.cpuBus = cpu.Bus
+	dma.cpu = cpu
 	dma.reset()
 }
 
