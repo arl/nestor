@@ -17,7 +17,8 @@ const (
 
 type CPU struct {
 	Bus *hwio.Table
-	Ram [0x800]byte // Internal RAM
+
+	RAM hwio.Mem `hwio:"bank=0,offset=0x0,size=0x800,vsize=0x2000"`
 
 	ppu    *PPU // non-nil when there's a PPU.
 	ppuDMA ppuDMA
@@ -67,11 +68,9 @@ func (c *CPU) PlugInputDevice(ip *_input.Provider) {
 }
 
 func (c *CPU) InitBus() {
-	// Map the 2kB ram to 8kB, mirrored.
-	c.Bus.MapMemorySlice(0x0000, 0x07FF, c.Ram[:], false)
-	c.Bus.MapMemorySlice(0x0800, 0x0FFF, c.Ram[:], false)
-	c.Bus.MapMemorySlice(0x1000, 0x17FF, c.Ram[:], false)
-	c.Bus.MapMemorySlice(0x1800, 0x1FFF, c.Ram[:], false)
+	// CPU internal RAM, mirrored.
+	hwio.MustInitRegs(c)
+	c.Bus.MapBank(0x0000, c, 0)
 
 	// Map the 8 PPU registers (bank 1) from 0x2000 to 0x3FFF.
 	for off := 0x2000; off < 0x4000; off += 8 {
