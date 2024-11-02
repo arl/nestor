@@ -95,6 +95,7 @@ func (t *Table) UnmapBank(addr uint16, bank any, bankNum int) {
 }
 
 func (t *Table) mapBus8(addr, size uint16, io BankIO8, allowremap bool) {
+	_ = allowremap
 	err := t.table8.InsertRange(addr, addr+size-1, io)
 	if err != nil {
 		panic(err)
