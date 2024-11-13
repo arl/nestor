@@ -40,6 +40,7 @@ func TestTraceFormat(t *testing.T) {
 		`E052  A9 32     LDA #$32                         A:00 X:01 Y:02 P:07 S:F4 PPU:0  ,27  8`,
 		`E054  20 EE E0  JSR $E0EE                        A:03 X:02 Y:01 P:05 S:F4 PPU:0  ,33  10`,
 		`E060  AD 02 20  LDA PpuStatus_2002 = $00         A:0F X:F0 Y:FF P:04 S:FD PPU:0  ,39  12`,
+		`E26E  9D 00 40  STA Sq0Duty_4000,X [Sq0Duty_4000] = $40 A:11 X:00 Y:00 P:04 S:FD PPU:241,151 116785`,
 	}
 
 	var out bytes.Buffer
@@ -63,6 +64,12 @@ func TestTraceFormat(t *testing.T) {
 				Buf:    []byte{0xAD, 0x02, 0x20},
 				Opcode: "LDA",
 				Oper:   "PpuStatus_2002 = $00",
+			},
+			0xE26E: DisasmOp{
+				PC:     0xE26E,
+				Buf:    []byte{0x9D, 0x00, 0x40},
+				Opcode: "STA",
+				Oper:   "Sq0Duty_4000,X [Sq0Duty_4000] = $40",
 			},
 		},
 		w: &out,
@@ -88,6 +95,13 @@ func TestTraceFormat(t *testing.T) {
 		Scanline: 0,
 		PPUCycle: 39,
 		Clock:    12,
+	})
+	tr.write(cpuState{
+		PC: 0xE26E,
+		A:  0x11, X: 0x00, Y: 0x00, P: P(0x04), SP: 0xFD,
+		Scanline: 241,
+		PPUCycle: 151,
+		Clock:    116785,
 	})
 
 	wantstr := strings.Join(want, "\n") + "\n"
