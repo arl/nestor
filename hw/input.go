@@ -8,8 +8,7 @@ import (
 // InputPorts handles I/O with an InputDevice (such as standard NES controller
 // for example).
 type InputPorts struct {
-	In  hwio.Reg8 `hwio:"offset=0x16,rcb,wcb"`
-	Out hwio.Reg8 `hwio:"offset=0x17,rcb"`
+	In hwio.Reg8 `hwio:"offset=0x16,rcb,wcb"`
 
 	provider           *input.Provider // nil if no input device is connected.
 	prevStrobe, strobe bool            // to observe strobe falling edge.

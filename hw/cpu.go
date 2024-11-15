@@ -89,17 +89,33 @@ func (c *CPU) InitBus() {
 	c.Bus.MapBank(0x4000, &c.input, 0)
 
 	if c.APU != nil {
+		c.Bus.MapBank(0x4000, c.APU, 0)
 		c.Bus.MapBank(0x4000, &c.APU.Sq0, 0)
 		c.Bus.MapBank(0x4004, &c.APU.Sq1, 0)
 		c.Bus.MapBank(0x4000, &c.APU.noise, 0)
 		c.Bus.MapBank(0x4000, &c.APU.Trg, 0)
 	}
 
-	// 0x4000-0x4017 -> APU and IO registers.
-	// TODO
-	// 0x4018-0x401F -> APU and IO registers (test mode).
-	// unused
+	var reg4017 reg4017
+	hwio.MustInitRegs(&reg4017)
+	c.Bus.MapBank(0x4017, &reg4017, 0)
+	reg4017.Read = c.input.ReadOUT
+	if c.APU != nil {
+		reg4017.Write = c.APU.WriteFRAMECOUNTER
+	}
 }
+
+// Used to disambiguate between:
+// - read 0x4017 -> reads controller state (OUT register)
+// - write 0x4017 -> writes to APU frame counter.
+type reg4017 struct {
+	Reg   hwio.Reg8 `hwio:"offset=0,rcb,wcb"`
+	Write func(old, val uint8)
+	Read  func(old uint8, peek bool) uint8
+}
+
+func (r *reg4017) WriteREG(old, val uint8)            { r.Write(old, val) }
+func (r *reg4017) ReadREG(old uint8, peek bool) uint8 { return r.Read(old, peek) }
 
 func (c *CPU) Reset(soft bool) {
 	if soft {
