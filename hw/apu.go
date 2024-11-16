@@ -34,6 +34,7 @@ func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
 	a.noise = apu.NewNoiseChannel(a, mixer)
 	a.Sq0 = apu.NewSquareChannel(a, mixer, apu.Square1, true)
 	a.Sq1 = apu.NewSquareChannel(a, mixer, apu.Square2, false)
+	a.Trg = apu.NewTriangleChannel(a, mixer)
 	a.frameCounter.apu = a
 
 	hwio.MustInitRegs(a)
@@ -66,7 +67,9 @@ func (a *APU) Status() uint8 {
 	if a.Sq1.Status() {
 		status |= 0x02
 	}
-	// status |= a.triangle.Status() ? 0x04 : 0x00;
+	if a.Trg.Status() {
+		status |= 0x04
+	}
 	if a.noise.Status() {
 		status |= 0x08
 	}
@@ -106,7 +109,7 @@ func (a *APU) WriteSTATUS(old, val uint8) {
 
 	a.Sq0.SetEnabled((val & 0x01) == 0x01)
 	a.Sq1.SetEnabled((val & 0x02) == 0x02)
-	//_triangle->SetEnabled((value & 0x04) == 0x04);
+	a.Trg.SetEnabled((val & 0x04) == 0x04)
 	a.noise.SetEnabled((val & 0x08) == 0x08)
 	// _dmc->SetEnabled((value & 0x10) == 0x10);}
 }
@@ -137,14 +140,14 @@ func (a *APU) FrameCounterTick(ftyp FrameType) {
 	// Quarter & half frame clock envelope & linear counter
 	a.Sq0.TickEnvelope()
 	a.Sq1.TickEnvelope()
-	// _triangle->TickLinearCounter();
+	a.Trg.TickLinearCounter()
 	a.noise.TickEnvelope()
 
 	if ftyp == HalfFrame {
 		// Half frames clock length counter & sweep
 		a.Sq0.TickLengthCounter()
 		a.Sq1.TickLengthCounter()
-		// _triangle->TickLengthCounter();
+		a.Trg.TickLengthCounter()
 		a.noise.TickLengthCounter()
 
 		a.Sq0.TickSweep()
@@ -158,7 +161,7 @@ func (a *APU) Reset(soft bool) {
 	a.prevCycle = 0
 	a.Sq0.Reset(soft)
 	a.Sq1.Reset(soft)
-	// a.triangle.Reset(softReset)
+	a.Trg.Reset(soft)
 	a.noise.Reset(soft)
 	// a.dmc.Reset(softReset)
 	a.frameCounter.reset(soft)
@@ -178,7 +181,7 @@ func (a *APU) EndFrame() {
 	a.Run()
 	a.Sq0.EndFrame()
 	a.Sq1.EndFrame()
-	// _triangle->EndFrame();
+	a.Trg.EndFrame()
 	a.noise.EndFrame()
 	// _dmc->EndFrame();
 
@@ -206,12 +209,12 @@ func (a *APU) Run() {
 		a.Sq0.ReloadLengthCounter()
 		a.Sq1.ReloadLengthCounter()
 		a.noise.ReloadLengthCounter()
-		// _triangle->ReloadLengthCounter();
+		a.Trg.ReloadLengthCounter()
 
 		a.Sq0.Run(a.prevCycle)
 		a.Sq1.Run(a.prevCycle)
 		a.noise.Run(a.prevCycle)
-		// _triangle->Run(a.prevCycle);
+		a.Trg.Run(a.prevCycle)
 		// _dmc->Run(a.prevCycle);
 	}
 }
