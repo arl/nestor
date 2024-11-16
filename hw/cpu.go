@@ -90,10 +90,10 @@ func (c *CPU) InitBus() {
 
 	if c.APU != nil {
 		c.Bus.MapBank(0x4000, c.APU, 0)
-		c.Bus.MapBank(0x4000, &c.APU.Sq0, 0)
-		c.Bus.MapBank(0x4004, &c.APU.Sq1, 0)
-		c.Bus.MapBank(0x4000, &c.APU.noise, 0)
-		c.Bus.MapBank(0x4000, &c.APU.Trg, 0)
+		c.Bus.MapBank(0x4000, &c.APU.Square1, 0)
+		c.Bus.MapBank(0x4004, &c.APU.Square2, 0)
+		c.Bus.MapBank(0x4000, &c.APU.Noise, 0)
+		c.Bus.MapBank(0x4000, &c.APU.Triangle, 0)
 	}
 
 	var reg4017 reg4017

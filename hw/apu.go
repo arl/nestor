@@ -7,20 +7,20 @@ import (
 )
 
 type APU struct {
-	needToRunFlag bool
-	enabled       bool
-
-	prevCycle uint32
-	curCycle  uint32
-
-	Sq0          apu.SquareChannel
-	Sq1          apu.SquareChannel
-	Trg          apu.TriangleChannel
-	noise        apu.NoiseChannel
-	frameCounter apuFrameCounter
-
 	cpu   *CPU
 	mixer *AudioMixer
+
+	Square1  apu.SquareChannel
+	Square2  apu.SquareChannel
+	Triangle apu.TriangleChannel
+	Noise    apu.NoiseChannel
+
+	frameCounter apuFrameCounter
+
+	prevCycle     uint32
+	curCycle      uint32
+	needToRunFlag bool
+	enabled       bool
 
 	STATUS hwio.Reg8 `hwio:"offset=0x15,rcb,wcb"`
 }
@@ -31,29 +31,29 @@ func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
 		cpu:     cpu,
 		mixer:   mixer,
 	}
-	a.noise = apu.NewNoiseChannel(a, mixer)
-	a.Sq0 = apu.NewSquareChannel(a, mixer, apu.Square1, true)
-	a.Sq1 = apu.NewSquareChannel(a, mixer, apu.Square2, false)
-	a.Trg = apu.NewTriangleChannel(a, mixer)
+	a.Noise = apu.NewNoiseChannel(a, mixer)
+	a.Square1 = apu.NewSquareChannel(a, mixer, apu.Square1, true)
+	a.Square2 = apu.NewSquareChannel(a, mixer, apu.Square2, false)
+	a.Triangle = apu.NewTriangleChannel(a, mixer)
 	a.frameCounter.apu = a
 
 	hwio.MustInitRegs(a)
-	hwio.MustInitRegs(&a.Sq0)
-	hwio.MustInitRegs(&a.Sq1)
-	hwio.MustInitRegs(&a.Trg)
-	hwio.MustInitRegs(&a.noise)
+	hwio.MustInitRegs(&a.Square1)
+	hwio.MustInitRegs(&a.Square2)
+	hwio.MustInitRegs(&a.Triangle)
+	hwio.MustInitRegs(&a.Noise)
 	hwio.MustInitRegs(&a.frameCounter)
 
 	// XXX set 0x40 for now for nestest to pass.
-	a.Sq0.Duty.Value = 0x40
-	a.Sq0.Sweep.Value = 0x40
-	a.Sq0.Timer.Value = 0x40
-	a.Sq0.Length.Value = 0x40
+	a.Square1.Duty.Value = 0x40
+	a.Square1.Sweep.Value = 0x40
+	a.Square1.Timer.Value = 0x40
+	a.Square1.Length.Value = 0x40
 
-	a.Sq1.Duty.Value = 0x40
-	a.Sq1.Sweep.Value = 0x40
-	a.Sq1.Timer.Value = 0x40
-	a.Sq1.Length.Value = 0x40
+	a.Square2.Duty.Value = 0x40
+	a.Square2.Sweep.Value = 0x40
+	a.Square2.Timer.Value = 0x40
+	a.Square2.Length.Value = 0x40
 
 	return a
 }
@@ -61,16 +61,16 @@ func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
 func (a *APU) Status() uint8 {
 	var status uint8
 
-	if a.Sq0.Status() {
+	if a.Square1.Status() {
 		status |= 0x01
 	}
-	if a.Sq1.Status() {
+	if a.Square2.Status() {
 		status |= 0x02
 	}
-	if a.Trg.Status() {
+	if a.Triangle.Status() {
 		status |= 0x04
 	}
-	if a.noise.Status() {
+	if a.Noise.Status() {
 		status |= 0x08
 	}
 	// status |= a.dmc.Status() ? 0x10 : 0x00;
@@ -107,10 +107,10 @@ func (a *APU) WriteSTATUS(old, val uint8) {
 	// an IRQ).
 	a.cpu.clearIrqSource(dmc)
 
-	a.Sq0.SetEnabled((val & 0x01) == 0x01)
-	a.Sq1.SetEnabled((val & 0x02) == 0x02)
-	a.Trg.SetEnabled((val & 0x04) == 0x04)
-	a.noise.SetEnabled((val & 0x08) == 0x08)
+	a.Square1.SetEnabled((val & 0x01) == 0x01)
+	a.Square2.SetEnabled((val & 0x02) == 0x02)
+	a.Triangle.SetEnabled((val & 0x04) == 0x04)
+	a.Noise.SetEnabled((val & 0x08) == 0x08)
 	// _dmc->SetEnabled((value & 0x10) == 0x10);}
 }
 
@@ -138,20 +138,20 @@ func (a *APU) WriteFRAMECOUNTER(old, val uint8) {
 
 func (a *APU) FrameCounterTick(ftyp FrameType) {
 	// Quarter & half frame clock envelope & linear counter
-	a.Sq0.TickEnvelope()
-	a.Sq1.TickEnvelope()
-	a.Trg.TickLinearCounter()
-	a.noise.TickEnvelope()
+	a.Square1.TickEnvelope()
+	a.Square2.TickEnvelope()
+	a.Triangle.TickLinearCounter()
+	a.Noise.TickEnvelope()
 
 	if ftyp == HalfFrame {
 		// Half frames clock length counter & sweep
-		a.Sq0.TickLengthCounter()
-		a.Sq1.TickLengthCounter()
-		a.Trg.TickLengthCounter()
-		a.noise.TickLengthCounter()
+		a.Square1.TickLengthCounter()
+		a.Square2.TickLengthCounter()
+		a.Triangle.TickLengthCounter()
+		a.Noise.TickLengthCounter()
 
-		a.Sq0.TickSweep()
-		a.Sq1.TickSweep()
+		a.Square1.TickSweep()
+		a.Square2.TickSweep()
 	}
 }
 
@@ -159,10 +159,10 @@ func (a *APU) Reset(soft bool) {
 	a.enabled = true
 	a.curCycle = 0
 	a.prevCycle = 0
-	a.Sq0.Reset(soft)
-	a.Sq1.Reset(soft)
-	a.Trg.Reset(soft)
-	a.noise.Reset(soft)
+	a.Square1.Reset(soft)
+	a.Square2.Reset(soft)
+	a.Triangle.Reset(soft)
+	a.Noise.Reset(soft)
 	// a.dmc.Reset(softReset)
 	a.frameCounter.reset(soft)
 }
@@ -179,10 +179,10 @@ func (a *APU) Tick() {
 func (a *APU) EndFrame() {
 	// _dmc->ProcessClock();
 	a.Run()
-	a.Sq0.EndFrame()
-	a.Sq1.EndFrame()
-	a.Trg.EndFrame()
-	a.noise.EndFrame()
+	a.Square1.EndFrame()
+	a.Square2.EndFrame()
+	a.Triangle.EndFrame()
+	a.Noise.EndFrame()
 	// _dmc->EndFrame();
 
 	a.mixer.PlayAudioBuffer(a.curCycle)
@@ -206,15 +206,15 @@ func (a *APU) Run() {
 		// running the frame counter to allow the length counter to be
 		// clocked first. This fixes the test "len_reload_timing" (tests 4 &
 		// 5)
-		a.Sq0.ReloadLengthCounter()
-		a.Sq1.ReloadLengthCounter()
-		a.noise.ReloadLengthCounter()
-		a.Trg.ReloadLengthCounter()
+		a.Square1.ReloadLengthCounter()
+		a.Square2.ReloadLengthCounter()
+		a.Noise.ReloadLengthCounter()
+		a.Triangle.ReloadLengthCounter()
 
-		a.Sq0.Run(a.prevCycle)
-		a.Sq1.Run(a.prevCycle)
-		a.noise.Run(a.prevCycle)
-		a.Trg.Run(a.prevCycle)
+		a.Square1.Run(a.prevCycle)
+		a.Square2.Run(a.prevCycle)
+		a.Noise.Run(a.prevCycle)
+		a.Triangle.Run(a.prevCycle)
 		// _dmc->Run(a.prevCycle);
 	}
 }
