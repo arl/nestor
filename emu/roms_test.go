@@ -42,6 +42,17 @@ func TestNestest(t *testing.T) {
 	nes.CPU.PC = 0xC000
 	nes.CPU.SetTraceOutput(flog)
 
+	// TODO: remove once openbus is implemented
+	nes.APU.Square1.Duty.Value = 0x40
+	nes.APU.Square1.Sweep.Value = 0x40
+	nes.APU.Square1.Timer.Value = 0x40
+	nes.APU.Square1.Length.Value = 0x40
+
+	nes.APU.Square2.Duty.Value = 0x40
+	nes.APU.Square2.Sweep.Value = 0x40
+	nes.APU.Square2.Timer.Value = 0x40
+	nes.APU.Square2.Length.Value = 0x40
+
 	// Configure a headless testing output.
 	cfg := TestingOutputConfig{
 		Height: hw.OutputNTSC().Height,

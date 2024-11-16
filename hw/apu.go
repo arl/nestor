@@ -44,17 +44,6 @@ func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
 	hwio.MustInitRegs(&a.Noise)
 	hwio.MustInitRegs(&a.frameCounter)
 
-	// XXX set 0x40 for now for nestest to pass.
-	a.Square1.Duty.Value = 0x40
-	a.Square1.Sweep.Value = 0x40
-	a.Square1.Timer.Value = 0x40
-	a.Square1.Length.Value = 0x40
-
-	a.Square2.Duty.Value = 0x40
-	a.Square2.Sweep.Value = 0x40
-	a.Square2.Timer.Value = 0x40
-	a.Square2.Length.Value = 0x40
-
 	return a
 }
 
