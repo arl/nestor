@@ -66,7 +66,9 @@ func (a *APU) Status() uint8 {
 	if a.cpu.hasIrqSource(frameCounter) {
 		status |= 0x40
 	}
-	// status |= a.console->GetCpu()->HasIrqSource(IRQSource::DMC) ? 0x80 : 0x00;
+	if a.cpu.hasIrqSource(dmc) {
+		status |= 0x80
+	}
 
 	return status
 }
@@ -100,7 +102,7 @@ func (a *APU) WriteSTATUS(old, val uint8) {
 	a.Square2.SetEnabled((val & 0x02) == 0x02)
 	a.Triangle.SetEnabled((val & 0x04) == 0x04)
 	a.Noise.SetEnabled((val & 0x08) == 0x08)
-	// _dmc->SetEnabled((value & 0x10) == 0x10);}
+	// a.DMC.SetEnabled((val & 0x10) == 0x10)
 }
 
 func (a *APU) WriteFRAMECOUNTER(old, val uint8) {
@@ -152,7 +154,7 @@ func (a *APU) Reset(soft bool) {
 	a.Square2.Reset(soft)
 	a.Triangle.Reset(soft)
 	a.Noise.Reset(soft)
-	// a.dmc.Reset(softReset)
+	// a.DMC.Reset(soft)
 	a.frameCounter.reset(soft)
 }
 
@@ -166,13 +168,13 @@ func (a *APU) Tick() {
 }
 
 func (a *APU) EndFrame() {
-	// _dmc->ProcessClock();
+	// a.DMC.ProcessClock();
 	a.Run()
 	a.Square1.EndFrame()
 	a.Square2.EndFrame()
 	a.Triangle.EndFrame()
 	a.Noise.EndFrame()
-	// _dmc->EndFrame();
+	// a.DMC.EndFrame();
 
 	a.mixer.PlayAudioBuffer(a.curCycle)
 
@@ -204,21 +206,22 @@ func (a *APU) Run() {
 		a.Square2.Run(a.prevCycle)
 		a.Noise.Run(a.prevCycle)
 		a.Triangle.Run(a.prevCycle)
-		// _dmc->Run(a.prevCycle);
+		// a.DMC.Run(a.prevCycle)
 	}
 }
 
 func (a *APU) SetNeedToRun() { a.needToRunFlag = true }
 
 func (a *APU) needToRun(curCycle uint32) bool {
-	if /*_dmc->NeedToRun() || */ a.needToRunFlag {
+	if /*a.DMC.NeedToRun() || */ a.needToRunFlag {
 		// Need to run:
 		//  - whenever we alter the length counters
-		//  - need to run every cycle when DMC is running to get accurate emulation (CPU stalling, interaction with sprite DMA, etc.)
+		//  - need to run every cycle when DMC is running to get accurate
+		//    emulation (CPU stalling, interaction with sprite DMA, etc.)
 		a.needToRunFlag = false
 		return true
 	}
 
 	cyclesToRun := curCycle - a.prevCycle
-	return a.frameCounter.needToRun(cyclesToRun) /* || _dmc->IrqPending(cyclesToRun);*/
+	return a.frameCounter.needToRun(cyclesToRun) /* || a.DMC.IrqPending(cyclesToRun)*/
 }
