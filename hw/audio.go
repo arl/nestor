@@ -77,7 +77,6 @@ func (am *AudioMixer) Reset() {
 func (am *AudioMixer) PlayAudioBuffer(time uint32) {
 	am.EndFrame(time)
 
-	// int16_t *out = _outputBuffer + (_sampleCount * 2);
 	out := am.outbuf[am.sampleCount*2:]
 	sampleCount := am.bufleft.ReadSamples(out, MaxSamplesPerFrame, blip.Stereo)
 
@@ -85,15 +84,12 @@ func (am *AudioMixer) PlayAudioBuffer(time uint32) {
 		am.bufright.ReadSamples(out[1:], MaxSamplesPerFrame, blip.Stereo)
 	} else {
 		// Copy left channel to right channel (optimization - when no panning is used)
-		// for i = 0; i < sampleCount * 2; i += 2)		{
-		// 	out[i + 1] = out[i];
-		// }
 		copy(out[1:], out[:sampleCount*2])
 	}
 
 	am.sampleCount += sampleCount
 
-	// XXX: this is where mesen2 applies stereo filters
+	// TODO: apply stereo filters
 
 	// Actuall play this with SDL2
 	// copy the buffer
@@ -111,7 +107,6 @@ func (am *AudioMixer) PlayAudioBuffer(time uint32) {
 		log.ModSound.DebugZ("failed to queue audio buffer").Error("err", err).End()
 	}
 
-	// _mixer->PlayAudioBuffer(_outputBuffer, (uint32_t)_sampleCount, 96000);
 	am.sampleCount = 0
 
 	am.updateRates(false)
@@ -128,9 +123,8 @@ func (am *AudioMixer) updateRates(forceUpdate bool) {
 		am.bufright.SetRates(float64(am.clockRate), float64(am.sampleRate))
 	}
 
-	// TODO: take general volume from config
-	// NesConfig& cfg = _console->GetNesConfig();
-	// TODO: handle  pannig
+	// TODO: apply general volume
+	// TODO: handle panning
 	hasPanning := false
 	for i := range MaxChannelCount {
 		am.volumes[i] = 0.8
@@ -153,9 +147,11 @@ func (am *AudioMixer) channelOutput(channel apu.Channel, right bool) float64 {
 	return float64(am.curoutput[channel]) * am.volumes[channel] * (2.0 - am.panning[channel])
 }
 
-func (am *AudioMixer) outputVolume(right bool) int16 {
-	squareOutput := am.channelOutput(apu.Square1, right) + am.channelOutput(apu.Square2, right)
-	tndOutput := /*am.channelOutput(apu.DMC, right) + */ 2.7516713261*am.channelOutput(apu.Triangle, right) + 1.8493587125*am.channelOutput(apu.Noise, right)
+func (am *AudioMixer) outputVolume(isRight bool) int16 {
+	squareOutput := am.channelOutput(apu.Square1, isRight) + am.channelOutput(apu.Square2, isRight)
+	tndOutput := /*am.channelOutput(apu.DMC, right) + */
+		2.7516713261*am.channelOutput(apu.Triangle, isRight) +
+			1.8493587125*am.channelOutput(apu.Noise, isRight)
 
 	squareVolume := uint16(((95.88 * 5000.0) / (8128.0/squareOutput + 100.0)))
 	tndVolume := uint16(((159.79 * 5000.0) / (22638.0/tndOutput + 100.0)))

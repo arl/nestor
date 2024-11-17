@@ -29,7 +29,7 @@ func NewNoiseChannel(apu apu, mixer mixer) NoiseChannel {
 	return NoiseChannel{
 		apu: apu,
 		envelope: Envelope{
-			LengthCounter: LengthCounter{
+			lenCounter: lengthCounter{
 				channel: Noise,
 				apu:     apu,
 			},
@@ -41,7 +41,7 @@ func NewNoiseChannel(apu apu, mixer mixer) NoiseChannel {
 func (nc *NoiseChannel) WriteVOLUME(old, val uint8) {
 	log.ModSound.InfoZ("write noise volume").Uint8("val", val).End()
 	nc.apu.Run()
-	nc.envelope.InitializeEnvelope(val)
+	nc.envelope.init(val)
 }
 
 func (nc *NoiseChannel) WritePERIOD(old, val uint8) {
@@ -55,8 +55,8 @@ func (nc *NoiseChannel) WritePERIOD(old, val uint8) {
 func (nc *NoiseChannel) WriteLENGTH(old, val uint8) {
 	log.ModSound.InfoZ("write noise length").Uint8("val", val).End()
 	nc.apu.Run()
-	nc.envelope.LengthCounter.Load(val >> 3)
-	nc.envelope.ResetEnvelope()
+	nc.envelope.lenCounter.load(val >> 3)
+	nc.envelope.resetEnvelope()
 }
 
 func (nc *NoiseChannel) Run(targetCycle uint32) {
@@ -75,7 +75,7 @@ func (nc *NoiseChannel) Run(targetCycle uint32) {
 		if nc.isMuted() {
 			nc.timer.AddOutput(0)
 		} else {
-			nc.timer.AddOutput(int8(nc.envelope.Volume()))
+			nc.timer.AddOutput(int8(nc.envelope.volume()))
 		}
 	}
 }
@@ -91,15 +91,15 @@ func (nc *NoiseChannel) isMuted() bool {
 }
 
 func (nc *NoiseChannel) TickEnvelope() {
-	nc.envelope.Tick()
+	nc.envelope.tick()
 }
 
 func (nc *NoiseChannel) TickLengthCounter() {
-	nc.envelope.LengthCounter.Tick()
+	nc.envelope.lenCounter.tick()
 }
 
 func (nc *NoiseChannel) ReloadLengthCounter() {
-	nc.envelope.LengthCounter.Reload()
+	nc.envelope.lenCounter.reload()
 }
 
 func (nc *NoiseChannel) EndFrame() {
@@ -107,15 +107,15 @@ func (nc *NoiseChannel) EndFrame() {
 }
 
 func (nc *NoiseChannel) SetEnabled(enabled bool) {
-	nc.envelope.LengthCounter.SetEnabled(enabled)
+	nc.envelope.lenCounter.setEnabled(enabled)
 }
 
 func (nc *NoiseChannel) Status() bool {
-	return nc.envelope.LengthCounter.Status()
+	return nc.envelope.lenCounter.status()
 }
 
 func (nc *NoiseChannel) Reset(soft bool) {
-	nc.envelope.Reset(soft)
+	nc.envelope.reset(soft)
 	nc.timer.Reset(soft)
 
 	nc.timer.SetPeriod(noisePeriodLUT[0] - 1)

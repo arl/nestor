@@ -34,7 +34,7 @@ func NewSquareChannel(apu apu, mixer mixer, channel Channel, isChannel1 bool) Sq
 	return SquareChannel{
 		apu: apu,
 		envelope: Envelope{
-			LengthCounter: LengthCounter{
+			lenCounter: lengthCounter{
 				channel: channel,
 				apu:     apu,
 			},
@@ -47,7 +47,7 @@ func NewSquareChannel(apu apu, mixer mixer, channel Channel, isChannel1 bool) Sq
 func (sc *SquareChannel) WriteDUTY(_, val uint8) {
 	sc.apu.Run()
 
-	sc.envelope.InitializeEnvelope(val)
+	sc.envelope.init(val)
 	sc.duty = (val & 0xC0) >> 6
 
 	log.ModSound.InfoZ("write pulse duty").
@@ -80,15 +80,15 @@ func (sc *SquareChannel) WriteLENGTH(_, val uint8) {
 	sc.apu.Run()
 
 	envlen := val >> 3
-	sc.envelope.LengthCounter.Load(envlen)
+	sc.envelope.lenCounter.load(envlen)
 	period := (sc.realPeriod & 0xFF) | (uint16(val&0x07) << 8)
 	sc.setPeriod(period)
 
-	// The sequencer is restarted at the first value of the current sequence.
+	// sequencer is restarted at the first value of the current sequence.
 	sc.dutyPos = 0
 
-	//The envelope is also restarted.
-	sc.envelope.ResetEnvelope()
+	// envelope is also restarted.
+	sc.envelope.resetEnvelope()
 
 	log.ModSound.InfoZ("write pulse length").
 		Uint8("reg", val).
@@ -148,7 +148,7 @@ func (sc *SquareChannel) updateOutput() {
 	if sc.isMuted() {
 		sc.timer.AddOutput(0)
 	} else {
-		out := dutySequences[sc.duty][sc.dutyPos] * uint8(sc.envelope.Volume())
+		out := dutySequences[sc.duty][sc.dutyPos] * uint8(sc.envelope.volume())
 		sc.timer.AddOutput(int8(out))
 	}
 }
@@ -161,7 +161,7 @@ func (sc *SquareChannel) Run(targetCycle uint32) {
 }
 
 func (sc *SquareChannel) Reset(soft bool) {
-	sc.envelope.Reset(soft)
+	sc.envelope.reset(soft)
 	sc.timer.Reset(soft)
 
 	sc.duty = 0
@@ -195,15 +195,15 @@ func (sc *SquareChannel) TickSweep() {
 }
 
 func (sc *SquareChannel) TickEnvelope() {
-	sc.envelope.Tick()
+	sc.envelope.tick()
 }
 
 func (sc *SquareChannel) TickLengthCounter() {
-	sc.envelope.LengthCounter.Tick()
+	sc.envelope.lenCounter.tick()
 }
 
 func (sc *SquareChannel) ReloadLengthCounter() {
-	sc.envelope.LengthCounter.Reload()
+	sc.envelope.lenCounter.reload()
 }
 
 func (sc *SquareChannel) EndFrame() {
@@ -211,11 +211,11 @@ func (sc *SquareChannel) EndFrame() {
 }
 
 func (sc *SquareChannel) SetEnabled(enabled bool) {
-	sc.envelope.LengthCounter.SetEnabled(enabled)
+	sc.envelope.lenCounter.setEnabled(enabled)
 }
 
 func (sc *SquareChannel) Status() bool {
-	return sc.envelope.LengthCounter.Status()
+	return sc.envelope.lenCounter.status()
 }
 
 func (sc *SquareChannel) Output() uint8 {

@@ -1,6 +1,6 @@
 package apu
 
-type LengthCounter struct {
+type lengthCounter struct {
 	channel Channel
 	newHalt bool
 
@@ -13,13 +13,18 @@ type LengthCounter struct {
 	apu apu
 }
 
-func (lc *LengthCounter) Init(halt bool) {
+func (lc *lengthCounter) init(halt bool) {
 	lc.apu.SetNeedToRun()
 	lc.newHalt = halt
 }
 
-func (lc *LengthCounter) Load(val uint8) {
-	var lut = [32]uint8{10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14, 12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30}
+func (lc *lengthCounter) load(val uint8) {
+	var lut = [32]uint8{
+		10, 254, 20, 2, 40, 4, 80, 6,
+		160, 8, 60, 10, 14, 12, 26, 14,
+		12, 16, 24, 18, 48, 20, 96, 22,
+		192, 24, 72, 26, 16, 28, 32, 30,
+	}
 
 	if lc.enabled {
 		lc.reloadValue = lut[val]
@@ -28,7 +33,7 @@ func (lc *LengthCounter) Load(val uint8) {
 	}
 }
 
-func (lc *LengthCounter) Reset(soft bool) {
+func (lc *lengthCounter) reset(soft bool) {
 	if soft {
 		lc.enabled = false
 		if lc.channel != Triangle {
@@ -49,15 +54,15 @@ func (lc *LengthCounter) Reset(soft bool) {
 	}
 }
 
-func (lc *LengthCounter) Status() bool {
+func (lc *lengthCounter) status() bool {
 	return lc.counter > 0
 }
 
-func (lc *LengthCounter) IsHalted() bool {
+func (lc *lengthCounter) isHalted() bool {
 	return lc.halt
 }
 
-func (lc *LengthCounter) Reload() {
+func (lc *lengthCounter) reload() {
 	if lc.reloadValue != 0 {
 		if lc.counter == lc.previousValue {
 			lc.counter = lc.reloadValue
@@ -68,19 +73,19 @@ func (lc *LengthCounter) Reload() {
 	lc.halt = lc.newHalt
 }
 
-func (lc *LengthCounter) Tick() {
+func (lc *lengthCounter) tick() {
 	if lc.counter > 0 && !lc.halt {
 		lc.counter--
 	}
 }
 
-func (lc *LengthCounter) SetEnabled(enabled bool) {
+func (lc *lengthCounter) setEnabled(enabled bool) {
 	if !enabled {
 		lc.counter = 0
 	}
 	lc.enabled = enabled
 }
 
-func (lc *LengthCounter) IsEnabled() bool {
+func (lc *lengthCounter) isEnabled() bool {
 	return lc.enabled
 }
