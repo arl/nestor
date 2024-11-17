@@ -5,8 +5,8 @@ import (
 	"nestor/hw/hwio"
 )
 
-// ppuDMA handles the DMA transfer of OAM (sprites attributes) to the PPU.
-type ppuDMA struct {
+// PPUDMA handles the DMA transfer of OAM (sprites attributes) to the PPU.
+type PPUDMA struct {
 	cpuBus *hwio.Table
 	cpu    *CPU
 
@@ -15,30 +15,32 @@ type ppuDMA struct {
 
 	OAMDMA hwio.Reg8 `hwio:"offset=0x00,writeonly,wcb"`
 
-	// Since DMA can only be started on an even CPU cycle, we use a dummy cycle
-	// to align the transfer with an even cycle.
+	// DMA can only be started on even CPU cycles. We use
+	// a dummy cycle, when necessary, to align the transfer
+	// with an even cycle.
 	dummy bool
 }
 
-func (dma *ppuDMA) InitBus(cpubus *hwio.Table) {
+func (dma *PPUDMA) InitBus(cpu *CPU) {
 	hwio.MustInitRegs(dma)
-	dma.cpuBus = cpubus
+	dma.cpuBus = cpu.Bus
+	dma.cpu = cpu
 	dma.reset()
 }
 
-func (dma *ppuDMA) reset() {
+func (dma *PPUDMA) reset() {
 	dma.page = 0x00
 	dma.dummy = true
 	dma.inProgress = false
 }
 
-func (dma *ppuDMA) WriteOAMDMA(_, val uint8) {
+func (dma *PPUDMA) WriteOAMDMA(_, val uint8) {
 	log.ModDMA.InfoZ("Write to OAMDMA reg").Hex8("val", val).End()
 	dma.page = val
 	dma.inProgress = true
 }
 
-func (dma *ppuDMA) process() {
+func (dma *PPUDMA) process() {
 	if !dma.inProgress {
 		return
 	}

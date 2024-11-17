@@ -5,7 +5,7 @@ import (
 
 	"nestor/emu/log"
 	"nestor/hw/hwio"
-	_input "nestor/hw/input"
+	"nestor/hw/input"
 )
 
 // Locations reserved for vector pointers.
@@ -17,10 +17,12 @@ const (
 
 type CPU struct {
 	Bus *hwio.Table
-	Ram [0x800]byte // Internal RAM
 
-	ppu    *PPU // non-nil when there's a PPU.
-	ppuDMA ppuDMA
+	RAM hwio.Mem `hwio:"bank=0,offset=0x0,size=0x800,vsize=0x2000"`
+
+	PPU    *PPU // non-nil when there's a PPU.
+	PPUDMA PPUDMA
+	APU    *APU
 
 	// Non-nil when execution tracing is enabled.
 	tracer *tracer
@@ -40,7 +42,8 @@ type CPU struct {
 	nmiFlag, prevNmiFlag bool
 	needNmi, prevNeedNmi bool
 	runIRQ, prevRunIRQ   bool
-	irqFlag              bool
+	irqFlag              irqSource
+	irqMask              irqSource
 
 	halted bool
 }
@@ -55,41 +58,64 @@ func NewCPU(ppu *PPU) *CPU {
 		SP:  0xFD,
 		P:   0x00,
 		PC:  0x0000,
-		ppu: ppu,
+		PPU: ppu,
 		dbg: nopDebugger{},
 	}
-	cpu.ppuDMA.cpu = cpu
+	if ppu != nil {
+		ppu.CPU = cpu
+	}
 	return cpu
 }
 
-func (c *CPU) PlugInputDevice(ip *_input.Provider) {
+func (c *CPU) PlugInputDevice(ip *input.Provider) {
 	c.input.provider = ip
 }
 
 func (c *CPU) InitBus() {
-	// Map the 2kB ram to 8kB, mirrored.
-	c.Bus.MapMemorySlice(0x0000, 0x07FF, c.Ram[:], false)
-	c.Bus.MapMemorySlice(0x0800, 0x0FFF, c.Ram[:], false)
-	c.Bus.MapMemorySlice(0x1000, 0x17FF, c.Ram[:], false)
-	c.Bus.MapMemorySlice(0x1800, 0x1FFF, c.Ram[:], false)
+	hwio.MustInitRegs(c)
+	// CPU internal RAM, mirrored.
+	c.Bus.MapBank(0x0000, c, 0)
 
 	// Map the 8 PPU registers (bank 1) from 0x2000 to 0x3FFF.
-	for off := 0x2000; off < 0x4000; off += 8 {
-		c.Bus.MapBank(uint16(off), c.ppu, 1)
+	for off := uint16(0x2000); off < 0x4000; off += 8 {
+		c.Bus.MapBank(off, c.PPU, 1)
 	}
 
 	// Map PPU OAMDMA register.
-	c.ppuDMA.InitBus(c.Bus)
-	c.Bus.MapBank(0x4014, &c.ppuDMA, 0)
+	c.PPUDMA.InitBus(c)
+	c.Bus.MapBank(0x4014, &c.PPUDMA, 0)
 
 	c.input.initBus()
 	c.Bus.MapBank(0x4000, &c.input, 0)
 
-	// 0x4000-0x4017 -> APU and IO registers.
-	// TODO
-	// 0x4018-0x401F -> APU and IO registers (test mode).
-	// unused
+	if c.APU != nil {
+		c.Bus.MapBank(0x4000, c.APU, 0)
+		c.Bus.MapBank(0x4000, &c.APU.Square1, 0)
+		c.Bus.MapBank(0x4004, &c.APU.Square2, 0)
+		c.Bus.MapBank(0x4000, &c.APU.Noise, 0)
+		c.Bus.MapBank(0x4000, &c.APU.Triangle, 0)
+	}
+
+	var reg4017 reg4017
+	hwio.MustInitRegs(&reg4017)
+	c.Bus.MapBank(0x4017, &reg4017, 0)
+	reg4017.Read = c.input.ReadOUT
+	if c.APU != nil {
+		reg4017.Write = c.APU.WriteFRAMECOUNTER
+	}
 }
+
+// Used to disambiguate between:
+// - read 0x4017 -> reads controller state (OUT register)
+// - write 0x4017 -> writes to APU frame counter.
+type reg4017 struct {
+	Reg   hwio.Reg8 `hwio:"offset=0,rcb,wcb"`
+	Write func(old, val uint8)
+	Read  func(old uint8, peek bool) uint8
+}
+
+func (r *reg4017) WriteREG(old, val uint8)            { r.Write(old, val) }
+func (r *reg4017) ReadREG(old uint8, peek bool) uint8 { return r.Read(old, peek) }
 
 func (c *CPU) Reset(soft bool) {
 	if soft {
@@ -106,7 +132,7 @@ func (c *CPU) Reset(soft bool) {
 		c.P.setIntDisable(true)
 	}
 
-	c.ppuDMA.reset()
+	c.PPUDMA.reset()
 
 	// Directly read from the bus to avoid side effects.
 	c.PC = hwio.Read16(c.Bus, ResetVector)
@@ -135,9 +161,9 @@ func (c *CPU) traceOp() {
 			Clock: c.Cycles,
 			PC:    c.PC,
 		}
-		if c.ppu != nil {
-			state.PPUCycle = c.ppu.Cycle
-			state.Scanline = c.ppu.Scanline
+		if c.PPU != nil {
+			state.PPUCycle = c.PPU.Cycle
+			state.Scanline = c.PPU.Scanline
 		}
 		c.tracer.write(state)
 	}
@@ -195,8 +221,11 @@ func (c *CPU) cycleBegin(forRead bool) {
 	}
 	c.Cycles++
 
-	if c.ppu != nil {
-		c.ppu.Run(uint64(c.masterClock - ppuOffset))
+	if c.PPU != nil {
+		c.PPU.Run(uint64(c.masterClock - ppuOffset))
+	}
+	if c.APU != nil && c.APU.enabled {
+		c.APU.Tick()
 	}
 }
 
@@ -207,8 +236,8 @@ func (c *CPU) cycleEnd(forRead bool) {
 		c.masterClock += ntscEndClockCount - 1
 	}
 
-	if c.ppu != nil {
-		c.ppu.Run(uint64(c.masterClock - ppuOffset))
+	if c.PPU != nil {
+		c.PPU.Run(uint64(c.masterClock - ppuOffset))
 	}
 
 	c.handleInterrupts()
@@ -269,10 +298,21 @@ func (c *CPU) pull16() uint16 {
 /* DMA */
 
 func (c *CPU) dmaTransfer() {
-	c.ppuDMA.process()
+	c.PPUDMA.process()
 }
 
 /* interrupt handling */
+
+type irqSource uint8
+
+const (
+	frameCounter irqSource = iota << 1
+	dmc
+)
+
+func (c *CPU) setIrqSource(src irqSource)      { c.irqFlag |= src }
+func (c *CPU) hasIrqSource(src irqSource) bool { return (c.irqFlag & src) != 0 }
+func (c *CPU) clearIrqSource(src irqSource)    { c.irqFlag &= ^src }
 
 func (c *CPU) setNMIflag()   { c.nmiFlag = true }
 func (c *CPU) clearNMIflag() { c.nmiFlag = false }
@@ -295,7 +335,7 @@ func (c *CPU) handleInterrupts() {
 	// second-to-last cycle that matters. Keep the IRQ lines values from the
 	// previous cycle. The before-to-last cycle's values will be used.
 	c.prevRunIRQ = c.runIRQ
-	c.runIRQ = c.irqFlag && !c.P.intDisable()
+	c.runIRQ = c.irqFlag != 0 && !c.P.intDisable()
 }
 
 func BRK(cpu *CPU) {

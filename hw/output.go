@@ -65,6 +65,8 @@ type Output struct {
 	videoEnabled bool
 	window       *window
 
+	audioEnabled bool
+
 	quit atomic.Bool
 	stop chan struct{}
 	wg   sync.WaitGroup // workers loops
@@ -125,6 +127,49 @@ func (out *Output) EnableVideo(enable bool) error {
 			return fmt.Errorf("failed to close emulator window: %s", err)
 		}
 		out.videoEnabled = false
+	}
+
+	return nil
+}
+
+// Global for now
+var audioDeviceID sdl.AudioDeviceID
+var audioSpec sdl.AudioSpec
+
+func (out *Output) EnableAudio(enable bool) error {
+	log.ModSound.InfoZ("Enabling audio").Bool("enable", enable).End()
+	switch {
+	case enable && !out.audioEnabled:
+		if err := sdl.Init(sdl.INIT_AUDIO); err != nil {
+			return err
+		}
+
+		desired := sdl.AudioSpec{
+			Freq:     MaxSampleRate,
+			Format:   AudioFormat,
+			Channels: AudioChannels,
+			Silence:  0,
+			Samples:  AudioBufferSize,
+			Callback: nil,
+		}
+
+		var obtained sdl.AudioSpec
+		deviceID, err := sdl.OpenAudioDevice("", false, &desired, &obtained, 0)
+		if err != nil {
+			return err
+		}
+
+		audioDeviceID = deviceID
+		audioSpec = obtained
+
+		sdl.PauseAudioDevice(deviceID, false)
+		return nil
+
+	case !enable && out.audioEnabled:
+		if audioDeviceID != 0 {
+			sdl.CloseAudioDevice(audioDeviceID)
+		}
+		sdl.QuitSubSystem(sdl.INIT_AUDIO)
 	}
 
 	return nil

@@ -24,7 +24,7 @@ go install github.com/arl/nestor@latest
 ## Usage
 
 ```
-./nestor -h
+$ nestor --help
 Usage: nestor <command> [flags]
 
 NES emulator. github.com/arl/nestor
@@ -39,6 +39,9 @@ Commands:
   run [</path/to/rom>] [flags]
     Run ROM in emulator.
 
+  rom-infos </path/to/rom> [flags]
+    Show ROM infos.
+
 Run "nestor <command> --help" for more information on a command.
 ```
 
@@ -48,8 +51,8 @@ Run "nestor <command> --help" for more information on a command.
  - [x] PPU (background)
  - [x] PPU (sprites)
  - [x] gamepad/keyboard input
- - [ ] APU (sound)
- - [ ] debugger (WIP)
+ - [X] APU (audio)
+ - [ ] debugger
  - [x] mapper 0
  - [x] mapper 2
  - [ ] other mappers...

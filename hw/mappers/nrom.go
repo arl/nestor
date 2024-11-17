@@ -1,9 +1,8 @@
 package mappers
 
 import (
-	"fmt"
-
 	"nestor/hw"
+	"nestor/hw/hwio"
 	"nestor/ines"
 )
 
@@ -12,77 +11,29 @@ var NROM = hw.MapperDesc{
 	Load: loadNROM,
 }
 
+type nrom struct {
+	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
+	PRGROM hwio.Mem `hwio:"offset=0x8000,vsize=0x8000,readonly"`
+}
+
 func loadNROM(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
-	// CPU memory space mapping.
-	//
+	nrom := &nrom{}
+	hwio.MustInitRegs(nrom)
 
-	// PRG-RAM (always provide it, though it should only be for 'Family basic').
-	PRGRAM := make([]uint8, 0x2000)
-	cpu.Bus.MapMemorySlice(0x6000, 0x7FFF, PRGRAM, false)
-	modMapper.DebugZ("map PRG-RAM to cpu").
-		String("range", "0x6000-0x7FFF").
-		String("src", "slice").
-		End()
+	// CPU mapping.
 
-	switch len(rom.PRGROM) {
-	case 0x4000:
-		cpu.Bus.MapMemorySlice(0x8000, 0xBFFF, rom.PRGROM, true)
-		modMapper.DebugZ("map PRG-ROM to cpu").
-			String("range", "0x8000-0xBFFF").
-			String("src", "rom.PRG-ROM").
-			End()
+	// Dimension the PRGROM based on the length of the cartridge PRGROM.
+	// PRGROM mirrors are taken care of by hwio.Mem 'vsize'.
+	nrom.PRGROM.Data = make([]byte, len(rom.PRGROM))
+	copy(nrom.PRGROM.Data, rom.PRGROM)
 
-		cpu.Bus.MapMemorySlice(0xC000, 0xFFFF, rom.PRGROM, true) // mirror
-		modMapper.DebugZ("map PRG-ROM to cpu").
-			String("range", "0xC000-0xFFFF").
-			String("src", "rom.PRG-ROM").
-			End()
-	case 0x8000:
-		modMapper.DebugZ("map PRG-ROM to cpu").
-			String("range", "0x8000-0xFFFF").
-			String("src", "rom.PRG-ROM").
-			End()
-		cpu.Bus.MapMemorySlice(0x8000, 0xFFFF, rom.PRGROM, true)
-	default:
-		return fmt.Errorf("unexpected PRGROM size: 0x%x", len(rom.CHRROM))
-	}
+	cpu.Bus.MapBank(0x0000, nrom, 0)
 
-	// PPU memory space mapping.
-
-	// Nametables.
-	switch rom.Mirroring() {
-	case ines.HorzMirroring: // A A B B
-		ppu.SetMirroring(hw.HorzMirroring)
-	case ines.VertMirroring: // A B A B
-		ppu.SetMirroring(hw.VertMirroring)
-	default:
-		return fmt.Errorf("unexpected mirroring: %d", rom.Mirroring())
-	}
-
-	// continuer ici avec le log
-	// Copy CHRROM to Pattern Tables.
-	switch len(rom.CHRROM) {
-	case 0x0000:
-		// Some roms have no CHR-ROM, allocate mem anyway.
-		// XXX: not sure about that
-		copy(ppu.PatternTables.Data, make([]uint8, 0x2000))
-		modMapper.DebugZ("map CHR-ROM to pattern tables").
-			String("range", "0x0000-0x2000").
-			String("src", "rom.CHR-ROM").
-			End()
-		//panic("not sure about that, check comment")
-
-	case 0x2000:
-		copy(ppu.PatternTables.Data, rom.CHRROM)
-		modMapper.DebugZ("map CHR-ROM to pattern tables").
-			String("range", "0x0000-0x2000").
-			String("src", "rom.CHR-ROM").
-			End()
-	default:
-		return fmt.Errorf("unexpected CHRROM size: 0x%x", len(rom.CHRROM))
-	}
+	// PPU mapping.
+	hw.SetNTMirroring(ppu, rom.Mirroring())
+	copy(ppu.PatternTables.Data, rom.CHRROM)
+	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.
 	// TODO: load and map CHR-RAM if present in cartridge.
-	return nil
 }

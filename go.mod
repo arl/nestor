@@ -5,6 +5,7 @@ go 1.22.4
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/alecthomas/kong v1.2.1
+	github.com/arl/blip v0.2.0
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71
 	github.com/google/go-cmp v0.6.0
 	github.com/gotk3/gotk3 v0.6.5-0.20240618185848-ff349ae13f56

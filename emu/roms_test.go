@@ -17,7 +17,9 @@ import (
 )
 
 func TestNestest(t *testing.T) {
-	log.SetOutput(io.Discard)
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
+	}
 
 	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
 	rom, err := ines.ReadRom(romPath)
@@ -39,6 +41,17 @@ func TestNestest(t *testing.T) {
 	// PC must be set to C000 (instead of C004 for graphic mode).
 	nes.CPU.PC = 0xC000
 	nes.CPU.SetTraceOutput(flog)
+
+	// TODO: remove once openbus is implemented
+	nes.APU.Square1.Duty.Value = 0x40
+	nes.APU.Square1.Sweep.Value = 0x40
+	nes.APU.Square1.Timer.Value = 0x40
+	nes.APU.Square1.Length.Value = 0x40
+
+	nes.APU.Square2.Duty.Value = 0x40
+	nes.APU.Square2.Sweep.Value = 0x40
+	nes.APU.Square2.Timer.Value = 0x40
+	nes.APU.Square2.Length.Value = 0x40
 
 	// Configure a headless testing output.
 	cfg := TestingOutputConfig{
@@ -111,6 +124,9 @@ func TestBlarggRoms(t *testing.T) {
 
 		"cpu_reset/ram_after_reset.nes",
 		"cpu_reset/registers.nes",
+
+		"apu_test/rom_singles/1-len_ctr.nes",
+		"apu_test/rom_singles/2-len_table.nes",
 	}
 
 	for _, romName := range tests {

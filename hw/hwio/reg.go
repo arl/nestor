@@ -55,8 +55,11 @@ func (reg *Reg8) Write8(addr uint16, val uint8) {
 }
 
 func (reg *Reg8) Read8(addr uint16, peek bool) uint8 {
-	if peek && reg.ReadCb != nil {
-		return reg.ReadCb(reg.Value, true)
+	if peek {
+		if reg.ReadCb != nil {
+			return reg.ReadCb(reg.Value, true)
+		}
+		return reg.Value
 	}
 
 	if reg.Flags&RegFlagWriteOnly != 0 {

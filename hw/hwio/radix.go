@@ -1,7 +1,5 @@
 package hwio
 
-import "errors"
-
 const (
 	cRadixWidth = 4
 
@@ -11,9 +9,14 @@ const (
 	cRadixMask       = (1 << cRadixWidth) - 1
 )
 
-var (
-	ErrOverlappingRange = errors.New("overlapping range")
-)
+type ErrOverlappingRange struct {
+	Prev any
+	New  any
+}
+
+func (e ErrOverlappingRange) Error() string {
+	return "overlapping range"
+}
 
 type radixNode struct {
 	children [cRadixNumNodes]any
@@ -55,14 +58,14 @@ func (node *radixNode) insert(shift uint, begin, end uint16, v any) error {
 
 		if putleaf {
 			if child != nil && child != v {
-				return ErrOverlappingRange
+				return ErrOverlappingRange{Prev: child, New: v}
 			}
 			node.children[idx] = v
 		} else {
 			n2, ok := child.(*radixNode)
 			if !ok {
 				if child != nil {
-					return ErrOverlappingRange
+					return ErrOverlappingRange{Prev: child, New: v}
 				}
 				n2 = &radixNode{}
 				node.children[idx] = n2

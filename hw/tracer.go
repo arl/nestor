@@ -34,11 +34,13 @@ func hexEncode(dst []byte, v byte) {
 
 // write the execution trace for current cycle.
 func (t *tracer) write(state cpuState) {
-	const totallen = 88
-	buf := make([]byte, totallen)
+	const totalLen = 88
+	buf := make([]byte, totalLen)
 
 	dis := t.d.Disasm(state.PC)
-	off := copy(buf, dis.Bytes())
+	buf = append(buf[:0], dis.Bytes()...)
+	off := min(totalLen, len(buf))
+	buf = buf[:max(totalLen, len(buf))]
 
 	for off < 49 {
 		buf[off] = ' '
@@ -132,10 +134,15 @@ func (d DisasmOp) Bytes() []byte {
 	buf[off] = ' '
 	off++
 
-	off += copy(buf[off:], []byte(d.Oper))
-
-	for ; off < totalLen; off++ {
-		buf[off] = ' '
+	buf = append(buf[:off], d.Oper...)
+	off += len(d.Oper)
+	if len(buf) > totalLen {
+		buf = append(buf, ' ')
+	} else {
+		buf = buf[:totalLen]
+		for i := off; i < totalLen; i++ {
+			buf[i] = ' '
+		}
 	}
 
 	return buf
