@@ -42,7 +42,12 @@ func (tc *TriangleChannel) Run(targetCycle uint32) {
 		if tc.lengthCounter.Status() && tc.linearCounter > 0 {
 			tc.sequencePosition = (tc.sequencePosition + 1) & 0x1F
 
-			tc.timer.AddOutput(sequence[tc.sequencePosition])
+			if tc.timer.Period() >= 2 {
+				// Disabling the triangle channel when period is < 2 removes
+				// "pops" in the audio that are caused by the ultrasonic
+				// frequencies
+				tc.timer.AddOutput(sequence[tc.sequencePosition])
+			}
 		}
 	}
 }
