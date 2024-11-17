@@ -124,6 +124,9 @@ func TestBlarggRoms(t *testing.T) {
 
 		"cpu_reset/ram_after_reset.nes",
 		"cpu_reset/registers.nes",
+
+		"apu_test/rom_singles/1-len_ctr.nes",
+		"apu_test/rom_singles/2-len_table.nes",
 	}
 
 	for _, romName := range tests {
