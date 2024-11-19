@@ -107,7 +107,7 @@ func TestBlarggRoms(t *testing.T) {
 
 		"instr_misc/rom_singles/01-abs_x_wrap.nes",
 		"instr_misc/rom_singles/02-branch_wrap.nes",
-		// "instr_misc/rom_singles/03-dummy_reads.nes",
+		"instr_misc/rom_singles/03-dummy_reads.nes",
 		// "instr_misc/rom_singles/04-dummy_reads_apu.nes",
 
 		// "cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
