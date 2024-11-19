@@ -110,6 +110,9 @@ func TestBlarggRoms(t *testing.T) {
 		"instr_misc/rom_singles/03-dummy_reads.nes",
 		// "instr_misc/rom_singles/04-dummy_reads_apu.nes",
 
+		//"instr_timing/rom_singles/1-instr_timing.nes", // uses unofficial 0x8B (ANE)
+		"instr_timing/rom_singles/2-branch_timing.nes",
+
 		// "cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
 		"cpu_dummy_writes/cpu_dummy_writes_oam.nes",
 
