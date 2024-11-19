@@ -179,7 +179,7 @@ var defs = [256]opdef{
 	{i: 0x8E, n: "STX", d: "     ", m: "abs", f: ST("X")},
 	{i: 0x8F, n: "SAX", d: "     ", m: "abs"},
 	{i: 0x90, n: "BCC", d: "     ", m: "rel", f: branch(0, false)},
-	{i: 0x91, n: "STA", d: "   _a", m: "izy", f: ST("A")},
+	{i: 0x91, n: "STA", d: "    a", m: "izy", f: ST("A")},
 	{i: 0x92, n: "STP", d: "     ", m: "imp"},
 	{i: 0x93, n: "SHA", d: "     ", m: "izy", f: unstable},
 	{i: 0x94, n: "STY", d: "     ", m: "zpx", f: ST("Y")},
@@ -343,9 +343,9 @@ var flagOps = [8][2]string{
 func pget(i uint) string { return flagOps[i][0] }
 func pset(i uint) string { return flagOps[i][1] }
 
-func (g *Generator) dummyread() {
+func (g *Generator) dummyread(oper string) {
 	g.printf(`// dummy read.`)
-	g.printf(`_ = cpu.Read8(cpu.PC)`)
+	g.printf(`_ = cpu.Read8(%s)`, oper)
 }
 
 func (g *Generator) dummywrite(addr, value string) {
@@ -358,11 +358,11 @@ func (g *Generator) dummywrite(addr, value string) {
 //
 
 func acc(g *Generator, _ string) {
-	g.dummyread()
+	g.dummyread("cpu.PC")
 }
 
 func imp(g *Generator, _ string) {
-	g.dummyread()
+	g.dummyread("cpu.PC")
 }
 
 func ind(g *Generator, _ string) {
@@ -388,6 +388,8 @@ func abs(g *Generator, _ string) {
 	g.printf(`cpu.PC += 2`)
 }
 
+// seems that we don't even need the dummyread bool
+
 func abx(g *Generator, info string) {
 	switch {
 	case has(info, 'x'):
@@ -396,10 +398,11 @@ func abx(g *Generator, info string) {
 		g.printf(`oper = addr + uint16(cpu.X)`)
 		tickIfPageCrossed(g, "oper", "addr")
 	default:
-		g.dummyread()
-		g.printf(`oper = cpu.Read16(cpu.PC)`)
+		g.printf(`addr := cpu.Read16(cpu.PC)`)
+		g.printf(`oper = addr`)
 		g.printf(`cpu.PC += 2`)
 		g.printf(`oper += uint16(cpu.X)`)
+		g.dummyread(fmt.Sprintf("%s & 0x00FF | %s & 0xFF00", "oper", "addr"))
 	}
 }
 
@@ -412,10 +415,11 @@ func aby(g *Generator, info string) {
 		g.printf(`oper = addr + uint16(cpu.Y)`)
 		tickIfPageCrossed(g, "oper", "addr")
 	default:
-		g.dummyread()
-		g.printf(`oper = cpu.Read16(cpu.PC)`)
+		g.printf(`addr := cpu.Read16(cpu.PC)`)
+		g.printf(`oper = addr`)
 		g.printf(`cpu.PC += 2`)
 		g.printf(`oper += uint16(cpu.Y)`)
+		g.dummyread(fmt.Sprintf("%s & 0x00FF | %s & 0xFF00", "oper", "addr"))
 	}
 }
 
@@ -426,7 +430,7 @@ func zpg(g *Generator, _ string) {
 
 func zpx(g *Generator, _ string) {
 	g.printf(`addr := cpu.Read8(cpu.PC)`)
-	g.dummyread()
+	g.dummyread("cpu.PC")
 	g.printf(`cpu.PC++`)
 	g.printf(`oper = uint16(addr) + uint16(cpu.X)`)
 	g.printf(`oper &= 0xff`)
@@ -434,7 +438,7 @@ func zpx(g *Generator, _ string) {
 
 func zpy(g *Generator, _ string) {
 	g.printf(`addr := cpu.Read8(cpu.PC)`)
-	g.dummyread()
+	g.dummyread("cpu.PC")
 	g.printf(`cpu.PC++`)
 	g.printf(`oper = uint16(addr) + uint16(cpu.Y)`)
 	g.printf(`oper &= 0xff`)
@@ -442,7 +446,7 @@ func zpy(g *Generator, _ string) {
 
 func izx(g *Generator, info string) {
 	zpg(g, info)
-	g.dummyread()
+	g.dummyread("cpu.PC")
 	g.printf(`oper = uint16(uint8(oper) + cpu.X)`)
 	r16zpwrap(g)
 }
@@ -450,16 +454,23 @@ func izx(g *Generator, info string) {
 func izy(g *Generator, info string) {
 	switch {
 	case has(info, 'x'):
-		g.printf(`// extra cycle for page cross`)
 		zpg(g, info)
 		r16zpwrap(g)
-		tickIfPageCrossed(g, "oper", "oper+uint16(cpu.Y)")
+		g.printf(`if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {`)
+		g.printf(`// extra cycle for page cross`)
+		g.dummyread(`oper + uint16(cpu.Y) - 0x100`)
+		g.printf(`}`)
 		g.printf(`oper += uint16(cpu.Y)`)
 	case has(info, 'a'):
 		g.printf(`// extra cycle always`)
 		zpg(g, info)
 		r16zpwrap(g)
-		g.dummyread()
+		g.printf(`// page crossed?`)
+		g.printf(`if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {`)
+		g.dummyread(`oper + uint16(cpu.Y) - 0x100`)
+		g.printf(`} else {`)
+		g.dummyread(`oper + uint16(cpu.Y)`)
+		g.printf(`}`)
 		g.printf(`oper += uint16(cpu.Y)`)
 	default:
 		g.printf(`// default`)
@@ -515,7 +526,7 @@ func branch(ibit int, val bool) func(g *Generator, _ opdef) {
 		g.printf(`if cpu.runIRQ && !cpu.prevRunIRQ {`)
 		g.printf(`	cpu.runIRQ = false`)
 		g.printf(`}`)
-		g.dummyread()
+		g.dummyread("cpu.PC")
 		tickIfPageCrossed(g, "cpu.PC+1", "oper")
 		g.printf(`	cpu.PC = oper`)
 		g.printf(`	return`)
@@ -530,7 +541,7 @@ func tick(g *Generator) {
 
 func tickIfPageCrossed(g *Generator, a, b string) {
 	g.printf(`if 0xFF00&(%s) != 0xFF00&(%s) {`, a, b)
-	g.dummyread()
+	g.dummyread(fmt.Sprintf("%s & 0x00FF | %s & 0xFF00", a, b))
 	g.printf(`}`)
 }
 
@@ -633,7 +644,7 @@ func (g *Generator) JMP(_ opdef) {
 }
 
 func (g *Generator) JSR(_ opdef) {
-	g.dummyread()
+	g.dummyread("cpu.PC")
 	push16(g, `cpu.PC-1`)
 	g.printf(`cpu.PC = oper`)
 }
@@ -659,7 +670,7 @@ func (g *Generator) LSR(def opdef) {
 }
 func (g *Generator) NOP(def opdef) {
 	if !slices.Contains([]string{"acc", "imp", "rel"}, def.m) {
-		g.dummyread()
+		g.dummyread("cpu.PC")
 	}
 }
 
@@ -680,7 +691,7 @@ func (g *Generator) PHP(_ opdef) {
 }
 
 func (g *Generator) PLA(_ opdef) {
-	g.dummyread()
+	g.dummyread("cpu.PC")
 	pull8(g, `cpu.A`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
@@ -688,7 +699,7 @@ func (g *Generator) PLA(_ opdef) {
 func (g *Generator) PLP(_ opdef) {
 	g.printf(`var p uint8`)
 	pull8(g, `p`)
-	g.dummyread()
+	g.dummyread("cpu.PC")
 	g.printf(`const mask uint8 = 0b11001111 // ignore B and U bits`)
 	g.printf(`cpu.P = P(%s)`, copybits(`uint8(cpu.P)`, `p`, `mask`))
 }
@@ -734,7 +745,7 @@ func (g *Generator) RRA(def opdef) {
 func (g *Generator) RTI(_ opdef) {
 	g.printf(`var p uint8`)
 	pull8(g, `p`)
-	g.dummyread()
+	g.dummyread("cpu.PC")
 	g.printf(`const mask uint8 = 0b11001111 // ignore B and U bits`)
 	g.printf(`cpu.P = P(%s)`, copybits(`uint8(cpu.P)`, `p`, `mask`))
 	pull16(g, `cpu.PC`)
@@ -742,8 +753,8 @@ func (g *Generator) RTI(_ opdef) {
 
 func (g *Generator) RTS(_ opdef) {
 	pull16(g, `cpu.PC`)
-	g.dummyread()
-	g.dummyread()
+	g.dummyread("cpu.PC")
+	g.dummyread("cpu.PC")
 	g.printf(`cpu.PC++`)
 }
 
