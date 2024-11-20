@@ -88,6 +88,39 @@ func TestBlarggRoms(t *testing.T) {
 	romsDir := filepath.Join(tests.RomsPath(t))
 
 	tests := []string{
+		"apu_reset/4015_cleared.nes",
+		"apu_reset/irq_flag_cleared.nes",
+		"apu_reset/len_ctrs_enabled.nes",
+		// "apu_reset/4017_timing.nes",
+		// "apu_reset/4017_written.nes",
+		// "apu_reset/works_immediately.nes",
+
+		"apu_test/rom_singles/1-len_ctr.nes",
+		"apu_test/rom_singles/2-len_table.nes",
+		"apu_test/rom_singles/3-irq_flag.nes",
+		"apu_test/rom_singles/4-jitter.nes",
+		"apu_test/rom_singles/5-len_timing.nes",
+		"apu_test/rom_singles/6-irq_flag_timing.nes",
+		// "apu_test/rom_singles/7-dmc_basics.nes",
+		// "apu_test/rom_singles/8-dmc_rates.nes",
+
+		"cpu_dummy_writes/cpu_dummy_writes_oam.nes",
+		// "cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
+
+		"cpu_interrupts_v2/rom_singles/1-cli_latency.nes",
+		// "cpu_interrupts_v2/rom_singles/2-nmi_and_brk.nes",
+		// "cpu_interrupts_v2/rom_singles/3-nmi_and_irq.nes",
+		"cpu_interrupts_v2/rom_singles/4-irq_and_dma.nes",
+		"cpu_interrupts_v2/rom_singles/5-branch_delays_irq.nes",
+
+		"cpu_reset/ram_after_reset.nes",
+		"cpu_reset/registers.nes",
+
+		"instr_misc/rom_singles/01-abs_x_wrap.nes",
+		"instr_misc/rom_singles/02-branch_wrap.nes",
+		"instr_misc/rom_singles/03-dummy_reads.nes",
+		// "instr_misc/rom_singles/04-dummy_reads_apu.nes",
+
 		"instr_test-v5/rom_singles/01-basics.nes",
 		"instr_test-v5/rom_singles/02-implied.nes",
 		// "instr_test-v5/rom_singles/03-immediate.nes", // uses unofficial  0xAB (LXA)
@@ -105,44 +138,11 @@ func TestBlarggRoms(t *testing.T) {
 		"instr_test-v5/rom_singles/15-brk.nes",
 		"instr_test-v5/rom_singles/16-special.nes",
 
-		"instr_misc/rom_singles/01-abs_x_wrap.nes",
-		"instr_misc/rom_singles/02-branch_wrap.nes",
-		"instr_misc/rom_singles/03-dummy_reads.nes",
-		// "instr_misc/rom_singles/04-dummy_reads_apu.nes",
-
 		//"instr_timing/rom_singles/1-instr_timing.nes", // uses unofficial 0x8B (ANE)
 		"instr_timing/rom_singles/2-branch_timing.nes",
 
-		// "cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
-		"cpu_dummy_writes/cpu_dummy_writes_oam.nes",
-
-		"cpu_interrupts_v2/rom_singles/1-cli_latency.nes",
-		// "cpu_interrupts_v2/rom_singles/2-nmi_and_brk.nes",
-		// "cpu_interrupts_v2/rom_singles/3-nmi_and_irq.nes",
-		"cpu_interrupts_v2/rom_singles/4-irq_and_dma.nes",
-		"cpu_interrupts_v2/rom_singles/5-branch_delays_irq.nes",
-
 		"oam_read/oam_read.nes",
 		// "oam_stress/oam_stress.nes",
-
-		"cpu_reset/ram_after_reset.nes",
-		"cpu_reset/registers.nes",
-
-		"apu_test/rom_singles/1-len_ctr.nes",
-		"apu_test/rom_singles/2-len_table.nes",
-		"apu_test/rom_singles/3-irq_flag.nes",
-		"apu_test/rom_singles/4-jitter.nes",
-		"apu_test/rom_singles/5-len_timing.nes",
-		"apu_test/rom_singles/6-irq_flag_timing.nes",
-		// "apu_test/rom_singles/7-dmc_basics.nes",
-		// "apu_test/rom_singles/8-dmc_rates.nes",
-
-		"apu_reset/4015_cleared.nes",
-		// "apu_reset/4017_written.nes",
-		"apu_reset/len_ctrs_enabled.nes",
-		// "apu_reset/4017_timing.nes",
-		"apu_reset/irq_flag_cleared.nes",
-		// "apu_reset/works_immediately.nes",
 	}
 
 	for _, romName := range tests {
