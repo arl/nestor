@@ -119,8 +119,8 @@ func TestBlarggRoms(t *testing.T) {
 		"cpu_interrupts_v2/rom_singles/1-cli_latency.nes",
 		// "cpu_interrupts_v2/rom_singles/2-nmi_and_brk.nes",
 		// "cpu_interrupts_v2/rom_singles/3-nmi_and_irq.nes",
-		// "cpu_interrupts_v2/rom_singles/4-irq_and_dma.nes",
-		// "cpu_interrupts_v2/rom_singles/5-branch_delays_irq.nes",
+		"cpu_interrupts_v2/rom_singles/4-irq_and_dma.nes",
+		"cpu_interrupts_v2/rom_singles/5-branch_delays_irq.nes",
 
 		"oam_read/oam_read.nes",
 		// "oam_stress/oam_stress.nes",
@@ -130,6 +130,12 @@ func TestBlarggRoms(t *testing.T) {
 
 		"apu_test/rom_singles/1-len_ctr.nes",
 		"apu_test/rom_singles/2-len_table.nes",
+		"apu_test/rom_singles/3-irq_flag.nes",
+		"apu_test/rom_singles/4-jitter.nes",
+		"apu_test/rom_singles/5-len_timing.nes",
+		"apu_test/rom_singles/6-irq_flag_timing.nes",
+		// "apu_test/rom_singles/7-dmc_basics.nes",
+		// "apu_test/rom_singles/8-dmc_rates.nes",
 
 		"apu_reset/4015_cleared.nes",
 		// "apu_reset/4017_written.nes",
@@ -201,7 +207,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			if !bytes.Equal(data[:3], magic) {
 				t.Fatalf("corrupted memory")
 			}
-			result = nes.CPU.Read8(0x6000)
+			result = nes.CPU.Bus.Peek8(0x6000)
 			if result <= 0x7F {
 				break
 			}
@@ -209,7 +215,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 				t.Log("test still running...")
 			}
 
-			// Handle Reset request
+			// Handle reset request.
 			switch {
 			case framesBeforeReset == 0:
 				nes.Reset(true)
@@ -217,18 +223,18 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			case framesBeforeReset > 0:
 				framesBeforeReset--
 			case result == 0x81:
-				framesBeforeReset = 20 // in 20 frames >= 100ms
+				framesBeforeReset = 30 // in 20 frames >= 100ms
 				t.Log("pressing RESET...")
 			}
 		}
 		if result != 0x00 {
-			txt := memToString(nes.CPU.Bus, 0x6004)
+			txt := readString(nes.CPU.Bus, 0x6004)
 			t.Fatalf("test failed:\ncode 0x%02x\ntext %s", result, txt)
 		}
 	}
 }
 
-func memToString(t *hwio.Table, addr uint16) string {
+func readString(t *hwio.Table, addr uint16) string {
 	data := t.FetchPointer(addr)
 	i := 0
 	for data[i] != 0 {
