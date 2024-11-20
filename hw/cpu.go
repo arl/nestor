@@ -306,7 +306,8 @@ func (c *CPU) dmaTransfer() {
 type irqSource uint8
 
 const (
-	frameCounter irqSource = iota << 1
+	external irqSource = 1 << iota
+	frameCounter
 	dmc
 )
 

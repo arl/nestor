@@ -116,7 +116,7 @@ func TestBlarggRoms(t *testing.T) {
 		// "cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
 		"cpu_dummy_writes/cpu_dummy_writes_oam.nes",
 
-		// "cpu_interrupts_v2/rom_singles/1-cli_latency.nes",
+		"cpu_interrupts_v2/rom_singles/1-cli_latency.nes",
 		// "cpu_interrupts_v2/rom_singles/2-nmi_and_brk.nes",
 		// "cpu_interrupts_v2/rom_singles/3-nmi_and_irq.nes",
 		// "cpu_interrupts_v2/rom_singles/4-irq_and_dma.nes",
@@ -130,6 +130,13 @@ func TestBlarggRoms(t *testing.T) {
 
 		"apu_test/rom_singles/1-len_ctr.nes",
 		"apu_test/rom_singles/2-len_table.nes",
+
+		"apu_reset/4015_cleared.nes",
+		// "apu_reset/4017_written.nes",
+		"apu_reset/len_ctrs_enabled.nes",
+		// "apu_reset/4017_timing.nes",
+		"apu_reset/irq_flag_cleared.nes",
+		// "apu_reset/works_immediately.nes",
 	}
 
 	for _, romName := range tests {
@@ -211,7 +218,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 				framesBeforeReset--
 			case result == 0x81:
 				framesBeforeReset = 20 // in 20 frames >= 100ms
-				t.Log("RESET required")
+				t.Log("pressing RESET...")
 			}
 		}
 		if result != 0x00 {
