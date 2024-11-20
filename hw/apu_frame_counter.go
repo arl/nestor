@@ -1,11 +1,13 @@
 package hw
 
+import "nestor/emu/log"
+
 type FrameType uint8
 
 const (
-	NoFrame FrameType = iota
-	QuarterFrame
-	HalfFrame
+	noFrame FrameType = iota
+	quarterFrame
+	halfFrame
 )
 
 var stepCycles = [2][6]int32{
@@ -14,8 +16,8 @@ var stepCycles = [2][6]int32{
 }
 
 var frameType = [2][6]FrameType{
-	{QuarterFrame, HalfFrame, QuarterFrame, NoFrame, HalfFrame, NoFrame},
-	{QuarterFrame, HalfFrame, QuarterFrame, NoFrame, HalfFrame, NoFrame},
+	{quarterFrame, halfFrame, quarterFrame, noFrame, halfFrame, noFrame},
+	{quarterFrame, halfFrame, quarterFrame, noFrame, halfFrame, noFrame},
 }
 
 type apuFrameCounter struct {
@@ -63,6 +65,28 @@ func (afc *apuFrameCounter) reset(soft bool) {
 	afc.blockFrameCounterTick = 0
 }
 
+func (afc *apuFrameCounter) WriteFRAMECOUNTER(old, val uint8) {
+	log.ModSound.InfoZ("write framecounter").Uint8("val", val).End()
+	afc.apu.Run()
+	afc.newValue = int16(val)
+
+	// Reset sequence after $4017 is written to
+	if afc.apu.cpu.Cycles&0x01 != 0 {
+		// If the write occurs between APU cycles, the effects occur 4 CPU
+		// cycles after the write cycle.
+		afc.writeDelayCounter = 4
+	} else {
+		// If the write occurs during an APU cycle, the effects occur 3 CPU
+		// cycles after the $4017 write cycle
+		afc.writeDelayCounter = 3
+	}
+
+	afc.inhibitIRQ = (val & 0x40) == 0x40
+	if afc.inhibitIRQ {
+		afc.apu.cpu.clearIrqSource(frameCounter)
+	}
+}
+
 // TODO: use return value instead of pointer?
 func (afc *apuFrameCounter) run(cyclesToRun *int32) uint32 {
 	var cyclesRan int32
@@ -74,7 +98,7 @@ func (afc *apuFrameCounter) run(cyclesToRun *int32) uint32 {
 		}
 
 		ftyp := frameType[afc.stepMode][afc.currentStep]
-		if ftyp != NoFrame && afc.blockFrameCounterTick == 0 {
+		if ftyp != noFrame && afc.blockFrameCounterTick == 0 {
 			afc.apu.FrameCounterTick(ftyp)
 
 			// Do not allow writes to 4017 to clock the frame counter for the
@@ -124,7 +148,7 @@ func (afc *apuFrameCounter) run(cyclesToRun *int32) uint32 {
 				// Writing to $4017 with bit 7 set will immediately generate
 				// a clock for both the quarter frame and the half frame
 				// units, regardless of what the sequencer is doing.
-				afc.apu.FrameCounterTick(HalfFrame)
+				afc.apu.FrameCounterTick(halfFrame)
 				afc.blockFrameCounterTick = 2
 			}
 		}

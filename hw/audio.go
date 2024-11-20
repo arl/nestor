@@ -97,11 +97,6 @@ func (am *AudioMixer) PlayAudioBuffer(time uint32) {
 	cpy := make([]byte, len(buf))
 	copy(cpy, buf)
 
-	notZero := slices.ContainsFunc(cpy, func(b byte) bool { return b != 0 })
-	if notZero {
-		log.ModSound.InfoZ("queuing buffer").Blob("audio", cpy).End()
-	}
-
 	// play the buffer
 	if err := sdl.QueueAudio(audioDeviceID, cpy); err != nil {
 		log.ModSound.DebugZ("failed to queue audio buffer").Error("err", err).End()
