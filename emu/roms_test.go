@@ -116,6 +116,12 @@ func TestBlarggRoms(t *testing.T) {
 		"cpu_reset/ram_after_reset.nes",
 		"cpu_reset/registers.nes",
 
+		// "dmc_dma_during_read4/dma_2007_read.nes", // tested separately
+		"dmc_dma_during_read4/dma_2007_write.nes",
+		"dmc_dma_during_read4/dma_4016_read.nes",
+		"dmc_dma_during_read4/double_2007_read.nes",
+		"dmc_dma_during_read4/read_write_2007.nes",
+
 		"instr_misc/rom_singles/01-abs_x_wrap.nes",
 		"instr_misc/rom_singles/02-branch_wrap.nes",
 		"instr_misc/rom_singles/03-dummy_reads.nes",
@@ -243,6 +249,20 @@ func readString(t *hwio.Table, addr uint16) string {
 	return unsafe.String(&data[0], i)
 }
 
+func TestDMCDMADuringRead(t *testing.T) {
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
+	}
+
+	const frameidx = 200
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	romPath := filepath.Join(tests.RomsPath(t), "dmc_dma_during_read4", "dma_2007_read.nes")
+	runTestRomAndCompareFrame(t, romPath, outdir, "dma_2007_read.nes", frameidx)
+}
+
 func TestNametableMirroring(t *testing.T) {
 	romPath := filepath.Join(tests.RomsPath(t), "other", "snow.nes")
 	rom, err := ines.ReadRom(romPath)
@@ -312,7 +332,7 @@ func TestTimingVBlankNMI(t *testing.T) {
 	os.Mkdir(outdir, 0755)
 
 	roms := []string{
-		"1.frame_basics.nes", // onlt this passes for now
+		"1.frame_basics.nes",
 		"2.vbl_timing.nes",
 		"3.even_odd_frames.nes",
 		"4.vbl_clear_timing.nes",

@@ -202,49 +202,23 @@ func (dma *DMA) process(readAddr uint16) {
 			}
 		}
 	}
-
-	// cpu.cycleEnd(true)
-
-	/*
-		for dma.inProgress {
-			if (cpu.Cycles & 0x01) == 0 {
-				// read cycle.
-				cpu.cycleBegin(true)
-				addr := uint16(dma.oamPage)<<8 | uint16(spriteAddr)
-				val = dma.cpuBus.Read8(addr, false)
-				cpu.cycleEnd(true)
-				spriteAddr++
-				counter++
-			} else {
-				// write cycle.
-				if counter&0x01 != 0 {
-					cpu.cycleBegin(true)
-					dma.cpuBus.Write8(0x2004, val)
-					cpu.cycleEnd(true)
-					counter++
-					if counter == 0x200 {
-						dma.inProgress = false
-					}
-				} else {
-					cpu.cycleBegin(true)
-					cpu.cycleEnd(true)
-				}
-			}
-		}
-
-	*/
 }
 
 func (dma *DMA) processRead(addr uint16, prevReadAddress uint16, enableInternalRegReads bool, isNesBehavior bool) uint8 {
-	// This is to reproduce a CPU bug that can occur during DMA which can cause the 2A03 to read from
-	// its internal registers (4015, 4016, 4017) at the same time as the DMA unit reads a byte from
-	// the bus. This bug occurs if the CPU is halted while it's reading a value in the $4000-$401F range.
+	// This is to reproduce a CPU bug that can occur during DMA which can cause
+	// the 2A03 to read from its internal registers (4015, 4016, 4017) at the
+	// same time as the DMA unit reads a byte from the bus. This bug occurs if
+	// the CPU is halted while it's reading a value in the $4000-$401F range.
 	//
 	// This has a number of side effects:
-	//  -It can cause a read of $4015 to occur without the program's knowledge, which would clear the frame counter's IRQ flag
-	//  -It can cause additional bit deletions while reading the input (e.g more than the DMC glitch usually causes)
-	//  -It can also *prevent* bit deletions from occurring at all in another scenario
-	//  -It can replace/corrupt the byte that the DMA is reading, causing DMC to play the wrong sample
+	//  - It can cause a read of $4015 to occur without the program's knowledge,
+	//    which would clear the frame counter's IRQ flag
+	//  - It can cause additional bit deletions while reading the input (e.g more
+	//    than the DMC glitch usually causes)
+	//  - It can also *prevent* bit deletions from occurring at all in another scenario
+	//  - It can replace/corrupt the byte that the DMA is reading, causing DMC to
+	//    play the wrong sample
+
 	var val uint8
 	if !enableInternalRegReads {
 		if addr >= 0x4000 && addr <= 0x401F {
@@ -257,6 +231,50 @@ func (dma *DMA) processRead(addr uint16, prevReadAddress uint16, enableInternalR
 		prevReadAddress = addr
 		return val
 	}
-	// TODO
-	return 0
+
+	// This glitch causes the CPU to read from the internal APU/Input registers
+	// regardless of the address the DMA unit is trying to read
+	internalAddr := 0x4000 | (addr & 0x1F)
+	isSameAddress := internalAddr == addr
+
+	switch internalAddr {
+	case 0x4015:
+		val = dma.cpu.Bus.Read8(internalAddr, false)
+		if !isSameAddress {
+			// Also trigger a read from the actual address the CPU was
+			// supposed to read from (external bus)
+			dma.cpu.Bus.Read8(addr, false)
+		}
+
+	case 0x4016, 0x4017:
+		if isNesBehavior && prevReadAddress == internalAddr {
+			// Reading from the same input register twice in a row, skip the
+			// read entirely to avoid triggering a bit loss from the read,
+			// since the controller won't react to this read Return the same
+			// value as the last read, instead On PAL, the behavior is
+			// unknown - for now, don't cause any bit deletions
+			// TODO: get value from openbus
+			val = 0x00
+		} else {
+			val = dma.cpu.Bus.Read8(internalAddr, false)
+		}
+
+		if !isSameAddress {
+			// The DMA unit is reading from a different address, read from
+			// it too (external bus)
+			// TODO: get open bus mask
+			obMask := uint8(0x00)
+			externalValue := dma.cpu.Bus.Read8(addr, false)
+
+			// Merge values, keep the external value for all open bus pins on the 4016/4017 port
+			// AND all other bits together (bus conflict)
+			val = (externalValue & obMask) | ((val & ^obMask) & (externalValue & ^obMask))
+		}
+
+	default:
+		val = dma.cpu.Bus.Read8(addr, false)
+	}
+
+	prevReadAddress = internalAddr
+	return val
 }
