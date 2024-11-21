@@ -129,7 +129,7 @@ func TestBlarggRoms(t *testing.T) {
 
 		"instr_test-v5/rom_singles/01-basics.nes",
 		"instr_test-v5/rom_singles/02-implied.nes",
-		// "instr_test-v5/rom_singles/03-immediate.nes", // uses unofficial  0xAB (LXA)
+		"instr_test-v5/rom_singles/03-immediate.nes",
 		"instr_test-v5/rom_singles/04-zero_page.nes",
 		"instr_test-v5/rom_singles/05-zp_xy.nes",
 		"instr_test-v5/rom_singles/06-absolute.nes",

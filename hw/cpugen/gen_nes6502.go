@@ -205,7 +205,7 @@ var defs = [256]opdef{
 	{i: 0xA8, n: "TAY", d: "     ", m: "imp", f: T("A", "Y")},
 	{i: 0xA9, n: "LDA", d: "r    ", m: "imm", f: LD("A")},
 	{i: 0xAA, n: "TAX", d: "     ", m: "imp", f: T("A", "X")},
-	{i: 0xAB, n: "LXA", d: "     ", m: "imm", f: unstable},
+	{i: 0xAB, n: "LXA", d: "r    ", m: "imm"},
 	{i: 0xAC, n: "LDY", d: "r    ", m: "abs", f: LD("Y")},
 	{i: 0xAD, n: "LDA", d: "r    ", m: "abs", f: LD("A")},
 	{i: 0xAE, n: "LDX", d: "r    ", m: "abs", f: LD("X")},
@@ -668,6 +668,17 @@ func (g *Generator) LSR(def opdef) {
 	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
 	g.printf(`}`)
 }
+
+func (g *Generator) LXA(def opdef) {
+	g.unstable = append(g.unstable, def.i)
+
+	const mask = 0xff
+	g.printf(`val = (cpu.A | 0x%02x) & val`, mask)
+	g.printf(`cpu.A = val`)
+	g.printf(`cpu.X = val`)
+	g.printf(`cpu.P.checkNZ(val)`)
+}
+
 func (g *Generator) NOP(def opdef) {
 	if !slices.Contains([]string{"acc", "imp", "rel"}, def.m) {
 		g.dummyread("cpu.PC")
