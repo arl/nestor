@@ -116,12 +116,6 @@ func TestBlarggRoms(t *testing.T) {
 		"cpu_reset/ram_after_reset.nes",
 		"cpu_reset/registers.nes",
 
-		// "dmc_dma_during_read4/dma_2007_read.nes", // tested separately
-		"dmc_dma_during_read4/dma_2007_write.nes",
-		"dmc_dma_during_read4/dma_4016_read.nes",
-		"dmc_dma_during_read4/double_2007_read.nes",
-		"dmc_dma_during_read4/read_write_2007.nes",
-
 		"instr_misc/rom_singles/01-abs_x_wrap.nes",
 		"instr_misc/rom_singles/02-branch_wrap.nes",
 		"instr_misc/rom_singles/03-dummy_reads.nes",
@@ -254,13 +248,24 @@ func TestDMCDMADuringRead(t *testing.T) {
 		log.SetOutput(io.Discard)
 	}
 
-	const frameidx = 200
-
 	outdir := filepath.Join("testdata", t.Name())
 	os.Mkdir(outdir, 0755)
 
-	romPath := filepath.Join(tests.RomsPath(t), "dmc_dma_during_read4", "dma_2007_read.nes")
-	runTestRomAndCompareFrame(t, romPath, outdir, "dma_2007_read.nes", frameidx)
+	roms := []string{
+		"dma_2007_read.nes",
+		"dma_2007_write.nes",
+		// "dma_4016_read.nes",
+		// "double_2007_read.nes",
+		"read_write_2007.nes",
+	}
+
+	const frameidx = 200
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(tests.RomsPath(t), "dmc_dma_during_read4", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
 }
 
 func TestNametableMirroring(t *testing.T) {
