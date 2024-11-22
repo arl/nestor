@@ -243,6 +243,37 @@ func readString(t *hwio.Table, addr uint16) string {
 	return unsafe.String(&data[0], i)
 }
 
+func TestSpriteHit(t *testing.T) {
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
+	}
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"01.basics.nes",
+		"02.alignment.nes",
+		"03.corners.nes",
+		"04.flip.nes",
+		// "05.left_clip.nes",
+		// "06.right_edge.nes",
+		"07.screen_bottom.nes",
+		"08.double_height.nes",
+		// "09.timing_basics.nes",
+		"10.timing_order.nes",
+		"11.edge_timing.nes",
+	}
+
+	const frameidx = 50
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(tests.RomsPath(t), "sprite_hit_tests_2005.10.05", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
 func TestSpriteOverflow(t *testing.T) {
 	if !testing.Verbose() {
 		log.SetOutput(io.Discard)
