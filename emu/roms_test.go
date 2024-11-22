@@ -243,6 +243,31 @@ func readString(t *hwio.Table, addr uint16) string {
 	return unsafe.String(&data[0], i)
 }
 
+func TestSpriteOverflow(t *testing.T) {
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
+	}
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"1.Basics.nes",
+		// "2.Details.nes",
+		// "3.Timing.nes",
+		// "4.Obscure.nes",
+		"5.Emulator.nes",
+	}
+
+	const frameidx = 25
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(tests.RomsPath(t), "sprite_overflow_tests", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
 func TestDMCDMADuringRead(t *testing.T) {
 	if !testing.Verbose() {
 		log.SetOutput(io.Discard)
