@@ -119,7 +119,7 @@ func TestBlarggRoms(t *testing.T) {
 		"instr_misc/rom_singles/01-abs_x_wrap.nes",
 		"instr_misc/rom_singles/02-branch_wrap.nes",
 		"instr_misc/rom_singles/03-dummy_reads.nes",
-		// "instr_misc/rom_singles/04-dummy_reads_apu.nes",
+		// "instr_misc/rom_singles/04-dummy_reads_apu.nes", // uses unofficial 0x9C (SHY)
 
 		"instr_test-v5/rom_singles/01-basics.nes",
 		"instr_test-v5/rom_singles/02-implied.nes",
@@ -142,7 +142,7 @@ func TestBlarggRoms(t *testing.T) {
 		"instr_timing/rom_singles/2-branch_timing.nes",
 
 		"oam_read/oam_read.nes",
-		// "oam_stress/oam_stress.nes",
+		"oam_stress/oam_stress.nes",
 	}
 
 	for _, romName := range tests {
@@ -253,7 +253,7 @@ func TestSpriteOverflow(t *testing.T) {
 
 	roms := []string{
 		"1.Basics.nes",
-		// "2.Details.nes",
+		// "2.Details.nes", // failed #9
 		// "3.Timing.nes",
 		// "4.Obscure.nes",
 		"5.Emulator.nes",
