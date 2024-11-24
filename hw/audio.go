@@ -83,8 +83,10 @@ func (am *AudioMixer) PlayAudioBuffer(time uint32) {
 	if am.hasPanning {
 		am.bufright.ReadSamples(out[1:], MaxSamplesPerFrame, blip.Stereo)
 	} else {
-		// Copy left channel to right channel (optimization - when no panning is used)
-		copy(out[1:], out[:sampleCount*2])
+		// When no panning, just copy the left channel to the right one.
+		for i := 0; i < sampleCount*2; i += 2 {
+			out[i+1] = out[i]
+		}
 	}
 
 	am.sampleCount += sampleCount
