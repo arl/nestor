@@ -163,7 +163,7 @@ func (afc *apuFrameCounter) run(cyclesToRun *int32) uint32 {
 func (afc *apuFrameCounter) needToRun(cyclesToRun uint32) bool {
 	// Run APU when:
 	// - A new value is pending
-	// - The "blockFrameCounterTick" process is running
+	// - The "blockTick" process is running
 	// - We're at the before-last or last tick of the current step
 	return afc.newval >= 0 ||
 		afc.blockTick > 0 ||

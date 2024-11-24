@@ -21,14 +21,14 @@ type NoiseChannel struct {
 	shiftReg uint16
 	mode     bool // mode flag.
 	timer    Timer
-	envelope Envelope
+	envelope envelope
 	apu      apu
 }
 
 func NewNoiseChannel(apu apu, mixer mixer) NoiseChannel {
 	return NoiseChannel{
 		apu: apu,
-		envelope: Envelope{
+		envelope: envelope{
 			lenCounter: lengthCounter{
 				channel: Noise,
 				apu:     apu,

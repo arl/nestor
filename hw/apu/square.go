@@ -7,7 +7,7 @@ import (
 
 type SquareChannel struct {
 	apu      apu
-	envelope Envelope
+	envelope envelope
 	timer    Timer
 
 	isChannel1 bool
@@ -33,7 +33,7 @@ type SquareChannel struct {
 func NewSquareChannel(apu apu, mixer mixer, channel Channel, isChannel1 bool) SquareChannel {
 	return SquareChannel{
 		apu: apu,
-		envelope: Envelope{
+		envelope: envelope{
 			lenCounter: lengthCounter{
 				channel: channel,
 				apu:     apu,
