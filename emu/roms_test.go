@@ -243,7 +243,7 @@ func readString(t *hwio.Table, addr uint16) string {
 	return unsafe.String(&data[0], i)
 }
 
-func TestSpriteHit(t *testing.T) {
+func TestSprite0Hit(t *testing.T) {
 	if !testing.Verbose() {
 		log.SetOutput(io.Discard)
 	}
@@ -256,11 +256,11 @@ func TestSpriteHit(t *testing.T) {
 		"02.alignment.nes",
 		"03.corners.nes",
 		"04.flip.nes",
-		// "05.left_clip.nes",
-		// "06.right_edge.nes",
+		// "05.left_clip.nes", // failed #3
+		// "06.right_edge.nes", // failed #3
 		"07.screen_bottom.nes",
 		"08.double_height.nes",
-		// "09.timing_basics.nes",
+		// "09.timing_basics.nes", // failed #3
 		"10.timing_order.nes",
 		"11.edge_timing.nes",
 	}
