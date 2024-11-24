@@ -23,25 +23,24 @@ var frameType = [2][6]FrameType{
 type apuFrameCounter struct {
 	apu *APU
 
-	stepCycles            [2][6]int32
-	previousCycle         int32
-	currentStep           uint32
-	stepMode              uint32 //0: 4-step mode, 1: 5-step mode
-	inhibitIRQ            bool
-	blockFrameCounterTick uint8
-	newValue              int16
-	writeDelayCounter     int8
+	stepCycles        [2][6]int32
+	prevCycle         int32
+	curStep           uint32
+	stepMode          uint32 //0: 4-step mode, 1: 5-step mode
+	inhibitIRQ        bool
+	blockTick         uint8
+	newval            int16
+	writeDelayCounter int8
 }
 
 func newAPUFrameCounter() *apuFrameCounter {
-	// _console = console;
-	afc := &apuFrameCounter{}
+	var afc apuFrameCounter
 	afc.reset(false)
-	return afc
+	return &afc
 }
 
 func (afc *apuFrameCounter) reset(soft bool) {
-	afc.previousCycle = 0
+	afc.prevCycle = 0
 
 	// After reset: APU mode in $4017 was unchanged, so we need to keep
 	// whatever value stepMode has for soft resets
@@ -49,26 +48,26 @@ func (afc *apuFrameCounter) reset(soft bool) {
 		afc.stepMode = 0
 	}
 
-	afc.currentStep = 0
+	afc.curStep = 0
 
 	// After reset or power-up, APU acts as if $4017 were written with $00
 	// from 9 to 12 clocks before first instruction begins. This is
 	// emulated in the cpu.reset. function Reset acts as if $00 was written
 	// to $4017
-	afc.newValue = 0
+	afc.newval = 0
 	if afc.stepMode != 0 {
-		afc.newValue = 0x80
+		afc.newval = 0x80
 	}
 	afc.writeDelayCounter = 3
 	afc.inhibitIRQ = false
 
-	afc.blockFrameCounterTick = 0
+	afc.blockTick = 0
 }
 
 func (afc *apuFrameCounter) WriteFRAMECOUNTER(old, val uint8) {
 	log.ModSound.InfoZ("write framecounter").Uint8("val", val).End()
 	afc.apu.Run()
-	afc.newValue = int16(val)
+	afc.newval = int16(val)
 
 	// Reset sequence after $4017 is written to
 	if afc.apu.cpu.Cycles&0x01 != 0 {
@@ -91,71 +90,71 @@ func (afc *apuFrameCounter) WriteFRAMECOUNTER(old, val uint8) {
 func (afc *apuFrameCounter) run(cyclesToRun *int32) uint32 {
 	var cyclesRan int32
 
-	if afc.previousCycle+*cyclesToRun >= stepCycles[afc.stepMode][afc.currentStep] {
-		if !afc.inhibitIRQ && afc.stepMode == 0 && afc.currentStep >= 3 {
+	if afc.prevCycle+*cyclesToRun >= stepCycles[afc.stepMode][afc.curStep] {
+		if !afc.inhibitIRQ && afc.stepMode == 0 && afc.curStep >= 3 {
 			// Set irq on the last 3 cycles for 4-step mode
 			afc.apu.cpu.setIrqSource(frameCounter)
 		}
 
-		ftyp := frameType[afc.stepMode][afc.currentStep]
-		if ftyp != noFrame && afc.blockFrameCounterTick == 0 {
+		ftyp := frameType[afc.stepMode][afc.curStep]
+		if ftyp != noFrame && afc.blockTick == 0 {
 			afc.apu.FrameCounterTick(ftyp)
 
 			// Do not allow writes to 4017 to clock the frame counter for the
 			// next cycle (i.e this odd cycle + the following even cycle)
-			afc.blockFrameCounterTick = 2
+			afc.blockTick = 2
 		}
 
-		if stepCycles[afc.stepMode][afc.currentStep] < afc.previousCycle {
+		if stepCycles[afc.stepMode][afc.curStep] < afc.prevCycle {
 			// This can happen when switching from PAL to NTSC, which can cause
 			// a freeze (endless loop in APU)
 			cyclesRan = 0
 		} else {
-			cyclesRan = stepCycles[afc.stepMode][afc.currentStep] - afc.previousCycle
+			cyclesRan = stepCycles[afc.stepMode][afc.curStep] - afc.prevCycle
 		}
 
 		*cyclesToRun -= cyclesRan
 
-		afc.currentStep++
-		if afc.currentStep == 6 {
-			afc.currentStep = 0
-			afc.previousCycle = 0
+		afc.curStep++
+		if afc.curStep == 6 {
+			afc.curStep = 0
+			afc.prevCycle = 0
 		} else {
-			afc.previousCycle += cyclesRan
+			afc.prevCycle += cyclesRan
 		}
 	} else {
 		cyclesRan = *cyclesToRun
 		*cyclesToRun = 0
-		afc.previousCycle += cyclesRan
+		afc.prevCycle += cyclesRan
 	}
 
-	if afc.newValue >= 0 {
+	if afc.newval >= 0 {
 		afc.writeDelayCounter--
 		if afc.writeDelayCounter == 0 {
 			// Apply new value after the appropriate number of cycles has elapsed
-			if (afc.newValue & 0x80) == 0x80 {
+			if (afc.newval & 0x80) == 0x80 {
 				afc.stepMode = 1
 			} else {
 				afc.stepMode = 0
 			}
 
 			afc.writeDelayCounter = -1
-			afc.currentStep = 0
-			afc.previousCycle = 0
-			afc.newValue = -1
+			afc.curStep = 0
+			afc.prevCycle = 0
+			afc.newval = -1
 
-			if afc.stepMode != 0 && afc.blockFrameCounterTick == 0 {
+			if afc.stepMode != 0 && afc.blockTick == 0 {
 				// Writing to $4017 with bit 7 set will immediately generate
 				// a clock for both the quarter frame and the half frame
 				// units, regardless of what the sequencer is doing.
 				afc.apu.FrameCounterTick(halfFrame)
-				afc.blockFrameCounterTick = 2
+				afc.blockTick = 2
 			}
 		}
 	}
 
-	if afc.blockFrameCounterTick > 0 {
-		afc.blockFrameCounterTick--
+	if afc.blockTick > 0 {
+		afc.blockTick--
 	}
 
 	return uint32(cyclesRan)
@@ -166,7 +165,7 @@ func (afc *apuFrameCounter) needToRun(cyclesToRun uint32) bool {
 	// - A new value is pending
 	// - The "blockFrameCounterTick" process is running
 	// - We're at the before-last or last tick of the current step
-	return afc.newValue >= 0 ||
-		afc.blockFrameCounterTick > 0 ||
-		(afc.previousCycle+int32(cyclesToRun) >= stepCycles[afc.stepMode][afc.currentStep]-1)
+	return afc.newval >= 0 ||
+		afc.blockTick > 0 ||
+		(afc.prevCycle+int32(cyclesToRun) >= stepCycles[afc.stepMode][afc.curStep]-1)
 }
