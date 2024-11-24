@@ -318,3 +318,7 @@ func (dc *DMCChannel) NeedToRun() bool {
 	}
 	return dc.needToRun
 }
+
+func (dc *DMCChannel) Output() uint8 {
+	return uint8(dc.timer.LastOutput())
+}

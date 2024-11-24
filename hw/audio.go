@@ -105,7 +105,6 @@ func (am *AudioMixer) PlayAudioBuffer(time uint32) {
 	}
 
 	am.sampleCount = 0
-
 	am.updateRates(false)
 }
 

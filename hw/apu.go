@@ -24,6 +24,9 @@ type APU struct {
 	enabled       bool
 
 	STATUS hwio.Reg8 `hwio:"offset=0x15,rcb,wcb"`
+	DAC0   hwio.Reg8 `hwio:"offset=0x18,rcb,readonly"` // current instant DAC value of B=pulse2 and A=pulse1 (either 0 or current volume)
+	DAC1   hwio.Reg8 `hwio:"offset=0x19,rcb,readonly"` // current instant DAC value of N=noise (either 0 or current volume) and T=triangle (anywhere from 0 to 15)
+	DAC2   hwio.Reg8 `hwio:"offset=0x1A,rcb,readonly"` // current instant DAC value of DPCM channel (same as value written to $4011)
 }
 
 func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
@@ -109,6 +112,18 @@ func (a *APU) WriteSTATUS(old, val uint8) {
 	a.Triangle.SetEnabled((val & 0x04) == 0x04)
 	a.Noise.SetEnabled((val & 0x08) == 0x08)
 	a.DMC.SetEnabled((val & 0x10) == 0x10)
+}
+
+func (a *APU) ReadDAC0(val uint8, peek bool) uint8 {
+	return a.Square1.Output() | a.Square2.Output()<<4
+}
+
+func (a *APU) ReadDAC1(val uint8, peek bool) uint8 {
+	return a.Triangle.Output() | a.Noise.Output()<<4
+}
+
+func (a *APU) ReadDAC2(val uint8, peek bool) uint8 {
+	return a.DMC.Output()
 }
 
 func (a *APU) FrameCounterTick(ftyp FrameType) {
