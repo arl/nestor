@@ -93,6 +93,7 @@ func (c *CPU) InitBus() {
 		c.Bus.MapBank(0x4004, &c.APU.Square2, 0)
 		c.Bus.MapBank(0x4000, &c.APU.Noise, 0)
 		c.Bus.MapBank(0x4000, &c.APU.Triangle, 0)
+		c.Bus.MapBank(0x4000, &c.APU.DMC, 0)
 	}
 
 	var reg4017 reg4017
