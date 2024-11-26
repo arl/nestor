@@ -6,9 +6,20 @@ import (
 	"nestor/hw/hwio"
 )
 
-var dmcPeriodLUT = [16]uint16{428, 380, 340, 320, 286, 254, 226, 214, 190, 160, 142, 128, 106, 84, 72, 54}
-
-type DMCChannel struct {
+// The DMC (Delta Modulation Channel) can output samples composed of 1-bit
+// deltas and its DAC can be directly changed. It contains the following: DMA
+// reader, interrupt flag, sample buffer, Timer, output unit, 7-bit counter tied
+// to 7-bit DAC.
+//
+//	+----------+    +---------+
+//	|DMA Reader|    |  Timer  |
+//	+----------+    +---------+
+//	     |               |
+//	     |               v
+//	+----------+    +---------+     +---------+     +---------+
+//	|  Buffer  |----| Output  |---->| Counter |---->|   DAC   |
+//	+----------+    +---------+     +---------+     +---------+
+type DMC struct {
 	APU   *APU
 	timer apu.Timer
 
@@ -18,10 +29,10 @@ type DMCChannel struct {
 	irqEnabled   bool
 	loopFlag     bool
 
-	currentAddr    uint16
-	bytesRemaining uint16
-	readBuffer     uint8
-	bufferEmpty    bool
+	curaddr     uint16
+	remaining   uint16
+	readBuffer  uint8
+	bufferEmpty bool
 
 	shiftRegister      uint8
 	bitsRemaining      uint8
@@ -38,15 +49,20 @@ type DMCChannel struct {
 	SAMPLELEN  hwio.Reg8 `hwio:"offset=0x13,writeonly,wcb"`
 }
 
-func NewDMCChannel(APU *APU, mixer *AudioMixer) DMCChannel {
-	return DMCChannel{
+func NewDMC(APU *APU, mixer *AudioMixer) DMC {
+	return DMC{
 		APU:         APU,
 		silenceFlag: true,
-		timer:       *apu.NewTimer(apu.DMC, mixer),
+		timer: apu.Timer{
+			Channel: apu.DMC,
+			Mixer:   mixer,
+		},
 	}
 }
 
-func (dc *DMCChannel) WriteFLAGS(_, val uint8) {
+var dmcPeriodLUT = [16]uint16{428, 380, 340, 320, 286, 254, 226, 214, 190, 160, 142, 128, 106, 84, 72, 54}
+
+func (dc *DMC) WriteFLAGS(_, val uint8) {
 	dc.APU.Run()
 
 	dc.irqEnabled = (val & 0x80) == 0x80
@@ -76,7 +92,7 @@ func abs[T ~int | ~int8 | ~int16 | ~int32 | ~int64](x T) T {
 	return ((x + xmask) ^ xmask)
 }
 
-func (dc *DMCChannel) WriteLOAD(_, val uint8) {
+func (dc *DMC) WriteLOAD(_, val uint8) {
 	dc.APU.Run()
 
 	newval := val & 0x7F
@@ -100,7 +116,7 @@ func (dc *DMCChannel) WriteLOAD(_, val uint8) {
 		End()
 }
 
-func (dc *DMCChannel) WriteSAMPLEADDR(_, val uint8) {
+func (dc *DMC) WriteSAMPLEADDR(_, val uint8) {
 	dc.APU.Run()
 	dc.sampleAddr = 0xC000 | uint16(val)<<6
 
@@ -110,7 +126,7 @@ func (dc *DMCChannel) WriteSAMPLEADDR(_, val uint8) {
 		End()
 }
 
-func (dc *DMCChannel) WriteSAMPLELEN(_, val uint8) {
+func (dc *DMC) WriteSAMPLELEN(_, val uint8) {
 	dc.APU.Run()
 	dc.sampleLength = uint16(val)<<4 | 0x1
 
@@ -120,7 +136,7 @@ func (dc *DMCChannel) WriteSAMPLELEN(_, val uint8) {
 		End()
 }
 
-func (dc *DMCChannel) Reset(soft bool) {
+func (dc *DMC) Reset(soft bool) {
 	dc.timer.Reset(soft)
 
 	if !soft {
@@ -134,8 +150,8 @@ func (dc *DMCChannel) Reset(soft bool) {
 	dc.irqEnabled = false
 	dc.loopFlag = false
 
-	dc.currentAddr = 0
-	dc.bytesRemaining = 0
+	dc.curaddr = 0
+	dc.remaining = 0
 	dc.readBuffer = 0
 	dc.bufferEmpty = true
 
@@ -160,37 +176,40 @@ func (dc *DMCChannel) Reset(soft bool) {
 	dc.timer.SetTimer(dc.timer.Period())
 }
 
-func (dc *DMCChannel) initSample() {
-	dc.currentAddr = dc.sampleAddr
-	dc.bytesRemaining = dc.sampleLength
-	dc.needToRun = dc.needToRun || dc.bytesRemaining > 0
+func (dc *DMC) initSample() {
+	dc.curaddr = dc.sampleAddr
+	dc.remaining = dc.sampleLength
+	dc.needToRun = dc.needToRun || dc.remaining > 0
 }
 
-func (dc *DMCChannel) startDmcTransfer() {
-	if dc.bufferEmpty && dc.bytesRemaining > 0 {
+func (dc *DMC) startDmcTransfer() {
+	if dc.bufferEmpty && dc.remaining > 0 {
 		dc.APU.cpu.startDmcTransfer()
 	}
 }
 
-func (dc *DMCChannel) getReadAddress() uint16 {
-	return dc.currentAddr
+func (dc *DMC) getReadAddress() uint16 {
+	return dc.curaddr
 }
 
-func (dc *DMCChannel) setReadBuffer(value uint8) {
-	if dc.bytesRemaining > 0 {
-		dc.readBuffer = value
+func (dc *DMC) setReadBuffer(val uint8) {
+	log.ModSound.DebugZ("set DMC read buffer").
+		Uint8("value", val).
+		End()
+
+	if dc.remaining > 0 {
+		dc.readBuffer = val
 		dc.bufferEmpty = false
 
-		// The address is incremented; if it exceeds $FFFF,
-		// it is wrapped around to $8000.
-		dc.currentAddr++
-		if dc.currentAddr == 0 {
-			dc.currentAddr = 0x8000
+		// address wraps around to $8000, not $0000.
+		dc.curaddr++
+		if dc.curaddr == 0 {
+			dc.curaddr = 0x8000
 		}
 
-		dc.bytesRemaining--
+		dc.remaining--
 
-		if dc.bytesRemaining == 0 {
+		if dc.remaining == 0 {
 			if dc.loopFlag {
 				// Looped sample should never set IRQ flag
 				dc.initSample()
@@ -213,7 +232,7 @@ func (dc *DMCChannel) setReadBuffer(value uint8) {
 	}
 }
 
-func (dc *DMCChannel) Run(targetCycle uint32) {
+func (dc *DMC) Run(targetCycle uint32) {
 	for dc.timer.Run(targetCycle) {
 		if !dc.silenceFlag {
 			if dc.shiftRegister&0x01 != 0 {
@@ -246,9 +265,9 @@ func (dc *DMCChannel) Run(targetCycle uint32) {
 	}
 }
 
-func (dc *DMCChannel) IRQPending(cyclesToRun uint32) bool {
-	if dc.irqEnabled && dc.bytesRemaining > 0 {
-		cyclesToEmptyBuffer := (uint16(dc.bitsRemaining) + (dc.bytesRemaining-1)*8) * dc.timer.Period()
+func (dc *DMC) IRQPending(cyclesToRun uint32) bool {
+	if dc.irqEnabled && dc.remaining > 0 {
+		cyclesToEmptyBuffer := (uint16(dc.bitsRemaining) + (dc.remaining-1)*8) * dc.timer.Period()
 		if cyclesToRun >= uint32(cyclesToEmptyBuffer) {
 			return true
 		}
@@ -256,15 +275,15 @@ func (dc *DMCChannel) IRQPending(cyclesToRun uint32) bool {
 	return false
 }
 
-func (dc *DMCChannel) Status() bool {
-	return dc.bytesRemaining > 0
+func (dc *DMC) Status() bool {
+	return dc.remaining > 0
 }
 
-func (dc *DMCChannel) EndFrame() {
+func (dc *DMC) EndFrame() {
 	dc.timer.EndFrame()
 }
 
-func (dc *DMCChannel) SetEnabled(enabled bool) {
+func (dc *DMC) SetEnabled(enabled bool) {
 	if !enabled {
 		if dc.disableDelay == 0 {
 			// Disabling takes effect with a 1 apu cycle delay
@@ -277,7 +296,7 @@ func (dc *DMCChannel) SetEnabled(enabled bool) {
 			}
 		}
 		dc.needToRun = true
-	} else if dc.bytesRemaining == 0 {
+	} else if dc.remaining == 0 {
 		dc.initSample()
 
 		// Delay a number of cycles based on odd/even cycles
@@ -291,11 +310,11 @@ func (dc *DMCChannel) SetEnabled(enabled bool) {
 	}
 }
 
-func (dc *DMCChannel) processClock() {
+func (dc *DMC) processClock() {
 	if dc.disableDelay > 0 {
 		dc.disableDelay--
 		if dc.disableDelay == 0 {
-			dc.bytesRemaining = 0
+			dc.remaining = 0
 
 			// Abort any on-going transfer that hasn't fully started
 			dc.APU.cpu.stopDmcTransfer()
@@ -309,16 +328,16 @@ func (dc *DMCChannel) processClock() {
 		}
 	}
 
-	dc.needToRun = dc.disableDelay != 0 || dc.transferStartDelay != 0 || dc.bytesRemaining != 0
+	dc.needToRun = dc.disableDelay != 0 || dc.transferStartDelay != 0 || dc.remaining != 0
 }
 
-func (dc *DMCChannel) NeedToRun() bool {
+func (dc *DMC) NeedToRun() bool {
 	if dc.needToRun {
 		dc.processClock()
 	}
 	return dc.needToRun
 }
 
-func (dc *DMCChannel) Output() uint8 {
+func (dc *DMC) Output() uint8 {
 	return uint8(dc.timer.LastOutput())
 }

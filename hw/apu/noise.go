@@ -5,8 +5,6 @@ import (
 	"nestor/hw/hwio"
 )
 
-var noisePeriodLUT = [16]uint16{4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068}
-
 // NoiseChannel generates pseudo-random 1-bit noise at 16 different frequencies.
 //
 //	      Timer --> Shift Register   Length Counter
@@ -21,28 +19,33 @@ type NoiseChannel struct {
 	shiftReg uint16
 	mode     bool // mode flag.
 	timer    Timer
-	envelope envelope
+	env      envelope
 	apu      apu
 }
 
 func NewNoiseChannel(apu apu, mixer mixer) NoiseChannel {
 	return NoiseChannel{
 		apu: apu,
-		envelope: envelope{
+		env: envelope{
 			lenCounter: lengthCounter{
 				channel: Noise,
 				apu:     apu,
 			},
 		},
-		timer: *NewTimer(Noise, mixer),
+		timer: Timer{
+			Channel: Noise,
+			Mixer:   mixer,
+		},
 	}
 }
 
 func (nc *NoiseChannel) WriteVOLUME(old, val uint8) {
 	log.ModSound.InfoZ("write noise volume").Uint8("val", val).End()
 	nc.apu.Run()
-	nc.envelope.init(val)
+	nc.env.init(val)
 }
+
+var noisePeriodLUT = [16]uint16{4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068}
 
 func (nc *NoiseChannel) WritePERIOD(old, val uint8) {
 	log.ModSound.InfoZ("write noise period").Uint8("val", val).End()
@@ -55,8 +58,8 @@ func (nc *NoiseChannel) WritePERIOD(old, val uint8) {
 func (nc *NoiseChannel) WriteLENGTH(old, val uint8) {
 	log.ModSound.InfoZ("write noise length").Uint8("val", val).End()
 	nc.apu.Run()
-	nc.envelope.lenCounter.load(val >> 3)
-	nc.envelope.resetEnvelope()
+	nc.env.lenCounter.load(val >> 3)
+	nc.env.restart()
 }
 
 func (nc *NoiseChannel) Run(targetCycle uint32) {
@@ -75,7 +78,7 @@ func (nc *NoiseChannel) Run(targetCycle uint32) {
 		if nc.isMuted() {
 			nc.timer.AddOutput(0)
 		} else {
-			nc.timer.AddOutput(int8(nc.envelope.volume()))
+			nc.timer.AddOutput(int8(nc.env.volume()))
 		}
 	}
 }
@@ -91,15 +94,15 @@ func (nc *NoiseChannel) isMuted() bool {
 }
 
 func (nc *NoiseChannel) TickEnvelope() {
-	nc.envelope.tick()
+	nc.env.tick()
 }
 
 func (nc *NoiseChannel) TickLengthCounter() {
-	nc.envelope.lenCounter.tick()
+	nc.env.lenCounter.tick()
 }
 
 func (nc *NoiseChannel) ReloadLengthCounter() {
-	nc.envelope.lenCounter.reload()
+	nc.env.lenCounter.reload()
 }
 
 func (nc *NoiseChannel) EndFrame() {
@@ -107,15 +110,15 @@ func (nc *NoiseChannel) EndFrame() {
 }
 
 func (nc *NoiseChannel) SetEnabled(enabled bool) {
-	nc.envelope.lenCounter.setEnabled(enabled)
+	nc.env.lenCounter.setEnabled(enabled)
 }
 
 func (nc *NoiseChannel) Status() bool {
-	return nc.envelope.lenCounter.status()
+	return nc.env.lenCounter.status()
 }
 
 func (nc *NoiseChannel) Reset(soft bool) {
-	nc.envelope.reset(soft)
+	nc.env.reset(soft)
 	nc.timer.Reset(soft)
 
 	nc.timer.SetPeriod(noisePeriodLUT[0] - 1)

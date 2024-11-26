@@ -1,5 +1,7 @@
 package apu
 
+// envelope is an envelope generator which can generate a constant volume or a
+// saw envelope with optional looping.
 type envelope struct {
 	constVolume bool
 	vol         uint8
@@ -17,7 +19,7 @@ func (env *envelope) init(regValue uint8) {
 	env.vol = regValue & 0x0F
 }
 
-func (env *envelope) resetEnvelope() {
+func (env *envelope) restart() {
 	env.start = true
 }
 

@@ -1,5 +1,8 @@
 package apu
 
+// The length counter allows automatic duration control. Counting can be halted
+// and the counter can be disabled by clearing the appropriate bit in the status
+// register, which immediately sets the counter to 0 and keeps it there.
 type lengthCounter struct {
 	apu apu
 
@@ -18,16 +21,16 @@ func (lc *lengthCounter) init(halt bool) {
 	lc.newHalt = halt
 }
 
-func (lc *lengthCounter) load(val uint8) {
-	var lut = [32]uint8{
-		10, 254, 20, 2, 40, 4, 80, 6,
-		160, 8, 60, 10, 14, 12, 26, 14,
-		12, 16, 24, 18, 48, 20, 96, 22,
-		192, 24, 72, 26, 16, 28, 32, 30,
-	}
+var lenCounterLUT = [32]uint8{
+	10, 254, 20, 2, 40, 4, 80, 6,
+	160, 8, 60, 10, 14, 12, 26, 14,
+	12, 16, 24, 18, 48, 20, 96, 22,
+	192, 24, 72, 26, 16, 28, 32, 30,
+}
 
+func (lc *lengthCounter) load(val uint8) {
 	if lc.enabled {
-		lc.reloadVal = lut[val]
+		lc.reloadVal = lenCounterLUT[val]
 		lc.prevVal = lc.counter
 		lc.apu.SetNeedToRun()
 	}

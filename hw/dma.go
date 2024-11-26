@@ -82,11 +82,13 @@ func (dma *DMA) process(readAddr uint16) {
 		return
 	}
 
+	dmc := &dma.cpu.APU.DMC
+
 	prevReadAddress := readAddr
 	enableInternalRegReads := (readAddr & 0xFFE0) == 0x4000
 	skipFirstInputClock := false
 	if enableInternalRegReads && dma.dmcDmaRunning && (readAddr == 0x4016 || readAddr == 0x4017) {
-		dmcAddress := dma.cpu.APU.DMC.getReadAddress()
+		dmcAddress := dmc.getReadAddress()
 		if (dmcAddress & 0x1F) == (readAddr & 0x1F) {
 			// DMC will cause a read on the same address as the CPU was reading
 			// from This will hide the reads from the controllers because /OE
@@ -156,12 +158,12 @@ func (dma *DMA) process(readAddr uint16) {
 				// cycles were performed before this)
 				processCycle()
 				dma.dmcInProgress = true // used by debugger to distinguish between dmc and oam/dummy dma reads
-				val = dma.processRead(dma.cpu.APU.DMC.getReadAddress(), prevReadAddress, enableInternalRegReads, true)
+				val = dma.processRead(dmc.getReadAddress(), prevReadAddress, enableInternalRegReads, true)
 				dma.dmcInProgress = false
 				cpu.cycleEnd(true)
 				dma.dmcDmaRunning = false
 				dma.abortDmcDma = false
-				dma.cpu.APU.DMC.setReadBuffer(val)
+				dmc.setReadBuffer(val)
 			} else if dma.oamInProgress {
 				// DMC DMA is not running, or not ready, run sprite DMA
 				processCycle()

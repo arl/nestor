@@ -14,7 +14,7 @@ type APU struct {
 	Square2  apu.SquareChannel
 	Triangle apu.TriangleChannel
 	Noise    apu.NoiseChannel
-	DMC      DMCChannel
+	DMC      DMC
 
 	frameCounter apuFrameCounter
 
@@ -39,7 +39,7 @@ func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
 	a.Square1 = apu.NewSquareChannel(a, mixer, apu.Square1, true)
 	a.Square2 = apu.NewSquareChannel(a, mixer, apu.Square2, false)
 	a.Triangle = apu.NewTriangleChannel(a, mixer)
-	a.DMC = NewDMCChannel(a, mixer)
+	a.DMC = NewDMC(a, mixer)
 
 	a.frameCounter.apu = a
 

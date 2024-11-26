@@ -1,34 +1,28 @@
 package apu
 
+// Timer is a divider driven by the ~1.79 MHz clock and is used by all APU
+// channels.
 type Timer struct {
-	previousCycle uint32
-	timer         uint16
-	period        uint16
-	lastOutput    int8
+	Mixer mixer
 
-	channel Channel
-	mixer   mixer
-}
+	prevCycle  uint32
+	timer      uint16
+	period     uint16
+	lastOutput int8
 
-func NewTimer(channel Channel, mixer mixer) *Timer {
-	t := &Timer{
-		channel: channel,
-		mixer:   mixer,
-	}
-	t.Reset(false)
-	return t
+	Channel Channel
 }
 
 func (t *Timer) Reset(_ bool) {
 	t.timer = 0
 	t.period = 0
-	t.previousCycle = 0
+	t.prevCycle = 0
 	t.lastOutput = 0
 }
 
 func (t *Timer) AddOutput(output int8) {
 	if output != t.lastOutput {
-		t.mixer.AddDelta(t.channel, t.previousCycle, int16(output-t.lastOutput))
+		t.Mixer.AddDelta(t.Channel, t.prevCycle, int16(output-t.lastOutput))
 		t.lastOutput = output
 	}
 }
@@ -38,21 +32,21 @@ func (t *Timer) LastOutput() int8 {
 }
 
 func (t *Timer) Run(targetCycle uint32) bool {
-	cyclesToRun := uint16(targetCycle - t.previousCycle)
+	cyclesToRun := uint16(targetCycle - t.prevCycle)
 
 	if cyclesToRun > t.timer {
-		t.previousCycle += uint32(t.timer) + 1
+		t.prevCycle += uint32(t.timer) + 1
 		t.timer = t.period
 		return true
 	}
 
 	t.timer -= cyclesToRun
-	t.previousCycle = targetCycle
+	t.prevCycle = targetCycle
 	return false
 }
 
 func (t *Timer) EndFrame() {
-	t.previousCycle = 0
+	t.prevCycle = 0
 }
 
 func (t *Timer) SetPeriod(period uint16) {

@@ -5,17 +5,30 @@ import (
 	"nestor/hw/hwio"
 )
 
+// The TriangleChannel contains the following: Timer, 32-step sequencer, Length
+// Counter, Linear Counter, 4-bit DAC.
+//
+//  +---------+    +---------+
+//  |LinearCtr|    | Length  |
+//  +---------+    +---------+
+//       |              |
+//       v              v
+//  +---------+        |\             |\         +---------+    +---------+
+//  |  Timer  |------->| >----------->| >------->|Sequencer|--->|   DAC   |
+//  +---------+        |/             |/         +---------+    +---------+
+//
+
 type TriangleChannel struct {
-	apu           apu
-	lengthCounter lengthCounter
-	timer         Timer
+	apu        apu
+	lenCounter lengthCounter
+	timer      Timer
 
 	linearCounter       uint8
 	linearCounterReload uint8
 	linearReload        bool
 	linearCtrl          bool
 
-	seqpos uint8
+	pos uint8 // current position on "triangleSequence".
 
 	Linear hwio.Reg8 `hwio:"offset=0x08,writeonly,wcb"`
 	Timer  hwio.Reg8 `hwio:"offset=0x0A,writeonly,wcb"`
@@ -24,34 +37,37 @@ type TriangleChannel struct {
 
 func NewTriangleChannel(apu apu, mixer mixer) TriangleChannel {
 	return TriangleChannel{
-		apu:   apu,
-		timer: *NewTimer(Triangle, mixer),
-		lengthCounter: lengthCounter{
+		apu: apu,
+		lenCounter: lengthCounter{
 			channel: Triangle,
 			apu:     apu,
+		},
+		timer: Timer{
+			Channel: Triangle,
+			Mixer:   mixer,
 		},
 	}
 }
 
-func (tc *TriangleChannel) Run(targetCycle uint32) {
-	sequence := [32]int8{
-		15, 14, 13, 12, 11, 10, 9, 8,
-		7, 6, 5, 4, 3, 2, 1, 0,
-		0, 1, 2, 3, 4, 5, 6, 7,
-		8, 9, 10, 11, 12, 13, 14, 15,
-	}
+var triangleSequence = [32]int8{
+	15, 14, 13, 12, 11, 10, 9, 8,
+	7, 6, 5, 4, 3, 2, 1, 0,
+	0, 1, 2, 3, 4, 5, 6, 7,
+	8, 9, 10, 11, 12, 13, 14, 15,
+}
 
+func (tc *TriangleChannel) Run(targetCycle uint32) {
 	for tc.timer.Run(targetCycle) {
 		// The sequencer is clocked by the timer as long as both the linear
 		// counter and the length counter are nonzero.
-		if tc.lengthCounter.status() && tc.linearCounter > 0 {
-			tc.seqpos = (tc.seqpos + 1) & 0x1F
+		if tc.lenCounter.status() && tc.linearCounter > 0 {
+			tc.pos = (tc.pos + 1) & 0x1F
 
 			if tc.timer.Period() >= 2 {
 				// Disabling the triangle channel when period is < 2 removes
 				// "pops" in the audio that are caused by the ultrasonic
 				// frequencies
-				tc.timer.AddOutput(sequence[tc.seqpos])
+				tc.timer.AddOutput(triangleSequence[tc.pos])
 			}
 		}
 	}
@@ -59,14 +75,13 @@ func (tc *TriangleChannel) Run(targetCycle uint32) {
 
 func (tc *TriangleChannel) Reset(soft bool) {
 	tc.timer.Reset(soft)
-	tc.lengthCounter.reset(soft)
+	tc.lenCounter.reset(soft)
 
 	tc.linearCounter = 0
 	tc.linearCounterReload = 0
 	tc.linearReload = false
 	tc.linearCtrl = false
-
-	tc.seqpos = 0
+	tc.pos = 0
 }
 
 func (tc *TriangleChannel) WriteLINEAR(_, val uint8) {
@@ -74,7 +89,7 @@ func (tc *TriangleChannel) WriteLINEAR(_, val uint8) {
 	tc.linearCtrl = (val & 0x80) == 0x80
 	tc.linearCounterReload = val & 0x7F
 
-	tc.lengthCounter.init(tc.linearCtrl)
+	tc.lenCounter.init(tc.linearCtrl)
 
 	log.ModSound.InfoZ("write triangle linear").
 		Uint8("reg", val).
@@ -98,7 +113,7 @@ func (tc *TriangleChannel) WriteTIMER(_, val uint8) {
 func (tc *TriangleChannel) WriteLENGTH(_, val uint8) {
 	tc.apu.Run()
 
-	tc.lengthCounter.load(val >> 3)
+	tc.lenCounter.load(val >> 3)
 
 	period := (tc.timer.Period() & 0xFF) | (uint16(val&0x07) << 8)
 	tc.timer.SetPeriod(period)
@@ -125,11 +140,11 @@ func (tc *TriangleChannel) TickLinearCounter() {
 }
 
 func (tc *TriangleChannel) TickLengthCounter() {
-	tc.lengthCounter.tick()
+	tc.lenCounter.tick()
 }
 
 func (tc *TriangleChannel) ReloadLengthCounter() {
-	tc.lengthCounter.reload()
+	tc.lenCounter.reload()
 }
 
 func (tc *TriangleChannel) EndFrame() {
@@ -137,11 +152,11 @@ func (tc *TriangleChannel) EndFrame() {
 }
 
 func (tc *TriangleChannel) SetEnabled(enabled bool) {
-	tc.lengthCounter.setEnabled(enabled)
+	tc.lenCounter.setEnabled(enabled)
 }
 
 func (tc *TriangleChannel) Status() bool {
-	return tc.lengthCounter.status()
+	return tc.lenCounter.status()
 }
 
 func (tc *TriangleChannel) Output() uint8 {
