@@ -123,6 +123,7 @@ func (mw *mainWindow) runROM(path string) {
 		defer mw.SetSensitive(true)
 		defer mw.wg.Done()
 
+		emulator.Focus()
 		emulator.Run()
 		mw.stopEmu = func() {}
 		panel.Close()

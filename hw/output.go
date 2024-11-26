@@ -132,6 +132,12 @@ func (out *Output) EnableVideo(enable bool) error {
 	return nil
 }
 
+func (out *Output) FocusWindow() {
+	if out.videoEnabled {
+		out.window.Raise()
+	}
+}
+
 // Global for now
 var audioDeviceID sdl.AudioDeviceID
 var audioSpec sdl.AudioSpec
