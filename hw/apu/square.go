@@ -5,9 +5,26 @@ import (
 	"nestor/hw/hwio"
 )
 
+// There are two square channels beginning at registers $4000 and $4004. Each
+// contains the following: Envelope Generator, Sweep Unit, Timer with
+// divide-by-two on the output, 8-step sequencer, Length Counter.
+//
+//	               +---------+    +---------+
+//	               |  Sweep  |--->|Timer / 2|
+//	               +---------+    +---------+
+//	                    |              |
+//	                    |              v
+//	                    |         +---------+    +---------+
+//	                    |         |Sequencer|    | Length  |
+//	                    |         +---------+    +---------+
+//	                    |              |              |
+//	                    v              v              v
+//	+---------+        |\             |\             |\          +---------+
+//	|Envelope |------->| >----------->| >----------->| >-------->|   DAC   |
+//	+---------+        |/             |/             |/          +---------+
 type SquareChannel struct {
 	apu      apu
-	envelope Envelope
+	envelope envelope
 	timer    Timer
 
 	isChannel1 bool
@@ -32,15 +49,18 @@ type SquareChannel struct {
 
 func NewSquareChannel(apu apu, mixer mixer, channel Channel, isChannel1 bool) SquareChannel {
 	return SquareChannel{
-		apu: apu,
-		envelope: Envelope{
+		isChannel1: isChannel1,
+		apu:        apu,
+		envelope: envelope{
 			lenCounter: lengthCounter{
 				channel: channel,
 				apu:     apu,
 			},
 		},
-		timer:      *NewTimer(channel, mixer),
-		isChannel1: isChannel1,
+		timer: Timer{
+			Channel: channel,
+			Mixer:   mixer,
+		},
 	}
 }
 
@@ -88,7 +108,7 @@ func (sc *SquareChannel) WriteLENGTH(_, val uint8) {
 	sc.dutyPos = 0
 
 	// envelope is also restarted.
-	sc.envelope.resetEnvelope()
+	sc.envelope.restart()
 
 	log.ModSound.InfoZ("write pulse length").
 		Uint8("reg", val).
@@ -137,18 +157,19 @@ func (sc *SquareChannel) setPeriod(newPeriod uint16) {
 	sc.updateTargetPeriod()
 }
 
-func (sc *SquareChannel) updateOutput() {
-	var dutySequences = [4][8]uint8{
-		{0, 0, 0, 0, 0, 0, 0, 1},
-		{0, 0, 0, 0, 0, 0, 1, 1},
-		{0, 0, 0, 0, 1, 1, 1, 1},
-		{1, 1, 1, 1, 1, 1, 0, 0},
-	}
+// duty cycle sequences for the square channels.
+var squareDuty = [4][8]uint8{
+	{0, 0, 0, 0, 0, 0, 0, 1},
+	{0, 0, 0, 0, 0, 0, 1, 1},
+	{0, 0, 0, 0, 1, 1, 1, 1},
+	{1, 1, 1, 1, 1, 1, 0, 0},
+}
 
+func (sc *SquareChannel) updateOutput() {
 	if sc.isMuted() {
 		sc.timer.AddOutput(0)
 	} else {
-		out := dutySequences[sc.duty][sc.dutyPos] * uint8(sc.envelope.volume())
+		out := squareDuty[sc.duty][sc.dutyPos] * uint8(sc.envelope.volume())
 		sc.timer.AddOutput(int8(out))
 	}
 }

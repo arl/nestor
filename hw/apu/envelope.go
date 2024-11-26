@@ -1,7 +1,9 @@
 package apu
 
-type Envelope struct {
-	constantVol bool
+// envelope is an envelope generator which can generate a constant volume or a
+// saw envelope with optional looping.
+type envelope struct {
+	constVolume bool
 	vol         uint8
 
 	start   bool
@@ -11,19 +13,19 @@ type Envelope struct {
 	lenCounter lengthCounter
 }
 
-func (env *Envelope) init(regValue uint8) {
+func (env *envelope) init(regValue uint8) {
 	env.lenCounter.init((regValue & 0x20) == 0x20)
-	env.constantVol = (regValue & 0x10) == 0x10
+	env.constVolume = (regValue & 0x10) == 0x10
 	env.vol = regValue & 0x0F
 }
 
-func (env *Envelope) resetEnvelope() {
+func (env *envelope) restart() {
 	env.start = true
 }
 
-func (env *Envelope) volume() uint32 {
+func (env *envelope) volume() uint32 {
 	if env.lenCounter.status() {
-		if env.constantVol {
+		if env.constVolume {
 			return uint32(env.vol)
 		}
 		return uint32(env.counter)
@@ -31,17 +33,21 @@ func (env *Envelope) volume() uint32 {
 	return 0
 }
 
-func (env *Envelope) reset(soft bool) {
+func (env *envelope) reset(soft bool) {
 	env.lenCounter.reset(soft)
-	env.constantVol = false
+	env.constVolume = false
 	env.vol = 0
 	env.start = false
 	env.divider = 0
 	env.counter = 0
 }
 
-func (env *Envelope) tick() {
-	if !env.start {
+func (env *envelope) tick() {
+	if env.start {
+		env.start = false
+		env.counter = 15
+		env.divider = int8(env.vol)
+	} else {
 		env.divider--
 		if env.divider < 0 {
 			env.divider = int8(env.vol)
@@ -51,9 +57,5 @@ func (env *Envelope) tick() {
 				env.counter = 15
 			}
 		}
-	} else {
-		env.start = false
-		env.counter = 15
-		env.divider = int8(env.vol)
 	}
 }

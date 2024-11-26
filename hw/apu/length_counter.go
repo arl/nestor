@@ -1,16 +1,19 @@
 package apu
 
+// The length counter allows automatic duration control. Counting can be halted
+// and the counter can be disabled by clearing the appropriate bit in the status
+// register, which immediately sets the counter to 0 and keeps it there.
 type lengthCounter struct {
+	apu apu
+
 	channel Channel
 	newHalt bool
 
-	enabled       bool
-	halt          bool
-	counter       uint8
-	reloadValue   uint8
-	previousValue uint8
-
-	apu apu
+	enabled   bool
+	halt      bool
+	counter   uint8
+	reloadVal uint8
+	prevVal   uint8
 }
 
 func (lc *lengthCounter) init(halt bool) {
@@ -18,17 +21,17 @@ func (lc *lengthCounter) init(halt bool) {
 	lc.newHalt = halt
 }
 
-func (lc *lengthCounter) load(val uint8) {
-	var lut = [32]uint8{
-		10, 254, 20, 2, 40, 4, 80, 6,
-		160, 8, 60, 10, 14, 12, 26, 14,
-		12, 16, 24, 18, 48, 20, 96, 22,
-		192, 24, 72, 26, 16, 28, 32, 30,
-	}
+var lenCounterLUT = [32]uint8{
+	10, 254, 20, 2, 40, 4, 80, 6,
+	160, 8, 60, 10, 14, 12, 26, 14,
+	12, 16, 24, 18, 48, 20, 96, 22,
+	192, 24, 72, 26, 16, 28, 32, 30,
+}
 
+func (lc *lengthCounter) load(val uint8) {
 	if lc.enabled {
-		lc.reloadValue = lut[val]
-		lc.previousValue = lc.counter
+		lc.reloadVal = lenCounterLUT[val]
+		lc.prevVal = lc.counter
 		lc.apu.SetNeedToRun()
 	}
 }
@@ -41,16 +44,16 @@ func (lc *lengthCounter) reset(soft bool) {
 			lc.halt = false
 			lc.counter = 0
 			lc.newHalt = false
-			lc.reloadValue = 0
-			lc.previousValue = 0
+			lc.reloadVal = 0
+			lc.prevVal = 0
 		}
 	} else {
 		lc.enabled = false
 		lc.halt = false
 		lc.counter = 0
 		lc.newHalt = false
-		lc.reloadValue = 0
-		lc.previousValue = 0
+		lc.reloadVal = 0
+		lc.prevVal = 0
 	}
 }
 
@@ -63,11 +66,11 @@ func (lc *lengthCounter) isHalted() bool {
 }
 
 func (lc *lengthCounter) reload() {
-	if lc.reloadValue != 0 {
-		if lc.counter == lc.previousValue {
-			lc.counter = lc.reloadValue
+	if lc.reloadVal != 0 {
+		if lc.counter == lc.prevVal {
+			lc.counter = lc.reloadVal
 		}
-		lc.reloadValue = 0
+		lc.reloadVal = 0
 	}
 
 	lc.halt = lc.newHalt

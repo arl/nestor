@@ -88,9 +88,42 @@ func TestBlarggRoms(t *testing.T) {
 	romsDir := filepath.Join(tests.RomsPath(t))
 
 	tests := []string{
+		"apu_reset/4015_cleared.nes",
+		"apu_reset/irq_flag_cleared.nes",
+		"apu_reset/len_ctrs_enabled.nes",
+		// "apu_reset/4017_timing.nes",
+		// "apu_reset/4017_written.nes",
+		// "apu_reset/works_immediately.nes",
+
+		"apu_test/rom_singles/1-len_ctr.nes",
+		"apu_test/rom_singles/2-len_table.nes",
+		"apu_test/rom_singles/3-irq_flag.nes",
+		"apu_test/rom_singles/4-jitter.nes",
+		"apu_test/rom_singles/5-len_timing.nes",
+		"apu_test/rom_singles/6-irq_flag_timing.nes",
+		// "apu_test/rom_singles/7-dmc_basics.nes",
+		// "apu_test/rom_singles/8-dmc_rates.nes",
+
+		"cpu_dummy_writes/cpu_dummy_writes_oam.nes",
+		// "cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
+
+		"cpu_interrupts_v2/rom_singles/1-cli_latency.nes",
+		// "cpu_interrupts_v2/rom_singles/2-nmi_and_brk.nes",
+		// "cpu_interrupts_v2/rom_singles/3-nmi_and_irq.nes",
+		"cpu_interrupts_v2/rom_singles/4-irq_and_dma.nes",
+		"cpu_interrupts_v2/rom_singles/5-branch_delays_irq.nes",
+
+		"cpu_reset/ram_after_reset.nes",
+		"cpu_reset/registers.nes",
+
+		"instr_misc/rom_singles/01-abs_x_wrap.nes",
+		"instr_misc/rom_singles/02-branch_wrap.nes",
+		"instr_misc/rom_singles/03-dummy_reads.nes",
+		// "instr_misc/rom_singles/04-dummy_reads_apu.nes", // uses unofficial 0x9C (SHY)
+
 		"instr_test-v5/rom_singles/01-basics.nes",
 		"instr_test-v5/rom_singles/02-implied.nes",
-		// "instr_test-v5/rom_singles/03-immediate.nes", // uses unofficial  0xAB (LXA)
+		"instr_test-v5/rom_singles/03-immediate.nes",
 		"instr_test-v5/rom_singles/04-zero_page.nes",
 		"instr_test-v5/rom_singles/05-zp_xy.nes",
 		"instr_test-v5/rom_singles/06-absolute.nes",
@@ -105,28 +138,11 @@ func TestBlarggRoms(t *testing.T) {
 		"instr_test-v5/rom_singles/15-brk.nes",
 		"instr_test-v5/rom_singles/16-special.nes",
 
-		"instr_misc/rom_singles/01-abs_x_wrap.nes",
-		"instr_misc/rom_singles/02-branch_wrap.nes",
-		"instr_misc/rom_singles/03-dummy_reads.nes",
-		// "instr_misc/rom_singles/04-dummy_reads_apu.nes",
-
-		// "cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
-		"cpu_dummy_writes/cpu_dummy_writes_oam.nes",
-
-		// "cpu_interrupts_v2/rom_singles/1-cli_latency.nes",
-		// "cpu_interrupts_v2/rom_singles/2-nmi_and_brk.nes",
-		// "cpu_interrupts_v2/rom_singles/3-nmi_and_irq.nes",
-		// "cpu_interrupts_v2/rom_singles/4-irq_and_dma.nes",
-		// "cpu_interrupts_v2/rom_singles/5-branch_delays_irq.nes",
+		//"instr_timing/rom_singles/1-instr_timing.nes", // uses unofficial 0x8B (ANE)
+		"instr_timing/rom_singles/2-branch_timing.nes",
 
 		"oam_read/oam_read.nes",
-		// "oam_stress/oam_stress.nes",
-
-		"cpu_reset/ram_after_reset.nes",
-		"cpu_reset/registers.nes",
-
-		"apu_test/rom_singles/1-len_ctr.nes",
-		"apu_test/rom_singles/2-len_table.nes",
+		"oam_stress/oam_stress.nes",
 	}
 
 	for _, romName := range tests {
@@ -191,7 +207,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			if !bytes.Equal(data[:3], magic) {
 				t.Fatalf("corrupted memory")
 			}
-			result = nes.CPU.Read8(0x6000)
+			result = nes.CPU.Bus.Peek8(0x6000)
 			if result <= 0x7F {
 				break
 			}
@@ -199,7 +215,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 				t.Log("test still running...")
 			}
 
-			// Handle Reset request
+			// Handle reset request.
 			switch {
 			case framesBeforeReset == 0:
 				nes.Reset(true)
@@ -207,24 +223,105 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			case framesBeforeReset > 0:
 				framesBeforeReset--
 			case result == 0x81:
-				framesBeforeReset = 20 // in 20 frames >= 100ms
-				t.Log("RESET required")
+				framesBeforeReset = 30 // in 20 frames >= 100ms
+				t.Log("pressing RESET...")
 			}
 		}
 		if result != 0x00 {
-			txt := memToString(nes.CPU.Bus, 0x6004)
+			txt := readString(nes.CPU.Bus, 0x6004)
 			t.Fatalf("test failed:\ncode 0x%02x\ntext %s", result, txt)
 		}
 	}
 }
 
-func memToString(t *hwio.Table, addr uint16) string {
+func readString(t *hwio.Table, addr uint16) string {
 	data := t.FetchPointer(addr)
 	i := 0
 	for data[i] != 0 {
 		i++
 	}
 	return unsafe.String(&data[0], i)
+}
+
+func TestSprite0Hit(t *testing.T) {
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
+	}
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"01.basics.nes",
+		"02.alignment.nes",
+		"03.corners.nes",
+		"04.flip.nes",
+		// "05.left_clip.nes", // failed #3
+		// "06.right_edge.nes", // failed #3
+		"07.screen_bottom.nes",
+		"08.double_height.nes",
+		// "09.timing_basics.nes", // failed #3
+		"10.timing_order.nes",
+		"11.edge_timing.nes",
+	}
+
+	const frameidx = 50
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(tests.RomsPath(t), "sprite_hit_tests_2005.10.05", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
+func TestSpriteOverflow(t *testing.T) {
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
+	}
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"1.Basics.nes",
+		// "2.Details.nes", // failed #9
+		// "3.Timing.nes",
+		// "4.Obscure.nes",
+		"5.Emulator.nes",
+	}
+
+	const frameidx = 25
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(tests.RomsPath(t), "sprite_overflow_tests", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
+func TestDMCDMADuringRead(t *testing.T) {
+	if !testing.Verbose() {
+		log.SetOutput(io.Discard)
+	}
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"dma_2007_read.nes",
+		"dma_2007_write.nes",
+		// "dma_4016_read.nes",
+		// "double_2007_read.nes",
+		"read_write_2007.nes",
+	}
+
+	const frameidx = 200
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(tests.RomsPath(t), "dmc_dma_during_read4", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
 }
 
 func TestNametableMirroring(t *testing.T) {
@@ -296,7 +393,7 @@ func TestTimingVBlankNMI(t *testing.T) {
 	os.Mkdir(outdir, 0755)
 
 	roms := []string{
-		"1.frame_basics.nes", // onlt this passes for now
+		"1.frame_basics.nes",
 		"2.vbl_timing.nes",
 		"3.even_odd_frames.nes",
 		"4.vbl_clear_timing.nes",

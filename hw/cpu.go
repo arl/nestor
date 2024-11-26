@@ -20,9 +20,9 @@ type CPU struct {
 
 	RAM hwio.Mem `hwio:"bank=0,offset=0x0,size=0x800,vsize=0x2000"`
 
-	PPU    *PPU // non-nil when there's a PPU.
-	PPUDMA PPUDMA
-	APU    *APU
+	PPU *PPU // non-nil when there's a PPU.
+	DMA DMA
+	APU *APU
 
 	// Non-nil when execution tracing is enabled.
 	tracer *tracer
@@ -30,6 +30,7 @@ type CPU struct {
 
 	input InputPorts
 
+	halted      bool
 	Cycles      int64 // CPU cycles
 	masterClock int64
 
@@ -44,8 +45,6 @@ type CPU struct {
 	runIRQ, prevRunIRQ   bool
 	irqFlag              irqSource
 	irqMask              irqSource
-
-	halted bool
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -82,8 +81,8 @@ func (c *CPU) InitBus() {
 	}
 
 	// Map PPU OAMDMA register.
-	c.PPUDMA.InitBus(c)
-	c.Bus.MapBank(0x4014, &c.PPUDMA, 0)
+	c.DMA.InitBus(c)
+	c.Bus.MapBank(0x4014, &c.DMA, 0)
 
 	c.input.initBus()
 	c.Bus.MapBank(0x4000, &c.input, 0)
@@ -94,6 +93,7 @@ func (c *CPU) InitBus() {
 		c.Bus.MapBank(0x4004, &c.APU.Square2, 0)
 		c.Bus.MapBank(0x4000, &c.APU.Noise, 0)
 		c.Bus.MapBank(0x4000, &c.APU.Triangle, 0)
+		c.Bus.MapBank(0x4000, &c.APU.DMC, 0)
 	}
 
 	var reg4017 reg4017
@@ -101,7 +101,7 @@ func (c *CPU) InitBus() {
 	c.Bus.MapBank(0x4017, &reg4017, 0)
 	reg4017.Read = c.input.ReadOUT
 	if c.APU != nil {
-		reg4017.Write = c.APU.WriteFRAMECOUNTER
+		reg4017.Write = c.APU.frameCounter.WriteFRAMECOUNTER
 	}
 }
 
@@ -109,13 +109,13 @@ func (c *CPU) InitBus() {
 // - read 0x4017 -> reads controller state (OUT register)
 // - write 0x4017 -> writes to APU frame counter.
 type reg4017 struct {
-	Reg   hwio.Reg8 `hwio:"offset=0,rcb,wcb"`
+	Reg   hwio.Reg8 `hwio:"offset=0,rcb=Read4017,wcb=Write4017"`
 	Write func(old, val uint8)
 	Read  func(old uint8, peek bool) uint8
 }
 
-func (r *reg4017) WriteREG(old, val uint8)            { r.Write(old, val) }
-func (r *reg4017) ReadREG(old uint8, peek bool) uint8 { return r.Read(old, peek) }
+func (r *reg4017) Write4017(old, val uint8)            { r.Write(old, val) }
+func (r *reg4017) Read4017(old uint8, peek bool) uint8 { return r.Read(old, peek) }
 
 func (c *CPU) Reset(soft bool) {
 	if soft {
@@ -132,7 +132,7 @@ func (c *CPU) Reset(soft bool) {
 		c.P.setIntDisable(true)
 	}
 
-	c.PPUDMA.reset()
+	c.DMA.reset()
 
 	// Directly read from the bus to avoid side effects.
 	c.PC = hwio.Read16(c.Bus, ResetVector)
@@ -140,6 +140,7 @@ func (c *CPU) Reset(soft bool) {
 
 	c.Cycles = -1
 	c.nmiFlag = false
+	c.irqFlag = 0
 	c.masterClock = ntscCPUDivider
 
 	// After a reset/power up, the CPU takes burns 8 cycles
@@ -244,7 +245,7 @@ func (c *CPU) cycleEnd(forRead bool) {
 }
 
 func (c *CPU) Read8(addr uint16) uint8 {
-	c.dmaTransfer()
+	c.dmaTransfer(addr)
 	c.cycleBegin(true)
 	val := c.Bus.Read8(addr, false)
 	c.cycleEnd(true)
@@ -297,8 +298,18 @@ func (c *CPU) pull16() uint16 {
 
 /* DMA */
 
-func (c *CPU) dmaTransfer() {
-	c.PPUDMA.process()
+func (c *CPU) dmaTransfer(addr uint16) {
+	c.DMA.process(addr)
+}
+
+/* DMC */
+
+func (c *CPU) startDmcTransfer() {
+	c.DMA.startDMCTransfert()
+}
+
+func (c *CPU) stopDmcTransfer() {
+	c.DMA.stopDmcTransfer()
 }
 
 /* interrupt handling */
@@ -306,13 +317,31 @@ func (c *CPU) dmaTransfer() {
 type irqSource uint8
 
 const (
-	frameCounter irqSource = iota << 1
+	external irqSource = 1 << iota
+	frameCounter
 	dmc
 )
 
-func (c *CPU) setIrqSource(src irqSource)      { c.irqFlag |= src }
-func (c *CPU) hasIrqSource(src irqSource) bool { return (c.irqFlag & src) != 0 }
-func (c *CPU) clearIrqSource(src irqSource)    { c.irqFlag &= ^src }
+func (c *CPU) setIrqSource(src irqSource) {
+	log.ModCPU.DebugZ("set IRQ source").
+		Uint8("src", uint8(src)).
+		Uint8("before", uint8(c.irqFlag)).
+		End()
+	c.irqFlag |= src
+}
+
+func (c *CPU) hasIrqSource(src irqSource) bool {
+	return (c.irqFlag & src) != 0
+}
+
+func (c *CPU) clearIrqSource(src irqSource) {
+	log.ModCPU.DebugZ("clear IRQ source").
+		Uint8("src", uint8(src)).
+		Uint8("before", uint8(c.irqFlag)).
+		End()
+
+	c.irqFlag &= ^src
+}
 
 func (c *CPU) setNMIflag()   { c.nmiFlag = true }
 func (c *CPU) clearNMIflag() { c.nmiFlag = false }

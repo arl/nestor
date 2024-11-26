@@ -91,7 +91,6 @@ func (e *Emulator) Screenshot() image.Image {
 func (e *Emulator) RunOneFrame() {
 	frame := e.out.BeginFrame()
 	e.NES.RunOneFrame(frame)
-	e.NES.APU.EndFrame()
 	e.out.EndFrame(frame)
 }
 

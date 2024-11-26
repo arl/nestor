@@ -253,6 +253,16 @@ func (p *PPU) doScanline(sm scanlineMode) {
 				ppustatus.setVblank(false)
 				p.PPUSTATUS.Value = uint8(ppustatus)
 				p.CPU.clearNMIflag()
+
+				if p.oamAddr >= 0x08 && p.isRenderingEnabled() {
+					// This should only be done if rendering is enabled
+					// (otherwise oam_stress test fails immediately).
+					//
+					// If OAMADDR is not less than eight when rendering starts,
+					// the eight bytes starting at OAMADDR & 0xF8 are copied to
+					// the first eight bytes of OAM".
+					p.writeOAM(uint8(p.Cycle-1), p.readOAM((p.oamAddr&0xF8)+uint8(p.Cycle-1)))
+				}
 			}
 		case p.Cycle == 321, p.Cycle == 339:
 			p.bg.addrLatch = p.ntAddr()
@@ -737,8 +747,31 @@ func (p *PPU) ReadOAMDATA(_ uint8, peek bool) uint8 {
 // OAMDATA: $2004
 func (p *PPU) WriteOAMDATA(_, val uint8) {
 	log.ModPPU.DebugZ("Write to OAMDATA").Hex8("val", val).End()
-	p.oamMem[p.oamAddr] = val
+	if (p.Scanline >= 240 && p.Scanline < 241+24) || !p.isRenderingEnabled() {
+		if (p.oamAddr & 0x03) == 0x02 {
+			// The three unimplemented bits of each sprite's byte 2 do not exist
+			// in the PPU and always read back as 0 on PPU revisions that allow
+			// reading PPU OAM through OAMDATA ($2004)
+			val &= 0xE3
+		}
+		p.writeOAM(p.oamAddr, val)
+	} else {
+		// Writes to OAMDATA during rendering (on the pre-render line and the
+		// visible lines 0-239, provided either sprite or background rendering
+		// is enabled) do not modify values in OAM, but do perform a glitchy
+		// increment of OAMADDR, bumping only the high 6 bits"
+		p.oamAddr += 4
+	}
+	p.writeOAM(p.oamAddr, val)
 	p.oamAddr++
+}
+
+func (p *PPU) writeOAM(addr, val uint8) {
+	p.oamMem[p.oamAddr] = val
+}
+
+func (p *PPU) readOAM(addr uint8) uint8 {
+	return p.oamMem[p.oamAddr]
 }
 
 type sprite struct {

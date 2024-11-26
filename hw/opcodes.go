@@ -2805,8 +2805,11 @@ func opcodeAB(cpu *CPU) {
 	oper = cpu.PC
 	cpu.PC++
 	_ = oper
-	msg := fmt.Sprintf("unsupported unstable opcode 0xAB (LXA)\nPC:0x%04X", cpu.PC)
-	panic(msg)
+	val := cpu.Read8(oper)
+	val = (cpu.A | 0xff) & val
+	cpu.A = val
+	cpu.X = val
+	cpu.P.checkNZ(val)
 }
 
 // LDY - absolute addressing.
