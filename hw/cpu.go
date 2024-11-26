@@ -321,9 +321,26 @@ const (
 	dmc
 )
 
-func (c *CPU) setIrqSource(src irqSource)      { c.irqFlag |= src }
-func (c *CPU) hasIrqSource(src irqSource) bool { return (c.irqFlag & src) != 0 }
-func (c *CPU) clearIrqSource(src irqSource)    { c.irqFlag &= ^src }
+func (c *CPU) setIrqSource(src irqSource) {
+	log.ModCPU.DebugZ("set IRQ source").
+		Uint8("src", uint8(src)).
+		Uint8("before", uint8(c.irqFlag)).
+		End()
+	c.irqFlag |= src
+}
+
+func (c *CPU) hasIrqSource(src irqSource) bool {
+	return (c.irqFlag & src) != 0
+}
+
+func (c *CPU) clearIrqSource(src irqSource) {
+	log.ModCPU.DebugZ("clear IRQ source").
+		Uint8("src", uint8(src)).
+		Uint8("before", uint8(c.irqFlag)).
+		End()
+
+	c.irqFlag &= ^src
+}
 
 func (c *CPU) setNMIflag()   { c.nmiFlag = true }
 func (c *CPU) clearNMIflag() { c.nmiFlag = false }
