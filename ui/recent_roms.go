@@ -27,6 +27,16 @@ var RecentROMsDir = sync.OnceValue(func() string {
 	return dir
 })
 
+func readZipFile(zf *zip.File) ([]byte, error) {
+	zfr, err := zf.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer zfr.Close()
+
+	return io.ReadAll(zfr)
+}
+
 func loadRecentROMs() []recentROM {
 	var roms []recentROM
 
@@ -60,27 +70,16 @@ func loadRecentROMs() []recentROM {
 		}
 
 		for _, zf := range zr.File {
-			if zf.Name == "screenshot.png" {
-				zfr, err := zf.Open()
-				if err != nil {
-					return err
-				}
-				defer zfr.Close()
-
-				buf, err := io.ReadAll(zfr)
+			switch zf.Name {
+			case "screenshot.png":
+				buf, err := readZipFile(zf)
 				if err != nil {
 					return err
 				}
 				cur.Image = buf
-			}
-			if zf.Name == "infos.txt" {
-				zfr, err := zf.Open()
-				if err != nil {
-					return err
-				}
-				defer zfr.Close()
 
-				buf, err := io.ReadAll(zfr)
+			case "infos.txt":
+				buf, err := readZipFile(zf)
 				if err != nil {
 					return err
 				}
