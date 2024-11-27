@@ -41,7 +41,7 @@ func mustT[T any](v T, err error) T {
 }
 
 // openFileDialog shows a file chooser dialog for selecting a nes ROM file.
-func openFileDialog(parent *gtk.Window) (string, bool) {
+func openFileDialog(parent *gtk.Window, workdir string) (string, bool) {
 	dlg := mustT(gtk.FileChooserDialogNewWith1Button(
 		"Open NES ROM",
 		parent,
@@ -55,6 +55,7 @@ func openFileDialog(parent *gtk.Window) (string, bool) {
 	filter.AddPattern("*.nes")
 	filter.SetName("nes/famicom ROM Files")
 	dlg.AddFilter(filter)
+	dlg.SetCurrentFolder(workdir)
 	if resp := dlg.Run(); resp != gtk.RESPONSE_OK {
 		return "", false
 	}

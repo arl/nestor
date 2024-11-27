@@ -69,7 +69,11 @@ func showMainWindow() {
 
 	build[gtk.MenuItem](builder, "menu_quit").Connect("activate", gtk.MainQuit)
 	build[gtk.MenuItem](builder, "menu_open").Connect("activate", func(m *gtk.MenuItem) {
-		path, ok := openFileDialog(mw.Window)
+		workdir, ok := mw.rrv.mostRecentDir()
+		if !ok {
+			workdir = ""
+		}
+		path, ok := openFileDialog(mw.Window, workdir)
 		if !ok {
 			return
 		}

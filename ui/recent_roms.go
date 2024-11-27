@@ -199,6 +199,14 @@ func (v *recentROMsView) normalize() {
 	})
 }
 
+func (v *recentROMsView) mostRecentDir() (string, bool) {
+	if len(v.recentROMs) == 0 {
+		return "", false
+	}
+
+	return filepath.Dir(v.recentROMs[0].Path), true
+}
+
 func (v *recentROMsView) updateView() {
 	v.normalize()
 
