@@ -14,23 +14,23 @@ import (
 	"time"
 
 	"github.com/gotk3/gotk3/gtk"
-	"github.com/kirsle/configdir"
 )
 
 const recentROMextension = ".nrr"
 
-var RecentROMsDir string = sync.OnceValue(func() string {
-	dir := filepath.Join(ConfigDir, "recent-roms")
-	if err := configdir.MakePath(dir); err != nil {
+var RecentROMsDir = sync.OnceValue(func() string {
+	dir := filepath.Join(ConfigDir(), "recent-roms")
+	if err := os.MkdirAll(dir, DefaultFileMode); err != nil {
 		modGUI.Fatalf("failed to create directory %s: %v", dir, err)
 	}
+
 	return dir
-})()
+})
 
 func loadRecentROMs() []recentROM {
 	var roms []recentROM
 
-	err := filepath.WalkDir(RecentROMsDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(RecentROMsDir(), func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -117,7 +117,7 @@ func (r recentROM) IsValid() bool {
 }
 
 func (r recentROM) save() error {
-	f, err := os.Create(filepath.Join(RecentROMsDir, r.Name+recentROMextension))
+	f, err := os.Create(filepath.Join(RecentROMsDir(), r.Name+recentROMextension))
 	if err != nil {
 		return err
 	}
@@ -182,8 +182,8 @@ func (v *recentROMsView) addROM(rom recentROM) error {
 	return nil
 }
 
-// remove duplicates and sort the list by last usage.
-func (v *recentROMsView) fixOrderAndDups() {
+// normalize sorts the list by last usage and remove duplicates.
+func (v *recentROMsView) normalize() {
 	m := make(map[string]recentROM, len(v.recentROMs))
 	for _, rom := range v.recentROMs {
 		m[rom.Name] = rom
@@ -200,7 +200,7 @@ func (v *recentROMsView) fixOrderAndDups() {
 }
 
 func (v *recentROMsView) updateView() {
-	v.fixOrderAndDups()
+	v.normalize()
 
 	// Empty the flowbox.
 	v.flowbox.GetChildren().Foreach(func(item any) {

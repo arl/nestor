@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
-	"github.com/kirsle/configdir"
 
 	"nestor/emu"
 	"nestor/emu/log"
@@ -21,13 +20,20 @@ type Config struct {
 	General GeneralConfig `toml:"general"`
 }
 
-var ConfigDir string = sync.OnceValue(func() string {
-	dir := configdir.LocalConfig("nestor")
-	if err := configdir.MakePath(dir); err != nil {
+const DefaultFileMode = os.FileMode(0755)
+
+var ConfigDir = sync.OnceValue(func() string {
+	cfgdir, err := os.UserConfigDir()
+	if err != nil {
+		log.ModEmu.Fatalf("failed to get user config directory: %v", err)
+	}
+
+	dir := filepath.Join(cfgdir, "nestor")
+	if err := os.MkdirAll(dir, DefaultFileMode); err != nil {
 		log.ModEmu.Fatalf("failed to create directory %s: %v", dir, err)
 	}
 	return dir
-})()
+})
 
 const cfgFilename = "config.toml"
 
@@ -35,7 +41,7 @@ const cfgFilename = "config.toml"
 // or provide a default one.
 func LoadConfigOrDefault() Config {
 	var cfg Config
-	_, err := toml.DecodeFile(filepath.Join(ConfigDir, cfgFilename), &cfg)
+	_, err := toml.DecodeFile(filepath.Join(ConfigDir(), cfgFilename), &cfg)
 	if err != nil {
 		// TODO: specify default config
 		return Config{}
@@ -51,5 +57,5 @@ func SaveConfig(cfg Config) error {
 		return err
 	}
 
-	return os.WriteFile(filepath.Join(ConfigDir, cfgFilename), buf, 0644)
+	return os.WriteFile(filepath.Join(ConfigDir(), cfgFilename), buf, 0644)
 }
