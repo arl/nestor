@@ -382,11 +382,14 @@ func (p *PPU) renderPixel() {
 	objPriority := false
 	var x = int(p.Cycle) - 2
 
+	// PPUMASK value determines if all pixels are rendered, or if we skip the
+	// first 8, or if we skip all of them. We do this for background and sprites
+	// separately.
 	mask := ppumask(p.PPUMASK.Value)
-	if p.Scanline < 240 /*&& p.Cycle >= 0*/ && p.Cycle < 256 {
 
-		// Background
-		if mask.bg() && !(mask.bgLeft() && x < 8) {
+	if p.Scanline < 240 && x >= 0 && x < 256 {
+		// Background.
+		if mask.bg() && (mask.bgLeft() || x >= 8) {
 			palette = uint8(nthbit16(p.bg.bgShifthi, 15-p.bg.finex)<<1 |
 				nthbit16(p.bg.bgShiftlo, 15-p.bg.finex))
 			if palette != 0 {
