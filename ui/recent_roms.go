@@ -224,14 +224,22 @@ func (v *recentROMsView) updateView() {
 		button := mustT(gtk.ButtonNew())
 		button.SetImage(img)
 		button.SetAlwaysShowImage(true)
+		button.SetCanFocus(false)
 
 		box := mustT(gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 0))
 		label := mustT(gtk.LabelNew(rom.Name))
 		box.PackStart(button, false, false, 0)
 		box.PackStart(label, false, false, 0)
+		box.SetCanFocus(false)
 
-		v.flowbox.Insert(box, int(v.flowbox.GetChildren().Length()))
+		child := mustT(gtk.FlowBoxChildNew())
+		child.Add(box)
+		child.SetVisible(true)
+		child.SetCanFocus(true)
 
+		v.flowbox.Add(child)
+
+		box.SetVisible(true)
 		button.SetVisible(true)
 		img.SetVisible(true)
 		box.SetVisible(true)
@@ -239,6 +247,7 @@ func (v *recentROMsView) updateView() {
 		img.SetVisible(true)
 
 		button.Connect("clicked", func() { v.runROM(rom.Path) })
+		child.Connect("activate", func() { v.runROM(rom.Path) })
 		return nil
 	}
 
@@ -246,5 +255,9 @@ func (v *recentROMsView) updateView() {
 		if err := addItem(rom); err != nil {
 			modGUI.Warnf("failed to show recent ROM %q: %s", rom.Name, err)
 		}
+	}
+
+	if first := v.flowbox.GetChildAtIndex(0); first != nil {
+		v.flowbox.SelectChild(first)
 	}
 }

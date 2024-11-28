@@ -121,7 +121,7 @@
                 <child>
                   <object class="GtkFlowBox" id="flowbox1">
                     <property name="visible">True</property>
-                    <property name="can-focus">True</property>
+                    <property name="can-focus">False</property>
                     <property name="margin-left">20</property>
                     <property name="margin-right">20</property>
                     <property name="margin-start">20</property>
