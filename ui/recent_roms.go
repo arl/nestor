@@ -156,6 +156,7 @@ const maxRecentsRoms = 16
 
 type recentROMsView struct {
 	flowbox    *gtk.FlowBox
+	scroll     *gtk.ScrolledWindow
 	recentROMs []recentROM
 	runROM     func(string)
 }
@@ -165,8 +166,10 @@ func newRecentRomsView(builder *gtk.Builder, runROM func(path string)) *recentRO
 		runROM:     runROM,
 		recentROMs: loadRecentROMs(),
 		flowbox:    build[gtk.FlowBox](builder, "flowbox1"),
+		scroll:     build[gtk.ScrolledWindow](builder, "scrolledwindow1"),
 	}
 
+	v.flowbox.Connect("selected-children-changed", v.onSelectionChanged)
 	v.updateView()
 	return v
 }
@@ -260,4 +263,22 @@ func (v *recentROMsView) updateView() {
 	if first := v.flowbox.GetChildAtIndex(0); first != nil {
 		v.flowbox.SelectChild(first)
 	}
+}
+
+func (v *recentROMsView) onSelectionChanged(flowbox *gtk.FlowBox) {
+	selected := flowbox.GetSelectedChildren()
+	if len(selected) == 0 {
+		return
+	}
+
+	child := selected[0]
+	if isVisibleIn(&child.Widget, &v.scroll.Widget) {
+		return
+	}
+
+	// Child is not entirely visible, move the vertical scrollbar so that the
+	// upper part of the rom/child is visible.
+	vadj := v.scroll.GetVAdjustment()
+	childy := child.GetAllocation().GetY()
+	vadj.SetValue(float64(childy))
 }

@@ -80,3 +80,19 @@ func imageFromBytes(data []byte) (*gtk.Image, error) {
 	}
 	return gtk.ImageNewFromPixbuf(buf)
 }
+
+// reports whether a child is currently visible in a scrolled window.
+func isVisibleIn(child *gtk.Widget, scrolled *gtk.Widget) bool {
+	dstx, dsty, err := child.TranslateCoordinates(scrolled, 0, 0)
+	if err != nil {
+		panic("unexpected")
+	}
+	childw := child.GetAllocation().GetWidth()
+	childh := child.GetAllocation().GetHeight()
+	scrolledw := scrolled.GetAllocation().GetWidth()
+	scrolledh := scrolled.GetAllocation().GetHeight()
+
+	return (dstx >= 0 && dsty >= 0) &&
+		dstx+childw <= scrolledw &&
+		dsty+childh <= scrolledh
+}
