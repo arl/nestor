@@ -49,6 +49,7 @@ func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
 	hwio.MustInitRegs(&a.Triangle)
 	hwio.MustInitRegs(&a.Noise)
 	hwio.MustInitRegs(&a.frameCounter)
+	hwio.MustInitRegs(&a.DMC)
 
 	return a
 }
