@@ -66,7 +66,7 @@ var defs = [256]opdef{
 	{i: 0x1D, n: "ORA", d: "r  x ", m: "abx"},
 	{i: 0x1E, n: "ASL", d: "rw   ", m: "abx"},
 	{i: 0x1F, n: "SLO", d: "rw   ", m: "abx"},
-	{i: 0x20, n: "JSR", d: "     ", m: "abs"},
+	{i: 0x20, n: "JSR", d: "     ", m: "abs", dontgen: true},
 	{i: 0x21, n: "AND", d: "r    ", m: "izx"},
 	{i: 0x22, n: "STP", d: "     ", m: "imp"},
 	{i: 0x23, n: "RLA", d: "rw   ", m: "izx"},
@@ -162,16 +162,16 @@ var defs = [256]opdef{
 	{i: 0x7D, n: "ADC", d: "r  x ", m: "abx"},
 	{i: 0x7E, n: "ROR", d: "rw   ", m: "abx"},
 	{i: 0x7F, n: "RRA", d: "rw   ", m: "abx"},
-	{i: 0x80, n: "NOP", d: "     ", m: "imm"},
+	{i: 0x80, n: "NOP", d: "r    ", m: "imm"},
 	{i: 0x81, n: "STA", d: "     ", m: "izx", f: ST("A")},
-	{i: 0x82, n: "NOP", d: "     ", m: "imm"},
+	{i: 0x82, n: "NOP", d: "r    ", m: "imm"},
 	{i: 0x83, n: "SAX", d: "     ", m: "izx"},
 	{i: 0x84, n: "STY", d: "     ", m: "zpg", f: ST("Y")},
 	{i: 0x85, n: "STA", d: "     ", m: "zpg", f: ST("A")},
 	{i: 0x86, n: "STX", d: "     ", m: "zpg", f: ST("X")},
 	{i: 0x87, n: "SAX", d: "     ", m: "zpg"},
 	{i: 0x88, n: "DEY", d: "     ", m: "imp", f: dec("Y")},
-	{i: 0x89, n: "NOP", d: "     ", m: "imm"},
+	{i: 0x89, n: "NOP", d: "r    ", m: "imm"},
 	{i: 0x8A, n: "TXA", d: "     ", m: "imp", f: T("X", "A")},
 	{i: 0x8B, n: "ANE", d: "     ", m: "imm", f: unstable},
 	{i: 0x8C, n: "STY", d: "     ", m: "abs", f: ST("Y")},
@@ -228,7 +228,7 @@ var defs = [256]opdef{
 	{i: 0xBF, n: "LAX", d: "r  x ", m: "aby", f: LD("A", "X")},
 	{i: 0xC0, n: "CPY", d: "r    ", m: "imm", f: cmp("Y")},
 	{i: 0xC1, n: "CMP", d: "r    ", m: "izx", f: cmp("A")},
-	{i: 0xC2, n: "NOP", d: "     ", m: "imm"},
+	{i: 0xC2, n: "NOP", d: "r    ", m: "imm"},
 	{i: 0xC3, n: "DCP", d: "rw   ", m: "izx"},
 	{i: 0xC4, n: "CPY", d: "r    ", m: "zpg", f: cmp("Y")},
 	{i: 0xC5, n: "CMP", d: "r    ", m: "zpg", f: cmp("A")},
@@ -260,7 +260,7 @@ var defs = [256]opdef{
 	{i: 0xDF, n: "DCP", d: "rw   ", m: "abx"},
 	{i: 0xE0, n: "CPX", d: "r    ", m: "imm", f: cmp("X")},
 	{i: 0xE1, n: "SBC", d: "r    ", m: "izx"},
-	{i: 0xE2, n: "NOP", d: "     ", m: "imm"},
+	{i: 0xE2, n: "NOP", d: "r    ", m: "imm"},
 	{i: 0xE3, n: "ISC", d: "rw   ", m: "izx"},
 	{i: 0xE4, n: "CPX", d: "r    ", m: "zpg", f: cmp("X")},
 	{i: 0xE5, n: "SBC", d: "r    ", m: "zpg"},
@@ -373,10 +373,7 @@ func ind(g *Generator, _ string) {
 	g.printf(`oper = uint16(hi)<<8 | uint16(lo)`)
 }
 
-func imm(g *Generator, _ string) {
-	g.printf(`oper = cpu.PC`)
-	g.printf(`cpu.PC++`)
-}
+func imm(g *Generator, _ string) {}
 
 func rel(g *Generator, _ string) {
 	g.printf(`off := int8(cpu.Read8(cpu.PC))`)
@@ -396,7 +393,7 @@ func abx(g *Generator, info string) {
 		g.printf(`addr := cpu.Read16(cpu.PC)`)
 		g.printf(`cpu.PC += 2`)
 		g.printf(`oper = addr + uint16(cpu.X)`)
-		tickIfPageCrossed(g, "oper", "addr")
+		tickIfPageCrossed(g, "addr", "oper")
 	default:
 		g.printf(`addr := cpu.Read16(cpu.PC)`)
 		g.printf(`oper = addr`)
@@ -413,7 +410,7 @@ func aby(g *Generator, info string) {
 		g.printf(`addr := cpu.Read16(cpu.PC)`)
 		g.printf(`cpu.PC += 2`)
 		g.printf(`oper = addr + uint16(cpu.Y)`)
-		tickIfPageCrossed(g, "oper", "addr")
+		tickIfPageCrossed(g, "addr", "oper")
 	default:
 		g.printf(`addr := cpu.Read16(cpu.PC)`)
 		g.printf(`oper = addr`)
@@ -430,15 +427,15 @@ func zpg(g *Generator, _ string) {
 
 func zpx(g *Generator, _ string) {
 	g.printf(`addr := cpu.Read8(cpu.PC)`)
-	g.dummyread("cpu.PC")
 	g.printf(`cpu.PC++`)
+	g.dummyread("uint16(addr)")
 	g.printf(`oper = uint16(addr) + uint16(cpu.X)`)
 	g.printf(`oper &= 0xff`)
 }
 
 func zpy(g *Generator, _ string) {
 	g.printf(`addr := cpu.Read8(cpu.PC)`)
-	g.dummyread("cpu.PC")
+	g.dummyread("uint16(addr)")
 	g.printf(`cpu.PC++`)
 	g.printf(`oper = uint16(addr) + uint16(cpu.Y)`)
 	g.printf(`oper &= 0xff`)
@@ -446,7 +443,7 @@ func zpy(g *Generator, _ string) {
 
 func izx(g *Generator, info string) {
 	zpg(g, info)
-	g.dummyread("cpu.PC")
+	g.dummyread("uint16(oper)")
 	g.printf(`oper = uint16(uint8(oper) + cpu.X)`)
 	r16zpwrap(g)
 }
@@ -526,7 +523,7 @@ func branch(ibit int, val bool) func(g *Generator, _ opdef) {
 		g.printf(`if cpu.runIRQ && !cpu.prevRunIRQ {`)
 		g.printf(`	cpu.runIRQ = false`)
 		g.printf(`}`)
-		g.dummyread("cpu.PC")
+		g.dummyread("cpu.PC+1")
 		tickIfPageCrossed(g, "cpu.PC+1", "oper")
 		g.printf(`	cpu.PC = oper`)
 		g.printf(`	return`)
@@ -541,7 +538,7 @@ func tick(g *Generator) {
 
 func tickIfPageCrossed(g *Generator, a, b string) {
 	g.printf(`if 0xFF00&(%s) != 0xFF00&(%s) {`, a, b)
-	g.dummyread(fmt.Sprintf("%s & 0x00FF | %s & 0xFF00", a, b))
+	g.dummyread(fmt.Sprintf("(%s) & 0x00FF | (%s) & 0xFF00", b, a))
 	g.printf(`}`)
 }
 
@@ -643,12 +640,6 @@ func (g *Generator) JMP(_ opdef) {
 	g.printf(`cpu.PC = oper`)
 }
 
-func (g *Generator) JSR(_ opdef) {
-	g.dummyread("cpu.PC")
-	push16(g, `cpu.PC-1`)
-	g.printf(`cpu.PC = oper`)
-}
-
 func (g *Generator) LAS(def opdef) {
 	g.printf(`cpu.A = cpu.SP & val`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
@@ -680,8 +671,8 @@ func (g *Generator) LXA(def opdef) {
 }
 
 func (g *Generator) NOP(def opdef) {
-	if !slices.Contains([]string{"acc", "imp", "rel"}, def.m) {
-		g.dummyread("cpu.PC")
+	if !slices.Contains([]string{"acc", "imp", "rel", "imm"}, def.m) {
+		g.dummyread("oper")
 	}
 }
 
@@ -702,15 +693,15 @@ func (g *Generator) PHP(_ opdef) {
 }
 
 func (g *Generator) PLA(_ opdef) {
-	g.dummyread("cpu.PC")
+	g.dummyread("uint16(cpu.SP) + 0x0100")
 	pull8(g, `cpu.A`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
 }
 
 func (g *Generator) PLP(_ opdef) {
 	g.printf(`var p uint8`)
+	g.dummyread("uint16(cpu.SP) + 0x0100")
 	pull8(g, `p`)
-	g.dummyread("cpu.PC")
 	g.printf(`const mask uint8 = 0b11001111 // ignore B and U bits`)
 	g.printf(`cpu.P = P(%s)`, copybits(`uint8(cpu.P)`, `p`, `mask`))
 }
@@ -755,16 +746,16 @@ func (g *Generator) RRA(def opdef) {
 
 func (g *Generator) RTI(_ opdef) {
 	g.printf(`var p uint8`)
+	g.dummyread("uint16(cpu.SP) + 0x0100")
 	pull8(g, `p`)
-	g.dummyread("cpu.PC")
 	g.printf(`const mask uint8 = 0b11001111 // ignore B and U bits`)
 	g.printf(`cpu.P = P(%s)`, copybits(`uint8(cpu.P)`, `p`, `mask`))
 	pull16(g, `cpu.PC`)
 }
 
 func (g *Generator) RTS(_ opdef) {
+	g.dummyread("uint16(cpu.SP) + 0x0100")
 	pull16(g, `cpu.PC`)
-	g.dummyread("cpu.PC")
 	g.dummyread("cpu.PC")
 	g.printf(`cpu.PC++`)
 }
@@ -926,17 +917,25 @@ func (g *Generator) opcodeHeader(code uint8) {
 	g.printf(`func opcode%02X(cpu*CPU){`, code)
 	if mode.f != nil {
 		g.printf(`var oper uint16`)
-		mode.f(g, defs[code].d)
 		g.printf(`_ = oper`)
+
+		if strings.Contains(defs[code].d, "r") {
+			g.printf(`var val uint8`)
+			g.printf(`_ = val`)
+		}
+
+		mode.f(g, defs[code].d)
 	}
 
 	switch {
 	case strings.Contains(defs[code].d, "r"):
 		switch defs[code].m {
 		case "acc":
-			g.printf(`val := cpu.A`)
+			g.printf(`val = cpu.A`)
+		case "imm":
+			g.printf(`val = cpu.fetch()`)
 		default:
-			g.printf(`val := cpu.Read8(oper)`)
+			g.printf(`val = cpu.Read8(oper)`)
 		}
 	}
 }
@@ -956,18 +955,19 @@ func (g *Generator) opcodeFooter(code uint8) {
 
 func (g *Generator) opcodes() {
 	for _, def := range defs {
-		if !def.dontgen {
-			g.opcodeHeader(def.i)
-			if def.f != nil {
-				def.f(g, def)
-			} else {
-				f := reflect.ValueOf(g).MethodByName(def.n)
-				f.Call([]reflect.Value{reflect.ValueOf(def)})
-			}
-
-			g.opcodeFooter(def.i)
-			g.printf("\n")
+		if def.dontgen {
+			continue
 		}
+		g.opcodeHeader(def.i)
+		if def.f != nil {
+			def.f(g, def)
+		} else {
+			f := reflect.ValueOf(g).MethodByName(def.n)
+			f.Call([]reflect.Value{reflect.ValueOf(def)})
+		}
+
+		g.opcodeFooter(def.i)
+		g.printf("\n")
 	}
 }
 
@@ -1141,8 +1141,14 @@ func main() {
 	outf := flag.String("out", "opcodes.go", "output file")
 	flag.Parse()
 
+	var w io.Writer = os.Stdout
+
 	bb := &bytes.Buffer{}
-	g := &Generator{Writer: bb}
+	if *outf != "stdout" {
+		w = bb
+	}
+
+	g := &Generator{Writer: w}
 
 	g.header()
 	g.opcodes()
@@ -1152,6 +1158,9 @@ func main() {
 	g.disasmTable()
 	g.opcodeNamesTable()
 
+	if *outf == "stdout" {
+		return
+	}
 	buf, err := format.Source(bb.Bytes())
 	if err != nil {
 		if err := os.WriteFile(*outf, bb.Bytes(), 0644); err != nil {

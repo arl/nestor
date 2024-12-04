@@ -8,17 +8,19 @@ import (
 // ORA - indexed addressing (abs, X).
 func opcode01(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -26,26 +28,28 @@ func opcode01(cpu *CPU) {
 // STP - implied addressing.
 func opcode02(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.halt()
 }
 
 // SLO - indexed addressing (abs, X).
 func opcode03(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// SLO start
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -62,20 +66,22 @@ func opcode03(cpu *CPU) {
 // NOP - zero page addressing.
 func opcode04(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // ORA - zero page addressing.
 func opcode05(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -83,10 +89,12 @@ func opcode05(cpu *CPU) {
 // ASL - zero page addressing.
 func opcode06(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -99,10 +107,12 @@ func opcode06(cpu *CPU) {
 // SLO - zero page addressing.
 func opcode07(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// SLO start
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -119,9 +129,9 @@ func opcode07(cpu *CPU) {
 // PHP - implied addressing.
 func opcode08(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	p := cpu.P
 	p.setBrk(true)
 	p.setUnused(true)
@@ -131,10 +141,10 @@ func opcode08(cpu *CPU) {
 // ORA - immediate addressing.
 func opcode09(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -142,10 +152,12 @@ func opcode09(cpu *CPU) {
 // ASL - adressing accumulator.
 func opcode0A(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
-	val := cpu.A
+	val = cpu.A
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
@@ -156,10 +168,10 @@ func opcode0A(cpu *CPU) {
 // ANC - immediate addressing.
 func opcode0B(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.P.setCarry(cpu.P.negative())
@@ -168,20 +180,22 @@ func opcode0B(cpu *CPU) {
 // NOP - absolute addressing.
 func opcode0C(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // ORA - absolute addressing.
 func opcode0D(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -189,10 +203,12 @@ func opcode0D(cpu *CPU) {
 // ASL - absolute addressing.
 func opcode0E(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -205,10 +221,12 @@ func opcode0E(cpu *CPU) {
 // SLO - absolute addressing.
 func opcode0F(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// SLO start
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -225,9 +243,9 @@ func opcode0F(cpu *CPU) {
 // BPL - relative addressing.
 func opcode10(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	off := int8(cpu.Read8(cpu.PC))
 	oper = uint16(int16(cpu.PC+1) + int16(off))
-	_ = oper
 	if !cpu.P.negative() { // do branch
 		// A taken non-page-crossing branch ignores IRQ/NMI during its last
 		// clock, so that next instruction executes before the IRQ.
@@ -236,10 +254,10 @@ func opcode10(cpu *CPU) {
 			cpu.runIRQ = false
 		}
 		// dummy read.
-		_ = cpu.Read8(cpu.PC)
+		_ = cpu.Read8(cpu.PC + 1)
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			// dummy read.
-			_ = cpu.Read8(cpu.PC + 1&0x00FF | oper&0xFF00)
+			_ = cpu.Read8((oper)&0x00FF | (cpu.PC+1)&0xFF00)
 		}
 		cpu.PC = oper
 		return
@@ -250,6 +268,9 @@ func opcode10(cpu *CPU) {
 // ORA - indexed addressing (abs),Y.
 func opcode11(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// read 16 bytes from the zero page, handling page wrap
@@ -262,8 +283,7 @@ func opcode11(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y) - 0x100)
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -271,15 +291,18 @@ func opcode11(cpu *CPU) {
 // STP - implied addressing.
 func opcode12(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.halt()
 }
 
 // SLO - indexed addressing (abs),Y.
 func opcode13(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle always
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
@@ -296,8 +319,7 @@ func opcode13(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y))
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// SLO start
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -314,28 +336,30 @@ func opcode13(cpu *CPU) {
 // NOP - indexed addressing: zeropage,X.
 func opcode14(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // ORA - indexed addressing: zeropage,X.
 func opcode15(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -343,14 +367,16 @@ func opcode15(cpu *CPU) {
 // ASL - indexed addressing: zeropage,X.
 func opcode16(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -363,14 +389,16 @@ func opcode16(cpu *CPU) {
 // SLO - indexed addressing: zeropage,X.
 func opcode17(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// SLO start
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -387,25 +415,27 @@ func opcode17(cpu *CPU) {
 // CLC - implied addressing.
 func opcode18(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.P.setCarry(false)
 }
 
 // ORA - absolute indexed Y.
 func opcode19(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle for page cross
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.Y)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -413,22 +443,24 @@ func opcode19(cpu *CPU) {
 // NOP - implied addressing.
 func opcode1A(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 }
 
 // SLO - absolute indexed Y.
 func opcode1B(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// SLO start
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -445,30 +477,32 @@ func opcode1B(cpu *CPU) {
 // NOP - absolute indexed X.
 func opcode1C(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // ORA - absolute indexed X.
 func opcode1D(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -476,14 +510,16 @@ func opcode1D(cpu *CPU) {
 // ASL - absolute indexed X.
 func opcode1E(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -496,14 +532,16 @@ func opcode1E(cpu *CPU) {
 // SLO - absolute indexed X.
 func opcode1F(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// SLO start
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -517,32 +555,22 @@ func opcode1F(cpu *CPU) {
 	cpu.Write8(oper, val)
 }
 
-// JSR - absolute addressing.
-func opcode20(cpu *CPU) {
-	var oper uint16
-	oper = cpu.Read16(cpu.PC)
-	cpu.PC += 2
-	_ = oper
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
-	cpu.push16(cpu.PC - 1)
-	cpu.PC = oper
-}
-
 // AND - indexed addressing (abs, X).
 func opcode21(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -550,26 +578,28 @@ func opcode21(cpu *CPU) {
 // STP - implied addressing.
 func opcode22(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.halt()
 }
 
 // RLA - indexed addressing (abs, X).
 func opcode23(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -587,10 +617,12 @@ func opcode23(cpu *CPU) {
 // BIT - zero page addressing.
 func opcode24(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P &= 0b00111111
 	cpu.P |= P(val & 0b11000000)
 	cpu.P.checkZ(cpu.A & val)
@@ -599,10 +631,12 @@ func opcode24(cpu *CPU) {
 // AND - zero page addressing.
 func opcode25(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -610,10 +644,12 @@ func opcode25(cpu *CPU) {
 // ROL - zero page addressing.
 func opcode26(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -629,10 +665,12 @@ func opcode26(cpu *CPU) {
 // RLA - zero page addressing.
 func opcode27(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -650,13 +688,13 @@ func opcode27(cpu *CPU) {
 // PLP - implied addressing.
 func opcode28(cpu *CPU) {
 	var oper uint16
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	var p uint8
-	p = cpu.pull8()
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
+	var p uint8
+	// dummy read.
+	_ = cpu.Read8(uint16(cpu.SP) + 0x0100)
+	p = cpu.pull8()
 	const mask uint8 = 0b11001111 // ignore B and U bits
 	cpu.P = P(((uint8(cpu.P)) & (^mask)) | ((p) & (mask)))
 }
@@ -664,10 +702,10 @@ func opcode28(cpu *CPU) {
 // AND - immediate addressing.
 func opcode29(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -675,10 +713,12 @@ func opcode29(cpu *CPU) {
 // ROL - adressing accumulator.
 func opcode2A(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
-	val := cpu.A
+	val = cpu.A
 	carry := val & 0x80
 	val <<= 1
 	if cpu.P.carry() {
@@ -692,10 +732,10 @@ func opcode2A(cpu *CPU) {
 // ANC - immediate addressing.
 func opcode2B(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.P.setCarry(cpu.P.negative())
@@ -704,10 +744,12 @@ func opcode2B(cpu *CPU) {
 // BIT - absolute addressing.
 func opcode2C(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P &= 0b00111111
 	cpu.P |= P(val & 0b11000000)
 	cpu.P.checkZ(cpu.A & val)
@@ -716,10 +758,12 @@ func opcode2C(cpu *CPU) {
 // AND - absolute addressing.
 func opcode2D(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -727,10 +771,12 @@ func opcode2D(cpu *CPU) {
 // ROL - absolute addressing.
 func opcode2E(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -746,10 +792,12 @@ func opcode2E(cpu *CPU) {
 // RLA - absolute addressing.
 func opcode2F(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -767,9 +815,9 @@ func opcode2F(cpu *CPU) {
 // BMI - relative addressing.
 func opcode30(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	off := int8(cpu.Read8(cpu.PC))
 	oper = uint16(int16(cpu.PC+1) + int16(off))
-	_ = oper
 	if cpu.P.negative() { // do branch
 		// A taken non-page-crossing branch ignores IRQ/NMI during its last
 		// clock, so that next instruction executes before the IRQ.
@@ -778,10 +826,10 @@ func opcode30(cpu *CPU) {
 			cpu.runIRQ = false
 		}
 		// dummy read.
-		_ = cpu.Read8(cpu.PC)
+		_ = cpu.Read8(cpu.PC + 1)
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			// dummy read.
-			_ = cpu.Read8(cpu.PC + 1&0x00FF | oper&0xFF00)
+			_ = cpu.Read8((oper)&0x00FF | (cpu.PC+1)&0xFF00)
 		}
 		cpu.PC = oper
 		return
@@ -792,6 +840,9 @@ func opcode30(cpu *CPU) {
 // AND - indexed addressing (abs),Y.
 func opcode31(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// read 16 bytes from the zero page, handling page wrap
@@ -804,8 +855,7 @@ func opcode31(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y) - 0x100)
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -813,15 +863,18 @@ func opcode31(cpu *CPU) {
 // STP - implied addressing.
 func opcode32(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.halt()
 }
 
 // RLA - indexed addressing (abs),Y.
 func opcode33(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle always
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
@@ -838,8 +891,7 @@ func opcode33(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y))
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -857,28 +909,30 @@ func opcode33(cpu *CPU) {
 // NOP - indexed addressing: zeropage,X.
 func opcode34(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // AND - indexed addressing: zeropage,X.
 func opcode35(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -886,14 +940,16 @@ func opcode35(cpu *CPU) {
 // ROL - indexed addressing: zeropage,X.
 func opcode36(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -909,14 +965,16 @@ func opcode36(cpu *CPU) {
 // RLA - indexed addressing: zeropage,X.
 func opcode37(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -934,25 +992,27 @@ func opcode37(cpu *CPU) {
 // SEC - implied addressing.
 func opcode38(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.P.setCarry(true)
 }
 
 // AND - absolute indexed Y.
 func opcode39(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle for page cross
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.Y)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -960,22 +1020,24 @@ func opcode39(cpu *CPU) {
 // NOP - implied addressing.
 func opcode3A(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 }
 
 // RLA - absolute indexed Y.
 func opcode3B(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -993,30 +1055,32 @@ func opcode3B(cpu *CPU) {
 // NOP - absolute indexed X.
 func opcode3C(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // AND - absolute indexed X.
 func opcode3D(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -1024,14 +1088,16 @@ func opcode3D(cpu *CPU) {
 // ROL - absolute indexed X.
 func opcode3E(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -1047,14 +1113,16 @@ func opcode3E(cpu *CPU) {
 // RLA - absolute indexed X.
 func opcode3F(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	carry := val & 0x80
@@ -1072,13 +1140,13 @@ func opcode3F(cpu *CPU) {
 // RTI - implied addressing.
 func opcode40(cpu *CPU) {
 	var oper uint16
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	var p uint8
-	p = cpu.pull8()
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
+	var p uint8
+	// dummy read.
+	_ = cpu.Read8(uint16(cpu.SP) + 0x0100)
+	p = cpu.pull8()
 	const mask uint8 = 0b11001111 // ignore B and U bits
 	cpu.P = P(((uint8(cpu.P)) & (^mask)) | ((p) & (mask)))
 	cpu.PC = cpu.pull16()
@@ -1087,17 +1155,19 @@ func opcode40(cpu *CPU) {
 // EOR - indexed addressing (abs, X).
 func opcode41(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -1105,26 +1175,28 @@ func opcode41(cpu *CPU) {
 // STP - implied addressing.
 func opcode42(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.halt()
 }
 
 // SRE - indexed addressing (abs, X).
 func opcode43(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1141,20 +1213,22 @@ func opcode43(cpu *CPU) {
 // NOP - zero page addressing.
 func opcode44(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // EOR - zero page addressing.
 func opcode45(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -1162,10 +1236,12 @@ func opcode45(cpu *CPU) {
 // LSR - zero page addressing.
 func opcode46(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1180,10 +1256,12 @@ func opcode46(cpu *CPU) {
 // SRE - zero page addressing.
 func opcode47(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1200,19 +1278,19 @@ func opcode47(cpu *CPU) {
 // PHA - implied addressing.
 func opcode48(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.push8(cpu.A)
 }
 
 // EOR - immediate addressing.
 func opcode49(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -1220,10 +1298,12 @@ func opcode49(cpu *CPU) {
 // LSR - adressing accumulator.
 func opcode4A(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
-	val := cpu.A
+	val = cpu.A
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
@@ -1236,10 +1316,10 @@ func opcode4A(cpu *CPU) {
 // ALR - immediate addressing.
 func opcode4B(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	// like and + lsr but saves one tick
 	cpu.A &= val
 	carry := cpu.A & 0x01 // carry is bit 0
@@ -1251,19 +1331,21 @@ func opcode4B(cpu *CPU) {
 // JMP - absolute addressing.
 func opcode4C(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
 	cpu.PC = oper
 }
 
 // EOR - absolute addressing.
 func opcode4D(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -1271,10 +1353,12 @@ func opcode4D(cpu *CPU) {
 // LSR - absolute addressing.
 func opcode4E(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1289,10 +1373,12 @@ func opcode4E(cpu *CPU) {
 // SRE - absolute addressing.
 func opcode4F(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1309,9 +1395,9 @@ func opcode4F(cpu *CPU) {
 // BVC - relative addressing.
 func opcode50(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	off := int8(cpu.Read8(cpu.PC))
 	oper = uint16(int16(cpu.PC+1) + int16(off))
-	_ = oper
 	if !cpu.P.overflow() { // do branch
 		// A taken non-page-crossing branch ignores IRQ/NMI during its last
 		// clock, so that next instruction executes before the IRQ.
@@ -1320,10 +1406,10 @@ func opcode50(cpu *CPU) {
 			cpu.runIRQ = false
 		}
 		// dummy read.
-		_ = cpu.Read8(cpu.PC)
+		_ = cpu.Read8(cpu.PC + 1)
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			// dummy read.
-			_ = cpu.Read8(cpu.PC + 1&0x00FF | oper&0xFF00)
+			_ = cpu.Read8((oper)&0x00FF | (cpu.PC+1)&0xFF00)
 		}
 		cpu.PC = oper
 		return
@@ -1334,6 +1420,9 @@ func opcode50(cpu *CPU) {
 // EOR - indexed addressing (abs),Y.
 func opcode51(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// read 16 bytes from the zero page, handling page wrap
@@ -1346,8 +1435,7 @@ func opcode51(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y) - 0x100)
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -1355,15 +1443,18 @@ func opcode51(cpu *CPU) {
 // STP - implied addressing.
 func opcode52(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.halt()
 }
 
 // SRE - indexed addressing (abs),Y.
 func opcode53(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle always
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
@@ -1380,8 +1471,7 @@ func opcode53(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y))
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1398,28 +1488,30 @@ func opcode53(cpu *CPU) {
 // NOP - indexed addressing: zeropage,X.
 func opcode54(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // EOR - indexed addressing: zeropage,X.
 func opcode55(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -1427,14 +1519,16 @@ func opcode55(cpu *CPU) {
 // LSR - indexed addressing: zeropage,X.
 func opcode56(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1449,14 +1543,16 @@ func opcode56(cpu *CPU) {
 // SRE - indexed addressing: zeropage,X.
 func opcode57(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1473,25 +1569,27 @@ func opcode57(cpu *CPU) {
 // CLI - implied addressing.
 func opcode58(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.P.setIntDisable(false)
 }
 
 // EOR - absolute indexed Y.
 func opcode59(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle for page cross
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.Y)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -1499,22 +1597,24 @@ func opcode59(cpu *CPU) {
 // NOP - implied addressing.
 func opcode5A(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 }
 
 // SRE - absolute indexed Y.
 func opcode5B(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1531,30 +1631,32 @@ func opcode5B(cpu *CPU) {
 // NOP - absolute indexed X.
 func opcode5C(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // EOR - absolute indexed X.
 func opcode5D(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
 }
@@ -1562,14 +1664,16 @@ func opcode5D(cpu *CPU) {
 // LSR - absolute indexed X.
 func opcode5E(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1584,14 +1688,16 @@ func opcode5E(cpu *CPU) {
 // SRE - absolute indexed X.
 func opcode5F(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1608,12 +1714,12 @@ func opcode5F(cpu *CPU) {
 // RTS - implied addressing.
 func opcode60(cpu *CPU) {
 	var oper uint16
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	_ = oper
-	cpu.PC = cpu.pull16()
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
+	// dummy read.
+	_ = cpu.Read8(uint16(cpu.SP) + 0x0100)
+	cpu.PC = cpu.pull16()
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
@@ -1622,17 +1728,19 @@ func opcode60(cpu *CPU) {
 // ADC - indexed addressing (abs, X).
 func opcode61(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	var carry uint16
 	if cpu.P.carry() {
 		carry = 1
@@ -1646,26 +1754,28 @@ func opcode61(cpu *CPU) {
 // STP - implied addressing.
 func opcode62(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.halt()
 }
 
 // RRA - indexed addressing (abs, X).
 func opcode63(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1691,20 +1801,22 @@ func opcode63(cpu *CPU) {
 // NOP - zero page addressing.
 func opcode64(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // ADC - zero page addressing.
 func opcode65(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	var carry uint16
 	if cpu.P.carry() {
 		carry = 1
@@ -1718,10 +1830,12 @@ func opcode65(cpu *CPU) {
 // ROR - zero page addressing.
 func opcode66(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1739,10 +1853,12 @@ func opcode66(cpu *CPU) {
 // RRA - zero page addressing.
 func opcode67(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1768,11 +1884,11 @@ func opcode67(cpu *CPU) {
 // PLA - implied addressing.
 func opcode68(cpu *CPU) {
 	var oper uint16
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
+	// dummy read.
+	_ = cpu.Read8(uint16(cpu.SP) + 0x0100)
 	cpu.A = cpu.pull8()
 	cpu.P.checkNZ(cpu.A)
 }
@@ -1780,10 +1896,10 @@ func opcode68(cpu *CPU) {
 // ADC - immediate addressing.
 func opcode69(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	var carry uint16
 	if cpu.P.carry() {
 		carry = 1
@@ -1797,10 +1913,12 @@ func opcode69(cpu *CPU) {
 // ROR - adressing accumulator.
 func opcode6A(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
-	val := cpu.A
+	val = cpu.A
 	{
 		carry := val & 0x01
 		val >>= 1
@@ -1816,10 +1934,10 @@ func opcode6A(cpu *CPU) {
 // ARR - immediate addressing.
 func opcode6B(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	cpu.A &= val
 	cpu.A >>= 1
 	cpu.P.setOverflow((cpu.A>>6)^(cpu.A>>5)&0x01 != 0)
@@ -1833,22 +1951,24 @@ func opcode6B(cpu *CPU) {
 // JMP - indirect addressing.
 func opcode6C(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = cpu.Read16(cpu.PC)
 	lo := cpu.Read8(oper)
 	// 2 bytes address wrap around
 	hi := cpu.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
 	cpu.PC = oper
 }
 
 // ADC - absolute addressing.
 func opcode6D(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	var carry uint16
 	if cpu.P.carry() {
 		carry = 1
@@ -1862,10 +1982,12 @@ func opcode6D(cpu *CPU) {
 // ROR - absolute addressing.
 func opcode6E(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1883,10 +2005,12 @@ func opcode6E(cpu *CPU) {
 // RRA - absolute addressing.
 func opcode6F(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -1912,9 +2036,9 @@ func opcode6F(cpu *CPU) {
 // BVS - relative addressing.
 func opcode70(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	off := int8(cpu.Read8(cpu.PC))
 	oper = uint16(int16(cpu.PC+1) + int16(off))
-	_ = oper
 	if cpu.P.overflow() { // do branch
 		// A taken non-page-crossing branch ignores IRQ/NMI during its last
 		// clock, so that next instruction executes before the IRQ.
@@ -1923,10 +2047,10 @@ func opcode70(cpu *CPU) {
 			cpu.runIRQ = false
 		}
 		// dummy read.
-		_ = cpu.Read8(cpu.PC)
+		_ = cpu.Read8(cpu.PC + 1)
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			// dummy read.
-			_ = cpu.Read8(cpu.PC + 1&0x00FF | oper&0xFF00)
+			_ = cpu.Read8((oper)&0x00FF | (cpu.PC+1)&0xFF00)
 		}
 		cpu.PC = oper
 		return
@@ -1937,6 +2061,9 @@ func opcode70(cpu *CPU) {
 // ADC - indexed addressing (abs),Y.
 func opcode71(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// read 16 bytes from the zero page, handling page wrap
@@ -1949,8 +2076,7 @@ func opcode71(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y) - 0x100)
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	var carry uint16
 	if cpu.P.carry() {
 		carry = 1
@@ -1964,15 +2090,18 @@ func opcode71(cpu *CPU) {
 // STP - implied addressing.
 func opcode72(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.halt()
 }
 
 // RRA - indexed addressing (abs),Y.
 func opcode73(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle always
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
@@ -1989,8 +2118,7 @@ func opcode73(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y))
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -2016,28 +2144,30 @@ func opcode73(cpu *CPU) {
 // NOP - indexed addressing: zeropage,X.
 func opcode74(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // ADC - indexed addressing: zeropage,X.
 func opcode75(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	var carry uint16
 	if cpu.P.carry() {
 		carry = 1
@@ -2051,14 +2181,16 @@ func opcode75(cpu *CPU) {
 // ROR - indexed addressing: zeropage,X.
 func opcode76(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -2076,14 +2208,16 @@ func opcode76(cpu *CPU) {
 // RRA - indexed addressing: zeropage,X.
 func opcode77(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -2109,25 +2243,27 @@ func opcode77(cpu *CPU) {
 // SEI - implied addressing.
 func opcode78(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.P.setIntDisable(true)
 }
 
 // ADC - absolute indexed Y.
 func opcode79(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle for page cross
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.Y)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	var carry uint16
 	if cpu.P.carry() {
 		carry = 1
@@ -2141,22 +2277,24 @@ func opcode79(cpu *CPU) {
 // NOP - implied addressing.
 func opcode7A(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 }
 
 // RRA - absolute indexed Y.
 func opcode7B(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -2182,30 +2320,32 @@ func opcode7B(cpu *CPU) {
 // NOP - absolute indexed X.
 func opcode7C(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // ADC - absolute indexed X.
 func opcode7D(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	var carry uint16
 	if cpu.P.carry() {
 		carry = 1
@@ -2219,14 +2359,16 @@ func opcode7D(cpu *CPU) {
 // ROR - absolute indexed X.
 func opcode7E(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -2244,14 +2386,16 @@ func opcode7E(cpu *CPU) {
 // RRA - absolute indexed X.
 func opcode7F(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	{
@@ -2277,97 +2421,95 @@ func opcode7F(cpu *CPU) {
 // NOP - immediate addressing.
 func opcode80(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 }
 
 // STA - indexed addressing (abs, X).
 func opcode81(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
 	cpu.Write8(oper, cpu.A)
 }
 
 // NOP - immediate addressing.
 func opcode82(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 }
 
 // SAX - indexed addressing (abs, X).
 func opcode83(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
 	cpu.Write8(oper, cpu.A&cpu.X)
 }
 
 // STY - zero page addressing.
 func opcode84(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
 	cpu.Write8(oper, cpu.Y)
 }
 
 // STA - zero page addressing.
 func opcode85(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
 	cpu.Write8(oper, cpu.A)
 }
 
 // STX - zero page addressing.
 func opcode86(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
 	cpu.Write8(oper, cpu.X)
 }
 
 // SAX - zero page addressing.
 func opcode87(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
 	cpu.Write8(oper, cpu.A&cpu.X)
 }
 
 // DEY - implied addressing.
 func opcode88(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.Y--
 	cpu.P.checkNZ(cpu.Y)
 }
@@ -2375,19 +2517,18 @@ func opcode88(cpu *CPU) {
 // NOP - immediate addressing.
 func opcode89(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 }
 
 // TXA - implied addressing.
 func opcode8A(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.A = cpu.X
 	cpu.P.checkNZ(cpu.X)
 }
@@ -2395,8 +2536,6 @@ func opcode8A(cpu *CPU) {
 // ANE - immediate addressing.
 func opcode8B(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
 	msg := fmt.Sprintf("unsupported unstable opcode 0x8B (ANE)\nPC:0x%04X", cpu.PC)
 	panic(msg)
@@ -2405,45 +2544,45 @@ func opcode8B(cpu *CPU) {
 // STY - absolute addressing.
 func opcode8C(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
 	cpu.Write8(oper, cpu.Y)
 }
 
 // STA - absolute addressing.
 func opcode8D(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
 	cpu.Write8(oper, cpu.A)
 }
 
 // STX - absolute addressing.
 func opcode8E(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
 	cpu.Write8(oper, cpu.X)
 }
 
 // SAX - absolute addressing.
 func opcode8F(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
 	cpu.Write8(oper, cpu.A&cpu.X)
 }
 
 // BCC - relative addressing.
 func opcode90(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	off := int8(cpu.Read8(cpu.PC))
 	oper = uint16(int16(cpu.PC+1) + int16(off))
-	_ = oper
 	if !cpu.P.carry() { // do branch
 		// A taken non-page-crossing branch ignores IRQ/NMI during its last
 		// clock, so that next instruction executes before the IRQ.
@@ -2452,10 +2591,10 @@ func opcode90(cpu *CPU) {
 			cpu.runIRQ = false
 		}
 		// dummy read.
-		_ = cpu.Read8(cpu.PC)
+		_ = cpu.Read8(cpu.PC + 1)
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			// dummy read.
-			_ = cpu.Read8(cpu.PC + 1&0x00FF | oper&0xFF00)
+			_ = cpu.Read8((oper)&0x00FF | (cpu.PC+1)&0xFF00)
 		}
 		cpu.PC = oper
 		return
@@ -2466,6 +2605,7 @@ func opcode90(cpu *CPU) {
 // STA - indexed addressing (abs),Y.
 func opcode91(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// extra cycle always
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
@@ -2482,22 +2622,22 @@ func opcode91(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y))
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
 	cpu.Write8(oper, cpu.A)
 }
 
 // STP - implied addressing.
 func opcode92(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.halt()
 }
 
 // SHA - indexed addressing (abs),Y.
 func opcode93(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// default
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
@@ -2506,7 +2646,6 @@ func opcode93(cpu *CPU) {
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
 	oper += uint16(cpu.Y)
-	_ = oper
 	msg := fmt.Sprintf("unsupported unstable opcode 0x93 (SHA)\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
@@ -2514,61 +2653,61 @@ func opcode93(cpu *CPU) {
 // STY - indexed addressing: zeropage,X.
 func opcode94(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
 	cpu.Write8(oper, cpu.Y)
 }
 
 // STA - indexed addressing: zeropage,X.
 func opcode95(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
 	cpu.Write8(oper, cpu.A)
 }
 
 // STX - indexed addressing: zeropage,Y.
 func opcode96(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read8(cpu.PC)
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(addr))
 	cpu.PC++
 	oper = uint16(addr) + uint16(cpu.Y)
 	oper &= 0xff
-	_ = oper
 	cpu.Write8(oper, cpu.X)
 }
 
 // SAX - indexed addressing: zeropage,Y.
 func opcode97(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read8(cpu.PC)
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(addr))
 	cpu.PC++
 	oper = uint16(addr) + uint16(cpu.Y)
 	oper &= 0xff
-	_ = oper
 	cpu.Write8(oper, cpu.A&cpu.X)
 }
 
 // TYA - implied addressing.
 func opcode98(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.A = cpu.Y
 	cpu.P.checkNZ(cpu.Y)
 }
@@ -2576,35 +2715,35 @@ func opcode98(cpu *CPU) {
 // STA - absolute indexed Y.
 func opcode99(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
 	cpu.Write8(oper, cpu.A)
 }
 
 // TXS - implied addressing.
 func opcode9A(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.SP = cpu.X
 }
 
 // TAS - absolute indexed Y.
 func opcode9B(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
 	msg := fmt.Sprintf("unsupported unstable opcode 0x9B (TAS)\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
@@ -2612,13 +2751,13 @@ func opcode9B(cpu *CPU) {
 // SHY - absolute indexed X.
 func opcode9C(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
 	msg := fmt.Sprintf("unsupported unstable opcode 0x9C (SHY)\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
@@ -2626,26 +2765,26 @@ func opcode9C(cpu *CPU) {
 // STA - absolute indexed X.
 func opcode9D(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
 	cpu.Write8(oper, cpu.A)
 }
 
 // SHX - absolute indexed Y.
 func opcode9E(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
 	msg := fmt.Sprintf("unsupported unstable opcode 0x9E (SHX)\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
@@ -2653,13 +2792,13 @@ func opcode9E(cpu *CPU) {
 // SHA - absolute indexed Y.
 func opcode9F(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
 	msg := fmt.Sprintf("unsupported unstable opcode 0x9F (SHA)\nPC:0x%04X", cpu.PC)
 	panic(msg)
 }
@@ -2667,10 +2806,10 @@ func opcode9F(cpu *CPU) {
 // LDY - immediate addressing.
 func opcodeA0(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	cpu.Y = val
 	cpu.P.checkNZ(val)
 }
@@ -2678,17 +2817,19 @@ func opcodeA0(cpu *CPU) {
 // LDA - indexed addressing (abs, X).
 func opcodeA1(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.P.checkNZ(val)
 }
@@ -2696,10 +2837,10 @@ func opcodeA1(cpu *CPU) {
 // LDX - immediate addressing.
 func opcodeA2(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	cpu.X = val
 	cpu.P.checkNZ(val)
 }
@@ -2707,17 +2848,19 @@ func opcodeA2(cpu *CPU) {
 // LAX - indexed addressing (abs, X).
 func opcodeA3(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.X = val
 	cpu.P.checkNZ(val)
@@ -2726,10 +2869,12 @@ func opcodeA3(cpu *CPU) {
 // LDY - zero page addressing.
 func opcodeA4(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.Y = val
 	cpu.P.checkNZ(val)
 }
@@ -2737,10 +2882,12 @@ func opcodeA4(cpu *CPU) {
 // LDA - zero page addressing.
 func opcodeA5(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.P.checkNZ(val)
 }
@@ -2748,10 +2895,12 @@ func opcodeA5(cpu *CPU) {
 // LDX - zero page addressing.
 func opcodeA6(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.X = val
 	cpu.P.checkNZ(val)
 }
@@ -2759,10 +2908,12 @@ func opcodeA6(cpu *CPU) {
 // LAX - zero page addressing.
 func opcodeA7(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.X = val
 	cpu.P.checkNZ(val)
@@ -2771,9 +2922,9 @@ func opcodeA7(cpu *CPU) {
 // TAY - implied addressing.
 func opcodeA8(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.Y = cpu.A
 	cpu.P.checkNZ(cpu.A)
 }
@@ -2781,10 +2932,10 @@ func opcodeA8(cpu *CPU) {
 // LDA - immediate addressing.
 func opcodeA9(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	cpu.A = val
 	cpu.P.checkNZ(val)
 }
@@ -2792,9 +2943,9 @@ func opcodeA9(cpu *CPU) {
 // TAX - implied addressing.
 func opcodeAA(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.X = cpu.A
 	cpu.P.checkNZ(cpu.A)
 }
@@ -2802,10 +2953,10 @@ func opcodeAA(cpu *CPU) {
 // LXA - immediate addressing.
 func opcodeAB(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	val = (cpu.A | 0xff) & val
 	cpu.A = val
 	cpu.X = val
@@ -2815,10 +2966,12 @@ func opcodeAB(cpu *CPU) {
 // LDY - absolute addressing.
 func opcodeAC(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.Y = val
 	cpu.P.checkNZ(val)
 }
@@ -2826,10 +2979,12 @@ func opcodeAC(cpu *CPU) {
 // LDA - absolute addressing.
 func opcodeAD(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.P.checkNZ(val)
 }
@@ -2837,10 +2992,12 @@ func opcodeAD(cpu *CPU) {
 // LDX - absolute addressing.
 func opcodeAE(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.X = val
 	cpu.P.checkNZ(val)
 }
@@ -2848,10 +3005,12 @@ func opcodeAE(cpu *CPU) {
 // LAX - absolute addressing.
 func opcodeAF(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.X = val
 	cpu.P.checkNZ(val)
@@ -2860,9 +3019,9 @@ func opcodeAF(cpu *CPU) {
 // BCS - relative addressing.
 func opcodeB0(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	off := int8(cpu.Read8(cpu.PC))
 	oper = uint16(int16(cpu.PC+1) + int16(off))
-	_ = oper
 	if cpu.P.carry() { // do branch
 		// A taken non-page-crossing branch ignores IRQ/NMI during its last
 		// clock, so that next instruction executes before the IRQ.
@@ -2871,10 +3030,10 @@ func opcodeB0(cpu *CPU) {
 			cpu.runIRQ = false
 		}
 		// dummy read.
-		_ = cpu.Read8(cpu.PC)
+		_ = cpu.Read8(cpu.PC + 1)
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			// dummy read.
-			_ = cpu.Read8(cpu.PC + 1&0x00FF | oper&0xFF00)
+			_ = cpu.Read8((oper)&0x00FF | (cpu.PC+1)&0xFF00)
 		}
 		cpu.PC = oper
 		return
@@ -2885,6 +3044,9 @@ func opcodeB0(cpu *CPU) {
 // LDA - indexed addressing (abs),Y.
 func opcodeB1(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// read 16 bytes from the zero page, handling page wrap
@@ -2897,8 +3059,7 @@ func opcodeB1(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y) - 0x100)
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.P.checkNZ(val)
 }
@@ -2906,15 +3067,18 @@ func opcodeB1(cpu *CPU) {
 // STP - implied addressing.
 func opcodeB2(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.halt()
 }
 
 // LAX - indexed addressing (abs),Y.
 func opcodeB3(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// read 16 bytes from the zero page, handling page wrap
@@ -2927,8 +3091,7 @@ func opcodeB3(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y) - 0x100)
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.X = val
 	cpu.P.checkNZ(val)
@@ -2937,14 +3100,16 @@ func opcodeB3(cpu *CPU) {
 // LDY - indexed addressing: zeropage,X.
 func opcodeB4(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.Y = val
 	cpu.P.checkNZ(val)
 }
@@ -2952,14 +3117,16 @@ func opcodeB4(cpu *CPU) {
 // LDA - indexed addressing: zeropage,X.
 func opcodeB5(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.P.checkNZ(val)
 }
@@ -2967,14 +3134,16 @@ func opcodeB5(cpu *CPU) {
 // LDX - indexed addressing: zeropage,Y.
 func opcodeB6(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(addr))
 	cpu.PC++
 	oper = uint16(addr) + uint16(cpu.Y)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.X = val
 	cpu.P.checkNZ(val)
 }
@@ -2982,14 +3151,16 @@ func opcodeB6(cpu *CPU) {
 // LAX - indexed addressing: zeropage,Y.
 func opcodeB7(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(addr))
 	cpu.PC++
 	oper = uint16(addr) + uint16(cpu.Y)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.X = val
 	cpu.P.checkNZ(val)
@@ -2998,25 +3169,27 @@ func opcodeB7(cpu *CPU) {
 // CLV - implied addressing.
 func opcodeB8(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.P.setOverflow(false)
 }
 
 // LDA - absolute indexed Y.
 func opcodeB9(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle for page cross
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.Y)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.P.checkNZ(val)
 }
@@ -3024,9 +3197,9 @@ func opcodeB9(cpu *CPU) {
 // TSX - implied addressing.
 func opcodeBA(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.X = cpu.SP
 	cpu.P.checkNZ(cpu.SP)
 }
@@ -3034,16 +3207,18 @@ func opcodeBA(cpu *CPU) {
 // LAS - absolute indexed Y.
 func opcodeBB(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle for page cross
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.Y)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = cpu.SP & val
 	cpu.P.checkNZ(cpu.A)
 	cpu.X = cpu.A
@@ -3053,15 +3228,17 @@ func opcodeBB(cpu *CPU) {
 // LDY - absolute indexed X.
 func opcodeBC(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.Y = val
 	cpu.P.checkNZ(val)
 }
@@ -3069,15 +3246,17 @@ func opcodeBC(cpu *CPU) {
 // LDA - absolute indexed X.
 func opcodeBD(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.P.checkNZ(val)
 }
@@ -3085,16 +3264,18 @@ func opcodeBD(cpu *CPU) {
 // LDX - absolute indexed Y.
 func opcodeBE(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle for page cross
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.Y)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.X = val
 	cpu.P.checkNZ(val)
 }
@@ -3102,16 +3283,18 @@ func opcodeBE(cpu *CPU) {
 // LAX - absolute indexed Y.
 func opcodeBF(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle for page cross
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.Y)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.X = val
 	cpu.P.checkNZ(val)
@@ -3120,10 +3303,10 @@ func opcodeBF(cpu *CPU) {
 // CPY - immediate addressing.
 func opcodeC0(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	cpu.P.checkNZ(cpu.Y - val)
 	cpu.P.setCarry(val <= cpu.Y)
 }
@@ -3131,17 +3314,19 @@ func opcodeC0(cpu *CPU) {
 // CMP - indexed addressing (abs, X).
 func opcodeC1(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.setCarry(val <= cpu.A)
 }
@@ -3149,27 +3334,28 @@ func opcodeC1(cpu *CPU) {
 // NOP - immediate addressing.
 func opcodeC2(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 }
 
 // DCP - indexed addressing (abs, X).
 func opcodeC3(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
@@ -3182,10 +3368,12 @@ func opcodeC3(cpu *CPU) {
 // CPY - zero page addressing.
 func opcodeC4(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.Y - val)
 	cpu.P.setCarry(val <= cpu.Y)
 }
@@ -3193,10 +3381,12 @@ func opcodeC4(cpu *CPU) {
 // CMP - zero page addressing.
 func opcodeC5(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.setCarry(val <= cpu.A)
 }
@@ -3204,10 +3394,12 @@ func opcodeC5(cpu *CPU) {
 // DEC - zero page addressing.
 func opcodeC6(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
@@ -3218,10 +3410,12 @@ func opcodeC6(cpu *CPU) {
 // DCP - zero page addressing.
 func opcodeC7(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
@@ -3234,9 +3428,9 @@ func opcodeC7(cpu *CPU) {
 // INY - implied addressing.
 func opcodeC8(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.Y++
 	cpu.P.checkNZ(cpu.Y)
 }
@@ -3244,10 +3438,10 @@ func opcodeC8(cpu *CPU) {
 // CMP - immediate addressing.
 func opcodeC9(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.setCarry(val <= cpu.A)
 }
@@ -3255,9 +3449,9 @@ func opcodeC9(cpu *CPU) {
 // DEX - implied addressing.
 func opcodeCA(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.X--
 	cpu.P.checkNZ(cpu.X)
 }
@@ -3265,10 +3459,10 @@ func opcodeCA(cpu *CPU) {
 // SBX - immediate addressing.
 func opcodeCB(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)
 	cpu.X = uint8(ival)
 	cpu.P.checkNZ(uint8(ival))
@@ -3278,10 +3472,12 @@ func opcodeCB(cpu *CPU) {
 // CPY - absolute addressing.
 func opcodeCC(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.Y - val)
 	cpu.P.setCarry(val <= cpu.Y)
 }
@@ -3289,10 +3485,12 @@ func opcodeCC(cpu *CPU) {
 // CMP - absolute addressing.
 func opcodeCD(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.setCarry(val <= cpu.A)
 }
@@ -3300,10 +3498,12 @@ func opcodeCD(cpu *CPU) {
 // DEC - absolute addressing.
 func opcodeCE(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
@@ -3314,10 +3514,12 @@ func opcodeCE(cpu *CPU) {
 // DCP - absolute addressing.
 func opcodeCF(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
@@ -3330,9 +3532,9 @@ func opcodeCF(cpu *CPU) {
 // BNE - relative addressing.
 func opcodeD0(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	off := int8(cpu.Read8(cpu.PC))
 	oper = uint16(int16(cpu.PC+1) + int16(off))
-	_ = oper
 	if !cpu.P.zero() { // do branch
 		// A taken non-page-crossing branch ignores IRQ/NMI during its last
 		// clock, so that next instruction executes before the IRQ.
@@ -3341,10 +3543,10 @@ func opcodeD0(cpu *CPU) {
 			cpu.runIRQ = false
 		}
 		// dummy read.
-		_ = cpu.Read8(cpu.PC)
+		_ = cpu.Read8(cpu.PC + 1)
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			// dummy read.
-			_ = cpu.Read8(cpu.PC + 1&0x00FF | oper&0xFF00)
+			_ = cpu.Read8((oper)&0x00FF | (cpu.PC+1)&0xFF00)
 		}
 		cpu.PC = oper
 		return
@@ -3355,6 +3557,9 @@ func opcodeD0(cpu *CPU) {
 // CMP - indexed addressing (abs),Y.
 func opcodeD1(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// read 16 bytes from the zero page, handling page wrap
@@ -3367,8 +3572,7 @@ func opcodeD1(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y) - 0x100)
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.setCarry(val <= cpu.A)
 }
@@ -3376,15 +3580,18 @@ func opcodeD1(cpu *CPU) {
 // STP - implied addressing.
 func opcodeD2(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.halt()
 }
 
 // DCP - indexed addressing (abs),Y.
 func opcodeD3(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle always
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
@@ -3401,8 +3608,7 @@ func opcodeD3(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y))
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
@@ -3415,28 +3621,30 @@ func opcodeD3(cpu *CPU) {
 // NOP - indexed addressing: zeropage,X.
 func opcodeD4(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // CMP - indexed addressing: zeropage,X.
 func opcodeD5(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.setCarry(val <= cpu.A)
 }
@@ -3444,14 +3652,16 @@ func opcodeD5(cpu *CPU) {
 // DEC - indexed addressing: zeropage,X.
 func opcodeD6(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
@@ -3462,14 +3672,16 @@ func opcodeD6(cpu *CPU) {
 // DCP - indexed addressing: zeropage,X.
 func opcodeD7(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
@@ -3482,25 +3694,27 @@ func opcodeD7(cpu *CPU) {
 // CLD - implied addressing.
 func opcodeD8(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.P.setDecimal(false)
 }
 
 // CMP - absolute indexed Y.
 func opcodeD9(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle for page cross
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.Y)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.setCarry(val <= cpu.A)
 }
@@ -3508,22 +3722,24 @@ func opcodeD9(cpu *CPU) {
 // NOP - implied addressing.
 func opcodeDA(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 }
 
 // DCP - absolute indexed Y.
 func opcodeDB(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
@@ -3536,30 +3752,32 @@ func opcodeDB(cpu *CPU) {
 // NOP - absolute indexed X.
 func opcodeDC(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // CMP - absolute indexed X.
 func opcodeDD(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.setCarry(val <= cpu.A)
 }
@@ -3567,14 +3785,16 @@ func opcodeDD(cpu *CPU) {
 // DEC - absolute indexed X.
 func opcodeDE(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
@@ -3585,14 +3805,16 @@ func opcodeDE(cpu *CPU) {
 // DCP - absolute indexed X.
 func opcodeDF(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
@@ -3605,10 +3827,10 @@ func opcodeDF(cpu *CPU) {
 // CPX - immediate addressing.
 func opcodeE0(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	cpu.P.checkNZ(cpu.X - val)
 	cpu.P.setCarry(val <= cpu.X)
 }
@@ -3616,17 +3838,19 @@ func opcodeE0(cpu *CPU) {
 // SBC - indexed addressing (abs, X).
 func opcodeE1(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
 	if cpu.P.carry() {
@@ -3641,27 +3865,28 @@ func opcodeE1(cpu *CPU) {
 // NOP - immediate addressing.
 func opcodeE2(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 }
 
 // ISC - indexed addressing (abs, X).
 func opcodeE3(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
@@ -3683,10 +3908,12 @@ func opcodeE3(cpu *CPU) {
 // CPX - zero page addressing.
 func opcodeE4(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
 	cpu.P.setCarry(val <= cpu.X)
 }
@@ -3694,10 +3921,12 @@ func opcodeE4(cpu *CPU) {
 // SBC - zero page addressing.
 func opcodeE5(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
 	if cpu.P.carry() {
@@ -3712,10 +3941,12 @@ func opcodeE5(cpu *CPU) {
 // INC - zero page addressing.
 func opcodeE6(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
@@ -3726,10 +3957,12 @@ func opcodeE6(cpu *CPU) {
 // ISC - zero page addressing.
 func opcodeE7(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
@@ -3751,9 +3984,9 @@ func opcodeE7(cpu *CPU) {
 // INX - implied addressing.
 func opcodeE8(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.X++
 	cpu.P.checkNZ(cpu.X)
 }
@@ -3761,10 +3994,10 @@ func opcodeE8(cpu *CPU) {
 // SBC - immediate addressing.
 func opcodeE9(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	val ^= 0xff
 	var carry uint16
 	if cpu.P.carry() {
@@ -3779,18 +4012,18 @@ func opcodeE9(cpu *CPU) {
 // NOP - implied addressing.
 func opcodeEA(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 }
 
 // SBC - immediate addressing.
 func opcodeEB(cpu *CPU) {
 	var oper uint16
-	oper = cpu.PC
-	cpu.PC++
 	_ = oper
-	val := cpu.Read8(oper)
+	var val uint8
+	_ = val
+	val = cpu.fetch()
 	val ^= 0xff
 	var carry uint16
 	if cpu.P.carry() {
@@ -3805,10 +4038,12 @@ func opcodeEB(cpu *CPU) {
 // CPX - absolute addressing.
 func opcodeEC(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
 	cpu.P.setCarry(val <= cpu.X)
 }
@@ -3816,10 +4051,12 @@ func opcodeEC(cpu *CPU) {
 // SBC - absolute addressing.
 func opcodeED(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
 	if cpu.P.carry() {
@@ -3834,10 +4071,12 @@ func opcodeED(cpu *CPU) {
 // INC - absolute addressing.
 func opcodeEE(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
@@ -3848,10 +4087,12 @@ func opcodeEE(cpu *CPU) {
 // ISC - absolute addressing.
 func opcodeEF(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = cpu.Read16(cpu.PC)
 	cpu.PC += 2
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
@@ -3873,9 +4114,9 @@ func opcodeEF(cpu *CPU) {
 // BEQ - relative addressing.
 func opcodeF0(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	off := int8(cpu.Read8(cpu.PC))
 	oper = uint16(int16(cpu.PC+1) + int16(off))
-	_ = oper
 	if cpu.P.zero() { // do branch
 		// A taken non-page-crossing branch ignores IRQ/NMI during its last
 		// clock, so that next instruction executes before the IRQ.
@@ -3884,10 +4125,10 @@ func opcodeF0(cpu *CPU) {
 			cpu.runIRQ = false
 		}
 		// dummy read.
-		_ = cpu.Read8(cpu.PC)
+		_ = cpu.Read8(cpu.PC + 1)
 		if 0xFF00&(cpu.PC+1) != 0xFF00&(oper) {
 			// dummy read.
-			_ = cpu.Read8(cpu.PC + 1&0x00FF | oper&0xFF00)
+			_ = cpu.Read8((oper)&0x00FF | (cpu.PC+1)&0xFF00)
 		}
 		cpu.PC = oper
 		return
@@ -3898,6 +4139,9 @@ func opcodeF0(cpu *CPU) {
 // SBC - indexed addressing (abs),Y.
 func opcodeF1(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
 	// read 16 bytes from the zero page, handling page wrap
@@ -3910,8 +4154,7 @@ func opcodeF1(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y) - 0x100)
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
 	if cpu.P.carry() {
@@ -3926,15 +4169,18 @@ func opcodeF1(cpu *CPU) {
 // STP - implied addressing.
 func opcodeF2(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.halt()
 }
 
 // ISC - indexed addressing (abs),Y.
 func opcodeF3(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle always
 	oper = uint16(cpu.Read8(cpu.PC))
 	cpu.PC++
@@ -3951,8 +4197,7 @@ func opcodeF3(cpu *CPU) {
 		_ = cpu.Read8(oper + uint16(cpu.Y))
 	}
 	oper += uint16(cpu.Y)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
@@ -3974,28 +4219,30 @@ func opcodeF3(cpu *CPU) {
 // NOP - indexed addressing: zeropage,X.
 func opcodeF4(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // SBC - indexed addressing: zeropage,X.
 func opcodeF5(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
 	if cpu.P.carry() {
@@ -4010,14 +4257,16 @@ func opcodeF5(cpu *CPU) {
 // INC - indexed addressing: zeropage,X.
 func opcodeF6(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
@@ -4028,14 +4277,16 @@ func opcodeF6(cpu *CPU) {
 // ISC - indexed addressing: zeropage,X.
 func opcodeF7(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read8(cpu.PC)
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
 	cpu.PC++
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
@@ -4057,25 +4308,27 @@ func opcodeF7(cpu *CPU) {
 // SED - implied addressing.
 func opcodeF8(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 	cpu.P.setDecimal(true)
 }
 
 // SBC - absolute indexed Y.
 func opcodeF9(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	// extra cycle for page cross
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.Y)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
 	if cpu.P.carry() {
@@ -4090,22 +4343,24 @@ func opcodeF9(cpu *CPU) {
 // NOP - implied addressing.
 func opcodeFA(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	_ = oper
 }
 
 // ISC - absolute indexed Y.
 func opcodeFB(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.Y)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
@@ -4127,30 +4382,32 @@ func opcodeFB(cpu *CPU) {
 // NOP - absolute indexed X.
 func opcodeFC(cpu *CPU) {
 	var oper uint16
+	_ = oper
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
 	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(oper)
 }
 
 // SBC - absolute indexed X.
 func opcodeFD(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	oper = addr + uint16(cpu.X)
-	if 0xFF00&(oper) != 0xFF00&(addr) {
+	if 0xFF00&(addr) != 0xFF00&(oper) {
 		// dummy read.
-		_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
+		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
 	if cpu.P.carry() {
@@ -4165,14 +4422,16 @@ func opcodeFD(cpu *CPU) {
 // INC - absolute indexed X.
 func opcodeFE(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
@@ -4183,14 +4442,16 @@ func opcodeFE(cpu *CPU) {
 // ISC - absolute indexed X.
 func opcodeFF(cpu *CPU) {
 	var oper uint16
+	_ = oper
+	var val uint8
+	_ = val
 	addr := cpu.Read16(cpu.PC)
 	oper = addr
 	cpu.PC += 2
 	oper += uint16(cpu.X)
 	// dummy read.
 	_ = cpu.Read8(oper&0x00FF | addr&0xFF00)
-	_ = oper
-	val := cpu.Read8(oper)
+	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
@@ -4236,7 +4497,7 @@ var unstableOps = [256]uint8{
 var ops = [256]func(*CPU){
 	BRK, opcode01, opcode02, opcode03, opcode04, opcode05, opcode06, opcode07, opcode08, opcode09, opcode0A, opcode0B, opcode0C, opcode0D, opcode0E, opcode0F,
 	opcode10, opcode11, opcode12, opcode13, opcode14, opcode15, opcode16, opcode17, opcode18, opcode19, opcode1A, opcode1B, opcode1C, opcode1D, opcode1E, opcode1F,
-	opcode20, opcode21, opcode22, opcode23, opcode24, opcode25, opcode26, opcode27, opcode28, opcode29, opcode2A, opcode2B, opcode2C, opcode2D, opcode2E, opcode2F,
+	JSR, opcode21, opcode22, opcode23, opcode24, opcode25, opcode26, opcode27, opcode28, opcode29, opcode2A, opcode2B, opcode2C, opcode2D, opcode2E, opcode2F,
 	opcode30, opcode31, opcode32, opcode33, opcode34, opcode35, opcode36, opcode37, opcode38, opcode39, opcode3A, opcode3B, opcode3C, opcode3D, opcode3E, opcode3F,
 	opcode40, opcode41, opcode42, opcode43, opcode44, opcode45, opcode46, opcode47, opcode48, opcode49, opcode4A, opcode4B, opcode4C, opcode4D, opcode4E, opcode4F,
 	opcode50, opcode51, opcode52, opcode53, opcode54, opcode55, opcode56, opcode57, opcode58, opcode59, opcode5A, opcode5B, opcode5C, opcode5D, opcode5E, opcode5F,

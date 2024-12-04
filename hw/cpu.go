@@ -198,6 +198,17 @@ func (c *CPU) Run(ncycles int64) {
 	}
 }
 
+func JSR(cpu *CPU) {
+	pclo := cpu.Read8(cpu.PC)
+
+	// dummy read.
+	_ = cpu.Read8(uint16(cpu.SP) + 0x0100)
+	cpu.PC++
+	cpu.push16(cpu.PC)
+	pchi := cpu.Read8(cpu.PC)
+	cpu.PC = uint16(pchi)<<8 | uint16(pclo)
+}
+
 func (c *CPU) halt() {
 	c.halted = true
 }
@@ -245,7 +256,7 @@ func (c *CPU) cycleEnd(forRead bool) {
 }
 
 func (c *CPU) Read8(addr uint16) uint8 {
-	c.dmaTransfer(addr)
+	c.DMA.process(addr)
 	c.cycleBegin(true)
 	val := c.Bus.Read8(addr, false)
 	c.cycleEnd(true)
@@ -294,12 +305,6 @@ func (c *CPU) pull16() uint16 {
 	lo := c.pull8()
 	hi := c.pull8()
 	return uint16(hi)<<8 | uint16(lo)
-}
-
-/* DMA */
-
-func (c *CPU) dmaTransfer(addr uint16) {
-	c.DMA.process(addr)
 }
 
 /* DMC */
