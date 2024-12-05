@@ -376,8 +376,8 @@ func ind(g *Generator, _ string) {
 func imm(g *Generator, _ string) {}
 
 func rel(g *Generator, _ string) {
-	g.printf(`off := int8(cpu.Read8(cpu.PC))`)
-	g.printf(`oper = uint16(int16(cpu.PC+1) + int16(off))`)
+	g.printf(`off := int8(cpu.fetch())`)
+	g.printf(`oper = uint16(int16(cpu.PC) + int16(off))`)
 }
 
 func abs(g *Generator, _ string) {
@@ -523,12 +523,11 @@ func branch(ibit int, val bool) func(g *Generator, _ opdef) {
 		g.printf(`if cpu.runIRQ && !cpu.prevRunIRQ {`)
 		g.printf(`	cpu.runIRQ = false`)
 		g.printf(`}`)
-		g.dummyread("cpu.PC+1")
-		tickIfPageCrossed(g, "cpu.PC+1", "oper")
+		g.dummyread("cpu.PC")
+		tickIfPageCrossed(g, "cpu.PC", "oper")
 		g.printf(`	cpu.PC = oper`)
 		g.printf(`	return`)
 		g.printf(`}`)
-		g.printf(`cpu.PC++`)
 	}
 }
 

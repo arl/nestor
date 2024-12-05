@@ -44,7 +44,6 @@ type CPU struct {
 	needNmi, prevNeedNmi bool
 	runIRQ, prevRunIRQ   bool
 	irqFlag              irqSource
-	irqMask              irqSource
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -60,6 +59,7 @@ func NewCPU(ppu *PPU) *CPU {
 		PPU: ppu,
 		dbg: nopDebugger{},
 	}
+
 	if ppu != nil {
 		ppu.CPU = cpu
 	}
@@ -175,10 +175,12 @@ func (c *CPU) traceOp() {
 func (c *CPU) Run(ncycles int64) {
 	until := c.Cycles + ncycles
 	var opcode uint8
+
 	for c.Cycles < until {
 		opcode = c.Read8(c.PC)
 		c.traceOp()
 		c.PC++
+
 		ops[opcode](c)
 
 		if c.halted {
@@ -199,13 +201,14 @@ func (c *CPU) Run(ncycles int64) {
 }
 
 func JSR(cpu *CPU) {
-	pclo := cpu.Read8(cpu.PC)
+	pclo := cpu.fetch()
 
 	// dummy read.
 	_ = cpu.Read8(uint16(cpu.SP) + 0x0100)
 	cpu.PC++
-	cpu.push16(cpu.PC)
-	pchi := cpu.Read8(cpu.PC)
+
+	cpu.push16(cpu.PC - 1)
+	pchi := cpu.Read8(cpu.PC - 1)
 	cpu.PC = uint16(pchi)<<8 | uint16(pclo)
 }
 
@@ -253,6 +256,12 @@ func (c *CPU) cycleEnd(forRead bool) {
 	}
 
 	c.handleInterrupts()
+}
+
+func (c *CPU) fetch() uint8 {
+	val := c.Read8(c.PC)
+	c.PC++
+	return val
 }
 
 func (c *CPU) Read8(addr uint16) uint8 {
@@ -310,7 +319,7 @@ func (c *CPU) pull16() uint16 {
 /* DMC */
 
 func (c *CPU) startDmcTransfer() {
-	c.DMA.startDMCTransfert()
+	c.DMA.startDMCTransfer()
 }
 
 func (c *CPU) stopDmcTransfer() {
