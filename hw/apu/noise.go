@@ -12,9 +12,9 @@ import (
 //	                    v                v
 //	Envelope -------> Gate ----------> Gate --> (to mixer)
 type NoiseChannel struct {
-	Volume hwio.Reg8 `hwio:"offset=0x0C,writeonly,wcb"`
-	Period hwio.Reg8 `hwio:"offset=0x0E,writeonly,wcb"`
-	Length hwio.Reg8 `hwio:"offset=0x0F,writeonly,wcb"`
+	Volume hwio.Reg8 `hwio:"offset=0x0C,wcb"`
+	Period hwio.Reg8 `hwio:"offset=0x0E,wcb"`
+	Length hwio.Reg8 `hwio:"offset=0x0F,wcb"`
 
 	shiftReg uint16
 	mode     bool // mode flag.

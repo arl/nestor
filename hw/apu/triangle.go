@@ -30,9 +30,9 @@ type TriangleChannel struct {
 
 	pos uint8 // current position on "triangleSequence".
 
-	Linear hwio.Reg8 `hwio:"offset=0x08,writeonly,wcb"`
-	Timer  hwio.Reg8 `hwio:"offset=0x0A,writeonly,wcb"`
-	Length hwio.Reg8 `hwio:"offset=0x0B,writeonly,wcb"`
+	Linear hwio.Reg8 `hwio:"offset=0x08,wcb"`
+	Timer  hwio.Reg8 `hwio:"offset=0x0A,wcb"`
+	Length hwio.Reg8 `hwio:"offset=0x0B,wcb"`
 }
 
 func NewTriangleChannel(apu apu, mixer mixer) TriangleChannel {
