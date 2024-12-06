@@ -84,6 +84,15 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	}, nil
 }
 
+func (e *Emulator) Focus() {
+	hwout, ok := e.out.(*hw.Output)
+	if !ok {
+		log.ModEmu.WarnZ("only actual output window can be focused").End()
+		return
+	}
+	hwout.FocusWindow()
+}
+
 func (e *Emulator) Screenshot() image.Image {
 	return e.out.Screenshot()
 }

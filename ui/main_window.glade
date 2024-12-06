@@ -107,56 +107,33 @@
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=4 -->
-          <object class="GtkGrid">
+          <object class="GtkScrolledWindow" id="scrolledwindow1">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="row-spacing">10</property>
-            <property name="column-spacing">10</property>
-            <property name="row-homogeneous">True</property>
-            <property name="column-homogeneous">True</property>
+            <property name="hexpand">True</property>
+            <property name="vexpand">True</property>
+            <property name="hscrollbar-policy">never</property>
+            <property name="shadow-type">in</property>
             <child>
-              <object class="GtkScrolledWindow">
+              <object class="GtkViewport">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-                <property name="shadow-type">in</property>
+                <property name="can-focus">False</property>
                 <child>
-                  <object class="GtkViewport">
+                  <object class="GtkFlowBox" id="flowbox1">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <child>
-                      <object class="GtkFlowBox" id="flowbox1">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="margin-left">20</property>
-                        <property name="margin-right">20</property>
-                        <property name="margin-start">20</property>
-                        <property name="margin-end">20</property>
-                        <property name="margin-top">20</property>
-                        <property name="margin-bottom">20</property>
-                        <property name="column-spacing">2</property>
-                        <property name="row-spacing">2</property>
-                        <property name="max-children-per-line">4</property>
-                        <property name="selection-mode">none</property>
-                      </object>
-                    </child>
+                    <property name="margin-left">20</property>
+                    <property name="margin-right">20</property>
+                    <property name="margin-start">20</property>
+                    <property name="margin-end">20</property>
+                    <property name="margin-top">20</property>
+                    <property name="margin-bottom">20</property>
+                    <property name="column-spacing">2</property>
+                    <property name="row-spacing">2</property>
+                    <property name="max-children-per-line">4</property>
                   </object>
                 </child>
               </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
-                <property name="width">2</property>
-                <property name="height">3</property>
-              </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
             </child>
           </object>
           <packing>

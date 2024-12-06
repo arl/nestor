@@ -1,4 +1,4 @@
-![Nestor](./ui/logo.png)
+<img src="./ui/logo.png" width="256">
 
 # Nestor - NES emulator
 
@@ -47,12 +47,13 @@ Run "nestor <command> --help" for more information on a command.
 
 ## TODO
 
- - [x] CPU
- - [x] PPU (background)
- - [x] PPU (sprites)
- - [x] gamepad/keyboard input
- - [X] APU (audio)
+ - [x] CPU (6502)
+ - [x] PPU (pixel processing unit)
+ - [x] Joystick / Keyboard input
+ - [X] APU (audio processing unit)
  - [ ] debugger
  - [x] mapper 0
+ - [ ] mapper 1
  - [x] mapper 2
  - [ ] other mappers...
+ - [ ] save states

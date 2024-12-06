@@ -14,23 +14,33 @@ import (
 	"time"
 
 	"github.com/gotk3/gotk3/gtk"
-	"github.com/kirsle/configdir"
 )
 
 const recentROMextension = ".nrr"
 
-var RecentROMsDir string = sync.OnceValue(func() string {
-	dir := filepath.Join(ConfigDir, "recent-roms")
-	if err := configdir.MakePath(dir); err != nil {
+var RecentROMsDir = sync.OnceValue(func() string {
+	dir := filepath.Join(ConfigDir(), "recent-roms")
+	if err := os.MkdirAll(dir, DefaultFileMode); err != nil {
 		modGUI.Fatalf("failed to create directory %s: %v", dir, err)
 	}
+
 	return dir
-})()
+})
+
+func readZipFile(zf *zip.File) ([]byte, error) {
+	zfr, err := zf.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer zfr.Close()
+
+	return io.ReadAll(zfr)
+}
 
 func loadRecentROMs() []recentROM {
 	var roms []recentROM
 
-	err := filepath.WalkDir(RecentROMsDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(RecentROMsDir(), func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -60,27 +70,16 @@ func loadRecentROMs() []recentROM {
 		}
 
 		for _, zf := range zr.File {
-			if zf.Name == "screenshot.png" {
-				zfr, err := zf.Open()
-				if err != nil {
-					return err
-				}
-				defer zfr.Close()
-
-				buf, err := io.ReadAll(zfr)
+			switch zf.Name {
+			case "screenshot.png":
+				buf, err := readZipFile(zf)
 				if err != nil {
 					return err
 				}
 				cur.Image = buf
-			}
-			if zf.Name == "infos.txt" {
-				zfr, err := zf.Open()
-				if err != nil {
-					return err
-				}
-				defer zfr.Close()
 
-				buf, err := io.ReadAll(zfr)
+			case "infos.txt":
+				buf, err := readZipFile(zf)
 				if err != nil {
 					return err
 				}
@@ -117,7 +116,7 @@ func (r recentROM) IsValid() bool {
 }
 
 func (r recentROM) save() error {
-	f, err := os.Create(filepath.Join(RecentROMsDir, r.Name+recentROMextension))
+	f, err := os.Create(filepath.Join(RecentROMsDir(), r.Name+recentROMextension))
 	if err != nil {
 		return err
 	}
@@ -157,6 +156,7 @@ const maxRecentsRoms = 16
 
 type recentROMsView struct {
 	flowbox    *gtk.FlowBox
+	scroll     *gtk.ScrolledWindow
 	recentROMs []recentROM
 	runROM     func(string)
 }
@@ -166,8 +166,10 @@ func newRecentRomsView(builder *gtk.Builder, runROM func(path string)) *recentRO
 		runROM:     runROM,
 		recentROMs: loadRecentROMs(),
 		flowbox:    build[gtk.FlowBox](builder, "flowbox1"),
+		scroll:     build[gtk.ScrolledWindow](builder, "scrolledwindow1"),
 	}
 
+	v.flowbox.Connect("selected-children-changed", v.onSelectionChanged)
 	v.updateView()
 	return v
 }
@@ -182,8 +184,8 @@ func (v *recentROMsView) addROM(rom recentROM) error {
 	return nil
 }
 
-// remove duplicates and sort the list by last usage.
-func (v *recentROMsView) fixOrderAndDups() {
+// normalize sorts the list by last usage and remove duplicates.
+func (v *recentROMsView) normalize() {
 	m := make(map[string]recentROM, len(v.recentROMs))
 	for _, rom := range v.recentROMs {
 		m[rom.Name] = rom
@@ -199,8 +201,16 @@ func (v *recentROMsView) fixOrderAndDups() {
 	})
 }
 
+func (v *recentROMsView) mostRecentDir() (string, bool) {
+	if len(v.recentROMs) == 0 {
+		return "", false
+	}
+
+	return filepath.Dir(v.recentROMs[0].Path), true
+}
+
 func (v *recentROMsView) updateView() {
-	v.fixOrderAndDups()
+	v.normalize()
 
 	// Empty the flowbox.
 	v.flowbox.GetChildren().Foreach(func(item any) {
@@ -217,14 +227,22 @@ func (v *recentROMsView) updateView() {
 		button := mustT(gtk.ButtonNew())
 		button.SetImage(img)
 		button.SetAlwaysShowImage(true)
+		button.SetCanFocus(false)
 
 		box := mustT(gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 0))
 		label := mustT(gtk.LabelNew(rom.Name))
 		box.PackStart(button, false, false, 0)
 		box.PackStart(label, false, false, 0)
+		box.SetCanFocus(false)
 
-		v.flowbox.Insert(box, int(v.flowbox.GetChildren().Length()))
+		child := mustT(gtk.FlowBoxChildNew())
+		child.Add(box)
+		child.SetVisible(true)
+		child.SetCanFocus(true)
 
+		v.flowbox.Add(child)
+
+		box.SetVisible(true)
 		button.SetVisible(true)
 		img.SetVisible(true)
 		box.SetVisible(true)
@@ -232,6 +250,7 @@ func (v *recentROMsView) updateView() {
 		img.SetVisible(true)
 
 		button.Connect("clicked", func() { v.runROM(rom.Path) })
+		child.Connect("activate", func() { v.runROM(rom.Path) })
 		return nil
 	}
 
@@ -240,4 +259,26 @@ func (v *recentROMsView) updateView() {
 			modGUI.Warnf("failed to show recent ROM %q: %s", rom.Name, err)
 		}
 	}
+
+	if first := v.flowbox.GetChildAtIndex(0); first != nil {
+		v.flowbox.SelectChild(first)
+	}
+}
+
+func (v *recentROMsView) onSelectionChanged(flowbox *gtk.FlowBox) {
+	selected := flowbox.GetSelectedChildren()
+	if len(selected) == 0 {
+		return
+	}
+
+	child := selected[0]
+	if isVisibleIn(&child.Widget, &v.scroll.Widget) {
+		return
+	}
+
+	// Child is not entirely visible, move the vertical scrollbar so that the
+	// upper part of the rom/child is visible.
+	vadj := v.scroll.GetVAdjustment()
+	childy := child.GetAllocation().GetY()
+	vadj.SetValue(float64(childy))
 }

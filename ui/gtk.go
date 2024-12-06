@@ -41,7 +41,7 @@ func mustT[T any](v T, err error) T {
 }
 
 // openFileDialog shows a file chooser dialog for selecting a nes ROM file.
-func openFileDialog(parent *gtk.Window) (string, bool) {
+func openFileDialog(parent *gtk.Window, workdir string) (string, bool) {
 	dlg := mustT(gtk.FileChooserDialogNewWith1Button(
 		"Open NES ROM",
 		parent,
@@ -55,6 +55,7 @@ func openFileDialog(parent *gtk.Window) (string, bool) {
 	filter.AddPattern("*.nes")
 	filter.SetName("nes/famicom ROM Files")
 	dlg.AddFilter(filter)
+	dlg.SetCurrentFolder(workdir)
 	if resp := dlg.Run(); resp != gtk.RESPONSE_OK {
 		return "", false
 	}
@@ -78,4 +79,20 @@ func imageFromBytes(data []byte) (*gtk.Image, error) {
 		return nil, err
 	}
 	return gtk.ImageNewFromPixbuf(buf)
+}
+
+// reports whether a child is currently visible in a scrolled window.
+func isVisibleIn(child *gtk.Widget, scrolled *gtk.Widget) bool {
+	dstx, dsty, err := child.TranslateCoordinates(scrolled, 0, 0)
+	if err != nil {
+		panic("unexpected")
+	}
+	childw := child.GetAllocation().GetWidth()
+	childh := child.GetAllocation().GetHeight()
+	scrolledw := scrolled.GetAllocation().GetWidth()
+	scrolledh := scrolled.GetAllocation().GetHeight()
+
+	return (dstx >= 0 && dsty >= 0) &&
+		dstx+childw <= scrolledw &&
+		dsty+childh <= scrolledh
 }
