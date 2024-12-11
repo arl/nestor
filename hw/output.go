@@ -151,7 +151,7 @@ func (out *Output) EnableAudio(enable bool) error {
 		}
 
 		desired := sdl.AudioSpec{
-			Freq:     MaxSampleRate,
+			Freq:     maxSampleRate,
 			Format:   AudioFormat,
 			Channels: AudioChannels,
 			Silence:  0,
