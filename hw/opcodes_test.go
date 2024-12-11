@@ -47,17 +47,20 @@ type testMem struct {
 	MEM      hwio.Manual      `hwio:"offset=0x0000,size=0x10000"`
 	m        map[uint16]uint8 // actual mapped mem
 	accesses []memAccess      // stores all accesses
+	verbose  bool
 }
 
 type memAccess struct {
 	addr uint16
 	val  uint8
-	typ  string // "r" or "w"
+	typ  string // "read" or "wwrite"
 }
 
 func (tm *testMem) prefill(addr uint16, val uint8) {
 	if tm.m == nil {
 		tm.m = make(map[uint16]uint8)
+		tm.accesses = make([]memAccess, 0, 7)
+		tm.verbose = testing.Verbose()
 	}
 	tm.m[addr] = val
 }
@@ -68,15 +71,20 @@ func (tm *testMem) clear() {
 }
 
 func (tm *testMem) ReadMEM(addr uint16, _ bool) uint8 {
-	tm.accesses = append(tm.accesses, memAccess{addr, 0, "r"})
-	if val, ok := tm.m[addr]; ok {
-		return val
+	val := tm.m[addr]
+	if tm.verbose {
+		fmt.Printf("[%d] read 0x%04x = 0x%02x\n", len(tm.accesses), addr, val)
 	}
-	return 0
+	tm.accesses = append(tm.accesses, memAccess{addr, val, "read"})
+	return val
 }
 
 func (tm *testMem) WriteMEM(addr uint16, val uint8) {
-	tm.accesses = append(tm.accesses, memAccess{addr, val, "w"})
+	if tm.verbose {
+		fmt.Printf("[%d] write 0x%04x = 0x%02x\n", len(tm.accesses), addr, val)
+	}
+
+	tm.accesses = append(tm.accesses, memAccess{addr, val, "write"})
 	tm.m[addr] = val
 }
 
@@ -168,12 +176,32 @@ func testOpcodes(opfile string) func(t *testing.T) {
 						cpu.Cycles, len(tt.Cycles), cyclesStr)
 				}
 
-				// check ram
+				// check ram accesses
+				if len(tt.Cycles) != len(tmem.accesses) {
+					t.Errorf("ram accesses count mismatch: got %d want %d", len(tmem.accesses), len(tt.Cycles))
+				}
+
+				for i, row := range tt.Cycles {
+					addr := uint16(row[0].(float64))
+					val := uint8(row[1].(float64))
+					typ := row[2].(string)
+
+					if tmem.accesses[i].addr != addr {
+						t.Errorf("ram access %d: addr mismatch: got 0x%04x want 0x%04x", i, tmem.accesses[i].addr, addr)
+					}
+					if tmem.accesses[i].val != val {
+						t.Errorf("ram access %d: val mismatch: got 0x%02x want 0x%02x", i, tmem.accesses[i].val, val)
+					}
+					if tmem.accesses[i].typ != typ {
+						t.Errorf("ram access %d: type mismatch: got %s want %s", i, tmem.accesses[i].typ, typ)
+					}
+				}
+
+				// check ram content
 				for _, row := range tt.Final.RAM {
 					addr := row[0]
 					val := uint8(row[1])
-					got := cpu.Bus.Read8(uint16(addr), false)
-					if got != val {
+					if got := tmem.m[uint16(addr)]; got != val {
 						t.Errorf("ram[0x%x] = 0x%x, want 0x%x", addr, got, val)
 					}
 				}

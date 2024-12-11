@@ -12,9 +12,10 @@ import (
 //	                    v                v
 //	Envelope -------> Gate ----------> Gate --> (to mixer)
 type NoiseChannel struct {
-	Volume hwio.Reg8 `hwio:"offset=0x0C,writeonly,wcb"`
-	Period hwio.Reg8 `hwio:"offset=0x0E,writeonly,wcb"`
-	Length hwio.Reg8 `hwio:"offset=0x0F,writeonly,wcb"`
+	Volume hwio.Reg8 `hwio:"offset=0x0C,wcb"`
+	Unused hwio.Reg8 `hwio:"offset=0x0D,wcb"`
+	Period hwio.Reg8 `hwio:"offset=0x0E,wcb"`
+	Length hwio.Reg8 `hwio:"offset=0x0F,wcb"`
 
 	shiftReg uint16
 	mode     bool // mode flag.
@@ -43,6 +44,10 @@ func (nc *NoiseChannel) WriteVOLUME(old, val uint8) {
 	log.ModSound.InfoZ("write noise volume").Uint8("val", val).End()
 	nc.apu.Run()
 	nc.env.init(val)
+}
+
+func (nc *NoiseChannel) WriteUNUSED(_, _ uint8) {
+	nc.apu.Run()
 }
 
 var noisePeriodLUT = [16]uint16{4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068}

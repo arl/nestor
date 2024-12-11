@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"nestor/emu/log"
+	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
 	"nestor/hw/input"
 )
@@ -43,8 +44,7 @@ type CPU struct {
 	nmiFlag, prevNmiFlag bool
 	needNmi, prevNeedNmi bool
 	runIRQ, prevRunIRQ   bool
-	irqFlag              irqSource
-	irqMask              irqSource
+	irqFlag              hwdefs.IRQSource
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -60,6 +60,7 @@ func NewCPU(ppu *PPU) *CPU {
 		PPU: ppu,
 		dbg: nopDebugger{},
 	}
+
 	if ppu != nil {
 		ppu.CPU = cpu
 	}
@@ -175,10 +176,12 @@ func (c *CPU) traceOp() {
 func (c *CPU) Run(ncycles int64) {
 	until := c.Cycles + ncycles
 	var opcode uint8
+
 	for c.Cycles < until {
 		opcode = c.Read8(c.PC)
 		c.traceOp()
 		c.PC++
+
 		ops[opcode](c)
 
 		if c.halted {
@@ -198,6 +201,18 @@ func (c *CPU) Run(ncycles int64) {
 	}
 }
 
+func JSR(cpu *CPU) {
+	pclo := cpu.fetch()
+
+	// dummy read.
+	_ = cpu.Read8(uint16(cpu.SP) + 0x0100)
+	cpu.PC++
+
+	cpu.push16(cpu.PC - 1)
+	pchi := cpu.Read8(cpu.PC - 1)
+	cpu.PC = uint16(pchi)<<8 | uint16(pclo)
+}
+
 func (c *CPU) halt() {
 	c.halted = true
 }
@@ -213,6 +228,10 @@ const (
 
 	ppuOffset = 1
 )
+
+func (c *CPU) CurrentCycle() int64 {
+	return c.Cycles
+}
 
 func (c *CPU) cycleBegin(forRead bool) {
 	if forRead {
@@ -244,8 +263,14 @@ func (c *CPU) cycleEnd(forRead bool) {
 	c.handleInterrupts()
 }
 
+func (c *CPU) fetch() uint8 {
+	val := c.Read8(c.PC)
+	c.PC++
+	return val
+}
+
 func (c *CPU) Read8(addr uint16) uint8 {
-	c.dmaTransfer(addr)
+	c.DMA.processPending(addr)
 	c.cycleBegin(true)
 	val := c.Bus.Read8(addr, false)
 	c.cycleEnd(true)
@@ -296,48 +321,37 @@ func (c *CPU) pull16() uint16 {
 	return uint16(hi)<<8 | uint16(lo)
 }
 
-/* DMA */
-
-func (c *CPU) dmaTransfer(addr uint16) {
-	c.DMA.process(addr)
-}
-
 /* DMC */
 
-func (c *CPU) startDmcTransfer() {
-	c.DMA.startDMCTransfert()
+func (c *CPU) StartDmcTransfer() {
+	c.DMA.startDMCTransfer()
 }
 
-func (c *CPU) stopDmcTransfer() {
+func (c *CPU) StopDmcTransfer() {
 	c.DMA.stopDmcTransfer()
 }
 
 /* interrupt handling */
 
-type irqSource uint8
-
-const (
-	external irqSource = 1 << iota
-	frameCounter
-	dmc
-)
-
-func (c *CPU) setIrqSource(src irqSource) {
+func (c *CPU) SetIrqSource(src hwdefs.IRQSource) {
 	log.ModCPU.DebugZ("set IRQ source").
-		Uint8("src", uint8(src)).
-		Uint8("before", uint8(c.irqFlag)).
+		Stringer("src", src).
+		Stringer("prev", c.irqFlag).
+		Stringer("new", c.irqFlag|src).
 		End()
+
 	c.irqFlag |= src
 }
 
-func (c *CPU) hasIrqSource(src irqSource) bool {
+func (c *CPU) HasIrqSource(src hwdefs.IRQSource) bool {
 	return (c.irqFlag & src) != 0
 }
 
-func (c *CPU) clearIrqSource(src irqSource) {
+func (c *CPU) ClearIrqSource(src hwdefs.IRQSource) {
 	log.ModCPU.DebugZ("clear IRQ source").
-		Uint8("src", uint8(src)).
-		Uint8("before", uint8(c.irqFlag)).
+		Stringer("src", src).
+		Stringer("prev", c.irqFlag).
+		Stringer("new", c.irqFlag&^src).
 		End()
 
 	c.irqFlag &= ^src

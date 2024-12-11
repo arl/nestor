@@ -6,6 +6,10 @@ import (
 	"nestor/emu/log"
 )
 
+// log unmapped accesses (useful for debugging but verbose on NES since many
+// games read from open bus)
+const logUnmapped = false
+
 type BankIO8 interface {
 	// Read8 reads a byte from the given address. If peek is true, the read
 	// shouldn't have any side effects (debugging/tracing).
@@ -154,7 +158,7 @@ func (t *Table) Unmap(begin, end uint16) {
 func (t *Table) Read8(addr uint16, peek bool) uint8 {
 	io := t.table8.Search(addr)
 	if io == nil {
-		if !peek {
+		if logUnmapped && !peek {
 			log.ModHwIo.ErrorZ("unmapped Read8").
 				String("name", t.Name).
 				Hex16("addr", addr).
@@ -173,11 +177,13 @@ func (t *Table) Peek8(addr uint16) uint8 {
 func (t *Table) Write8(addr uint16, val uint8) {
 	io := t.table8.Search(addr)
 	if io == nil {
-		log.ModHwIo.ErrorZ("unmapped Write8").
-			String("name", t.Name).
-			Hex16("addr", addr).
-			Hex8("val", val).
-			End()
+		if logUnmapped {
+			log.ModHwIo.ErrorZ("unmapped Write8").
+				String("name", t.Name).
+				Hex16("addr", addr).
+				Hex8("val", val).
+				End()
+		}
 		return
 	}
 	if mem, ok := io.(*mem); ok {
@@ -186,7 +192,7 @@ func (t *Table) Write8(addr uint16, val uint8) {
 		// requires no function call.
 		ok := mem.Write8CheckRO(addr, val)
 		if !ok {
-			log.ModHwIo.ErrorZ("Write8 to ROM").
+			log.ModHwIo.ErrorZ("Write8 to read-only address").
 				String("name", t.Name).
 				Hex16("addr", addr).
 				Hex8("val", val).

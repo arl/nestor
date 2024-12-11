@@ -41,10 +41,10 @@ type SquareChannel struct {
 	sweepTargetPeriod uint32
 	realPeriod        uint16
 
-	Duty   hwio.Reg8 `hwio:"offset=0x00,writeonly,wcb"`
-	Sweep  hwio.Reg8 `hwio:"offset=0x01,writeonly,wcb"`
-	Timer  hwio.Reg8 `hwio:"offset=0x02,writeonly,wcb"`
-	Length hwio.Reg8 `hwio:"offset=0x03,writeonly,wcb"`
+	Duty   hwio.Reg8 `hwio:"offset=0x00,wcb"`
+	Sweep  hwio.Reg8 `hwio:"offset=0x01,wcb"`
+	Timer  hwio.Reg8 `hwio:"offset=0x02,wcb"`
+	Length hwio.Reg8 `hwio:"offset=0x03,wcb"`
 }
 
 func NewSquareChannel(apu apu, mixer mixer, channel Channel, isChannel1 bool) SquareChannel {

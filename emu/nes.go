@@ -47,8 +47,8 @@ func powerUp(rom *ines.Rom) (*NES, error) {
 
 func (nes *NES) Reset(soft bool) {
 	nes.PPU.Reset()
-	nes.CPU.Reset(soft)
 	nes.APU.Reset(soft)
+	nes.CPU.Reset(soft)
 	nes.Mixer.Reset()
 }
 

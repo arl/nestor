@@ -3,6 +3,7 @@ package hw
 import (
 	"nestor/emu/log"
 	"nestor/hw/apu"
+	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
 )
 
@@ -14,14 +15,14 @@ type APU struct {
 	Square2  apu.SquareChannel
 	Triangle apu.TriangleChannel
 	Noise    apu.NoiseChannel
-	DMC      DMC
+	DMC      apu.DMC
 
-	frameCounter apuFrameCounter
+	frameCounter apu.FrameCounter
 
-	prevCycle     uint32
-	curCycle      uint32
-	needToRunFlag bool
-	enabled       bool
+	prevCycle  uint32
+	curCycle   uint32
+	needToRun_ bool
+	enabled    bool
 
 	STATUS hwio.Reg8 `hwio:"offset=0x15,rcb,wcb"`
 	DAC0   hwio.Reg8 `hwio:"offset=0x18,rcb,readonly"` // current instant DAC value of B=pulse2 and A=pulse1 (either 0 or current volume)
@@ -39,9 +40,9 @@ func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
 	a.Square1 = apu.NewSquareChannel(a, mixer, apu.Square1, true)
 	a.Square2 = apu.NewSquareChannel(a, mixer, apu.Square2, false)
 	a.Triangle = apu.NewTriangleChannel(a, mixer)
-	a.DMC = NewDMC(a, mixer)
+	a.DMC = apu.NewDMC(a, cpu, mixer)
 
-	a.frameCounter.apu = a
+	a.frameCounter.Init(a, cpu)
 
 	hwio.MustInitRegs(a)
 	hwio.MustInitRegs(&a.Square1)
@@ -49,6 +50,7 @@ func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
 	hwio.MustInitRegs(&a.Triangle)
 	hwio.MustInitRegs(&a.Noise)
 	hwio.MustInitRegs(&a.frameCounter)
+	hwio.MustInitRegs(&a.DMC)
 
 	return a
 }
@@ -72,10 +74,10 @@ func (a *APU) Status() uint8 {
 		status |= 0x10
 	}
 
-	if a.cpu.hasIrqSource(frameCounter) {
+	if a.cpu.HasIrqSource(hwdefs.FrameCounter) {
 		status |= 0x40
 	}
-	if a.cpu.hasIrqSource(dmc) {
+	if a.cpu.HasIrqSource(hwdefs.DMC) {
 		status |= 0x80
 	}
 
@@ -91,7 +93,7 @@ func (a *APU) ReadSTATUS(val uint8, peek bool) uint8 {
 	status := a.Status()
 
 	// Reading $4015 clears the Frame Counter interrupt flag.
-	a.cpu.clearIrqSource(frameCounter)
+	a.cpu.ClearIrqSource(hwdefs.FrameCounter)
 
 	log.ModSound.InfoZ("read status").Uint8("status", status).End()
 	return status
@@ -105,7 +107,7 @@ func (a *APU) WriteSTATUS(old, val uint8) {
 	// Writing to $4015 clears the DMC interrupt flag. This needs to be done
 	// before setting the enabled flag for the DMC (because doing so can trigger
 	// an IRQ).
-	a.cpu.clearIrqSource(dmc)
+	a.cpu.ClearIrqSource(hwdefs.DMC)
 
 	a.Square1.SetEnabled((val & 0x01) == 0x01)
 	a.Square2.SetEnabled((val & 0x02) == 0x02)
@@ -115,25 +117,28 @@ func (a *APU) WriteSTATUS(old, val uint8) {
 }
 
 func (a *APU) ReadDAC0(val uint8, peek bool) uint8 {
+	a.Run()
 	return a.Square1.Output() | a.Square2.Output()<<4
 }
 
 func (a *APU) ReadDAC1(val uint8, peek bool) uint8 {
+	a.Run()
 	return a.Triangle.Output() | a.Noise.Output()<<4
 }
 
 func (a *APU) ReadDAC2(val uint8, peek bool) uint8 {
+	a.Run()
 	return a.DMC.Output()
 }
 
-func (a *APU) FrameCounterTick(ftyp FrameType) {
+func (a *APU) FrameCounterTick(ftyp apu.FrameType) {
 	// Quarter & half frame clock envelope & linear counter
 	a.Square1.TickEnvelope()
 	a.Square2.TickEnvelope()
 	a.Triangle.TickLinearCounter()
 	a.Noise.TickEnvelope()
 
-	if ftyp == halfFrame {
+	if ftyp == apu.HalfFrame {
 		// Half frames clock length counter & sweep
 		a.Square1.TickLengthCounter()
 		a.Square2.TickLengthCounter()
@@ -149,12 +154,13 @@ func (a *APU) Reset(soft bool) {
 	a.enabled = true
 	a.curCycle = 0
 	a.prevCycle = 0
+
 	a.Square1.Reset(soft)
 	a.Square2.Reset(soft)
 	a.Triangle.Reset(soft)
 	a.Noise.Reset(soft)
 	a.DMC.Reset(soft)
-	a.frameCounter.reset(soft)
+	a.frameCounter.Reset(soft)
 }
 
 func (a *APU) Tick() {
@@ -167,7 +173,7 @@ func (a *APU) Tick() {
 }
 
 func (a *APU) EndFrame() {
-	a.DMC.processClock()
+	a.DMC.ProcessClock()
 	a.Run()
 	a.Square1.EndFrame()
 	a.Square2.EndFrame()
@@ -190,12 +196,11 @@ func (a *APU) Run() {
 	cyclesToRun := int32(a.curCycle - a.prevCycle)
 
 	for cyclesToRun > 0 {
-		a.prevCycle += a.frameCounter.run(&cyclesToRun)
+		a.prevCycle += a.frameCounter.Run(&cyclesToRun)
 
-		// Reload counters set by writes to 4003/4008/400B/400F after
-		// running the frame counter to allow the length counter to be
-		// clocked first. This fixes the test "len_reload_timing" (tests 4 &
-		// 5)
+		// Reload counters set by writes to 4003/4008/400B/400F after running
+		// the frame counter to allow the length counter to be clocked first.
+		// This fixes the test "len_reload_timing" (tests 4 & 5)
 		a.Square1.ReloadLengthCounter()
 		a.Square2.ReloadLengthCounter()
 		a.Noise.ReloadLengthCounter()
@@ -209,18 +214,24 @@ func (a *APU) Run() {
 	}
 }
 
-func (a *APU) SetNeedToRun() { a.needToRunFlag = true }
+func (a *APU) SetNeedToRun() {
+	a.needToRun_ = true
+}
+
+func (a *APU) setEnabled(enabled bool) {
+	a.enabled = enabled
+}
 
 func (a *APU) needToRun(curCycle uint32) bool {
-	if a.DMC.NeedToRun() || a.needToRunFlag {
+	if a.DMC.NeedToRun() || a.needToRun_ {
 		// Need to run:
 		//  - whenever we alter the length counters
 		//  - need to run every cycle when DMC is running to get accurate
 		//    emulation (CPU stalling, interaction with sprite DMA, etc.)
-		a.needToRunFlag = false
+		a.needToRun_ = false
 		return true
 	}
 
 	cyclesToRun := curCycle - a.prevCycle
-	return a.frameCounter.needToRun(cyclesToRun) || a.DMC.IRQPending(cyclesToRun)
+	return a.frameCounter.NeedToRun(cyclesToRun) || a.DMC.IRQPending(cyclesToRun)
 }
