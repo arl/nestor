@@ -1,8 +1,8 @@
-package hw
+package apu
 
 import (
 	"nestor/emu/log"
-	"nestor/hw/apu"
+	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
 )
 
@@ -20,8 +20,9 @@ import (
 //	|  Buffer  |----| Output  |---->| Counter |---->|   DAC   |
 //	+----------+    +---------+     +---------+     +---------+
 type DMC struct {
-	APU   *APU
-	timer apu.Timer
+	APU   apu
+	CPU   cpu
+	timer Timer
 
 	sampleAddr uint16
 	sampleLen  uint16
@@ -49,12 +50,13 @@ type DMC struct {
 	SAMPLELEN  hwio.Reg8 `hwio:"offset=0x13,writeonly,wcb"`
 }
 
-func NewDMC(APU *APU, mixer *AudioMixer) DMC {
+func NewDMC(apu apu, cpu cpu, mixer mixer) DMC {
 	return DMC{
-		APU:     APU,
+		APU:     apu,
+		CPU:     cpu,
 		silence: true,
-		timer: apu.Timer{
-			Channel: apu.DMC,
+		timer: Timer{
+			Channel: DPCM,
 			Mixer:   mixer,
 		},
 	}
@@ -120,7 +122,7 @@ func (dc *DMC) WriteFLAGS(_, val uint8) {
 	dc.timer.SetPeriod(period)
 
 	if !dc.irqEnabled {
-		dc.APU.cpu.clearIrqSource(dmc)
+		dc.CPU.ClearIrqSource(hwdefs.DMC)
 	}
 
 	log.ModSound.InfoZ("write dmc FLAGS").
@@ -185,15 +187,15 @@ func (dc *DMC) WriteSAMPLELEN(_, val uint8) {
 
 func (dc *DMC) startDMCTransfer() {
 	if dc.bufEmpty && dc.remaining > 0 {
-		dc.APU.cpu.startDmcTransfer()
+		dc.CPU.StartDmcTransfer()
 	}
 }
 
-func (dc *DMC) getReadAddress() uint16 {
+func (dc *DMC) CurrentAddress() uint16 {
 	return dc.curaddr
 }
 
-func (dc *DMC) setReadBuffer(val uint8) {
+func (dc *DMC) SetReadBuffer(val uint8) {
 	log.ModSound.DebugZ("set DMC read buffer").
 		Uint8("value", val).
 		End()
@@ -215,7 +217,7 @@ func (dc *DMC) setReadBuffer(val uint8) {
 				// Looped sample should never set IRQ flag
 				dc.initSample()
 			} else if dc.irqEnabled {
-				dc.APU.cpu.setIrqSource(dmc)
+				dc.CPU.SetIrqSource(hwdefs.DMC)
 			}
 		}
 	}
@@ -292,7 +294,7 @@ func (dc *DMC) SetEnabled(enabled bool) {
 			// Disabling takes effect with a 1 apu cycle delay
 			// If a DMA starts during this time, it gets cancelled
 			// but this will still cause the CPU to be halted for 1 cycle
-			if (dc.APU.cpu.Cycles & 0x01) == 0 {
+			if (dc.CPU.CurrentCycle() & 0x01) == 0 {
 				dc.disableDelay = 2
 			} else {
 				dc.disableDelay = 3
@@ -304,7 +306,7 @@ func (dc *DMC) SetEnabled(enabled bool) {
 
 		// Delay a number of cycles based on odd/even cycles
 		// Allows behavior to match dmc_dma_start_test
-		if (dc.APU.cpu.Cycles & 0x01) == 0 {
+		if (dc.CPU.CurrentCycle() & 0x01) == 0 {
 			dc.startDelay = 2
 		} else {
 			dc.startDelay = 3
@@ -313,13 +315,13 @@ func (dc *DMC) SetEnabled(enabled bool) {
 	}
 }
 
-func (dc *DMC) processClock() {
+func (dc *DMC) ProcessClock() {
 	if dc.disableDelay != 0 {
 		dc.disableDelay--
 		if dc.disableDelay == 0 {
 			dc.remaining = 0
 			// Abort any on-going transfer that hasn't fully started.
-			dc.APU.cpu.stopDmcTransfer()
+			dc.CPU.StopDmcTransfer()
 		}
 	}
 
@@ -335,7 +337,7 @@ func (dc *DMC) processClock() {
 
 func (dc *DMC) NeedToRun() bool {
 	if dc.needToRun {
-		dc.processClock()
+		dc.ProcessClock()
 	}
 	return dc.needToRun
 }

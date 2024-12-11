@@ -1,5 +1,7 @@
 package apu
 
+import "nestor/hw/hwdefs"
+
 type Channel uint8
 
 const (
@@ -7,7 +9,7 @@ const (
 	Square2
 	Triangle
 	Noise
-	DMC
+	DPCM
 )
 
 type mixer interface {
@@ -17,4 +19,15 @@ type mixer interface {
 type apu interface {
 	SetNeedToRun()
 	Run()
+}
+
+type cpu interface {
+	SetIrqSource(src hwdefs.IRQSource)
+	HasIrqSource(src hwdefs.IRQSource) bool
+	ClearIrqSource(src hwdefs.IRQSource)
+
+	CurrentCycle() int64
+
+	StartDmcTransfer()
+	StopDmcTransfer()
 }

@@ -1,6 +1,9 @@
 package hw
 
-import "nestor/emu/log"
+import (
+	"nestor/emu/log"
+	"nestor/hw/hwdefs"
+)
 
 type FrameType uint8
 
@@ -82,7 +85,7 @@ func (afc *apuFrameCounter) WriteFRAMECOUNTER(old, val uint8) {
 
 	afc.inhibitIRQ = (val & 0x40) == 0x40
 	if afc.inhibitIRQ {
-		afc.apu.cpu.clearIrqSource(frameCounter)
+		afc.apu.cpu.ClearIrqSource(hwdefs.FrameCounter)
 	}
 }
 
@@ -93,7 +96,7 @@ func (afc *apuFrameCounter) run(cyclesToRun *int32) uint32 {
 	if afc.prevCycle+*cyclesToRun >= stepCycles[afc.stepMode][afc.curStep] {
 		if !afc.inhibitIRQ && afc.stepMode == 0 && afc.curStep >= 3 {
 			// Set irq on the last 3 cycles for 4-step mode
-			afc.apu.cpu.setIrqSource(frameCounter)
+			afc.apu.cpu.SetIrqSource(hwdefs.FrameCounter)
 		}
 
 		ftyp := frameType[afc.stepMode][afc.curStep]

@@ -148,7 +148,7 @@ func (am *AudioMixer) channelOutput(ch apu.Channel, right bool) float64 {
 
 func (am *AudioMixer) outputVolume(isRight bool) int16 {
 	squareOutput := am.channelOutput(apu.Square1, isRight) + am.channelOutput(apu.Square2, isRight)
-	tndOutput := am.channelOutput(apu.DMC, isRight) +
+	tndOutput := am.channelOutput(apu.DPCM, isRight) +
 		2.7516713261*am.channelOutput(apu.Triangle, isRight) +
 		1.8493587125*am.channelOutput(apu.Noise, isRight)
 

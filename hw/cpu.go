@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"nestor/emu/log"
+	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
 	"nestor/hw/input"
 )
@@ -43,7 +44,7 @@ type CPU struct {
 	nmiFlag, prevNmiFlag bool
 	needNmi, prevNeedNmi bool
 	runIRQ, prevRunIRQ   bool
-	irqFlag              irqSource
+	irqFlag              hwdefs.IRQSource
 }
 
 // NewCPU creates a new CPU at power-up state.
@@ -228,6 +229,10 @@ const (
 	ppuOffset = 1
 )
 
+func (c *CPU) CurrentCycle() int64 {
+	return c.Cycles
+}
+
 func (c *CPU) cycleBegin(forRead bool) {
 	if forRead {
 		c.masterClock += ntscStartClockCount - 1
@@ -318,55 +323,17 @@ func (c *CPU) pull16() uint16 {
 
 /* DMC */
 
-func (c *CPU) startDmcTransfer() {
+func (c *CPU) StartDmcTransfer() {
 	c.DMA.startDMCTransfer()
 }
 
-func (c *CPU) stopDmcTransfer() {
+func (c *CPU) StopDmcTransfer() {
 	c.DMA.stopDmcTransfer()
 }
 
 /* interrupt handling */
 
-type irqSource uint8
-
-const (
-	external irqSource = 1 << iota
-	frameCounter
-	dmc
-
-	numSources = 3
-)
-
-var irqSrcNames = [numSources]string{
-	"external",
-	"frameCounter",
-	"dmc",
-}
-
-func (irq irqSource) String() string {
-	if irq == 0 {
-		return ""
-	}
-
-	str := ""
-	append := func(i int) {
-		if str != "" {
-			str += "|"
-		}
-		str += irqSrcNames[i]
-	}
-
-	for i := range numSources {
-		if irq&(1<<i) != 0 {
-			append(i)
-		}
-	}
-
-	return str
-}
-
-func (c *CPU) setIrqSource(src irqSource) {
+func (c *CPU) SetIrqSource(src hwdefs.IRQSource) {
 	log.ModCPU.DebugZ("set IRQ source").
 		Stringer("src", src).
 		Stringer("prev", c.irqFlag).
@@ -376,11 +343,11 @@ func (c *CPU) setIrqSource(src irqSource) {
 	c.irqFlag |= src
 }
 
-func (c *CPU) hasIrqSource(src irqSource) bool {
+func (c *CPU) HasIrqSource(src hwdefs.IRQSource) bool {
 	return (c.irqFlag & src) != 0
 }
 
-func (c *CPU) clearIrqSource(src irqSource) {
+func (c *CPU) ClearIrqSource(src hwdefs.IRQSource) {
 	log.ModCPU.DebugZ("clear IRQ source").
 		Stringer("src", src).
 		Stringer("prev", c.irqFlag).

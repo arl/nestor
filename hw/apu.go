@@ -3,6 +3,7 @@ package hw
 import (
 	"nestor/emu/log"
 	"nestor/hw/apu"
+	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
 )
 
@@ -14,7 +15,7 @@ type APU struct {
 	Square2  apu.SquareChannel
 	Triangle apu.TriangleChannel
 	Noise    apu.NoiseChannel
-	DMC      DMC
+	DMC      apu.DMC
 
 	frameCounter apuFrameCounter
 
@@ -39,7 +40,7 @@ func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
 	a.Square1 = apu.NewSquareChannel(a, mixer, apu.Square1, true)
 	a.Square2 = apu.NewSquareChannel(a, mixer, apu.Square2, false)
 	a.Triangle = apu.NewTriangleChannel(a, mixer)
-	a.DMC = NewDMC(a, mixer)
+	a.DMC = apu.NewDMC(a, cpu, mixer)
 
 	a.frameCounter.apu = a
 
@@ -73,10 +74,10 @@ func (a *APU) Status() uint8 {
 		status |= 0x10
 	}
 
-	if a.cpu.hasIrqSource(frameCounter) {
+	if a.cpu.HasIrqSource(hwdefs.FrameCounter) {
 		status |= 0x40
 	}
-	if a.cpu.hasIrqSource(dmc) {
+	if a.cpu.HasIrqSource(hwdefs.DMC) {
 		status |= 0x80
 	}
 
@@ -92,7 +93,7 @@ func (a *APU) ReadSTATUS(val uint8, peek bool) uint8 {
 	status := a.Status()
 
 	// Reading $4015 clears the Frame Counter interrupt flag.
-	a.cpu.clearIrqSource(frameCounter)
+	a.cpu.ClearIrqSource(hwdefs.FrameCounter)
 
 	log.ModSound.InfoZ("read status").Uint8("status", status).End()
 	return status
@@ -106,7 +107,7 @@ func (a *APU) WriteSTATUS(old, val uint8) {
 	// Writing to $4015 clears the DMC interrupt flag. This needs to be done
 	// before setting the enabled flag for the DMC (because doing so can trigger
 	// an IRQ).
-	a.cpu.clearIrqSource(dmc)
+	a.cpu.ClearIrqSource(hwdefs.DMC)
 
 	a.Square1.SetEnabled((val & 0x01) == 0x01)
 	a.Square2.SetEnabled((val & 0x02) == 0x02)
@@ -172,7 +173,7 @@ func (a *APU) Tick() {
 }
 
 func (a *APU) EndFrame() {
-	a.DMC.processClock()
+	a.DMC.ProcessClock()
 	a.Run()
 	a.Square1.EndFrame()
 	a.Square2.EndFrame()

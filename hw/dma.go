@@ -80,7 +80,7 @@ func (dma *DMA) processPending(addr uint16) {
 	isInternalReg := (addr & 0xFFE0) == 0x4000
 	skipFirstInputClock := false
 	if isInternalReg && dma.dmcRunning && (addr == 0x4016 || addr == 0x4017) {
-		dmcAddress := dmc.getReadAddress()
+		dmcAddress := dmc.CurrentAddress()
 		if (dmcAddress & 0x1F) == (addr & 0x1F) {
 			// DMC will cause a read on the same address as the CPU was reading
 			// from This will hide the reads from the controllers because /OE
@@ -152,11 +152,11 @@ func (dma *DMA) processPending(addr uint16) {
 				// DMC DMA is ready to read a byte (both halt and dummy read
 				// cycles were performed before this)
 				processCycle()
-				val, prevAddr = dma.processRead(dmc.getReadAddress(), prevAddr, isInternalReg)
+				val, prevAddr = dma.processRead(dmc.CurrentAddress(), prevAddr, isInternalReg)
 				cpu.cycleEnd(true)
 				dma.dmcRunning = false
 				dma.abortDMC = false
-				dmc.setReadBuffer(val)
+				dmc.SetReadBuffer(val)
 			case dma.oamRunning:
 				// DMC DMA is not running, or not ready, run sprite DMA
 				processCycle()
