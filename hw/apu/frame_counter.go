@@ -1,16 +1,8 @@
-package hw
+package apu
 
 import (
 	"nestor/emu/log"
 	"nestor/hw/hwdefs"
-)
-
-type FrameType uint8
-
-const (
-	noFrame FrameType = iota
-	quarterFrame
-	halfFrame
 )
 
 var stepCycles = [2][6]int32{
@@ -19,12 +11,13 @@ var stepCycles = [2][6]int32{
 }
 
 var frameType = [2][6]FrameType{
-	{quarterFrame, halfFrame, quarterFrame, noFrame, halfFrame, noFrame},
-	{quarterFrame, halfFrame, quarterFrame, noFrame, halfFrame, noFrame},
+	{QuarterFrame, HalfFrame, QuarterFrame, NoFrame, HalfFrame, NoFrame},
+	{QuarterFrame, HalfFrame, QuarterFrame, NoFrame, HalfFrame, NoFrame},
 }
 
-type apuFrameCounter struct {
-	apu *APU
+type FrameCounter struct {
+	APU apu
+	CPU cpu
 
 	stepCycles        [2][6]int32
 	prevCycle         int32
@@ -36,13 +29,12 @@ type apuFrameCounter struct {
 	writeDelayCounter int8
 }
 
-func newAPUFrameCounter() *apuFrameCounter {
-	var afc apuFrameCounter
-	afc.reset(false)
-	return &afc
+func (afc *FrameCounter) Init(apu apu, cpu cpu) {
+	afc.APU = apu
+	afc.CPU = cpu
 }
 
-func (afc *apuFrameCounter) reset(soft bool) {
+func (afc *FrameCounter) Reset(soft bool) {
 	afc.prevCycle = 0
 
 	// After reset: APU mode in $4017 was unchanged, so we need to keep
@@ -67,13 +59,13 @@ func (afc *apuFrameCounter) reset(soft bool) {
 	afc.blockTick = 0
 }
 
-func (afc *apuFrameCounter) WriteFRAMECOUNTER(old, val uint8) {
+func (afc *FrameCounter) WriteFRAMECOUNTER(old, val uint8) {
 	log.ModSound.InfoZ("write framecounter").Uint8("val", val).End()
-	afc.apu.Run()
+	afc.APU.Run()
 	afc.newval = int16(val)
 
 	// Reset sequence after $4017 is written to
-	if afc.apu.cpu.Cycles&0x01 != 0 {
+	if afc.CPU.CurrentCycle()&0x01 != 0 {
 		// If the write occurs between APU cycles, the effects occur 4 CPU
 		// cycles after the write cycle.
 		afc.writeDelayCounter = 4
@@ -85,23 +77,23 @@ func (afc *apuFrameCounter) WriteFRAMECOUNTER(old, val uint8) {
 
 	afc.inhibitIRQ = (val & 0x40) == 0x40
 	if afc.inhibitIRQ {
-		afc.apu.cpu.ClearIrqSource(hwdefs.FrameCounter)
+		afc.CPU.ClearIrqSource(hwdefs.FrameCounter)
 	}
 }
 
 // TODO: use return value instead of pointer?
-func (afc *apuFrameCounter) run(cyclesToRun *int32) uint32 {
+func (afc *FrameCounter) Run(cyclesToRun *int32) uint32 {
 	var cyclesRan int32
 
 	if afc.prevCycle+*cyclesToRun >= stepCycles[afc.stepMode][afc.curStep] {
 		if !afc.inhibitIRQ && afc.stepMode == 0 && afc.curStep >= 3 {
 			// Set irq on the last 3 cycles for 4-step mode
-			afc.apu.cpu.SetIrqSource(hwdefs.FrameCounter)
+			afc.CPU.SetIrqSource(hwdefs.FrameCounter)
 		}
 
 		ftyp := frameType[afc.stepMode][afc.curStep]
-		if ftyp != noFrame && afc.blockTick == 0 {
-			afc.apu.FrameCounterTick(ftyp)
+		if ftyp != NoFrame && afc.blockTick == 0 {
+			afc.APU.FrameCounterTick(ftyp)
 
 			// Do not allow writes to 4017 to clock the frame counter for the
 			// next cycle (i.e this odd cycle + the following even cycle)
@@ -150,7 +142,7 @@ func (afc *apuFrameCounter) run(cyclesToRun *int32) uint32 {
 				// Writing to $4017 with bit 7 set will immediately generate
 				// a clock for both the quarter frame and the half frame
 				// units, regardless of what the sequencer is doing.
-				afc.apu.FrameCounterTick(halfFrame)
+				afc.APU.FrameCounterTick(HalfFrame)
 				afc.blockTick = 2
 			}
 		}
@@ -163,7 +155,7 @@ func (afc *apuFrameCounter) run(cyclesToRun *int32) uint32 {
 	return uint32(cyclesRan)
 }
 
-func (afc *apuFrameCounter) needToRun(cyclesToRun uint32) bool {
+func (afc *FrameCounter) NeedToRun(cyclesToRun uint32) bool {
 	// Run APU when:
 	// - A new value is pending
 	// - The "blockTick" process is running

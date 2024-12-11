@@ -16,9 +16,18 @@ type mixer interface {
 	AddDelta(ch Channel, time uint32, delta int16)
 }
 
+type FrameType uint8
+
+const (
+	NoFrame FrameType = iota
+	QuarterFrame
+	HalfFrame
+)
+
 type apu interface {
 	SetNeedToRun()
 	Run()
+	FrameCounterTick(FrameType)
 }
 
 type cpu interface {

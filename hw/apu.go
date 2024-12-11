@@ -17,7 +17,7 @@ type APU struct {
 	Noise    apu.NoiseChannel
 	DMC      apu.DMC
 
-	frameCounter apuFrameCounter
+	frameCounter apu.FrameCounter
 
 	prevCycle  uint32
 	curCycle   uint32
@@ -42,7 +42,7 @@ func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
 	a.Triangle = apu.NewTriangleChannel(a, mixer)
 	a.DMC = apu.NewDMC(a, cpu, mixer)
 
-	a.frameCounter.apu = a
+	a.frameCounter.Init(a, cpu)
 
 	hwio.MustInitRegs(a)
 	hwio.MustInitRegs(&a.Square1)
@@ -131,14 +131,14 @@ func (a *APU) ReadDAC2(val uint8, peek bool) uint8 {
 	return a.DMC.Output()
 }
 
-func (a *APU) FrameCounterTick(ftyp FrameType) {
+func (a *APU) FrameCounterTick(ftyp apu.FrameType) {
 	// Quarter & half frame clock envelope & linear counter
 	a.Square1.TickEnvelope()
 	a.Square2.TickEnvelope()
 	a.Triangle.TickLinearCounter()
 	a.Noise.TickEnvelope()
 
-	if ftyp == halfFrame {
+	if ftyp == apu.HalfFrame {
 		// Half frames clock length counter & sweep
 		a.Square1.TickLengthCounter()
 		a.Square2.TickLengthCounter()
@@ -160,7 +160,7 @@ func (a *APU) Reset(soft bool) {
 	a.Triangle.Reset(soft)
 	a.Noise.Reset(soft)
 	a.DMC.Reset(soft)
-	a.frameCounter.reset(soft)
+	a.frameCounter.Reset(soft)
 }
 
 func (a *APU) Tick() {
@@ -196,7 +196,7 @@ func (a *APU) Run() {
 	cyclesToRun := int32(a.curCycle - a.prevCycle)
 
 	for cyclesToRun > 0 {
-		a.prevCycle += a.frameCounter.run(&cyclesToRun)
+		a.prevCycle += a.frameCounter.Run(&cyclesToRun)
 
 		// Reload counters set by writes to 4003/4008/400B/400F after running
 		// the frame counter to allow the length counter to be clocked first.
@@ -233,5 +233,5 @@ func (a *APU) needToRun(curCycle uint32) bool {
 	}
 
 	cyclesToRun := curCycle - a.prevCycle
-	return a.frameCounter.needToRun(cyclesToRun) || a.DMC.IRQPending(cyclesToRun)
+	return a.frameCounter.NeedToRun(cyclesToRun) || a.DMC.IRQPending(cyclesToRun)
 }
