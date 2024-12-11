@@ -109,14 +109,14 @@ func (dc *DMC) Reset(soft bool) {
 
 var dmcPeriodLUT = [16]uint16{428, 380, 340, 320, 286, 254, 226, 214, 190, 160, 142, 128, 106, 84, 72, 54}
 
+// $4010
 func (dc *DMC) WriteFLAGS(_, val uint8) {
 	dc.APU.Run()
 
 	dc.irqEnabled = (val & 0x80) == 0x80
 	dc.loopFlag = (val & 0x40) == 0x40
 
-	// period := dmcPeriodLUT[val&0x0F] - 1
-	period := dmcPeriodLUT[val&0x0F]
+	period := dmcPeriodLUT[val&0x0F] - 1
 	dc.timer.SetPeriod(period)
 
 	if !dc.irqEnabled {
@@ -136,6 +136,7 @@ func abs[T ~int | ~int8 | ~int16 | ~int32 | ~int64](x T) T {
 	return ((x + xmask) ^ xmask)
 }
 
+// $4011
 func (dc *DMC) WriteLOAD(_, val uint8) {
 	dc.APU.Run()
 
@@ -160,6 +161,7 @@ func (dc *DMC) WriteLOAD(_, val uint8) {
 		End()
 }
 
+// $4012 start of DMC sample is at address $C000 + $40*$xx
 func (dc *DMC) WriteSAMPLEADDR(_, val uint8) {
 	dc.APU.Run()
 	dc.sampleAddr = 0xC000 | uint16(val)<<6
@@ -170,6 +172,7 @@ func (dc *DMC) WriteSAMPLEADDR(_, val uint8) {
 		End()
 }
 
+// $4013 Length of DMC waveform is $10*$xx + 1 bytes (128*$xx + 8 samples)
 func (dc *DMC) WriteSAMPLELEN(_, val uint8) {
 	dc.APU.Run()
 	dc.sampleLength = uint16(val)<<4 | 0x1

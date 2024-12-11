@@ -91,9 +91,9 @@ func TestBlarggRoms(t *testing.T) {
 		"apu_reset/4015_cleared.nes",
 		"apu_reset/irq_flag_cleared.nes",
 		"apu_reset/len_ctrs_enabled.nes",
-		// "apu_reset/4017_timing.nes",
-		// "apu_reset/4017_written.nes",
-		// "apu_reset/works_immediately.nes",
+		"apu_reset/4017_timing.nes",
+		"apu_reset/4017_written.nes",
+		"apu_reset/works_immediately.nes",
 
 		"apu_test/rom_singles/1-len_ctr.nes",
 		"apu_test/rom_singles/2-len_table.nes",
@@ -101,8 +101,8 @@ func TestBlarggRoms(t *testing.T) {
 		"apu_test/rom_singles/4-jitter.nes",
 		"apu_test/rom_singles/5-len_timing.nes",
 		"apu_test/rom_singles/6-irq_flag_timing.nes",
-		// "apu_test/rom_singles/7-dmc_basics.nes",
-		// "apu_test/rom_singles/8-dmc_rates.nes",
+		"apu_test/rom_singles/7-dmc_basics.nes",
+		"apu_test/rom_singles/8-dmc_rates.nes",
 
 		"cpu_dummy_writes/cpu_dummy_writes_oam.nes",
 		// "cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
@@ -142,7 +142,11 @@ func TestBlarggRoms(t *testing.T) {
 		"instr_timing/rom_singles/2-branch_timing.nes",
 
 		"oam_read/oam_read.nes",
+
 		"oam_stress/oam_stress.nes",
+
+		"sprdma_and_dmc_dma/sprdma_and_dmc_dma.nes",
+		"sprdma_and_dmc_dma/sprdma_and_dmc_dma_512.nes",
 	}
 
 	for _, romName := range tests {
@@ -212,7 +216,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 				break
 			}
 			if result == 0x80 {
-				t.Log("test still running...")
+				t.Logf("%s still running...", t.Name())
 			}
 
 			// Handle reset request.
@@ -256,16 +260,16 @@ func TestSprite0Hit(t *testing.T) {
 		"02.alignment.nes",
 		"03.corners.nes",
 		"04.flip.nes",
-		// "05.left_clip.nes", // failed #3
-		// "06.right_edge.nes", // failed #3
+		"05.left_clip.nes",
+		"06.right_edge.nes",
 		"07.screen_bottom.nes",
 		"08.double_height.nes",
-		// "09.timing_basics.nes", // failed #3
+		"09.timing_basics.nes",
 		"10.timing_order.nes",
 		"11.edge_timing.nes",
 	}
 
-	const frameidx = 50
+	const frameidx = 70
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
 			romPath := filepath.Join(tests.RomsPath(t), "sprite_hit_tests_2005.10.05", romName)
@@ -310,12 +314,12 @@ func TestDMCDMADuringRead(t *testing.T) {
 	roms := []string{
 		"dma_2007_read.nes",
 		"dma_2007_write.nes",
-		// "dma_4016_read.nes",
+		"dma_4016_read.nes",
 		// "double_2007_read.nes",
 		"read_write_2007.nes",
 	}
 
-	const frameidx = 200
+	const frameidx = 400
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
 			romPath := filepath.Join(tests.RomsPath(t), "dmc_dma_during_read4", romName)
@@ -414,6 +418,7 @@ func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	nes, err := powerUp(rom)
 	if err != nil {
 		t.Fatal(err)
@@ -428,10 +433,8 @@ func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string
 			SaveFrameNum:  frame,
 		},
 	)
-	e := Emulator{
-		NES: nes,
-		out: out,
-	}
+
+	e := Emulator{NES: nes, out: out}
 	e.Run()
 
 	out.CompareFrame(t)

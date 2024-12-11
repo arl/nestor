@@ -2,17 +2,20 @@ package hw
 
 import (
 	"nestor/hw/hwio"
-	"nestor/hw/input"
 )
+
+type inputStateLoader interface {
+	LoadState() (uint8, uint8)
+}
 
 // InputPorts handles I/O with an InputDevice (such as standard NES controller
 // for example).
 type InputPorts struct {
 	In hwio.Reg8 `hwio:"offset=0x16,rcb,wcb"`
 
-	provider           *input.Provider // nil if no input device is connected.
-	prevStrobe, strobe bool            // to observe strobe falling edge.
-	state              [2]uint8        // state shift registers.
+	provider           inputStateLoader
+	prevStrobe, strobe bool     // to observe strobe falling edge.
+	state              [2]uint8 // state shift registers.
 }
 
 func (ip *InputPorts) initBus() {
@@ -44,9 +47,8 @@ func (ip *InputPorts) regvalPeek(port uint8) uint8 {
 func (ip *InputPorts) loadstate() {
 	if ip.provider == nil {
 		// No controller is connected.
-		// TODO: check this
-		ip.state[0] = 0x40
-		ip.state[1] = 0x40
+		ip.state[0] = 0x00
+		ip.state[1] = 0x00
 		return
 	}
 

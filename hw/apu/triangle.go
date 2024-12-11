@@ -31,6 +31,7 @@ type TriangleChannel struct {
 	pos uint8 // current position on "triangleSequence".
 
 	Linear hwio.Reg8 `hwio:"offset=0x08,wcb"`
+	Unused hwio.Reg8 `hwio:"offset=0x09,wcb"`
 	Timer  hwio.Reg8 `hwio:"offset=0x0A,wcb"`
 	Length hwio.Reg8 `hwio:"offset=0x0B,wcb"`
 }
@@ -96,6 +97,10 @@ func (tc *TriangleChannel) WriteLINEAR(_, val uint8) {
 		Bool("ctrl", tc.linearCtrl).
 		Uint8("reload", val).
 		End()
+}
+
+func (tc *TriangleChannel) WriteUNUSED(_, _ uint8) {
+	tc.apu.Run()
 }
 
 func (tc *TriangleChannel) WriteTIMER(_, val uint8) {

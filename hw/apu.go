@@ -116,14 +116,17 @@ func (a *APU) WriteSTATUS(old, val uint8) {
 }
 
 func (a *APU) ReadDAC0(val uint8, peek bool) uint8 {
+	a.Run()
 	return a.Square1.Output() | a.Square2.Output()<<4
 }
 
 func (a *APU) ReadDAC1(val uint8, peek bool) uint8 {
+	a.Run()
 	return a.Triangle.Output() | a.Noise.Output()<<4
 }
 
 func (a *APU) ReadDAC2(val uint8, peek bool) uint8 {
+	a.Run()
 	return a.DMC.Output()
 }
 
@@ -213,6 +216,10 @@ func (a *APU) Run() {
 
 func (a *APU) SetNeedToRun() {
 	a.needToRun_ = true
+}
+
+func (a *APU) setEnabled(enabled bool) {
+	a.enabled = enabled
 }
 
 func (a *APU) needToRun(curCycle uint32) bool {

@@ -199,7 +199,7 @@ func (dma *DMA) process(readAddr uint16) {
 				}
 				processCycle()
 				if !skipDummyReads {
-					dma.cpuBus.Write8(readAddr, val)
+					dma.cpuBus.Read8(readAddr, false)
 				}
 				cpu.cycleEnd(true)
 			}
