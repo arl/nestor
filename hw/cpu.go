@@ -334,13 +334,45 @@ const (
 	external irqSource = 1 << iota
 	frameCounter
 	dmc
+
+	numSources = 3
 )
+
+var irqSrcNames = [numSources]string{
+	"external",
+	"frameCounter",
+	"dmc",
+}
+
+func (irq irqSource) String() string {
+	if irq == 0 {
+		return ""
+	}
+
+	str := ""
+	append := func(i int) {
+		if str != "" {
+			str += "|"
+		}
+		str += irqSrcNames[i]
+	}
+
+	for i := range numSources {
+		if irq&(1<<i) != 0 {
+			append(i)
+		}
+	}
+
+	return str
+}
 
 func (c *CPU) setIrqSource(src irqSource) {
 	log.ModCPU.DebugZ("set IRQ source").
-		Uint8("src", uint8(src)).
-		Uint8("before", uint8(c.irqFlag)).
+		Stringer("src", src).
+		Stringer("prev", c.irqFlag).
+		Stringer("new", c.irqFlag|src).
 		End()
+
 	c.irqFlag |= src
 }
 
@@ -350,8 +382,9 @@ func (c *CPU) hasIrqSource(src irqSource) bool {
 
 func (c *CPU) clearIrqSource(src irqSource) {
 	log.ModCPU.DebugZ("clear IRQ source").
-		Uint8("src", uint8(src)).
-		Uint8("before", uint8(c.irqFlag)).
+		Stringer("src", src).
+		Stringer("prev", c.irqFlag).
+		Stringer("new", c.irqFlag&^src).
 		End()
 
 	c.irqFlag &= ^src
