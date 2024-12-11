@@ -18,10 +18,10 @@ type APU struct {
 
 	frameCounter apuFrameCounter
 
-	prevCycle     uint32
-	curCycle      uint32
-	needToRunFlag bool
-	enabled       bool
+	prevCycle  uint32
+	curCycle   uint32
+	needToRun_ bool
+	enabled    bool
 
 	STATUS hwio.Reg8 `hwio:"offset=0x15,rcb,wcb"`
 	DAC0   hwio.Reg8 `hwio:"offset=0x18,rcb,readonly"` // current instant DAC value of B=pulse2 and A=pulse1 (either 0 or current volume)
@@ -150,6 +150,7 @@ func (a *APU) Reset(soft bool) {
 	a.enabled = true
 	a.curCycle = 0
 	a.prevCycle = 0
+
 	a.Square1.Reset(soft)
 	a.Square2.Reset(soft)
 	a.Triangle.Reset(soft)
@@ -210,15 +211,17 @@ func (a *APU) Run() {
 	}
 }
 
-func (a *APU) SetNeedToRun() { a.needToRunFlag = true }
+func (a *APU) SetNeedToRun() {
+	a.needToRun_ = true
+}
 
 func (a *APU) needToRun(curCycle uint32) bool {
-	if a.DMC.NeedToRun() || a.needToRunFlag {
+	if a.DMC.NeedToRun() || a.needToRun_ {
 		// Need to run:
 		//  - whenever we alter the length counters
 		//  - need to run every cycle when DMC is running to get accurate
 		//    emulation (CPU stalling, interaction with sprite DMA, etc.)
-		a.needToRunFlag = false
+		a.needToRun_ = false
 		return true
 	}
 

@@ -60,6 +60,53 @@ func NewDMC(APU *APU, mixer *AudioMixer) DMC {
 	}
 }
 
+func (dc *DMC) initSample() {
+	dc.curaddr = dc.sampleAddr
+	dc.remaining = dc.sampleLength
+	dc.needToRun = dc.needToRun || dc.remaining > 0
+}
+
+func (dc *DMC) Reset(soft bool) {
+	dc.timer.Reset(soft)
+
+	if !soft {
+		// At power on, the sample address is set to $C000 and the sample length
+		// is set to 1. Resetting does not reset their value
+		dc.sampleAddr = 0xC000
+		dc.sampleLength = 1
+	}
+
+	dc.outputLevel = 0
+	dc.irqEnabled = false
+	dc.loopFlag = false
+
+	dc.curaddr = 0
+	dc.remaining = 0
+	dc.readBuffer = 0
+	dc.bufferEmpty = true
+
+	dc.shiftRegister = 0
+	dc.bitsRemaining = 8
+	dc.silenceFlag = true
+	dc.needToRun = false
+	dc.transferStartDelay = 0
+	dc.disableDelay = 0
+
+	dc.lastValue4011 = 0
+
+	// Not sure if this is accurate, but it seems to make things better rather
+	// than worse (for dpcmletterbox) "On the real thing, I think the power-on
+	// value is 428 (or the equivalent at least - it uses a linear feedback
+	// shift register), though only the even/oddness should matter for this
+	// test."
+	period := dmcPeriodLUT[0] - 1
+	dc.timer.SetPeriod(period)
+
+	// Make sure the DMC doesn't tick on the first cycle - this is part of what
+	// keeps Sprite/DMC DMA tests working while fixing dmcdc.pitch.
+	dc.timer.SetTimer(dc.timer.Period())
+}
+
 var dmcPeriodLUT = [16]uint16{428, 380, 340, 320, 286, 254, 226, 214, 190, 160, 142, 128, 106, 84, 72, 54}
 
 func (dc *DMC) WriteFLAGS(_, val uint8) {
@@ -68,11 +115,8 @@ func (dc *DMC) WriteFLAGS(_, val uint8) {
 	dc.irqEnabled = (val & 0x80) == 0x80
 	dc.loopFlag = (val & 0x40) == 0x40
 
-	// The rate determines for how many CPU cycles happen between changes in the
-	// output level during automatic delta-encoded sample playback. Because
-	// BaseApuChannel does not decrement when setting _timer, we need to
-	// actually set the value to 1 less than the lookup table
-	period := dmcPeriodLUT[val&0x0F] - 1
+	// period := dmcPeriodLUT[val&0x0F] - 1
+	period := dmcPeriodLUT[val&0x0F]
 	dc.timer.SetPeriod(period)
 
 	if !dc.irqEnabled {
@@ -136,53 +180,7 @@ func (dc *DMC) WriteSAMPLELEN(_, val uint8) {
 		End()
 }
 
-func (dc *DMC) Reset(soft bool) {
-	dc.timer.Reset(soft)
-
-	if !soft {
-		// At power on, the sample address is set to $C000 and the sample length
-		// is set to 1 Resetting does not reset their value
-		dc.sampleAddr = 0xC000
-		dc.sampleLength = 1
-	}
-
-	dc.outputLevel = 0
-	dc.irqEnabled = false
-	dc.loopFlag = false
-
-	dc.curaddr = 0
-	dc.remaining = 0
-	dc.readBuffer = 0
-	dc.bufferEmpty = true
-
-	dc.shiftRegister = 0
-	dc.bitsRemaining = 8
-	dc.silenceFlag = true
-	dc.needToRun = false
-	dc.transferStartDelay = 0
-	dc.disableDelay = 0
-
-	dc.lastValue4011 = 0
-
-	// Not sure if this is accurate, but it seems to make things better rather
-	// than worse (for dpcmletterbox) "On the real thing, I think the power-on
-	// value is 428 (or the equivalent at least - it uses a linear feedback
-	// shift register), though only the even/oddness should matter for this
-	// test."
-	dc.timer.SetPeriod(dmcPeriodLUT[0] - 1)
-
-	// Make sure the DMC doesn't tick on the first cycle - this is part of what
-	// keeps Sprite/DMC DMA tests working while fixing dmcdc.pitch.
-	dc.timer.SetTimer(dc.timer.Period())
-}
-
-func (dc *DMC) initSample() {
-	dc.curaddr = dc.sampleAddr
-	dc.remaining = dc.sampleLength
-	dc.needToRun = dc.needToRun || dc.remaining > 0
-}
-
-func (dc *DMC) startDmcTransfer() {
+func (dc *DMC) startDMCTransfer() {
 	if dc.bufferEmpty && dc.remaining > 0 {
 		dc.APU.cpu.startDmcTransfer()
 	}
@@ -257,7 +255,7 @@ func (dc *DMC) Run(targetCycle uint32) {
 				dc.shiftRegister = dc.readBuffer
 				dc.bufferEmpty = true
 				dc.needToRun = true
-				dc.startDmcTransfer()
+				dc.startDMCTransfer()
 			}
 		}
 
@@ -311,20 +309,19 @@ func (dc *DMC) SetEnabled(enabled bool) {
 }
 
 func (dc *DMC) processClock() {
-	if dc.disableDelay > 0 {
+	if dc.disableDelay != 0 {
 		dc.disableDelay--
 		if dc.disableDelay == 0 {
 			dc.remaining = 0
-
 			// Abort any on-going transfer that hasn't fully started
 			dc.APU.cpu.stopDmcTransfer()
 		}
 	}
 
-	if dc.transferStartDelay > 0 {
+	if dc.transferStartDelay != 0 {
 		dc.transferStartDelay--
 		if dc.transferStartDelay == 0 {
-			dc.startDmcTransfer()
+			dc.startDMCTransfer()
 		}
 	}
 
