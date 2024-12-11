@@ -23,25 +23,25 @@ type DMC struct {
 	APU   *APU
 	timer apu.Timer
 
-	sampleAddr   uint16
-	sampleLength uint16
-	outputLevel  uint8
-	irqEnabled   bool
-	loopFlag     bool
+	sampleAddr uint16
+	sampleLen  uint16
+	outlvl     uint8
+	irqEnabled bool
+	loop       bool
 
-	curaddr     uint16
-	remaining   uint16
-	readBuffer  uint8
-	bufferEmpty bool
+	curaddr   uint16
+	remaining uint16
+	readbuf   uint8
+	bufEmpty  bool
 
-	shiftRegister      uint8
-	bitsRemaining      uint8
-	silenceFlag        bool
-	needToRun          bool
-	disableDelay       uint8
-	transferStartDelay uint8
+	shiftReg     uint8
+	bitsLeft     uint8
+	silence      bool
+	needToRun    bool
+	disableDelay uint8
+	startDelay   uint8 // delay before transfer starts
 
-	lastValue4011 uint8
+	last4011 uint8
 
 	FLAGS      hwio.Reg8 `hwio:"offset=0x10,writeonly,wcb"`
 	LOAD       hwio.Reg8 `hwio:"offset=0x11,writeonly,wcb"`
@@ -51,8 +51,8 @@ type DMC struct {
 
 func NewDMC(APU *APU, mixer *AudioMixer) DMC {
 	return DMC{
-		APU:         APU,
-		silenceFlag: true,
+		APU:     APU,
+		silence: true,
 		timer: apu.Timer{
 			Channel: apu.DMC,
 			Mixer:   mixer,
@@ -62,7 +62,7 @@ func NewDMC(APU *APU, mixer *AudioMixer) DMC {
 
 func (dc *DMC) initSample() {
 	dc.curaddr = dc.sampleAddr
-	dc.remaining = dc.sampleLength
+	dc.remaining = dc.sampleLen
 	dc.needToRun = dc.needToRun || dc.remaining > 0
 }
 
@@ -73,26 +73,26 @@ func (dc *DMC) Reset(soft bool) {
 		// At power on, the sample address is set to $C000 and the sample length
 		// is set to 1. Resetting does not reset their value
 		dc.sampleAddr = 0xC000
-		dc.sampleLength = 1
+		dc.sampleLen = 1
 	}
 
-	dc.outputLevel = 0
+	dc.outlvl = 0
 	dc.irqEnabled = false
-	dc.loopFlag = false
+	dc.loop = false
 
 	dc.curaddr = 0
 	dc.remaining = 0
-	dc.readBuffer = 0
-	dc.bufferEmpty = true
+	dc.readbuf = 0
+	dc.bufEmpty = true
 
-	dc.shiftRegister = 0
-	dc.bitsRemaining = 8
-	dc.silenceFlag = true
+	dc.shiftReg = 0
+	dc.bitsLeft = 8
+	dc.silence = true
 	dc.needToRun = false
-	dc.transferStartDelay = 0
+	dc.startDelay = 0
 	dc.disableDelay = 0
 
-	dc.lastValue4011 = 0
+	dc.last4011 = 0
 
 	// Not sure if this is accurate, but it seems to make things better rather
 	// than worse (for dpcmletterbox) "On the real thing, I think the power-on
@@ -114,7 +114,7 @@ func (dc *DMC) WriteFLAGS(_, val uint8) {
 	dc.APU.Run()
 
 	dc.irqEnabled = (val & 0x80) == 0x80
-	dc.loopFlag = (val & 0x40) == 0x40
+	dc.loop = (val & 0x40) == 0x40
 
 	period := dmcPeriodLUT[val&0x0F] - 1
 	dc.timer.SetPeriod(period)
@@ -126,7 +126,7 @@ func (dc *DMC) WriteFLAGS(_, val uint8) {
 	log.ModSound.InfoZ("write dmc FLAGS").
 		Uint8("reg", val).
 		Bool("irq enabled", dc.irqEnabled).
-		Bool("loop", dc.loopFlag).
+		Bool("loop", dc.loop).
 		Uint16("period", period).
 		End()
 }
@@ -141,23 +141,23 @@ func (dc *DMC) WriteLOAD(_, val uint8) {
 	dc.APU.Run()
 
 	newval := val & 0x7F
-	previousLevel := dc.outputLevel
-	dc.outputLevel = newval
+	previousLevel := dc.outlvl
+	dc.outlvl = newval
 
-	if abs(int8(dc.outputLevel)-int8(previousLevel)) > 50 {
+	if abs(int8(dc.outlvl)-int8(previousLevel)) > 50 {
 		// Reduce popping sounds for 4011 writes
-		dc.outputLevel -= (dc.outputLevel - previousLevel) / 2
+		dc.outlvl -= (dc.outlvl - previousLevel) / 2
 	}
 
 	// 4011 applies new output right away, not on the timer's reload. This
 	// fixes bad DMC sound when playing through 4011.
-	dc.timer.AddOutput(int8(dc.outputLevel))
+	dc.timer.AddOutput(int8(dc.outlvl))
 
-	dc.lastValue4011 = newval
+	dc.last4011 = newval
 
 	log.ModSound.InfoZ("write dmc LOAD").
 		Uint8("reg", val).
-		Uint8("out lvl", dc.outputLevel).
+		Uint8("out lvl", dc.outlvl).
 		End()
 }
 
@@ -175,16 +175,16 @@ func (dc *DMC) WriteSAMPLEADDR(_, val uint8) {
 // $4013 Length of DMC waveform is $10*$xx + 1 bytes (128*$xx + 8 samples)
 func (dc *DMC) WriteSAMPLELEN(_, val uint8) {
 	dc.APU.Run()
-	dc.sampleLength = uint16(val)<<4 | 0x1
+	dc.sampleLen = uint16(val)<<4 | 0x1
 
 	log.ModSound.InfoZ("write dmc SAMPLELEN").
 		Uint8("val", val).
-		Uint16("len", dc.sampleLength).
+		Uint16("len", dc.sampleLen).
 		End()
 }
 
 func (dc *DMC) startDMCTransfer() {
-	if dc.bufferEmpty && dc.remaining > 0 {
+	if dc.bufEmpty && dc.remaining > 0 {
 		dc.APU.cpu.startDmcTransfer()
 	}
 }
@@ -199,10 +199,10 @@ func (dc *DMC) setReadBuffer(val uint8) {
 		End()
 
 	if dc.remaining > 0 {
-		dc.readBuffer = val
-		dc.bufferEmpty = false
+		dc.readbuf = val
+		dc.bufEmpty = false
 
-		// address wraps around to $8000, not $0000.
+		// Address wraps around to $8000, not $0000.
 		dc.curaddr++
 		if dc.curaddr == 0 {
 			dc.curaddr = 0x8000
@@ -211,7 +211,7 @@ func (dc *DMC) setReadBuffer(val uint8) {
 		dc.remaining--
 
 		if dc.remaining == 0 {
-			if dc.loopFlag {
+			if dc.loop {
 				// Looped sample should never set IRQ flag
 				dc.initSample()
 			} else if dc.irqEnabled {
@@ -220,13 +220,14 @@ func (dc *DMC) setReadBuffer(val uint8) {
 		}
 	}
 
-	if dc.sampleLength == 1 && !dc.loopFlag {
-		if dc.bitsRemaining == 1 && dc.timer.Timer() < 2 {
-			// When the DMA ends on the APU cycle before the bit counter resets
-			// If it this happens right before the bit counter resets,
-			// a DMA is triggered and aborted 1 cycle later (causing one halted CPU cycle)
-			dc.shiftRegister = dc.readBuffer
-			dc.bufferEmpty = false
+	if dc.sampleLen == 1 && !dc.loop {
+		if dc.bitsLeft == 1 && dc.timer.Timer() < 2 {
+			// When the DMA ends on the APU cycle before the bit, counter
+			// resets. If it this happens right before the bit counter resets, a
+			// DMA is triggered and aborted 1 cycle later (causing one halted
+			// CPU cycle).
+			dc.shiftReg = dc.readbuf
+			dc.bufEmpty = false
 			dc.initSample()
 			dc.disableDelay = 3
 		}
@@ -235,41 +236,42 @@ func (dc *DMC) setReadBuffer(val uint8) {
 
 func (dc *DMC) Run(targetCycle uint32) {
 	for dc.timer.Run(targetCycle) {
-		if !dc.silenceFlag {
-			if dc.shiftRegister&0x01 != 0 {
-				if dc.outputLevel <= 125 {
-					dc.outputLevel += 2
+		if !dc.silence {
+			if dc.shiftReg&0x01 != 0 {
+				if dc.outlvl <= 125 {
+					dc.outlvl += 2
 				}
 			} else {
-				if dc.outputLevel >= 2 {
-					dc.outputLevel -= 2
+				if dc.outlvl >= 2 {
+					dc.outlvl -= 2
 				}
 			}
-			dc.shiftRegister >>= 1
+			dc.shiftReg >>= 1
 		}
 
-		dc.bitsRemaining--
-		if dc.bitsRemaining == 0 {
-			dc.bitsRemaining = 8
-			if dc.bufferEmpty {
-				dc.silenceFlag = true
+		dc.bitsLeft--
+		if dc.bitsLeft == 0 {
+			dc.bitsLeft = 8
+			if dc.bufEmpty {
+				dc.silence = true
 			} else {
-				dc.silenceFlag = false
-				dc.shiftRegister = dc.readBuffer
-				dc.bufferEmpty = true
+				dc.silence = false
+				dc.shiftReg = dc.readbuf
+				dc.bufEmpty = true
 				dc.needToRun = true
 				dc.startDMCTransfer()
 			}
 		}
 
-		dc.timer.AddOutput(int8(dc.outputLevel))
+		dc.timer.AddOutput(int8(dc.outlvl))
 	}
 }
 
 func (dc *DMC) IRQPending(cyclesToRun uint32) bool {
 	if dc.irqEnabled && dc.remaining > 0 {
-		cyclesToEmptyBuffer := (uint16(dc.bitsRemaining) + (dc.remaining-1)*8) * dc.timer.Period()
-		if cyclesToRun >= uint32(cyclesToEmptyBuffer) {
+		// IRQ is set when the sample buffer is emptied.
+		ncycles := (uint16(dc.bitsLeft) + (dc.remaining-1)*8) * dc.timer.Period()
+		if cyclesToRun >= uint32(ncycles) {
 			return true
 		}
 	}
@@ -303,9 +305,9 @@ func (dc *DMC) SetEnabled(enabled bool) {
 		// Delay a number of cycles based on odd/even cycles
 		// Allows behavior to match dmc_dma_start_test
 		if (dc.APU.cpu.Cycles & 0x01) == 0 {
-			dc.transferStartDelay = 2
+			dc.startDelay = 2
 		} else {
-			dc.transferStartDelay = 3
+			dc.startDelay = 3
 		}
 		dc.needToRun = true
 	}
@@ -316,19 +318,19 @@ func (dc *DMC) processClock() {
 		dc.disableDelay--
 		if dc.disableDelay == 0 {
 			dc.remaining = 0
-			// Abort any on-going transfer that hasn't fully started
+			// Abort any on-going transfer that hasn't fully started.
 			dc.APU.cpu.stopDmcTransfer()
 		}
 	}
 
-	if dc.transferStartDelay != 0 {
-		dc.transferStartDelay--
-		if dc.transferStartDelay == 0 {
+	if dc.startDelay != 0 {
+		dc.startDelay--
+		if dc.startDelay == 0 {
 			dc.startDMCTransfer()
 		}
 	}
 
-	dc.needToRun = dc.disableDelay != 0 || dc.transferStartDelay != 0 || dc.remaining != 0
+	dc.needToRun = dc.disableDelay != 0 || dc.startDelay != 0 || dc.remaining != 0
 }
 
 func (dc *DMC) NeedToRun() bool {

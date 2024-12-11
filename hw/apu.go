@@ -197,10 +197,9 @@ func (a *APU) Run() {
 	for cyclesToRun > 0 {
 		a.prevCycle += a.frameCounter.run(&cyclesToRun)
 
-		// Reload counters set by writes to 4003/4008/400B/400F after
-		// running the frame counter to allow the length counter to be
-		// clocked first. This fixes the test "len_reload_timing" (tests 4 &
-		// 5)
+		// Reload counters set by writes to 4003/4008/400B/400F after running
+		// the frame counter to allow the length counter to be clocked first.
+		// This fixes the test "len_reload_timing" (tests 4 & 5)
 		a.Square1.ReloadLengthCounter()
 		a.Square2.ReloadLengthCounter()
 		a.Noise.ReloadLengthCounter()

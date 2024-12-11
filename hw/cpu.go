@@ -265,7 +265,7 @@ func (c *CPU) fetch() uint8 {
 }
 
 func (c *CPU) Read8(addr uint16) uint8 {
-	c.DMA.process(addr)
+	c.DMA.processPending(addr)
 	c.cycleBegin(true)
 	val := c.Bus.Read8(addr, false)
 	c.cycleEnd(true)
