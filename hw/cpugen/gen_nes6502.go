@@ -670,6 +670,9 @@ func (g *Generator) NOP(def opdef) {
 	if !slices.Contains([]string{"acc", "imp", "rel", "imm"}, def.m) {
 		g.dummyread("oper")
 	}
+	if def.m == "imm" {
+		g.printf(`_ = val`)
+	}
 }
 
 func (g *Generator) ORA(_ opdef) {
@@ -911,14 +914,6 @@ func (g *Generator) opcodeHeader(code uint8) {
 	g.printf(`// %s - %s`, defs[code].n, mode.human)
 	g.printf(`func opcode%02X(cpu*CPU){`, code)
 	if mode.f != nil {
-		// g.printf(`var oper uint16`)
-		// g.printf(`_ = oper`)
-
-		if strings.Contains(defs[code].d, "r") {
-			g.printf(`var val uint8`)
-			g.printf(`_ = val`)
-		}
-
 		mode.f(g, defs[code].d)
 	}
 
@@ -926,11 +921,11 @@ func (g *Generator) opcodeHeader(code uint8) {
 	case strings.Contains(defs[code].d, "r"):
 		switch defs[code].m {
 		case "acc":
-			g.printf(`val = cpu.A`)
+			g.printf(`val := cpu.A`)
 		case "imm":
-			g.printf(`val = cpu.fetch()`)
+			g.printf(`val := cpu.fetch()`)
 		default:
-			g.printf(`val = cpu.Read8(oper)`)
+			g.printf(`val := cpu.Read8(oper)`)
 		}
 	}
 }
