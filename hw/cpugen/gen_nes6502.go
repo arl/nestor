@@ -421,28 +421,26 @@ func aby(g *Generator, info string) {
 }
 
 func zpg(g *Generator, _ string) {
-	g.printf(`oper = uint16(cpu.Read8(cpu.PC))`)
-	g.printf(`cpu.PC++`)
+	g.printf(`oper = uint16(cpu.fetch())`)
 }
 
 func zpx(g *Generator, _ string) {
-	g.printf(`addr := cpu.Read8(cpu.PC)`)
-	g.printf(`cpu.PC++`)
+	g.printf(`addr := cpu.fetch()`)
 	g.dummyread("uint16(addr)")
 	g.printf(`oper = uint16(addr) + uint16(cpu.X)`)
 	g.printf(`oper &= 0xff`)
 }
 
 func zpy(g *Generator, _ string) {
-	g.printf(`addr := cpu.Read8(cpu.PC)`)
+	g.printf(`addr := cpu.fetch()`)
 	g.dummyread("uint16(addr)")
-	g.printf(`cpu.PC++`)
 	g.printf(`oper = uint16(addr) + uint16(cpu.Y)`)
 	g.printf(`oper &= 0xff`)
 }
 
+// CONTINUER
 func izx(g *Generator, info string) {
-	zpg(g, info)
+	g.printf(`oper = uint16(cpu.fetch())`)
 	g.dummyread("uint16(oper)")
 	g.printf(`oper = uint16(uint8(oper) + cpu.X)`)
 	r16zpwrap(g)
@@ -451,7 +449,7 @@ func izx(g *Generator, info string) {
 func izy(g *Generator, info string) {
 	switch {
 	case has(info, 'x'):
-		zpg(g, info)
+		g.printf(`oper = uint16(cpu.fetch())`)
 		r16zpwrap(g)
 		g.printf(`if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {`)
 		g.printf(`// extra cycle for page cross`)
@@ -460,7 +458,7 @@ func izy(g *Generator, info string) {
 		g.printf(`oper += uint16(cpu.Y)`)
 	case has(info, 'a'):
 		g.printf(`// extra cycle always`)
-		zpg(g, info)
+		g.printf(`oper = uint16(cpu.fetch())`)
 		r16zpwrap(g)
 		g.printf(`// page crossed?`)
 		g.printf(`if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {`)
@@ -471,7 +469,7 @@ func izy(g *Generator, info string) {
 		g.printf(`oper += uint16(cpu.Y)`)
 	default:
 		g.printf(`// default`)
-		zpg(g, info)
+		g.printf(`oper = uint16(cpu.fetch())`)
 		r16zpwrap(g)
 		g.printf(`oper += uint16(cpu.Y)`)
 	}
@@ -755,8 +753,7 @@ func (g *Generator) RTI(_ opdef) {
 func (g *Generator) RTS(_ opdef) {
 	g.dummyread("uint16(cpu.SP) + 0x0100")
 	pull16(g, `cpu.PC`)
-	g.dummyread("cpu.PC")
-	g.printf(`cpu.PC++`)
+	g.printf(`cpu.fetch()`)
 }
 
 func (g *Generator) SAX(_ opdef) {

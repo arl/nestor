@@ -11,8 +11,7 @@ func opcode01(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -40,8 +39,7 @@ func opcode03(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -67,8 +65,7 @@ func opcode03(cpu *CPU) {
 func opcode04(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(oper)
 }
@@ -79,8 +76,7 @@ func opcode05(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
@@ -92,8 +88,7 @@ func opcode06(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -110,8 +105,7 @@ func opcode07(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	// SLO start
 	// dummy write.
@@ -270,8 +264,7 @@ func opcode11(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -303,8 +296,7 @@ func opcode13(cpu *CPU) {
 	var val uint8
 	_ = val
 	// extra cycle always
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -336,8 +328,7 @@ func opcode13(cpu *CPU) {
 func opcode14(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -352,8 +343,7 @@ func opcode15(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -369,8 +359,7 @@ func opcode16(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -391,8 +380,7 @@ func opcode17(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -560,8 +548,7 @@ func opcode21(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -589,8 +576,7 @@ func opcode23(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -619,8 +605,7 @@ func opcode24(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	cpu.P &= 0b00111111
 	cpu.P |= P(val & 0b11000000)
@@ -633,8 +618,7 @@ func opcode25(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
@@ -646,8 +630,7 @@ func opcode26(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -667,8 +650,7 @@ func opcode27(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -841,8 +823,7 @@ func opcode31(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -874,8 +855,7 @@ func opcode33(cpu *CPU) {
 	var val uint8
 	_ = val
 	// extra cycle always
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -908,8 +888,7 @@ func opcode33(cpu *CPU) {
 func opcode34(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -924,8 +903,7 @@ func opcode35(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -941,8 +919,7 @@ func opcode36(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -966,8 +943,7 @@ func opcode37(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -1156,8 +1132,7 @@ func opcode41(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -1185,8 +1160,7 @@ func opcode43(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -1212,8 +1186,7 @@ func opcode43(cpu *CPU) {
 func opcode44(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(oper)
 }
@@ -1224,8 +1197,7 @@ func opcode45(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1237,8 +1209,7 @@ func opcode46(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -1257,8 +1228,7 @@ func opcode47(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -1420,8 +1390,7 @@ func opcode51(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -1453,8 +1422,7 @@ func opcode53(cpu *CPU) {
 	var val uint8
 	_ = val
 	// extra cycle always
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -1486,8 +1454,7 @@ func opcode53(cpu *CPU) {
 func opcode54(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -1502,8 +1469,7 @@ func opcode55(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -1519,8 +1485,7 @@ func opcode56(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -1543,8 +1508,7 @@ func opcode57(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -1717,9 +1681,7 @@ func opcode60(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(uint16(cpu.SP) + 0x0100)
 	cpu.PC = cpu.pull16()
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
-	cpu.PC++
+	cpu.fetch()
 }
 
 // ADC - indexed addressing (abs, X).
@@ -1728,8 +1690,7 @@ func opcode61(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -1763,8 +1724,7 @@ func opcode63(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -1799,8 +1759,7 @@ func opcode63(cpu *CPU) {
 func opcode64(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(oper)
 }
@@ -1811,8 +1770,7 @@ func opcode65(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	var carry uint16
 	if cpu.P.carry() {
@@ -1830,8 +1788,7 @@ func opcode66(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -1853,8 +1810,7 @@ func opcode67(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -2060,8 +2016,7 @@ func opcode71(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -2099,8 +2054,7 @@ func opcode73(cpu *CPU) {
 	var val uint8
 	_ = val
 	// extra cycle always
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -2141,8 +2095,7 @@ func opcode73(cpu *CPU) {
 func opcode74(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -2157,8 +2110,7 @@ func opcode75(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -2180,8 +2132,7 @@ func opcode76(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -2207,8 +2158,7 @@ func opcode77(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -2427,8 +2377,7 @@ func opcode80(cpu *CPU) {
 func opcode81(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -2452,8 +2401,7 @@ func opcode82(cpu *CPU) {
 func opcode83(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -2468,8 +2416,7 @@ func opcode83(cpu *CPU) {
 func opcode84(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	cpu.Write8(oper, cpu.Y)
 }
 
@@ -2477,8 +2424,7 @@ func opcode84(cpu *CPU) {
 func opcode85(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	cpu.Write8(oper, cpu.A)
 }
 
@@ -2486,8 +2432,7 @@ func opcode85(cpu *CPU) {
 func opcode86(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	cpu.Write8(oper, cpu.X)
 }
 
@@ -2495,8 +2440,7 @@ func opcode86(cpu *CPU) {
 func opcode87(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	cpu.Write8(oper, cpu.A&cpu.X)
 }
 
@@ -2602,8 +2546,7 @@ func opcode91(cpu *CPU) {
 	var oper uint16
 	_ = oper
 	// extra cycle always
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -2634,8 +2577,7 @@ func opcode93(cpu *CPU) {
 	var oper uint16
 	_ = oper
 	// default
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -2649,8 +2591,7 @@ func opcode93(cpu *CPU) {
 func opcode94(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -2662,8 +2603,7 @@ func opcode94(cpu *CPU) {
 func opcode95(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -2675,10 +2615,9 @@ func opcode95(cpu *CPU) {
 func opcode96(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	addr := cpu.Read8(cpu.PC)
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
-	cpu.PC++
 	oper = uint16(addr) + uint16(cpu.Y)
 	oper &= 0xff
 	cpu.Write8(oper, cpu.X)
@@ -2688,10 +2627,9 @@ func opcode96(cpu *CPU) {
 func opcode97(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	addr := cpu.Read8(cpu.PC)
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
-	cpu.PC++
 	oper = uint16(addr) + uint16(cpu.Y)
 	oper &= 0xff
 	cpu.Write8(oper, cpu.A&cpu.X)
@@ -2815,8 +2753,7 @@ func opcodeA1(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -2846,8 +2783,7 @@ func opcodeA3(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -2867,8 +2803,7 @@ func opcodeA4(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	cpu.Y = val
 	cpu.P.checkNZ(val)
@@ -2880,8 +2815,7 @@ func opcodeA5(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.P.checkNZ(val)
@@ -2893,8 +2827,7 @@ func opcodeA6(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	cpu.X = val
 	cpu.P.checkNZ(val)
@@ -2906,8 +2839,7 @@ func opcodeA7(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	cpu.A = val
 	cpu.X = val
@@ -3041,8 +2973,7 @@ func opcodeB1(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -3073,8 +3004,7 @@ func opcodeB3(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -3097,8 +3027,7 @@ func opcodeB4(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -3114,8 +3043,7 @@ func opcodeB5(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -3131,10 +3059,9 @@ func opcodeB6(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
-	cpu.PC++
 	oper = uint16(addr) + uint16(cpu.Y)
 	oper &= 0xff
 	val = cpu.Read8(oper)
@@ -3148,10 +3075,9 @@ func opcodeB7(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
-	cpu.PC++
 	oper = uint16(addr) + uint16(cpu.Y)
 	oper &= 0xff
 	val = cpu.Read8(oper)
@@ -3311,8 +3237,7 @@ func opcodeC1(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -3340,8 +3265,7 @@ func opcodeC3(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -3365,8 +3289,7 @@ func opcodeC4(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.Y - val)
 	cpu.P.setCarry(val <= cpu.Y)
@@ -3378,8 +3301,7 @@ func opcodeC5(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
 	cpu.P.setCarry(val <= cpu.A)
@@ -3391,8 +3313,7 @@ func opcodeC6(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -3407,8 +3328,7 @@ func opcodeC7(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -3553,8 +3473,7 @@ func opcodeD1(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -3586,8 +3505,7 @@ func opcodeD3(cpu *CPU) {
 	var val uint8
 	_ = val
 	// extra cycle always
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -3615,8 +3533,7 @@ func opcodeD3(cpu *CPU) {
 func opcodeD4(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -3631,8 +3548,7 @@ func opcodeD5(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -3648,8 +3564,7 @@ func opcodeD6(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -3668,8 +3583,7 @@ func opcodeD7(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -3834,8 +3748,7 @@ func opcodeE1(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -3870,8 +3783,7 @@ func opcodeE3(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// dummy read.
 	_ = cpu.Read8(uint16(oper))
 	oper = uint16(uint8(oper) + cpu.X)
@@ -3904,8 +3816,7 @@ func opcodeE4(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
 	cpu.P.setCarry(val <= cpu.X)
@@ -3917,8 +3828,7 @@ func opcodeE5(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
@@ -3937,8 +3847,7 @@ func opcodeE6(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -3953,8 +3862,7 @@ func opcodeE7(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	val = cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
@@ -4134,8 +4042,7 @@ func opcodeF1(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -4174,8 +4081,7 @@ func opcodeF3(cpu *CPU) {
 	var val uint8
 	_ = val
 	// extra cycle always
-	oper = uint16(cpu.Read8(cpu.PC))
-	cpu.PC++
+	oper = uint16(cpu.fetch())
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(oper)
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
@@ -4212,8 +4118,7 @@ func opcodeF3(cpu *CPU) {
 func opcodeF4(cpu *CPU) {
 	var oper uint16
 	_ = oper
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -4228,8 +4133,7 @@ func opcodeF5(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -4252,8 +4156,7 @@ func opcodeF6(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
@@ -4272,8 +4175,7 @@ func opcodeF7(cpu *CPU) {
 	_ = oper
 	var val uint8
 	_ = val
-	addr := cpu.Read8(cpu.PC)
-	cpu.PC++
+	addr := cpu.fetch()
 	// dummy read.
 	_ = cpu.Read8(uint16(addr))
 	oper = uint16(addr) + uint16(cpu.X)
