@@ -376,8 +376,8 @@ func ind(g *Generator, _ string) {
 func imm(g *Generator, _ string) {}
 
 func rel(g *Generator, _ string) {
-	g.printf(`off := int8(cpu.fetch())`)
-	g.printf(`oper := uint16(int16(cpu.PC) + int16(off))`)
+	g.printf(`off := int16(int8(cpu.fetch()))`)
+	g.printf(`oper := uint16(int16(cpu.PC) + off)`)
 }
 
 func abs(g *Generator, _ string) {
@@ -388,34 +388,27 @@ func abs(g *Generator, _ string) {
 // seems that we don't even need the dummyread bool
 
 func abx(g *Generator, info string) {
+	g.printf(`addr := cpu.Read16(cpu.PC)`)
+	g.printf(`cpu.PC += 2`)
+	g.printf(`oper := addr + uint16(cpu.X)`)
+
 	switch {
 	case has(info, 'x'):
-		g.printf(`addr := cpu.Read16(cpu.PC)`)
-		g.printf(`cpu.PC += 2`)
-		g.printf(`oper := addr + uint16(cpu.X)`)
 		tickIfPageCrossed(g, "addr", "oper")
 	default:
-		g.printf(`addr := cpu.Read16(cpu.PC)`)
-		g.printf(`oper := addr`)
-		g.printf(`cpu.PC += 2`)
-		g.printf(`oper += uint16(cpu.X)`)
 		g.dummyread(fmt.Sprintf("%s & 0x00FF | %s & 0xFF00", "oper", "addr"))
 	}
 }
 
 func aby(g *Generator, info string) {
+	g.printf(`addr := cpu.Read16(cpu.PC)`)
+	g.printf(`cpu.PC += 2`)
+	g.printf(`oper := addr + uint16(cpu.Y)`)
+
 	switch {
 	case has(info, 'x'):
-		g.printf(`// extra cycle for page cross`)
-		g.printf(`addr := cpu.Read16(cpu.PC)`)
-		g.printf(`cpu.PC += 2`)
-		g.printf(`oper := addr + uint16(cpu.Y)`)
 		tickIfPageCrossed(g, "addr", "oper")
 	default:
-		g.printf(`addr := cpu.Read16(cpu.PC)`)
-		g.printf(`oper := addr`)
-		g.printf(`cpu.PC += 2`)
-		g.printf(`oper += uint16(cpu.Y)`)
 		g.dummyread(fmt.Sprintf("%s & 0x00FF | %s & 0xFF00", "oper", "addr"))
 	}
 }
@@ -446,32 +439,26 @@ func izx(g *Generator, info string) {
 }
 
 func izy(g *Generator, info string) {
+	g.printf(`oper := uint16(cpu.fetch())`)
+	r16zpwrap(g)
+
 	switch {
 	case has(info, 'x'):
-		g.printf(`oper := uint16(cpu.fetch())`)
-		r16zpwrap(g)
 		g.printf(`if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {`)
 		g.printf(`// extra cycle for page cross`)
 		g.dummyread(`oper + uint16(cpu.Y) - 0x100`)
 		g.printf(`}`)
-		g.printf(`oper += uint16(cpu.Y)`)
 	case has(info, 'a'):
-		g.printf(`// extra cycle always`)
-		g.printf(`oper := uint16(cpu.fetch())`)
-		r16zpwrap(g)
 		g.printf(`// page crossed?`)
 		g.printf(`if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {`)
 		g.dummyread(`oper + uint16(cpu.Y) - 0x100`)
 		g.printf(`} else {`)
 		g.dummyread(`oper + uint16(cpu.Y)`)
 		g.printf(`}`)
-		g.printf(`oper += uint16(cpu.Y)`)
 	default:
-		g.printf(`// default`)
-		g.printf(`oper := uint16(cpu.fetch())`)
-		r16zpwrap(g)
-		g.printf(`oper += uint16(cpu.Y)`)
 	}
+
+	g.printf(`oper += uint16(cpu.Y)`)
 }
 
 // helpers
@@ -509,11 +496,13 @@ func r16zpwrap(g *Generator) {
 
 func branch(ibit int, val bool) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		neg := ""
+		neg := "!"
 		if !val {
-			neg = "!"
+			neg = ""
 		}
-		g.printf(`if %scpu.P.%s() { // do branch`, neg, pget(uint(ibit)))
+		g.printf(`if %scpu.P.%s() {`, neg, pget(uint(ibit)))
+		g.printf(`  return // no branch`)
+		g.printf(`}`)
 		g.printf(`// A taken non-page-crossing branch ignores IRQ/NMI during its last`)
 		g.printf(`// clock, so that next instruction executes before the IRQ.`)
 		g.printf(`// Fixes 'branch_delays_irq' test.`)
@@ -524,7 +513,6 @@ func branch(ibit int, val bool) func(g *Generator, _ opdef) {
 		tickIfPageCrossed(g, "cpu.PC", "oper")
 		g.printf(`	cpu.PC = oper`)
 		g.printf(`	return`)
-		g.printf(`}`)
 	}
 }
 
@@ -533,6 +521,7 @@ func tick(g *Generator) {
 }
 
 func tickIfPageCrossed(g *Generator, a, b string) {
+	g.printf(`// extra cycle for page cross`)
 	g.printf(`if 0xFF00&(%s) != 0xFF00&(%s) {`, a, b)
 	g.dummyread(fmt.Sprintf("(%s) & 0x00FF | (%s) & 0xFF00", b, a))
 	g.printf(`}`)
