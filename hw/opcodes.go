@@ -44,7 +44,10 @@ func opcode03(cpu *CPU) {
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	// SLO end
@@ -75,7 +78,10 @@ func opcode06(cpu *CPU) {
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -89,7 +95,10 @@ func opcode07(cpu *CPU) {
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	// SLO end
@@ -100,9 +109,7 @@ func opcode07(cpu *CPU) {
 func opcode08(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	p := cpu.P
-	p.setBrk(true)
-	p.setUnused(true)
+	p := cpu.P | 0x30
 	cpu.push8(uint8(p))
 }
 
@@ -121,7 +128,10 @@ func opcode0A(cpu *CPU) {
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A = val
 }
 
@@ -130,7 +140,10 @@ func opcode0B(cpu *CPU) {
 	val := cpu.fetch()
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
-	cpu.P.setCarry(cpu.P.negative())
+	cpu.P &= 0xfe
+	if cpu.P&0x80 == 0x80 {
+		cpu.P |= Carry
+	}
 }
 
 // NOP - absolute addressing.
@@ -160,7 +173,10 @@ func opcode0E(cpu *CPU) {
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -175,7 +191,10 @@ func opcode0F(cpu *CPU) {
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	// SLO end
@@ -186,7 +205,7 @@ func opcode0F(cpu *CPU) {
 func opcode10(cpu *CPU) {
 	off := int16(int8(cpu.fetch()))
 	oper := uint16(int16(cpu.PC) + off)
-	if cpu.P.negative() {
+	if cpu.P&0x80 == 0x80 {
 		return // no branch
 	}
 	// A taken non-page-crossing branch ignores IRQ/NMI during its last
@@ -254,7 +273,10 @@ func opcode13(cpu *CPU) {
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	// SLO end
@@ -297,7 +319,10 @@ func opcode16(cpu *CPU) {
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -315,7 +340,10 @@ func opcode17(cpu *CPU) {
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	// SLO end
@@ -326,7 +354,7 @@ func opcode17(cpu *CPU) {
 func opcode18(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	cpu.P.setCarry(false)
+	cpu.P &= 0xfe
 }
 
 // ORA - absolute indexed Y.
@@ -364,7 +392,10 @@ func opcode1B(cpu *CPU) {
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	// SLO end
@@ -413,7 +444,10 @@ func opcode1E(cpu *CPU) {
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -431,7 +465,10 @@ func opcode1F(cpu *CPU) {
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A |= val
 	cpu.P.checkNZ(cpu.A)
 	// SLO end
@@ -475,11 +512,14 @@ func opcode23(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val <<= 1
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -510,11 +550,14 @@ func opcode26(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val <<= 1
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -526,11 +569,14 @@ func opcode27(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val <<= 1
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -562,11 +608,14 @@ func opcode2A(cpu *CPU) {
 	val := cpu.A
 	carry := val & 0x80
 	val <<= 1
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A = val
 }
 
@@ -575,7 +624,10 @@ func opcode2B(cpu *CPU) {
 	val := cpu.fetch()
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
-	cpu.P.setCarry(cpu.P.negative())
+	cpu.P &= 0xfe
+	if cpu.P&0x80 == 0x80 {
+		cpu.P |= Carry
+	}
 }
 
 // BIT - absolute addressing.
@@ -606,11 +658,14 @@ func opcode2E(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val <<= 1
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -623,11 +678,14 @@ func opcode2F(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val <<= 1
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -637,7 +695,7 @@ func opcode2F(cpu *CPU) {
 func opcode30(cpu *CPU) {
 	off := int16(int8(cpu.fetch()))
 	oper := uint16(int16(cpu.PC) + off)
-	if !cpu.P.negative() {
+	if !(cpu.P&0x80 == 0x80) {
 		return // no branch
 	}
 	// A taken non-page-crossing branch ignores IRQ/NMI during its last
@@ -703,11 +761,14 @@ func opcode33(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val <<= 1
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -748,11 +809,14 @@ func opcode36(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val <<= 1
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -768,11 +832,14 @@ func opcode37(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val <<= 1
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -782,7 +849,7 @@ func opcode37(cpu *CPU) {
 func opcode38(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	cpu.P.setCarry(true)
+	cpu.P |= Carry
 }
 
 // AND - absolute indexed Y.
@@ -818,11 +885,14 @@ func opcode3B(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val <<= 1
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -869,11 +939,14 @@ func opcode3E(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val <<= 1
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -889,11 +962,14 @@ func opcode3F(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val <<= 1
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
 	cpu.P.checkNZ(val)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 	cpu.A &= val
 	cpu.P.checkNZ(cpu.A)
 	cpu.Write8(oper, val)
@@ -951,7 +1027,10 @@ func opcode43(cpu *CPU) {
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -983,7 +1062,10 @@ func opcode46(cpu *CPU) {
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.Write8(oper, val)
 }
@@ -998,7 +1080,10 @@ func opcode47(cpu *CPU) {
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1028,7 +1113,10 @@ func opcode4A(cpu *CPU) {
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.A = val
 }
@@ -1041,7 +1129,10 @@ func opcode4B(cpu *CPU) {
 	carry := cpu.A & 0x01 // carry is bit 0
 	cpu.A = (cpu.A >> 1) & 0x7f
 	cpu.P.checkNZ(cpu.A)
-	cpu.P.setCarry(carry != 0)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
+	}
 }
 
 // JMP - absolute addressing.
@@ -1071,7 +1162,10 @@ func opcode4E(cpu *CPU) {
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.Write8(oper, val)
 }
@@ -1087,7 +1181,10 @@ func opcode4F(cpu *CPU) {
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1098,7 +1195,7 @@ func opcode4F(cpu *CPU) {
 func opcode50(cpu *CPU) {
 	off := int16(int8(cpu.fetch()))
 	oper := uint16(int16(cpu.PC) + off)
-	if cpu.P.overflow() {
+	if cpu.P&0x40 == 0x40 {
 		return // no branch
 	}
 	// A taken non-page-crossing branch ignores IRQ/NMI during its last
@@ -1166,7 +1263,10 @@ func opcode53(cpu *CPU) {
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1210,7 +1310,10 @@ func opcode56(cpu *CPU) {
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.Write8(oper, val)
 }
@@ -1229,7 +1332,10 @@ func opcode57(cpu *CPU) {
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1240,7 +1346,7 @@ func opcode57(cpu *CPU) {
 func opcode58(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	cpu.P.setIntDisable(false)
+	cpu.P &= 0xfb
 }
 
 // EOR - absolute indexed Y.
@@ -1278,7 +1384,10 @@ func opcode5B(cpu *CPU) {
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1328,7 +1437,10 @@ func opcode5E(cpu *CPU) {
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.Write8(oper, val)
 }
@@ -1347,7 +1459,10 @@ func opcode5F(cpu *CPU) {
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.A ^= val
 	cpu.P.checkNZ(cpu.A)
@@ -1376,7 +1491,7 @@ func opcode61(cpu *CPU) {
 	oper = uint16(hi)<<8 | uint16(lo)
 	val := cpu.Read8(oper)
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1408,14 +1523,17 @@ func opcode63(cpu *CPU) {
 	{
 		carry := val & 0x01
 		val >>= 1
-		if cpu.P.carry() {
+		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1437,7 +1555,7 @@ func opcode65(cpu *CPU) {
 	oper := uint16(cpu.fetch())
 	val := cpu.Read8(oper)
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1455,11 +1573,14 @@ func opcode66(cpu *CPU) {
 	{
 		carry := val & 0x01
 		val >>= 1
-		if cpu.P.carry() {
+		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.Write8(oper, val)
 }
@@ -1473,14 +1594,17 @@ func opcode67(cpu *CPU) {
 	{
 		carry := val & 0x01
 		val >>= 1
-		if cpu.P.carry() {
+		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1504,7 +1628,7 @@ func opcode68(cpu *CPU) {
 func opcode69(cpu *CPU) {
 	val := cpu.fetch()
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1521,11 +1645,14 @@ func opcode6A(cpu *CPU) {
 	{
 		carry := val & 0x01
 		val >>= 1
-		if cpu.P.carry() {
+		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.A = val
 }
@@ -1535,12 +1662,18 @@ func opcode6B(cpu *CPU) {
 	val := cpu.fetch()
 	cpu.A &= val
 	cpu.A >>= 1
-	cpu.P.setOverflow((cpu.A>>6)^(cpu.A>>5)&0x01 != 0)
-	if cpu.P.carry() {
+	cpu.P &= 0xbf
+	if (cpu.A>>6)^(cpu.A>>5)&0x01 != 0 {
+		cpu.P |= Overflow
+	}
+	if cpu.P&0x01 == 0x01 {
 		cpu.A |= 1 << 7
 	}
 	cpu.P.checkNZ(cpu.A)
-	cpu.P.setCarry(cpu.A&(1<<6) != 0)
+	cpu.P &= 0xfe
+	if cpu.A&(1<<6) != 0 {
+		cpu.P |= Carry
+	}
 }
 
 // JMP - indirect addressing.
@@ -1559,7 +1692,7 @@ func opcode6D(cpu *CPU) {
 	cpu.PC += 2
 	val := cpu.Read8(oper)
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1578,11 +1711,14 @@ func opcode6E(cpu *CPU) {
 	{
 		carry := val & 0x01
 		val >>= 1
-		if cpu.P.carry() {
+		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.Write8(oper, val)
 }
@@ -1597,14 +1733,17 @@ func opcode6F(cpu *CPU) {
 	{
 		carry := val & 0x01
 		val >>= 1
-		if cpu.P.carry() {
+		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1618,7 +1757,7 @@ func opcode6F(cpu *CPU) {
 func opcode70(cpu *CPU) {
 	off := int16(int8(cpu.fetch()))
 	oper := uint16(int16(cpu.PC) + off)
-	if !cpu.P.overflow() {
+	if !(cpu.P&0x40 == 0x40) {
 		return // no branch
 	}
 	// A taken non-page-crossing branch ignores IRQ/NMI during its last
@@ -1653,7 +1792,7 @@ func opcode71(cpu *CPU) {
 	oper += uint16(cpu.Y)
 	val := cpu.Read8(oper)
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1691,14 +1830,17 @@ func opcode73(cpu *CPU) {
 	{
 		carry := val & 0x01
 		val >>= 1
-		if cpu.P.carry() {
+		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1728,7 +1870,7 @@ func opcode75(cpu *CPU) {
 	oper &= 0xff
 	val := cpu.Read8(oper)
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1750,11 +1892,14 @@ func opcode76(cpu *CPU) {
 	{
 		carry := val & 0x01
 		val >>= 1
-		if cpu.P.carry() {
+		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.Write8(oper, val)
 }
@@ -1772,14 +1917,17 @@ func opcode77(cpu *CPU) {
 	{
 		carry := val & 0x01
 		val >>= 1
-		if cpu.P.carry() {
+		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1793,7 +1941,7 @@ func opcode77(cpu *CPU) {
 func opcode78(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	cpu.P.setIntDisable(true)
+	cpu.P |= Interrupt
 }
 
 // ADC - absolute indexed Y.
@@ -1808,7 +1956,7 @@ func opcode79(cpu *CPU) {
 	}
 	val := cpu.Read8(oper)
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1836,14 +1984,17 @@ func opcode7B(cpu *CPU) {
 	{
 		carry := val & 0x01
 		val >>= 1
-		if cpu.P.carry() {
+		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1879,7 +2030,7 @@ func opcode7D(cpu *CPU) {
 	}
 	val := cpu.Read8(oper)
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -1901,11 +2052,14 @@ func opcode7E(cpu *CPU) {
 	{
 		carry := val & 0x01
 		val >>= 1
-		if cpu.P.carry() {
+		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	cpu.Write8(oper, val)
 }
@@ -1923,14 +2077,17 @@ func opcode7F(cpu *CPU) {
 	{
 		carry := val & 0x01
 		val >>= 1
-		if cpu.P.carry() {
+		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
 		cpu.P.checkNZ(val)
-		cpu.P.setCarry(carry != 0)
+		cpu.P &= 0xfe
+		if carry != 0 {
+			cpu.P |= Carry
+		}
 	}
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -2062,7 +2219,7 @@ func opcode8F(cpu *CPU) {
 func opcode90(cpu *CPU) {
 	off := int16(int8(cpu.fetch()))
 	oper := uint16(int16(cpu.PC) + off)
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		return // no branch
 	}
 	// A taken non-page-crossing branch ignores IRQ/NMI during its last
@@ -2390,7 +2547,7 @@ func opcodeAF(cpu *CPU) {
 func opcodeB0(cpu *CPU) {
 	off := int16(int8(cpu.fetch()))
 	oper := uint16(int16(cpu.PC) + off)
-	if !cpu.P.carry() {
+	if !(cpu.P&0x01 == 0x01) {
 		return // no branch
 	}
 	// A taken non-page-crossing branch ignores IRQ/NMI during its last
@@ -2507,7 +2664,7 @@ func opcodeB7(cpu *CPU) {
 func opcodeB8(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	cpu.P.setOverflow(false)
+	cpu.P &= 0xbf
 }
 
 // LDA - absolute indexed Y.
@@ -2615,7 +2772,10 @@ func opcodeBF(cpu *CPU) {
 func opcodeC0(cpu *CPU) {
 	val := cpu.fetch()
 	cpu.P.checkNZ(cpu.Y - val)
-	cpu.P.setCarry(val <= cpu.Y)
+	cpu.P &= 0xfe
+	if val <= cpu.Y {
+		cpu.P |= Carry
+	}
 }
 
 // CMP - indexed addressing (abs, X).
@@ -2630,7 +2790,10 @@ func opcodeC1(cpu *CPU) {
 	oper = uint16(hi)<<8 | uint16(lo)
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 }
 
 // NOP - immediate addressing.
@@ -2655,7 +2818,10 @@ func opcodeC3(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -2664,7 +2830,10 @@ func opcodeC4(cpu *CPU) {
 	oper := uint16(cpu.fetch())
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.Y - val)
-	cpu.P.setCarry(val <= cpu.Y)
+	cpu.P &= 0xfe
+	if val <= cpu.Y {
+		cpu.P |= Carry
+	}
 }
 
 // CMP - zero page addressing.
@@ -2672,7 +2841,10 @@ func opcodeC5(cpu *CPU) {
 	oper := uint16(cpu.fetch())
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 }
 
 // DEC - zero page addressing.
@@ -2695,7 +2867,10 @@ func opcodeC7(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -2711,7 +2886,10 @@ func opcodeC8(cpu *CPU) {
 func opcodeC9(cpu *CPU) {
 	val := cpu.fetch()
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 }
 
 // DEX - implied addressing.
@@ -2728,7 +2906,10 @@ func opcodeCB(cpu *CPU) {
 	ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)
 	cpu.X = uint8(ival)
 	cpu.P.checkNZ(uint8(ival))
-	cpu.P.setCarry(ival >= 0)
+	cpu.P &= 0xfe
+	if ival >= 0 {
+		cpu.P |= Carry
+	}
 }
 
 // CPY - absolute addressing.
@@ -2737,7 +2918,10 @@ func opcodeCC(cpu *CPU) {
 	cpu.PC += 2
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.Y - val)
-	cpu.P.setCarry(val <= cpu.Y)
+	cpu.P &= 0xfe
+	if val <= cpu.Y {
+		cpu.P |= Carry
+	}
 }
 
 // CMP - absolute addressing.
@@ -2746,7 +2930,10 @@ func opcodeCD(cpu *CPU) {
 	cpu.PC += 2
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 }
 
 // DEC - absolute addressing.
@@ -2771,7 +2958,10 @@ func opcodeCF(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -2779,7 +2969,7 @@ func opcodeCF(cpu *CPU) {
 func opcodeD0(cpu *CPU) {
 	off := int16(int8(cpu.fetch()))
 	oper := uint16(int16(cpu.PC) + off)
-	if cpu.P.zero() {
+	if cpu.P&0x02 == 0x02 {
 		return // no branch
 	}
 	// A taken non-page-crossing branch ignores IRQ/NMI during its last
@@ -2814,7 +3004,10 @@ func opcodeD1(cpu *CPU) {
 	oper += uint16(cpu.Y)
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 }
 
 // STP - implied addressing.
@@ -2846,7 +3039,10 @@ func opcodeD3(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -2870,7 +3066,10 @@ func opcodeD5(cpu *CPU) {
 	oper &= 0xff
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 }
 
 // DEC - indexed addressing: zeropage,X.
@@ -2901,7 +3100,10 @@ func opcodeD7(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -2909,7 +3111,7 @@ func opcodeD7(cpu *CPU) {
 func opcodeD8(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	cpu.P.setDecimal(false)
+	cpu.P &= 0xf7
 }
 
 // CMP - absolute indexed Y.
@@ -2924,7 +3126,10 @@ func opcodeD9(cpu *CPU) {
 	}
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 }
 
 // NOP - implied addressing.
@@ -2946,7 +3151,10 @@ func opcodeDB(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -2976,7 +3184,10 @@ func opcodeDD(cpu *CPU) {
 	}
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 }
 
 // DEC - absolute indexed X.
@@ -3007,7 +3218,10 @@ func opcodeDF(cpu *CPU) {
 	val--
 	cpu.P.checkNZ(val)
 	cpu.P.checkNZ(cpu.A - val)
-	cpu.P.setCarry(val <= cpu.A)
+	cpu.P &= 0xfe
+	if val <= cpu.A {
+		cpu.P |= Carry
+	}
 	cpu.Write8(oper, val)
 }
 
@@ -3015,7 +3229,10 @@ func opcodeDF(cpu *CPU) {
 func opcodeE0(cpu *CPU) {
 	val := cpu.fetch()
 	cpu.P.checkNZ(cpu.X - val)
-	cpu.P.setCarry(val <= cpu.X)
+	cpu.P &= 0xfe
+	if val <= cpu.X {
+		cpu.P |= Carry
+	}
 }
 
 // SBC - indexed addressing (abs, X).
@@ -3031,7 +3248,7 @@ func opcodeE1(cpu *CPU) {
 	val := cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3064,7 +3281,7 @@ func opcodeE3(cpu *CPU) {
 	final := val
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3080,7 +3297,10 @@ func opcodeE4(cpu *CPU) {
 	oper := uint16(cpu.fetch())
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
-	cpu.P.setCarry(val <= cpu.X)
+	cpu.P &= 0xfe
+	if val <= cpu.X {
+		cpu.P |= Carry
+	}
 }
 
 // SBC - zero page addressing.
@@ -3089,7 +3309,7 @@ func opcodeE5(cpu *CPU) {
 	val := cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3120,7 +3340,7 @@ func opcodeE7(cpu *CPU) {
 	final := val
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3144,7 +3364,7 @@ func opcodeE9(cpu *CPU) {
 	val := cpu.fetch()
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3164,7 +3384,7 @@ func opcodeEB(cpu *CPU) {
 	val := cpu.fetch()
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3179,7 +3399,10 @@ func opcodeEC(cpu *CPU) {
 	cpu.PC += 2
 	val := cpu.Read8(oper)
 	cpu.P.checkNZ(cpu.X - val)
-	cpu.P.setCarry(val <= cpu.X)
+	cpu.P &= 0xfe
+	if val <= cpu.X {
+		cpu.P |= Carry
+	}
 }
 
 // SBC - absolute addressing.
@@ -3189,7 +3412,7 @@ func opcodeED(cpu *CPU) {
 	val := cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3222,7 +3445,7 @@ func opcodeEF(cpu *CPU) {
 	final := val
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3237,7 +3460,7 @@ func opcodeEF(cpu *CPU) {
 func opcodeF0(cpu *CPU) {
 	off := int16(int8(cpu.fetch()))
 	oper := uint16(int16(cpu.PC) + off)
-	if !cpu.P.zero() {
+	if !(cpu.P&0x02 == 0x02) {
 		return // no branch
 	}
 	// A taken non-page-crossing branch ignores IRQ/NMI during its last
@@ -3273,7 +3496,7 @@ func opcodeF1(cpu *CPU) {
 	val := cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3313,7 +3536,7 @@ func opcodeF3(cpu *CPU) {
 	final := val
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3345,7 +3568,7 @@ func opcodeF5(cpu *CPU) {
 	val := cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3384,7 +3607,7 @@ func opcodeF7(cpu *CPU) {
 	final := val
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3399,7 +3622,7 @@ func opcodeF7(cpu *CPU) {
 func opcodeF8(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
-	cpu.P.setDecimal(true)
+	cpu.P |= Decimal
 }
 
 // SBC - absolute indexed Y.
@@ -3415,7 +3638,7 @@ func opcodeF9(cpu *CPU) {
 	val := cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3445,7 +3668,7 @@ func opcodeFB(cpu *CPU) {
 	final := val
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3483,7 +3706,7 @@ func opcodeFD(cpu *CPU) {
 	val := cpu.Read8(oper)
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
@@ -3522,7 +3745,7 @@ func opcodeFF(cpu *CPU) {
 	final := val
 	val ^= 0xff
 	var carry uint16
-	if cpu.P.carry() {
+	if cpu.P&0x01 == 0x01 {
 		carry = 1
 	}
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)

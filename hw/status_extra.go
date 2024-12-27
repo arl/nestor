@@ -18,6 +18,7 @@ func (p *P) checkZ(v uint8) {
 }
 
 func (p *P) checkCV(x, y uint8, sum uint16) {
+
 	// forward carry or unsigned overflow.
 	p.setCarry(sum > 0xFF)
 

@@ -50,7 +50,7 @@ var defs = [256]opdef{
 	{i: 0x0D, n: "ORA", d: "r    ", m: "abs"},
 	{i: 0x0E, n: "ASL", d: "rw   ", m: "abs"},
 	{i: 0x0F, n: "SLO", d: "rw   ", m: "abs"},
-	{i: 0x10, n: "BPL", d: "     ", m: "rel", f: branch(7, false)},
+	{i: 0x10, n: "BPL", d: "     ", m: "rel", f: branch(Negative, false)},
 	{i: 0x11, n: "ORA", d: "r  x ", m: "izy"},
 	{i: 0x12, n: "STP", d: "     ", m: "imp"},
 	{i: 0x13, n: "SLO", d: "rw  a", m: "izy"},
@@ -58,7 +58,7 @@ var defs = [256]opdef{
 	{i: 0x15, n: "ORA", d: "r    ", m: "zpx"},
 	{i: 0x16, n: "ASL", d: "rw   ", m: "zpx"},
 	{i: 0x17, n: "SLO", d: "rw   ", m: "zpx"},
-	{i: 0x18, n: "CLC", d: "     ", m: "imp", f: clear(0)},
+	{i: 0x18, n: "CLC", d: "     ", m: "imp", f: clear(Carry)},
 	{i: 0x19, n: "ORA", d: "r  x ", m: "aby"},
 	{i: 0x1A, n: "NOP", d: "     ", m: "imp"},
 	{i: 0x1B, n: "SLO", d: "rw   ", m: "aby"},
@@ -82,7 +82,7 @@ var defs = [256]opdef{
 	{i: 0x2D, n: "AND", d: "r    ", m: "abs"},
 	{i: 0x2E, n: "ROL", d: "rw   ", m: "abs"},
 	{i: 0x2F, n: "RLA", d: "rw   ", m: "abs"},
-	{i: 0x30, n: "BMI", d: "     ", m: "rel", f: branch(7, true)},
+	{i: 0x30, n: "BMI", d: "     ", m: "rel", f: branch(Negative, true)},
 	{i: 0x31, n: "AND", d: "r  x ", m: "izy"},
 	{i: 0x32, n: "STP", d: "     ", m: "imp"},
 	{i: 0x33, n: "RLA", d: "rw  a", m: "izy"},
@@ -90,7 +90,7 @@ var defs = [256]opdef{
 	{i: 0x35, n: "AND", d: "r    ", m: "zpx"},
 	{i: 0x36, n: "ROL", d: "rw   ", m: "zpx"},
 	{i: 0x37, n: "RLA", d: "rw   ", m: "zpx"},
-	{i: 0x38, n: "SEC", d: "     ", m: "imp", f: set(0)},
+	{i: 0x38, n: "SEC", d: "     ", m: "imp", f: set(Carry)},
 	{i: 0x39, n: "AND", d: "r  x ", m: "aby"},
 	{i: 0x3A, n: "NOP", d: "     ", m: "imp"},
 	{i: 0x3B, n: "RLA", d: "rw   ", m: "aby"},
@@ -114,7 +114,7 @@ var defs = [256]opdef{
 	{i: 0x4D, n: "EOR", d: "r    ", m: "abs"},
 	{i: 0x4E, n: "LSR", d: "rw   ", m: "abs"},
 	{i: 0x4F, n: "SRE", d: "rw   ", m: "abs"},
-	{i: 0x50, n: "BVC", d: "     ", m: "rel", f: branch(6, false)},
+	{i: 0x50, n: "BVC", d: "     ", m: "rel", f: branch(Overflow, false)},
 	{i: 0x51, n: "EOR", d: "r  x ", m: "izy"},
 	{i: 0x52, n: "STP", d: "     ", m: "imp"},
 	{i: 0x53, n: "SRE", d: "rw  a", m: "izy"},
@@ -122,7 +122,7 @@ var defs = [256]opdef{
 	{i: 0x55, n: "EOR", d: "r    ", m: "zpx"},
 	{i: 0x56, n: "LSR", d: "rw   ", m: "zpx"},
 	{i: 0x57, n: "SRE", d: "rw   ", m: "zpx"},
-	{i: 0x58, n: "CLI", d: "     ", m: "imp", f: clear(2)},
+	{i: 0x58, n: "CLI", d: "     ", m: "imp", f: clear(Interrupt)},
 	{i: 0x59, n: "EOR", d: "r  x ", m: "aby"},
 	{i: 0x5A, n: "NOP", d: "     ", m: "imp"},
 	{i: 0x5B, n: "SRE", d: "rw   ", m: "aby"},
@@ -146,7 +146,7 @@ var defs = [256]opdef{
 	{i: 0x6D, n: "ADC", d: "r    ", m: "abs"},
 	{i: 0x6E, n: "ROR", d: "rw   ", m: "abs"},
 	{i: 0x6F, n: "RRA", d: "rw   ", m: "abs"},
-	{i: 0x70, n: "BVS", d: "     ", m: "rel", f: branch(6, true)},
+	{i: 0x70, n: "BVS", d: "     ", m: "rel", f: branch(Overflow, true)},
 	{i: 0x71, n: "ADC", d: "r  x ", m: "izy"},
 	{i: 0x72, n: "STP", d: "     ", m: "imp"},
 	{i: 0x73, n: "RRA", d: "rw  a", m: "izy"},
@@ -154,7 +154,7 @@ var defs = [256]opdef{
 	{i: 0x75, n: "ADC", d: "r    ", m: "zpx"},
 	{i: 0x76, n: "ROR", d: "rw   ", m: "zpx"},
 	{i: 0x77, n: "RRA", d: "rw   ", m: "zpx"},
-	{i: 0x78, n: "SEI", d: "     ", m: "imp", f: set(2)},
+	{i: 0x78, n: "SEI", d: "     ", m: "imp", f: set(Interrupt)},
 	{i: 0x79, n: "ADC", d: "r  x ", m: "aby"},
 	{i: 0x7A, n: "NOP", d: "     ", m: "imp"},
 	{i: 0x7B, n: "RRA", d: "rw   ", m: "aby"},
@@ -178,7 +178,7 @@ var defs = [256]opdef{
 	{i: 0x8D, n: "STA", d: "     ", m: "abs", f: ST("A")},
 	{i: 0x8E, n: "STX", d: "     ", m: "abs", f: ST("X")},
 	{i: 0x8F, n: "SAX", d: "     ", m: "abs"},
-	{i: 0x90, n: "BCC", d: "     ", m: "rel", f: branch(0, false)},
+	{i: 0x90, n: "BCC", d: "     ", m: "rel", f: branch(Carry, false)},
 	{i: 0x91, n: "STA", d: "    a", m: "izy", f: ST("A")},
 	{i: 0x92, n: "STP", d: "     ", m: "imp"},
 	{i: 0x93, n: "SHA", d: "     ", m: "izy", f: unstable},
@@ -210,7 +210,7 @@ var defs = [256]opdef{
 	{i: 0xAD, n: "LDA", d: "r    ", m: "abs", f: LD("A")},
 	{i: 0xAE, n: "LDX", d: "r    ", m: "abs", f: LD("X")},
 	{i: 0xAF, n: "LAX", d: "r    ", m: "abs", f: LD("A", "X")},
-	{i: 0xB0, n: "BCS", d: "     ", m: "rel", f: branch(0, true)},
+	{i: 0xB0, n: "BCS", d: "     ", m: "rel", f: branch(Carry, true)},
 	{i: 0xB1, n: "LDA", d: "r  x ", m: "izy", f: LD("A")},
 	{i: 0xB2, n: "STP", d: "     ", m: "imp"},
 	{i: 0xB3, n: "LAX", d: "r  x ", m: "izy", f: LD("A", "X")},
@@ -218,7 +218,7 @@ var defs = [256]opdef{
 	{i: 0xB5, n: "LDA", d: "r    ", m: "zpx", f: LD("A")},
 	{i: 0xB6, n: "LDX", d: "r    ", m: "zpy", f: LD("X")},
 	{i: 0xB7, n: "LAX", d: "r    ", m: "zpy", f: LD("A", "X")},
-	{i: 0xB8, n: "CLV", d: "     ", m: "imp", f: clear(6)},
+	{i: 0xB8, n: "CLV", d: "     ", m: "imp", f: clear(Overflow)},
 	{i: 0xB9, n: "LDA", d: "r  x ", m: "aby", f: LD("A")},
 	{i: 0xBA, n: "TSX", d: "     ", m: "imp", f: T("SP", "X")},
 	{i: 0xBB, n: "LAS", d: "r  x ", m: "aby"},
@@ -242,7 +242,7 @@ var defs = [256]opdef{
 	{i: 0xCD, n: "CMP", d: "r    ", m: "abs", f: cmp("A")},
 	{i: 0xCE, n: "DEC", d: "rw   ", m: "abs", f: dec("")},
 	{i: 0xCF, n: "DCP", d: "rw   ", m: "abs"},
-	{i: 0xD0, n: "BNE", d: "     ", m: "rel", f: branch(1, false)},
+	{i: 0xD0, n: "BNE", d: "     ", m: "rel", f: branch(Zero, false)},
 	{i: 0xD1, n: "CMP", d: "r  x ", m: "izy", f: cmp("A")},
 	{i: 0xD2, n: "STP", d: "     ", m: "imp"},
 	{i: 0xD3, n: "DCP", d: "rw  a", m: "izy"},
@@ -250,7 +250,7 @@ var defs = [256]opdef{
 	{i: 0xD5, n: "CMP", d: "r    ", m: "zpx", f: cmp("A")},
 	{i: 0xD6, n: "DEC", d: "rw   ", m: "zpx", f: dec("")},
 	{i: 0xD7, n: "DCP", d: "rw   ", m: "zpx"},
-	{i: 0xD8, n: "CLD", d: "     ", m: "imp", f: clear(3)},
+	{i: 0xD8, n: "CLD", d: "     ", m: "imp", f: clear(Decimal)},
 	{i: 0xD9, n: "CMP", d: "r  x ", m: "aby", f: cmp("A")},
 	{i: 0xDA, n: "NOP", d: "     ", m: "imp"},
 	{i: 0xDB, n: "DCP", d: "rw   ", m: "aby"},
@@ -274,7 +274,7 @@ var defs = [256]opdef{
 	{i: 0xED, n: "SBC", d: "r    ", m: "abs"},
 	{i: 0xEE, n: "INC", d: "rw   ", m: "abs", f: inc("")},
 	{i: 0xEF, n: "ISC", d: "rw   ", m: "abs"},
-	{i: 0xF0, n: "BEQ", d: "     ", m: "rel", f: branch(1, true)},
+	{i: 0xF0, n: "BEQ", d: "     ", m: "rel", f: branch(Zero, true)},
 	{i: 0xF1, n: "SBC", d: "r  x ", m: "izy"},
 	{i: 0xF2, n: "STP", d: "     ", m: "imp"},
 	{i: 0xF3, n: "ISC", d: "rw  a", m: "izy"},
@@ -282,7 +282,7 @@ var defs = [256]opdef{
 	{i: 0xF5, n: "SBC", d: "r    ", m: "zpx"},
 	{i: 0xF6, n: "INC", d: "rw   ", m: "zpx", f: inc("")},
 	{i: 0xF7, n: "ISC", d: "rw   ", m: "zpx"},
-	{i: 0xF8, n: "SED", d: "     ", m: "imp", f: set(3)},
+	{i: 0xF8, n: "SED", d: "     ", m: "imp", f: set(Decimal)},
 	{i: 0xF9, n: "SBC", d: "r  x ", m: "aby"},
 	{i: 0xFA, n: "NOP", d: "     ", m: "imp"},
 	{i: 0xFB, n: "ISC", d: "rw   ", m: "aby"},
@@ -318,30 +318,57 @@ var addrModes = map[string]addrmode{
 // Process status flag constants
 //
 
+type cpuFlag int
+
 const (
-	Carry = iota
+	Carry cpuFlag = 1 << iota
 	Zero
-	IntDisable
+	Interrupt
 	Decimal
 	Break
-	Unused
+	Reserved
 	Overflow
 	Negative
 )
 
-var flagOps = [8][2]string{
-	{"carry", "setCarry"},
-	{"zero", "setZero"},
-	{"intDisable", "setIntDisable"},
-	{"decimal", "setDecimal"},
-	{"brk", "setBrk"},
-	{"unused", "setUnused"},
-	{"overflow", "setOverflow"},
-	{"negative", "setNegative"},
+func (f cpuFlag) String() string {
+	switch f {
+	case Carry:
+		return "Carry"
+	case Zero:
+		return "Zero"
+	case Interrupt:
+		return "Interrupt"
+	case Decimal:
+		return "Decimal"
+	case Break:
+		return "Break"
+	case Reserved:
+		return "Reserved"
+	case Overflow:
+		return "Overflow"
+	case Negative:
+		return "Negative"
+	}
+
+	panic("unexpected")
 }
 
-func pget(i uint) string { return flagOps[i][0] }
-func pset(i uint) string { return flagOps[i][1] }
+func (g *Generator) setFlags(flags ...cpuFlag) {
+	var flagstr []string
+	for _, f := range flags {
+		flagstr = append(flagstr, f.String())
+	}
+	g.printf(`cpu.P |= %s`, strings.Join(flagstr, "|"))
+}
+func (g *Generator) clearFlags(f cpuFlag) {
+	val := uint8(f)
+	val = ^val
+	g.printf(`cpu.P &= 0x%02x`, val)
+}
+func (g *Generator) checkFlags(f cpuFlag) string {
+	return fmt.Sprintf(`(cpu.P&0x%02x == 0x%02x)`, int(f), int(f))
+}
 
 func (g *Generator) dummyread(oper string) {
 	g.printf(`// dummy read.`)
@@ -481,7 +508,7 @@ func pull16(g *Generator, v string) {
 
 func carrybit(g *Generator) {
 	g.printf(`var carry uint16`)
-	g.printf(`if cpu.P.%s() {`, pget(Carry))
+	g.printf(`if %s {`, g.checkFlags(Carry))
 	g.printf(`	carry = 1`)
 	g.printf(`}`)
 }
@@ -494,13 +521,13 @@ func r16zpwrap(g *Generator) {
 	g.printf(`oper = uint16(hi)<<8 | uint16(lo)`)
 }
 
-func branch(ibit int, val bool) func(g *Generator, _ opdef) {
+func branch(f cpuFlag, val bool) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		neg := "!"
 		if !val {
 			neg = ""
 		}
-		g.printf(`if %scpu.P.%s() {`, neg, pget(uint(ibit)))
+		g.printf(`if %s%s {`, neg, g.checkFlags(f))
 		g.printf(`  return // no branch`)
 		g.printf(`}`)
 		g.printf(`// A taken non-page-crossing branch ignores IRQ/NMI during its last`)
@@ -554,12 +581,18 @@ func (g *Generator) ALR(_ opdef) {
 	g.printf(`carry := cpu.A & 0x01 // carry is bit 0`)
 	g.printf(`cpu.A = (cpu.A >> 1) & 0x7f`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
-	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
+	g.clearFlags(Carry)
+	g.printf(`if carry != 0 {`)
+	g.setFlags(Carry)
+	g.printf(`}`)
 }
 
 func (g *Generator) ANC(def opdef) {
 	g.AND(def)
-	g.printf(`cpu.P.%s(cpu.P.%s())`, pset(Carry), pget(Negative))
+	g.clearFlags(Carry)
+	g.printf(`if %s {`, g.checkFlags(Negative))
+	g.setFlags(Carry)
+	g.printf(`}`)
 }
 
 func (g *Generator) AND(_ opdef) {
@@ -570,12 +603,18 @@ func (g *Generator) AND(_ opdef) {
 func (g *Generator) ARR(_ opdef) {
 	g.printf(`cpu.A &= val`)
 	g.printf(`cpu.A >>= 1`)
-	g.printf(`cpu.P.%s((cpu.A>>6)^(cpu.A>>5)&0x01 != 0)`, pset(Overflow))
-	g.printf(`if cpu.P.%s() {`, pget(Carry))
+	g.clearFlags(Overflow)
+	g.printf(`if (cpu.A>>6)^(cpu.A>>5)&0x01 != 0 {`)
+	g.setFlags(Overflow)
+	g.printf(`}`)
+	g.printf(`if %s {`, g.checkFlags(Carry))
 	g.printf(`	cpu.A |= 1 << 7`)
 	g.printf(`}`)
 	g.printf(`cpu.P.checkNZ(cpu.A)`)
-	g.printf(`cpu.P.%s(cpu.A&(1<<6) != 0)`, pset(Carry))
+	g.clearFlags(Carry)
+	g.printf(`if (cpu.A&(1<<6) != 0) {`)
+	g.setFlags(Carry)
+	g.printf(`}`)
 }
 
 func (g *Generator) ASL(def opdef) {
@@ -585,7 +624,10 @@ func (g *Generator) ASL(def opdef) {
 	g.printf(`carry := val & 0x80`)
 	g.printf(`val = (val << 1) & 0xfe`)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
+	g.clearFlags(Carry)
+	g.printf(`if carry != 0 {`)
+	g.setFlags(Carry)
+	g.printf(`}`)
 }
 
 func (g *Generator) BIT(_ opdef) {
@@ -598,9 +640,9 @@ func (g *Generator) BRK(_ opdef) {
 	tick(g)
 	push16(g, `cpu.PC+1`)
 	g.printf(`p := cpu.P`)
-	g.printf(`p.%s(true)`, pset(Break))
+	g.setFlags(Break)
 	push8(g, `uint8(p)`)
-	g.printf(`cpu.P.%s(true)`, pset(IntDisable))
+	g.setFlags(Interrupt)
 	g.printf(`cpu.PC = cpu.Read16(CpuIRQvector)`)
 }
 
@@ -641,7 +683,10 @@ func (g *Generator) LSR(def opdef) {
 	g.printf(`carry := val & 0x01 // carry is bit 0`)
 	g.printf(`val = (val >> 1)&0x7f`)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
+	g.clearFlags(Carry)
+	g.printf(`if carry != 0 {`)
+	g.setFlags(Carry)
+	g.printf(`}`)
 	g.printf(`}`)
 }
 
@@ -674,9 +719,7 @@ func (g *Generator) PHA(_ opdef) {
 }
 
 func (g *Generator) PHP(_ opdef) {
-	g.printf(`p := cpu.P`)
-	g.printf(`p.%s(true)`, pset(Break))
-	g.printf(`p.%s(true)`, pset(Unused))
+	g.printf(`p := cpu.P | 0x%02x`, int(Break|Reserved))
 	push8(g, `uint8(p)`)
 }
 
@@ -705,11 +748,14 @@ func (g *Generator) ROL(def opdef) {
 	}
 	g.printf(`carry := val & 0x80`)
 	g.printf(`val <<= 1`)
-	g.printf(`if cpu.P.%s() {`, pget(Carry))
+	g.printf(`if %s {`, g.checkFlags(Carry))
 	g.printf(`	val |= 1 << 0`)
 	g.printf(`}`)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
+	g.clearFlags(Carry)
+	g.printf(`if carry != 0 {`)
+	g.setFlags(Carry)
+	g.printf(`}`)
 }
 
 func (g *Generator) ROR(def opdef) {
@@ -719,11 +765,14 @@ func (g *Generator) ROR(def opdef) {
 	g.printf(`{`)
 	g.printf(`carry := val & 0x01`)
 	g.printf(`val >>= 1`)
-	g.printf(`if cpu.P.%s() {`, pget(Carry))
+	g.printf(`if %s {`, g.checkFlags(Carry))
 	g.printf(`	val |= 1 << 7`)
 	g.printf(`}`)
 	g.printf(`cpu.P.checkNZ(val)`)
-	g.printf(`cpu.P.%s(carry != 0)`, pset(Carry))
+	g.clearFlags(Carry)
+	g.printf(`if carry != 0 {`)
+	g.setFlags(Carry)
+	g.printf(`}`)
 	g.printf(`}`)
 }
 
@@ -764,7 +813,10 @@ func (g *Generator) SBX(def opdef) {
 	g.printf(`ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)`)
 	g.printf(`cpu.X = uint8(ival)`)
 	g.printf(`cpu.P.checkNZ(uint8(ival))`)
-	g.printf(`cpu.P.%s(ival >= 0)`, pset(Carry))
+	g.clearFlags(Carry)
+	g.printf(`if ival >= 0 {`)
+	g.setFlags(Carry)
+	g.printf(`}`)
 }
 
 func (g *Generator) SLO(def opdef) {
@@ -803,7 +855,10 @@ func cmp(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		v = regOrMem(v)
 		g.printf(`cpu.P.checkNZ(%s - val)`, v)
-		g.printf(`cpu.P.%s(val <= %s)`, pset(Carry), v)
+		g.clearFlags(Carry)
+		g.printf(`if val <= %s {`, v)
+		g.setFlags(Carry)
+		g.printf(`}`)
 	}
 }
 
@@ -850,15 +905,15 @@ func dec(v string) func(g *Generator, _ opdef) {
 	}
 }
 
-func clear(ibit uint) func(g *Generator, _ opdef) {
+func clear(f cpuFlag) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.P.%s(false)`, pset(ibit))
+		g.clearFlags(f)
 	}
 }
 
-func set(ibit uint) func(g *Generator, _ opdef) {
+func set(f cpuFlag) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.P.%s(true)`, pset(ibit))
+		g.setFlags(f)
 	}
 }
 

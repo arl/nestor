@@ -4,6 +4,25 @@ package hw
 
 type P uint8
 
+const (
+	Carry = 1 << iota
+	Zero
+	Interrupt
+	Decimal
+	Break
+	Reserved
+	Overflow
+	Negative
+)
+
+func (p*P) setFlags(flags uint8) {
+	*p |= P(flags)
+}
+
+func (p*P) clearFlags(flags uint8) {
+	*p &= ^P(flags)
+}
+
 func (p P) carry() bool {
 	return p&0x1 != 0
 }
