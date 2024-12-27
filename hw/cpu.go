@@ -457,3 +457,19 @@ func (nopDebugger) WatchRead(addr uint16)                      {}
 func (nopDebugger) WatchWrite(addr uint16, val uint16)         {}
 func (nopDebugger) Break(msg string)                           {}
 func (nopDebugger) FrameEnd()                                  {}
+
+/* helpers for opcodes */
+
+func (cpu *CPU) setreg(reg *uint8, val uint8) {
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	*reg = val
+}
+
+func (p *P) setNZ(val uint8) {
+	if val == 0 {
+		p.setFlags(Zero)
+	} else if val&0x80 != 0 {
+		p.setFlags(Negative)
+	}
+}

@@ -710,8 +710,7 @@ func (g *Generator) NOP(def opdef) {
 }
 
 func (g *Generator) ORA(_ opdef) {
-	g.printf(`cpu.A |= val`)
-	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.printf(`cpu.setreg(&cpu.A, cpu.A|val)`)
 }
 
 func (g *Generator) PHA(_ opdef) {
@@ -820,11 +819,8 @@ func (g *Generator) SBX(def opdef) {
 }
 
 func (g *Generator) SLO(def opdef) {
-	g.printf(`// SLO start`)
 	g.ASL(def)
-	g.printf(`cpu.A |= val`)
-	g.printf(`cpu.P.checkNZ(cpu.A)`)
-	g.printf(`// SLO end`)
+	g.printf(`cpu.setreg(&cpu.A, cpu.A|val)`)
 }
 
 func (g *Generator) SRE(def opdef) {
@@ -839,9 +835,8 @@ func (g *Generator) SRE(def opdef) {
 func LD(reg ...string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		for _, r := range reg {
-			g.printf(`cpu.%s = val`, r)
+			g.printf(`cpu.setreg(&cpu.%s, val)`, r)
 		}
-		g.printf(`cpu.P.checkNZ(val)`)
 	}
 }
 
