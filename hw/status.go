@@ -23,8 +23,8 @@ func (p*P) clearFlags(flags uint8) {
 	*p &= ^P(flags)
 }
 
-func (p P) carry() bool {
-	return p&0x1 != 0
+func (p P) checkFlag(flag uint8)bool{
+	return uint8(p) & flag == flag
 }
 
 func (p *P) setCarry(val bool) {

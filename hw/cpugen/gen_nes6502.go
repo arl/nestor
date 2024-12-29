@@ -558,6 +558,11 @@ func copybits(dst, src, mask string) string {
 	return fmt.Sprintf(`((%s) & (^%s)) | ((%s) & (%s))`, dst, mask, src, mask)
 }
 
+func (g *Generator) checkNZ(val string) {
+	g.printf(`cpu.P.clearFlags(Zero | Negative)`)
+	g.printf(`cpu.P.setNZ(%s)`, val)
+}
+
 //
 // opcode generators
 //
@@ -572,7 +577,7 @@ func (g *Generator) ADC(_ opdef) {
 	g.printf(`sum := uint16(cpu.A) + uint16(val) + uint16(carry)`)
 	g.printf(`cpu.P.checkCV(cpu.A, val, sum)`)
 	g.printf(`cpu.A = uint8(sum)`)
-	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.checkNZ(`cpu.A`)
 }
 
 func (g *Generator) ALR(_ opdef) {
@@ -580,7 +585,7 @@ func (g *Generator) ALR(_ opdef) {
 	g.printf(`cpu.A &= val`)
 	g.printf(`carry := cpu.A & 0x01 // carry is bit 0`)
 	g.printf(`cpu.A = (cpu.A >> 1) & 0x7f`)
-	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.checkNZ(`cpu.A`)
 	g.clearFlags(Carry)
 	g.printf(`if carry != 0 {`)
 	g.setFlags(Carry)
@@ -597,7 +602,7 @@ func (g *Generator) ANC(def opdef) {
 
 func (g *Generator) AND(_ opdef) {
 	g.printf(`cpu.A &= val`)
-	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.checkNZ(`cpu.A`)
 }
 
 func (g *Generator) ARR(_ opdef) {
@@ -610,7 +615,7 @@ func (g *Generator) ARR(_ opdef) {
 	g.printf(`if %s {`, g.checkFlags(Carry))
 	g.printf(`	cpu.A |= 1 << 7`)
 	g.printf(`}`)
-	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.checkNZ(`cpu.A`)
 	g.clearFlags(Carry)
 	g.printf(`if (cpu.A&(1<<6) != 0) {`)
 	g.setFlags(Carry)
@@ -623,7 +628,7 @@ func (g *Generator) ASL(def opdef) {
 	}
 	g.printf(`carry := val & 0x80`)
 	g.printf(`val = (val << 1) & 0xfe`)
-	g.printf(`cpu.P.checkNZ(val)`)
+	g.checkNZ(`val`)
 	g.clearFlags(Carry)
 	g.printf(`if carry != 0 {`)
 	g.setFlags(Carry)
@@ -653,7 +658,7 @@ func (g *Generator) DCP(def opdef) {
 
 func (g *Generator) EOR(_ opdef) {
 	g.printf(`cpu.A ^= val`)
-	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.checkNZ(`cpu.A`)
 }
 
 func (g *Generator) ISC(def opdef) {
@@ -669,7 +674,7 @@ func (g *Generator) JMP(_ opdef) {
 
 func (g *Generator) LAS(def opdef) {
 	g.printf(`cpu.A = cpu.SP & val`)
-	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.checkNZ(`cpu.A`)
 	g.printf(`cpu.X = cpu.A`)
 	g.printf(`cpu.SP = cpu.A`)
 }
@@ -682,7 +687,7 @@ func (g *Generator) LSR(def opdef) {
 	g.printf(`{`)
 	g.printf(`carry := val & 0x01 // carry is bit 0`)
 	g.printf(`val = (val >> 1)&0x7f`)
-	g.printf(`cpu.P.checkNZ(val)`)
+	g.checkNZ(`val`)
 	g.clearFlags(Carry)
 	g.printf(`if carry != 0 {`)
 	g.setFlags(Carry)
@@ -697,7 +702,7 @@ func (g *Generator) LXA(def opdef) {
 	g.printf(`val = (cpu.A | 0x%02x) & val`, mask)
 	g.printf(`cpu.A = val`)
 	g.printf(`cpu.X = val`)
-	g.printf(`cpu.P.checkNZ(val)`)
+	g.checkNZ(`cpu.A`)
 }
 
 func (g *Generator) NOP(def opdef) {
@@ -725,7 +730,7 @@ func (g *Generator) PHP(_ opdef) {
 func (g *Generator) PLA(_ opdef) {
 	g.dummyread("uint16(cpu.SP) + 0x0100")
 	pull8(g, `cpu.A`)
-	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.checkNZ(`cpu.A`)
 }
 
 func (g *Generator) PLP(_ opdef) {
@@ -750,7 +755,7 @@ func (g *Generator) ROL(def opdef) {
 	g.printf(`if %s {`, g.checkFlags(Carry))
 	g.printf(`	val |= 1 << 0`)
 	g.printf(`}`)
-	g.printf(`cpu.P.checkNZ(val)`)
+	g.checkNZ(`val`)
 	g.clearFlags(Carry)
 	g.printf(`if carry != 0 {`)
 	g.setFlags(Carry)
@@ -767,7 +772,7 @@ func (g *Generator) ROR(def opdef) {
 	g.printf(`if %s {`, g.checkFlags(Carry))
 	g.printf(`	val |= 1 << 7`)
 	g.printf(`}`)
-	g.printf(`cpu.P.checkNZ(val)`)
+	g.checkNZ(`val`)
 	g.clearFlags(Carry)
 	g.printf(`if carry != 0 {`)
 	g.setFlags(Carry)
@@ -805,13 +810,13 @@ func (g *Generator) SBC(def opdef) {
 	g.printf(`sum := uint16(cpu.A) + uint16(val) + uint16(carry)`)
 	g.printf(`cpu.P.checkCV(cpu.A, val, sum)`)
 	g.printf(`cpu.A = uint8(sum)`)
-	g.printf(`cpu.P.checkNZ(cpu.A)`)
+	g.checkNZ(`cpu.A`)
 }
 
 func (g *Generator) SBX(def opdef) {
 	g.printf(`ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)`)
 	g.printf(`cpu.X = uint8(ival)`)
-	g.printf(`cpu.P.checkNZ(uint8(ival))`)
+	g.checkNZ(`cpu.X`)
 	g.clearFlags(Carry)
 	g.printf(`if ival >= 0 {`)
 	g.setFlags(Carry)
@@ -849,7 +854,7 @@ func ST(reg string) func(g *Generator, _ opdef) {
 func cmp(v string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		v = regOrMem(v)
-		g.printf(`cpu.P.checkNZ(%s - val)`, v)
+		g.checkNZ(fmt.Sprintf("%s - val", v))
 		g.clearFlags(Carry)
 		g.printf(`if val <= %s {`, v)
 		g.setFlags(Carry)
@@ -861,7 +866,7 @@ func T(src, dst string) func(g *Generator, _ opdef) {
 	return func(g *Generator, _ opdef) {
 		g.printf(`cpu.%s = cpu.%s`, dst, src)
 		if dst != "SP" {
-			g.printf(`cpu.P.checkNZ(cpu.%s)`, src)
+			g.checkNZ(fmt.Sprintf(`cpu.%s`, src))
 		}
 	}
 }
@@ -884,7 +889,7 @@ func inc(v string) func(g *Generator, _ opdef) {
 			g.dummywrite("oper", "val")
 		}
 		g.printf(`%s++`, v)
-		g.printf(`cpu.P.checkNZ(%s)`, v)
+		g.checkNZ(v)
 	}
 }
 
@@ -896,7 +901,7 @@ func dec(v string) func(g *Generator, _ opdef) {
 			g.dummywrite("oper", "val")
 		}
 		g.printf(`%s--`, v)
-		g.printf(`cpu.P.checkNZ(%s)`, v)
+		g.checkNZ(v)
 	}
 }
 

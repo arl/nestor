@@ -41,7 +41,8 @@ func opcode03(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -72,7 +73,8 @@ func opcode06(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -88,7 +90,8 @@ func opcode07(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -118,7 +121,8 @@ func opcode0A(cpu *CPU) {
 	val := cpu.A
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -130,7 +134,8 @@ func opcode0A(cpu *CPU) {
 func opcode0B(cpu *CPU) {
 	val := cpu.fetch()
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.P &= 0xfe
 	if cpu.P&0x80 == 0x80 {
 		cpu.P |= Carry
@@ -162,7 +167,8 @@ func opcode0E(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -179,7 +185,8 @@ func opcode0F(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -257,7 +264,8 @@ func opcode13(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -300,7 +308,8 @@ func opcode16(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -320,7 +329,8 @@ func opcode17(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -368,7 +378,8 @@ func opcode1B(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -417,7 +428,8 @@ func opcode1E(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -437,7 +449,8 @@ func opcode1F(cpu *CPU) {
 	cpu.Write8(oper, val)
 	carry := val & 0x80
 	val = (val << 1) & 0xfe
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -458,7 +471,8 @@ func opcode21(cpu *CPU) {
 	oper = uint16(hi)<<8 | uint16(lo)
 	val := cpu.Read8(oper)
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // STP - implied addressing.
@@ -486,13 +500,15 @@ func opcode23(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
 	}
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -510,7 +526,8 @@ func opcode25(cpu *CPU) {
 	oper := uint16(cpu.fetch())
 	val := cpu.Read8(oper)
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // ROL - zero page addressing.
@@ -524,7 +541,8 @@ func opcode26(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -543,13 +561,15 @@ func opcode27(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
 	}
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -569,7 +589,8 @@ func opcode28(cpu *CPU) {
 func opcode29(cpu *CPU) {
 	val := cpu.fetch()
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // ROL - adressing accumulator.
@@ -582,7 +603,8 @@ func opcode2A(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -594,7 +616,8 @@ func opcode2A(cpu *CPU) {
 func opcode2B(cpu *CPU) {
 	val := cpu.fetch()
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.P &= 0xfe
 	if cpu.P&0x80 == 0x80 {
 		cpu.P |= Carry
@@ -617,7 +640,8 @@ func opcode2D(cpu *CPU) {
 	cpu.PC += 2
 	val := cpu.Read8(oper)
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // ROL - absolute addressing.
@@ -632,7 +656,8 @@ func opcode2E(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -652,13 +677,15 @@ func opcode2F(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
 	}
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -701,7 +728,8 @@ func opcode31(cpu *CPU) {
 	oper += uint16(cpu.Y)
 	val := cpu.Read8(oper)
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // STP - implied addressing.
@@ -735,13 +763,15 @@ func opcode33(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
 	}
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -765,7 +795,8 @@ func opcode35(cpu *CPU) {
 	oper &= 0xff
 	val := cpu.Read8(oper)
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // ROL - indexed addressing: zeropage,X.
@@ -783,7 +814,8 @@ func opcode36(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -806,13 +838,15 @@ func opcode37(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
 	}
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -835,7 +869,8 @@ func opcode39(cpu *CPU) {
 	}
 	val := cpu.Read8(oper)
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // NOP - implied addressing.
@@ -859,13 +894,15 @@ func opcode3B(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
 	}
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -895,7 +932,8 @@ func opcode3D(cpu *CPU) {
 	}
 	val := cpu.Read8(oper)
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // ROL - absolute indexed X.
@@ -913,7 +951,8 @@ func opcode3E(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -936,13 +975,15 @@ func opcode3F(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		val |= 1 << 0
 	}
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
 	}
 	cpu.A &= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -971,7 +1012,8 @@ func opcode41(cpu *CPU) {
 	oper = uint16(hi)<<8 | uint16(lo)
 	val := cpu.Read8(oper)
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // STP - implied addressing.
@@ -997,14 +1039,16 @@ func opcode43(cpu *CPU) {
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
 		}
 	}
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -1020,7 +1064,8 @@ func opcode45(cpu *CPU) {
 	oper := uint16(cpu.fetch())
 	val := cpu.Read8(oper)
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // LSR - zero page addressing.
@@ -1032,7 +1077,8 @@ func opcode46(cpu *CPU) {
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1050,14 +1096,16 @@ func opcode47(cpu *CPU) {
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
 		}
 	}
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -1072,7 +1120,8 @@ func opcode48(cpu *CPU) {
 func opcode49(cpu *CPU) {
 	val := cpu.fetch()
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // LSR - adressing accumulator.
@@ -1083,7 +1132,8 @@ func opcode4A(cpu *CPU) {
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1099,7 +1149,8 @@ func opcode4B(cpu *CPU) {
 	cpu.A &= val
 	carry := cpu.A & 0x01 // carry is bit 0
 	cpu.A = (cpu.A >> 1) & 0x7f
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.P &= 0xfe
 	if carry != 0 {
 		cpu.P |= Carry
@@ -1119,7 +1170,8 @@ func opcode4D(cpu *CPU) {
 	cpu.PC += 2
 	val := cpu.Read8(oper)
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // LSR - absolute addressing.
@@ -1132,7 +1184,8 @@ func opcode4E(cpu *CPU) {
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1151,14 +1204,16 @@ func opcode4F(cpu *CPU) {
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
 		}
 	}
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -1201,7 +1256,8 @@ func opcode51(cpu *CPU) {
 	oper += uint16(cpu.Y)
 	val := cpu.Read8(oper)
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // STP - implied addressing.
@@ -1233,14 +1289,16 @@ func opcode53(cpu *CPU) {
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
 		}
 	}
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -1264,7 +1322,8 @@ func opcode55(cpu *CPU) {
 	oper &= 0xff
 	val := cpu.Read8(oper)
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // LSR - indexed addressing: zeropage,X.
@@ -1280,7 +1339,8 @@ func opcode56(cpu *CPU) {
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1302,14 +1362,16 @@ func opcode57(cpu *CPU) {
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
 		}
 	}
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -1332,7 +1394,8 @@ func opcode59(cpu *CPU) {
 	}
 	val := cpu.Read8(oper)
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // NOP - implied addressing.
@@ -1354,14 +1417,16 @@ func opcode5B(cpu *CPU) {
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
 		}
 	}
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -1391,7 +1456,8 @@ func opcode5D(cpu *CPU) {
 	}
 	val := cpu.Read8(oper)
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // LSR - absolute indexed X.
@@ -1407,7 +1473,8 @@ func opcode5E(cpu *CPU) {
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1429,14 +1496,16 @@ func opcode5F(cpu *CPU) {
 	{
 		carry := val & 0x01 // carry is bit 0
 		val = (val >> 1) & 0x7f
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
 		}
 	}
 	cpu.A ^= val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -1468,7 +1537,8 @@ func opcode61(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // STP - implied addressing.
@@ -1497,7 +1567,8 @@ func opcode63(cpu *CPU) {
 		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1510,7 +1581,8 @@ func opcode63(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -1532,7 +1604,8 @@ func opcode65(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // ROR - zero page addressing.
@@ -1547,7 +1620,8 @@ func opcode66(cpu *CPU) {
 		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1568,7 +1642,8 @@ func opcode67(cpu *CPU) {
 		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1581,7 +1656,8 @@ func opcode67(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -1592,7 +1668,8 @@ func opcode68(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(uint16(cpu.SP) + 0x0100)
 	cpu.A = cpu.pull8()
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // ADC - immediate addressing.
@@ -1605,7 +1682,8 @@ func opcode69(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // ROR - adressing accumulator.
@@ -1619,7 +1697,8 @@ func opcode6A(cpu *CPU) {
 		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1640,7 +1719,8 @@ func opcode6B(cpu *CPU) {
 	if cpu.P&0x01 == 0x01 {
 		cpu.A |= 1 << 7
 	}
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.P &= 0xfe
 	if cpu.A&(1<<6) != 0 {
 		cpu.P |= Carry
@@ -1669,7 +1749,8 @@ func opcode6D(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // ROR - absolute addressing.
@@ -1685,7 +1766,8 @@ func opcode6E(cpu *CPU) {
 		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1707,7 +1789,8 @@ func opcode6F(cpu *CPU) {
 		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1720,7 +1803,8 @@ func opcode6F(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -1769,7 +1853,8 @@ func opcode71(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // STP - implied addressing.
@@ -1804,7 +1889,8 @@ func opcode73(cpu *CPU) {
 		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1817,7 +1903,8 @@ func opcode73(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -1847,7 +1934,8 @@ func opcode75(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // ROR - indexed addressing: zeropage,X.
@@ -1866,7 +1954,8 @@ func opcode76(cpu *CPU) {
 		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1891,7 +1980,8 @@ func opcode77(cpu *CPU) {
 		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1904,7 +1994,8 @@ func opcode77(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -1933,7 +2024,8 @@ func opcode79(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // NOP - implied addressing.
@@ -1958,7 +2050,8 @@ func opcode7B(cpu *CPU) {
 		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -1971,7 +2064,8 @@ func opcode7B(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -2007,7 +2101,8 @@ func opcode7D(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // ROR - absolute indexed X.
@@ -2026,7 +2121,8 @@ func opcode7E(cpu *CPU) {
 		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -2051,7 +2147,8 @@ func opcode7F(cpu *CPU) {
 		if cpu.P&0x01 == 0x01 {
 			val |= 1 << 7
 		}
-		cpu.P.checkNZ(val)
+		cpu.P.clearFlags(Zero | Negative)
+		cpu.P.setNZ(val)
 		cpu.P &= 0xfe
 		if carry != 0 {
 			cpu.P |= Carry
@@ -2064,7 +2161,8 @@ func opcode7F(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.Write8(oper, val)
 }
 
@@ -2135,7 +2233,8 @@ func opcode88(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	cpu.Y--
-	cpu.P.checkNZ(cpu.Y)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.Y)
 }
 
 // NOP - immediate addressing.
@@ -2149,7 +2248,8 @@ func opcode8A(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	cpu.A = cpu.X
-	cpu.P.checkNZ(cpu.X)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.X)
 }
 
 // ANE - immediate addressing.
@@ -2293,7 +2393,8 @@ func opcode98(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	cpu.A = cpu.Y
-	cpu.P.checkNZ(cpu.Y)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.Y)
 }
 
 // STA - absolute indexed Y.
@@ -2442,7 +2543,8 @@ func opcodeA8(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	cpu.Y = cpu.A
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // LDA - immediate addressing.
@@ -2456,7 +2558,8 @@ func opcodeAA(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	cpu.X = cpu.A
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // LXA - immediate addressing.
@@ -2465,7 +2568,8 @@ func opcodeAB(cpu *CPU) {
 	val = (cpu.A | 0xff) & val
 	cpu.A = val
 	cpu.X = val
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // LDY - absolute addressing.
@@ -2638,7 +2742,8 @@ func opcodeBA(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	cpu.X = cpu.SP
-	cpu.P.checkNZ(cpu.SP)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.SP)
 }
 
 // LAS - absolute indexed Y.
@@ -2653,7 +2758,8 @@ func opcodeBB(cpu *CPU) {
 	}
 	val := cpu.Read8(oper)
 	cpu.A = cpu.SP & val
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	cpu.X = cpu.A
 	cpu.SP = cpu.A
 }
@@ -2718,7 +2824,8 @@ func opcodeBF(cpu *CPU) {
 // CPY - immediate addressing.
 func opcodeC0(cpu *CPU) {
 	val := cpu.fetch()
-	cpu.P.checkNZ(cpu.Y - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.Y - val)
 	cpu.P &= 0xfe
 	if val <= cpu.Y {
 		cpu.P |= Carry
@@ -2736,7 +2843,8 @@ func opcodeC1(cpu *CPU) {
 	hi := cpu.Read8(uint16(uint8(oper) + 1))
 	oper = uint16(hi)<<8 | uint16(lo)
 	val := cpu.Read8(oper)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -2763,8 +2871,10 @@ func opcodeC3(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
-	cpu.P.checkNZ(val)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -2776,7 +2886,8 @@ func opcodeC3(cpu *CPU) {
 func opcodeC4(cpu *CPU) {
 	oper := uint16(cpu.fetch())
 	val := cpu.Read8(oper)
-	cpu.P.checkNZ(cpu.Y - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.Y - val)
 	cpu.P &= 0xfe
 	if val <= cpu.Y {
 		cpu.P |= Carry
@@ -2787,7 +2898,8 @@ func opcodeC4(cpu *CPU) {
 func opcodeC5(cpu *CPU) {
 	oper := uint16(cpu.fetch())
 	val := cpu.Read8(oper)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -2801,7 +2913,8 @@ func opcodeC6(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.Write8(oper, val)
 }
 
@@ -2812,8 +2925,10 @@ func opcodeC7(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
-	cpu.P.checkNZ(val)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -2826,13 +2941,15 @@ func opcodeC8(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	cpu.Y++
-	cpu.P.checkNZ(cpu.Y)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.Y)
 }
 
 // CMP - immediate addressing.
 func opcodeC9(cpu *CPU) {
 	val := cpu.fetch()
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -2844,7 +2961,8 @@ func opcodeCA(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	cpu.X--
-	cpu.P.checkNZ(cpu.X)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.X)
 }
 
 // SBX - immediate addressing.
@@ -2852,7 +2970,8 @@ func opcodeCB(cpu *CPU) {
 	val := cpu.fetch()
 	ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)
 	cpu.X = uint8(ival)
-	cpu.P.checkNZ(uint8(ival))
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.X)
 	cpu.P &= 0xfe
 	if ival >= 0 {
 		cpu.P |= Carry
@@ -2864,7 +2983,8 @@ func opcodeCC(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	val := cpu.Read8(oper)
-	cpu.P.checkNZ(cpu.Y - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.Y - val)
 	cpu.P &= 0xfe
 	if val <= cpu.Y {
 		cpu.P |= Carry
@@ -2876,7 +2996,8 @@ func opcodeCD(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	val := cpu.Read8(oper)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -2891,7 +3012,8 @@ func opcodeCE(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.Write8(oper, val)
 }
 
@@ -2903,8 +3025,10 @@ func opcodeCF(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
-	cpu.P.checkNZ(val)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -2950,7 +3074,8 @@ func opcodeD1(cpu *CPU) {
 	}
 	oper += uint16(cpu.Y)
 	val := cpu.Read8(oper)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -2984,8 +3109,10 @@ func opcodeD3(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
-	cpu.P.checkNZ(val)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -3012,7 +3139,8 @@ func opcodeD5(cpu *CPU) {
 	oper := uint16(addr) + uint16(cpu.X)
 	oper &= 0xff
 	val := cpu.Read8(oper)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -3030,7 +3158,8 @@ func opcodeD6(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.Write8(oper, val)
 }
 
@@ -3045,8 +3174,10 @@ func opcodeD7(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
-	cpu.P.checkNZ(val)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -3072,7 +3203,8 @@ func opcodeD9(cpu *CPU) {
 		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
 	val := cpu.Read8(oper)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -3096,8 +3228,10 @@ func opcodeDB(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
-	cpu.P.checkNZ(val)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -3130,7 +3264,8 @@ func opcodeDD(cpu *CPU) {
 		_ = cpu.Read8((oper)&0x00FF | (addr)&0xFF00)
 	}
 	val := cpu.Read8(oper)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -3148,7 +3283,8 @@ func opcodeDE(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.Write8(oper, val)
 }
 
@@ -3163,8 +3299,10 @@ func opcodeDF(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val--
-	cpu.P.checkNZ(val)
-	cpu.P.checkNZ(cpu.A - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
 	if val <= cpu.A {
 		cpu.P |= Carry
@@ -3175,7 +3313,8 @@ func opcodeDF(cpu *CPU) {
 // CPX - immediate addressing.
 func opcodeE0(cpu *CPU) {
 	val := cpu.fetch()
-	cpu.P.checkNZ(cpu.X - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.X - val)
 	cpu.P &= 0xfe
 	if val <= cpu.X {
 		cpu.P |= Carry
@@ -3201,7 +3340,8 @@ func opcodeE1(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // NOP - immediate addressing.
@@ -3224,7 +3364,8 @@ func opcodeE3(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	final := val
 	val ^= 0xff
 	var carry uint16
@@ -3234,7 +3375,8 @@ func opcodeE3(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	val = final
 	cpu.Write8(oper, val)
 }
@@ -3243,7 +3385,8 @@ func opcodeE3(cpu *CPU) {
 func opcodeE4(cpu *CPU) {
 	oper := uint16(cpu.fetch())
 	val := cpu.Read8(oper)
-	cpu.P.checkNZ(cpu.X - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.X - val)
 	cpu.P &= 0xfe
 	if val <= cpu.X {
 		cpu.P |= Carry
@@ -3262,7 +3405,8 @@ func opcodeE5(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // INC - zero page addressing.
@@ -3272,7 +3416,8 @@ func opcodeE6(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.Write8(oper, val)
 }
 
@@ -3283,7 +3428,8 @@ func opcodeE7(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	final := val
 	val ^= 0xff
 	var carry uint16
@@ -3293,7 +3439,8 @@ func opcodeE7(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	val = final
 	cpu.Write8(oper, val)
 }
@@ -3303,7 +3450,8 @@ func opcodeE8(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	cpu.X++
-	cpu.P.checkNZ(cpu.X)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.X)
 }
 
 // SBC - immediate addressing.
@@ -3317,7 +3465,8 @@ func opcodeE9(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // NOP - implied addressing.
@@ -3337,7 +3486,8 @@ func opcodeEB(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // CPX - absolute addressing.
@@ -3345,7 +3495,8 @@ func opcodeEC(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	val := cpu.Read8(oper)
-	cpu.P.checkNZ(cpu.X - val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.X - val)
 	cpu.P &= 0xfe
 	if val <= cpu.X {
 		cpu.P |= Carry
@@ -3365,7 +3516,8 @@ func opcodeED(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // INC - absolute addressing.
@@ -3376,7 +3528,8 @@ func opcodeEE(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.Write8(oper, val)
 }
 
@@ -3388,7 +3541,8 @@ func opcodeEF(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	final := val
 	val ^= 0xff
 	var carry uint16
@@ -3398,7 +3552,8 @@ func opcodeEF(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	val = final
 	cpu.Write8(oper, val)
 }
@@ -3449,7 +3604,8 @@ func opcodeF1(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // STP - implied addressing.
@@ -3479,7 +3635,8 @@ func opcodeF3(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	final := val
 	val ^= 0xff
 	var carry uint16
@@ -3489,7 +3646,8 @@ func opcodeF3(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	val = final
 	cpu.Write8(oper, val)
 }
@@ -3521,7 +3679,8 @@ func opcodeF5(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // INC - indexed addressing: zeropage,X.
@@ -3535,7 +3694,8 @@ func opcodeF6(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.Write8(oper, val)
 }
 
@@ -3550,7 +3710,8 @@ func opcodeF7(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	final := val
 	val ^= 0xff
 	var carry uint16
@@ -3560,7 +3721,8 @@ func opcodeF7(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	val = final
 	cpu.Write8(oper, val)
 }
@@ -3591,7 +3753,8 @@ func opcodeF9(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // NOP - implied addressing.
@@ -3611,7 +3774,8 @@ func opcodeFB(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	final := val
 	val ^= 0xff
 	var carry uint16
@@ -3621,7 +3785,8 @@ func opcodeFB(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	val = final
 	cpu.Write8(oper, val)
 }
@@ -3659,7 +3824,8 @@ func opcodeFD(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 }
 
 // INC - absolute indexed X.
@@ -3673,7 +3839,8 @@ func opcodeFE(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	cpu.Write8(oper, val)
 }
 
@@ -3688,7 +3855,8 @@ func opcodeFF(cpu *CPU) {
 	// dummy write.
 	cpu.Write8(oper, val)
 	val++
-	cpu.P.checkNZ(val)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
 	final := val
 	val ^= 0xff
 	var carry uint16
@@ -3698,7 +3866,8 @@ func opcodeFF(cpu *CPU) {
 	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
 	cpu.P.checkCV(cpu.A, val, sum)
 	cpu.A = uint8(sum)
-	cpu.P.checkNZ(cpu.A)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
 	val = final
 	cpu.Write8(oper, val)
 }

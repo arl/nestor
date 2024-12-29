@@ -2,16 +2,6 @@ package hw
 
 /* Extra methods for the processor status register */
 
-func (p *P) checkNZ(v uint8) {
-	p.setNegative(v&0x80 != 0)
-	p.setZero(v == 0)
-}
-
-// sets N flag if bit 7 of v is set, clears it otherwise.
-func (p *P) checkN(v uint8) {
-	p.setNegative(v&(1<<7) != 0)
-}
-
 // sets Z flag if v == 0, clears it otherwise.
 func (p *P) checkZ(v uint8) {
 	p.setZero(v == 0)
