@@ -518,7 +518,7 @@ func opcode24(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.P &= 0b00111111
 	cpu.P |= P(val & 0b11000000)
-	cpu.P.checkZ(cpu.A & val)
+	cpu.P.setZero(cpu.A&val == 0)
 }
 
 // AND - zero page addressing.
@@ -631,7 +631,7 @@ func opcode2C(cpu *CPU) {
 	val := cpu.Read8(oper)
 	cpu.P &= 0b00111111
 	cpu.P |= P(val & 0b11000000)
-	cpu.P.checkZ(cpu.A & val)
+	cpu.P.setZero(cpu.A&val == 0)
 }
 
 // AND - absolute addressing.
@@ -1036,15 +1036,13 @@ func opcode43(cpu *CPU) {
 	val := cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
-	{
-		carry := val & 0x01 // carry is bit 0
-		val = (val >> 1) & 0x7f
-		cpu.P.clearFlags(Zero | Negative)
-		cpu.P.setNZ(val)
-		cpu.P &= 0xfe
-		if carry != 0 {
-			cpu.P |= Carry
-		}
+	carry := val & 0x01 // carry is bit 0
+	val = (val >> 1) & 0x7f
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
 	}
 	cpu.A ^= val
 	cpu.P.clearFlags(Zero | Negative)
@@ -1074,15 +1072,13 @@ func opcode46(cpu *CPU) {
 	val := cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
-	{
-		carry := val & 0x01 // carry is bit 0
-		val = (val >> 1) & 0x7f
-		cpu.P.clearFlags(Zero | Negative)
-		cpu.P.setNZ(val)
-		cpu.P &= 0xfe
-		if carry != 0 {
-			cpu.P |= Carry
-		}
+	carry := val & 0x01 // carry is bit 0
+	val = (val >> 1) & 0x7f
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
 	}
 	cpu.Write8(oper, val)
 }
@@ -1093,15 +1089,13 @@ func opcode47(cpu *CPU) {
 	val := cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
-	{
-		carry := val & 0x01 // carry is bit 0
-		val = (val >> 1) & 0x7f
-		cpu.P.clearFlags(Zero | Negative)
-		cpu.P.setNZ(val)
-		cpu.P &= 0xfe
-		if carry != 0 {
-			cpu.P |= Carry
-		}
+	carry := val & 0x01 // carry is bit 0
+	val = (val >> 1) & 0x7f
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
 	}
 	cpu.A ^= val
 	cpu.P.clearFlags(Zero | Negative)
@@ -1129,15 +1123,13 @@ func opcode4A(cpu *CPU) {
 	// dummy read.
 	_ = cpu.Read8(cpu.PC)
 	val := cpu.A
-	{
-		carry := val & 0x01 // carry is bit 0
-		val = (val >> 1) & 0x7f
-		cpu.P.clearFlags(Zero | Negative)
-		cpu.P.setNZ(val)
-		cpu.P &= 0xfe
-		if carry != 0 {
-			cpu.P |= Carry
-		}
+	carry := val & 0x01 // carry is bit 0
+	val = (val >> 1) & 0x7f
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
 	}
 	cpu.A = val
 }
@@ -1181,15 +1173,13 @@ func opcode4E(cpu *CPU) {
 	val := cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
-	{
-		carry := val & 0x01 // carry is bit 0
-		val = (val >> 1) & 0x7f
-		cpu.P.clearFlags(Zero | Negative)
-		cpu.P.setNZ(val)
-		cpu.P &= 0xfe
-		if carry != 0 {
-			cpu.P |= Carry
-		}
+	carry := val & 0x01 // carry is bit 0
+	val = (val >> 1) & 0x7f
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
 	}
 	cpu.Write8(oper, val)
 }
@@ -1201,15 +1191,13 @@ func opcode4F(cpu *CPU) {
 	val := cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
-	{
-		carry := val & 0x01 // carry is bit 0
-		val = (val >> 1) & 0x7f
-		cpu.P.clearFlags(Zero | Negative)
-		cpu.P.setNZ(val)
-		cpu.P &= 0xfe
-		if carry != 0 {
-			cpu.P |= Carry
-		}
+	carry := val & 0x01 // carry is bit 0
+	val = (val >> 1) & 0x7f
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
 	}
 	cpu.A ^= val
 	cpu.P.clearFlags(Zero | Negative)
@@ -1286,15 +1274,13 @@ func opcode53(cpu *CPU) {
 	val := cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
-	{
-		carry := val & 0x01 // carry is bit 0
-		val = (val >> 1) & 0x7f
-		cpu.P.clearFlags(Zero | Negative)
-		cpu.P.setNZ(val)
-		cpu.P &= 0xfe
-		if carry != 0 {
-			cpu.P |= Carry
-		}
+	carry := val & 0x01 // carry is bit 0
+	val = (val >> 1) & 0x7f
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
 	}
 	cpu.A ^= val
 	cpu.P.clearFlags(Zero | Negative)
@@ -1336,15 +1322,13 @@ func opcode56(cpu *CPU) {
 	val := cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
-	{
-		carry := val & 0x01 // carry is bit 0
-		val = (val >> 1) & 0x7f
-		cpu.P.clearFlags(Zero | Negative)
-		cpu.P.setNZ(val)
-		cpu.P &= 0xfe
-		if carry != 0 {
-			cpu.P |= Carry
-		}
+	carry := val & 0x01 // carry is bit 0
+	val = (val >> 1) & 0x7f
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
 	}
 	cpu.Write8(oper, val)
 }
@@ -1359,15 +1343,13 @@ func opcode57(cpu *CPU) {
 	val := cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
-	{
-		carry := val & 0x01 // carry is bit 0
-		val = (val >> 1) & 0x7f
-		cpu.P.clearFlags(Zero | Negative)
-		cpu.P.setNZ(val)
-		cpu.P &= 0xfe
-		if carry != 0 {
-			cpu.P |= Carry
-		}
+	carry := val & 0x01 // carry is bit 0
+	val = (val >> 1) & 0x7f
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
 	}
 	cpu.A ^= val
 	cpu.P.clearFlags(Zero | Negative)
@@ -1414,15 +1396,13 @@ func opcode5B(cpu *CPU) {
 	val := cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
-	{
-		carry := val & 0x01 // carry is bit 0
-		val = (val >> 1) & 0x7f
-		cpu.P.clearFlags(Zero | Negative)
-		cpu.P.setNZ(val)
-		cpu.P &= 0xfe
-		if carry != 0 {
-			cpu.P |= Carry
-		}
+	carry := val & 0x01 // carry is bit 0
+	val = (val >> 1) & 0x7f
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
 	}
 	cpu.A ^= val
 	cpu.P.clearFlags(Zero | Negative)
@@ -1470,15 +1450,13 @@ func opcode5E(cpu *CPU) {
 	val := cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
-	{
-		carry := val & 0x01 // carry is bit 0
-		val = (val >> 1) & 0x7f
-		cpu.P.clearFlags(Zero | Negative)
-		cpu.P.setNZ(val)
-		cpu.P &= 0xfe
-		if carry != 0 {
-			cpu.P |= Carry
-		}
+	carry := val & 0x01 // carry is bit 0
+	val = (val >> 1) & 0x7f
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
 	}
 	cpu.Write8(oper, val)
 }
@@ -1493,15 +1471,13 @@ func opcode5F(cpu *CPU) {
 	val := cpu.Read8(oper)
 	// dummy write.
 	cpu.Write8(oper, val)
-	{
-		carry := val & 0x01 // carry is bit 0
-		val = (val >> 1) & 0x7f
-		cpu.P.clearFlags(Zero | Negative)
-		cpu.P.setNZ(val)
-		cpu.P &= 0xfe
-		if carry != 0 {
-			cpu.P |= Carry
-		}
+	carry := val & 0x01 // carry is bit 0
+	val = (val >> 1) & 0x7f
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(val)
+	cpu.P &= 0xfe
+	if carry != 0 {
+		cpu.P |= Carry
 	}
 	cpu.A ^= val
 	cpu.P.clearFlags(Zero | Negative)

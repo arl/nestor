@@ -627,7 +627,7 @@ func (g *Generator) ASL(def opdef) {
 func (g *Generator) BIT(_ opdef) {
 	g.printf(`cpu.P &= 0b00111111`)
 	g.printf(`cpu.P |= P(val & 0b11000000)`)
-	g.printf(`cpu.P.checkZ(cpu.A & val)`)
+	g.printf(`cpu.P.setZero(cpu.A&val == 0)`)
 }
 
 func (g *Generator) BRK(_ opdef) {
@@ -673,14 +673,12 @@ func (g *Generator) LSR(def opdef) {
 		g.dummywrite("oper", "val")
 	}
 
-	g.printf(`{`)
 	g.printf(`carry := val & 0x01 // carry is bit 0`)
 	g.printf(`val = (val >> 1)&0x7f`)
 	g.checkNZ(`val`)
 	g.clearFlags(Carry)
 	g.printf(`if carry != 0 {`)
 	g.setFlags(Carry)
-	g.printf(`}`)
 	g.printf(`}`)
 }
 
