@@ -473,3 +473,27 @@ func (p *P) setNZ(val uint8) {
 		p.setFlags(Negative)
 	}
 }
+
+// generalized add with carry and overflow.
+func (cpu *CPU) add(val uint8) {
+	var carry uint16
+	if cpu.P.checkFlag(Carry) {
+		carry = 1
+	}
+
+	sum := uint16(cpu.A) + uint16(val) + uint16(carry)
+	cpu.P.clearFlags(Carry | Overflow)
+
+	// signed overflow, can only happen if the sign of the sum differs
+	// from that of both operands.
+	v := (uint16(cpu.A) ^ sum) & (uint16(val) ^ sum) & 0x80
+	if v != 0 {
+		cpu.P.setFlags(Overflow)
+	}
+	if sum > 0xff {
+		cpu.P.setFlags(Carry)
+	}
+	cpu.A = uint8(sum)
+	cpu.P.clearFlags(Zero | Negative)
+	cpu.P.setNZ(cpu.A)
+}

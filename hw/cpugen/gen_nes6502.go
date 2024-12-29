@@ -506,13 +506,6 @@ func pull16(g *Generator, v string) {
 	g.printf(`%s = cpu.pull16()`, v)
 }
 
-func carrybit(g *Generator) {
-	g.printf(`var carry uint16`)
-	g.printf(`if %s {`, g.checkFlags(Carry))
-	g.printf(`	carry = 1`)
-	g.printf(`}`)
-}
-
 // read 16 bytes from the zero page, handling page wrap.
 func r16zpwrap(g *Generator) {
 	g.printf(`// read 16 bytes from the zero page, handling page wrap`)
@@ -573,11 +566,7 @@ func (g *Generator) STP(def opdef) {
 }
 
 func (g *Generator) ADC(_ opdef) {
-	carrybit(g)
-	g.printf(`sum := uint16(cpu.A) + uint16(val) + uint16(carry)`)
-	g.printf(`cpu.P.checkCV(cpu.A, val, sum)`)
-	g.printf(`cpu.A = uint8(sum)`)
-	g.checkNZ(`cpu.A`)
+	g.printf(`cpu.add(val)`)
 }
 
 func (g *Generator) ALR(_ opdef) {
@@ -806,11 +795,7 @@ func (g *Generator) SAX(_ opdef) {
 
 func (g *Generator) SBC(def opdef) {
 	g.printf(`val ^= 0xff`)
-	carrybit(g)
-	g.printf(`sum := uint16(cpu.A) + uint16(val) + uint16(carry)`)
-	g.printf(`cpu.P.checkCV(cpu.A, val, sum)`)
-	g.printf(`cpu.A = uint8(sum)`)
-	g.checkNZ(`cpu.A`)
+	g.printf(`cpu.add(val)`)
 }
 
 func (g *Generator) SBX(def opdef) {
