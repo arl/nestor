@@ -17,12 +17,10 @@ import (
 const pkgname = "hw"
 
 type opdef struct {
-	i uint8  // opcode value (same as index into 'defs')
-	n string // name
-	m string // addressing mode
-	f func(opdef)
-
-	dontgen bool // manually written
+	i uint8       // opcode value (same as index into 'defs')
+	n string      // name
+	m string      // addressing mode
+	f func(opdef) // if nil, opcode is manually written
 
 	// opcode detail string
 	// 	- r: declare 'val' and set it to 'oper/accumulator'
@@ -31,7 +29,7 @@ type opdef struct {
 }
 
 var defs = [256]opdef{
-	{i: 0x00, n: "BRK", d: "     ", m: "imp", dontgen: true},
+	{i: 0x00, n: "BRK", d: "     ", m: "imp"},
 	{i: 0x01, n: "ORA", d: "r    ", m: "izx", f: ORA},
 	{i: 0x02, n: "STP", d: "     ", m: "imp", f: STP},
 	{i: 0x03, n: "SLO", d: "rw   ", m: "izx", f: SLO},
@@ -63,7 +61,7 @@ var defs = [256]opdef{
 	{i: 0x1D, n: "ORA", d: "r    ", m: "abx", f: ORA},
 	{i: 0x1E, n: "ASL", d: "rw   ", m: "abxd", f: ASL},
 	{i: 0x1F, n: "SLO", d: "rw   ", m: "abxd", f: SLO},
-	{i: 0x20, n: "JSR", d: "     ", m: "abs", dontgen: true},
+	{i: 0x20, n: "JSR", d: "     ", m: "abs"},
 	{i: 0x21, n: "AND", d: "r    ", m: "izx", f: AND},
 	{i: 0x22, n: "STP", d: "     ", m: "imp", f: STP},
 	{i: 0x23, n: "RLA", d: "rw   ", m: "izx", f: RLA},
@@ -852,7 +850,7 @@ func opcodeFooter(code uint8) {
 
 func opcodes() {
 	for _, def := range defs {
-		if def.dontgen {
+		if def.f == nil {
 			continue
 		}
 		opcodeHeader(def.i)
@@ -873,7 +871,7 @@ func opcodesTable() {
 	for i := 0; i < 16; i++ {
 		for j := 0; j < 16; j++ {
 			opcode := i*16 + j
-			if defs[opcode].dontgen {
+			if defs[opcode].f == nil {
 				fmt.Fprintf(bb, "%s,", defs[opcode].n)
 			} else {
 				fmt.Fprintf(bb, "opcode%02X, ", opcode)
