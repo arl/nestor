@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"runtime"
 	"slices"
 	"sort"
 	"strconv"
@@ -21,7 +22,7 @@ type opdef struct {
 	i uint8  // opcode value (same as index into 'defs')
 	n string // name
 	m string // addressing mode
-	f func(def opdef)
+	f func(opdef)
 
 	dontgen bool // manually written
 
@@ -53,7 +54,7 @@ var defs = [256]opdef{
 	{i: 0x10, n: "BPL", d: "     ", m: "rel", f: branch(Negative, false)},
 	{i: 0x11, n: "ORA", d: "r  x ", m: "izy", f: ORA},
 	{i: 0x12, n: "STP", d: "     ", m: "imp", f: STP},
-	{i: 0x13, n: "SLO", d: "rw  a", m: "izy", f: SLO},
+	{i: 0x13, n: "SLO", d: "rw  a", m: "izyd", f: SLO},
 	{i: 0x14, n: "NOP", d: "     ", m: "zpx", f: NOP},
 	{i: 0x15, n: "ORA", d: "r    ", m: "zpx", f: ORA},
 	{i: 0x16, n: "ASL", d: "rw   ", m: "zpx", f: ASL},
@@ -61,11 +62,11 @@ var defs = [256]opdef{
 	{i: 0x18, n: "CLC", d: "     ", m: "imp", f: clear(Carry)},
 	{i: 0x19, n: "ORA", d: "r  x ", m: "aby", f: ORA},
 	{i: 0x1A, n: "NOP", d: "     ", m: "imp", f: NOP},
-	{i: 0x1B, n: "SLO", d: "rw   ", m: "aby", f: SLO},
+	{i: 0x1B, n: "SLO", d: "rw   ", m: "abyd", f: SLO},
 	{i: 0x1C, n: "NOP", d: "   x ", m: "abx", f: NOP},
 	{i: 0x1D, n: "ORA", d: "r  x ", m: "abx", f: ORA},
-	{i: 0x1E, n: "ASL", d: "rw   ", m: "abx", f: ASL},
-	{i: 0x1F, n: "SLO", d: "rw   ", m: "abx", f: SLO},
+	{i: 0x1E, n: "ASL", d: "rw   ", m: "abxd", f: ASL},
+	{i: 0x1F, n: "SLO", d: "rw   ", m: "abxd", f: SLO},
 	{i: 0x20, n: "JSR", d: "     ", m: "abs", dontgen: true},
 	{i: 0x21, n: "AND", d: "r    ", m: "izx", f: AND},
 	{i: 0x22, n: "STP", d: "     ", m: "imp", f: STP},
@@ -85,7 +86,7 @@ var defs = [256]opdef{
 	{i: 0x30, n: "BMI", d: "     ", m: "rel", f: branch(Negative, true)},
 	{i: 0x31, n: "AND", d: "r  x ", m: "izy", f: AND},
 	{i: 0x32, n: "STP", d: "     ", m: "imp", f: STP},
-	{i: 0x33, n: "RLA", d: "rw  a", m: "izy", f: RLA},
+	{i: 0x33, n: "RLA", d: "rw  a", m: "izyd", f: RLA},
 	{i: 0x34, n: "NOP", d: "     ", m: "zpx", f: NOP},
 	{i: 0x35, n: "AND", d: "r    ", m: "zpx", f: AND},
 	{i: 0x36, n: "ROL", d: "rw   ", m: "zpx", f: ROL},
@@ -93,11 +94,11 @@ var defs = [256]opdef{
 	{i: 0x38, n: "SEC", d: "     ", m: "imp", f: set(Carry)},
 	{i: 0x39, n: "AND", d: "r  x ", m: "aby", f: AND},
 	{i: 0x3A, n: "NOP", d: "     ", m: "imp", f: NOP},
-	{i: 0x3B, n: "RLA", d: "rw   ", m: "aby", f: RLA},
+	{i: 0x3B, n: "RLA", d: "rw   ", m: "abyd", f: RLA},
 	{i: 0x3C, n: "NOP", d: "   x ", m: "abx", f: NOP},
 	{i: 0x3D, n: "AND", d: "r  x ", m: "abx", f: AND},
-	{i: 0x3E, n: "ROL", d: "rw   ", m: "abx", f: ROL},
-	{i: 0x3F, n: "RLA", d: "rw   ", m: "abx", f: RLA},
+	{i: 0x3E, n: "ROL", d: "rw   ", m: "abxd", f: ROL},
+	{i: 0x3F, n: "RLA", d: "rw   ", m: "abxd", f: RLA},
 	{i: 0x40, n: "RTI", d: "     ", m: "imp", f: RTI},
 	{i: 0x41, n: "EOR", d: "r    ", m: "izx", f: EOR},
 	{i: 0x42, n: "STP", d: "     ", m: "imp", f: STP},
@@ -117,7 +118,7 @@ var defs = [256]opdef{
 	{i: 0x50, n: "BVC", d: "     ", m: "rel", f: branch(Overflow, false)},
 	{i: 0x51, n: "EOR", d: "r  x ", m: "izy", f: EOR},
 	{i: 0x52, n: "STP", d: "     ", m: "imp", f: STP},
-	{i: 0x53, n: "SRE", d: "rw  a", m: "izy", f: SRE},
+	{i: 0x53, n: "SRE", d: "rw  a", m: "izyd", f: SRE},
 	{i: 0x54, n: "NOP", d: "     ", m: "zpx", f: NOP},
 	{i: 0x55, n: "EOR", d: "r    ", m: "zpx", f: EOR},
 	{i: 0x56, n: "LSR", d: "rw   ", m: "zpx", f: LSR},
@@ -125,11 +126,11 @@ var defs = [256]opdef{
 	{i: 0x58, n: "CLI", d: "     ", m: "imp", f: clear(Interrupt)},
 	{i: 0x59, n: "EOR", d: "r  x ", m: "aby", f: EOR},
 	{i: 0x5A, n: "NOP", d: "     ", m: "imp", f: NOP},
-	{i: 0x5B, n: "SRE", d: "rw   ", m: "aby", f: SRE},
+	{i: 0x5B, n: "SRE", d: "rw   ", m: "abyd", f: SRE},
 	{i: 0x5C, n: "NOP", d: "   x ", m: "abx", f: NOP},
 	{i: 0x5D, n: "EOR", d: "r  x ", m: "abx", f: EOR},
-	{i: 0x5E, n: "LSR", d: "rw   ", m: "abx", f: LSR},
-	{i: 0x5F, n: "SRE", d: "rw   ", m: "abx", f: SRE},
+	{i: 0x5E, n: "LSR", d: "rw   ", m: "abxd", f: LSR},
+	{i: 0x5F, n: "SRE", d: "rw   ", m: "abxd", f: SRE},
 	{i: 0x60, n: "RTS", d: "     ", m: "imp", f: RTS},
 	{i: 0x61, n: "ADC", d: "r    ", m: "izx", f: ADC},
 	{i: 0x62, n: "STP", d: "     ", m: "imp", f: STP},
@@ -149,7 +150,7 @@ var defs = [256]opdef{
 	{i: 0x70, n: "BVS", d: "     ", m: "rel", f: branch(Overflow, true)},
 	{i: 0x71, n: "ADC", d: "r  x ", m: "izy", f: ADC},
 	{i: 0x72, n: "STP", d: "     ", m: "imp", f: STP},
-	{i: 0x73, n: "RRA", d: "rw  a", m: "izy", f: RRA},
+	{i: 0x73, n: "RRA", d: "rw  a", m: "izyd", f: RRA},
 	{i: 0x74, n: "NOP", d: "     ", m: "zpx", f: NOP},
 	{i: 0x75, n: "ADC", d: "r    ", m: "zpx", f: ADC},
 	{i: 0x76, n: "ROR", d: "rw   ", m: "zpx", f: ROR},
@@ -157,11 +158,11 @@ var defs = [256]opdef{
 	{i: 0x78, n: "SEI", d: "     ", m: "imp", f: set(Interrupt)},
 	{i: 0x79, n: "ADC", d: "r  x ", m: "aby", f: ADC},
 	{i: 0x7A, n: "NOP", d: "     ", m: "imp", f: NOP},
-	{i: 0x7B, n: "RRA", d: "rw   ", m: "aby", f: RRA},
+	{i: 0x7B, n: "RRA", d: "rw   ", m: "abyd", f: RRA},
 	{i: 0x7C, n: "NOP", d: "   x ", m: "abx", f: NOP},
 	{i: 0x7D, n: "ADC", d: "r  x ", m: "abx", f: ADC},
-	{i: 0x7E, n: "ROR", d: "rw   ", m: "abx", f: ROR},
-	{i: 0x7F, n: "RRA", d: "rw   ", m: "abx", f: RRA},
+	{i: 0x7E, n: "ROR", d: "rw   ", m: "abxd", f: ROR},
+	{i: 0x7F, n: "RRA", d: "rw   ", m: "abxd", f: RRA},
 	{i: 0x80, n: "NOP", d: "r    ", m: "imm", f: NOP},
 	{i: 0x81, n: "STA", d: "     ", m: "izx", f: ST("A")},
 	{i: 0x82, n: "NOP", d: "r    ", m: "imm", f: NOP},
@@ -179,7 +180,7 @@ var defs = [256]opdef{
 	{i: 0x8E, n: "STX", d: "     ", m: "abs", f: ST("X")},
 	{i: 0x8F, n: "SAX", d: "     ", m: "abs", f: SAX},
 	{i: 0x90, n: "BCC", d: "     ", m: "rel", f: branch(Carry, false)},
-	{i: 0x91, n: "STA", d: "    a", m: "izy", f: ST("A")},
+	{i: 0x91, n: "STA", d: "    a", m: "izyd", f: ST("A")},
 	{i: 0x92, n: "STP", d: "     ", m: "imp", f: STP},
 	{i: 0x93, n: "SHA", d: "     ", m: "izy", f: unstable},
 	{i: 0x94, n: "STY", d: "     ", m: "zpx", f: ST("Y")},
@@ -187,12 +188,12 @@ var defs = [256]opdef{
 	{i: 0x96, n: "STX", d: "     ", m: "zpy", f: ST("X")},
 	{i: 0x97, n: "SAX", d: "     ", m: "zpy", f: SAX},
 	{i: 0x98, n: "TYA", d: "     ", m: "imp", f: T("Y", "A")},
-	{i: 0x99, n: "STA", d: "     ", m: "aby", f: ST("A")},
+	{i: 0x99, n: "STA", d: "     ", m: "abyd", f: ST("A")},
 	{i: 0x9A, n: "TXS", d: "     ", m: "imp", f: T("X", "SP")},
-	{i: 0x9B, n: "TAS", d: "     ", m: "aby", f: unstable},
-	{i: 0x9C, n: "SHY", d: "     ", m: "abx", f: unstable},
-	{i: 0x9D, n: "STA", d: "     ", m: "abx", f: ST("A")},
-	{i: 0x9E, n: "SHX", d: "     ", m: "aby", f: unstable},
+	{i: 0x9B, n: "TAS", d: "     ", m: "abx", f: unstable},
+	{i: 0x9C, n: "SHY", d: "     ", m: "aby", f: unstable},
+	{i: 0x9D, n: "STA", d: "     ", m: "abxd", f: ST("A")},
+	{i: 0x9E, n: "SHX", d: "     ", m: "abx", f: unstable},
 	{i: 0x9F, n: "SHA", d: "     ", m: "aby", f: unstable},
 	{i: 0xA0, n: "LDY", d: "r    ", m: "imm", f: LD("Y")},
 	{i: 0xA1, n: "LDA", d: "r    ", m: "izx", f: LD("A")},
@@ -245,7 +246,7 @@ var defs = [256]opdef{
 	{i: 0xD0, n: "BNE", d: "     ", m: "rel", f: branch(Zero, false)},
 	{i: 0xD1, n: "CMP", d: "r  x ", m: "izy", f: cmp("A")},
 	{i: 0xD2, n: "STP", d: "     ", m: "imp", f: STP},
-	{i: 0xD3, n: "DCP", d: "rw  a", m: "izy", f: DCP},
+	{i: 0xD3, n: "DCP", d: "rw  a", m: "izyd", f: DCP},
 	{i: 0xD4, n: "NOP", d: "     ", m: "zpx", f: NOP},
 	{i: 0xD5, n: "CMP", d: "r    ", m: "zpx", f: cmp("A")},
 	{i: 0xD6, n: "DEC", d: "rw   ", m: "zpx", f: dec("")},
@@ -253,11 +254,11 @@ var defs = [256]opdef{
 	{i: 0xD8, n: "CLD", d: "     ", m: "imp", f: clear(Decimal)},
 	{i: 0xD9, n: "CMP", d: "r  x ", m: "aby", f: cmp("A")},
 	{i: 0xDA, n: "NOP", d: "     ", m: "imp", f: NOP},
-	{i: 0xDB, n: "DCP", d: "rw   ", m: "aby", f: DCP},
+	{i: 0xDB, n: "DCP", d: "rw   ", m: "abyd", f: DCP},
 	{i: 0xDC, n: "NOP", d: "   x ", m: "abx", f: NOP},
 	{i: 0xDD, n: "CMP", d: "r  x ", m: "abx", f: cmp("A")},
-	{i: 0xDE, n: "DEC", d: "rw   ", m: "abx", f: dec("")},
-	{i: 0xDF, n: "DCP", d: "rw   ", m: "abx", f: DCP},
+	{i: 0xDE, n: "DEC", d: "rw   ", m: "abxd", f: dec("")},
+	{i: 0xDF, n: "DCP", d: "rw   ", m: "abxd", f: DCP},
 	{i: 0xE0, n: "CPX", d: "r    ", m: "imm", f: cmp("X")},
 	{i: 0xE1, n: "SBC", d: "r    ", m: "izx", f: SBC},
 	{i: 0xE2, n: "NOP", d: "r    ", m: "imm", f: NOP},
@@ -277,7 +278,7 @@ var defs = [256]opdef{
 	{i: 0xF0, n: "BEQ", d: "     ", m: "rel", f: branch(Zero, true)},
 	{i: 0xF1, n: "SBC", d: "r  x ", m: "izy", f: SBC},
 	{i: 0xF2, n: "STP", d: "     ", m: "imp", f: STP},
-	{i: 0xF3, n: "ISC", d: "rw  a", m: "izy", f: ISC},
+	{i: 0xF3, n: "ISC", d: "rw  a", m: "izyd", f: ISC},
 	{i: 0xF4, n: "NOP", d: "     ", m: "zpx", f: NOP},
 	{i: 0xF5, n: "SBC", d: "r    ", m: "zpx", f: SBC},
 	{i: 0xF6, n: "INC", d: "rw   ", m: "zpx", f: inc("")},
@@ -285,33 +286,36 @@ var defs = [256]opdef{
 	{i: 0xF8, n: "SED", d: "     ", m: "imp", f: set(Decimal)},
 	{i: 0xF9, n: "SBC", d: "r  x ", m: "aby", f: SBC},
 	{i: 0xFA, n: "NOP", d: "     ", m: "imp", f: NOP},
-	{i: 0xFB, n: "ISC", d: "rw   ", m: "aby", f: ISC},
+	{i: 0xFB, n: "ISC", d: "rw   ", m: "abyd", f: ISC},
 	{i: 0xFC, n: "NOP", d: "   x ", m: "abx", f: NOP},
 	{i: 0xFD, n: "SBC", d: "r  x ", m: "abx", f: SBC},
-	{i: 0xFE, n: "INC", d: "rw   ", m: "abx", f: inc("")},
-	{i: 0xFF, n: "ISC", d: "rw   ", m: "abx", f: ISC},
+	{i: 0xFE, n: "INC", d: "rw   ", m: "abxd", f: inc("")},
+	{i: 0xFF, n: "ISC", d: "rw   ", m: "abxd", f: ISC},
 }
 
 type addrmode struct {
 	human string // human readable name
 	n     int    // number of bytes
-	f     func(details string)
+	f     func()
 }
 
 var addrModes = map[string]addrmode{
-	"imp": {f: imp, n: 1, human: `implied addressing.`},
-	"acc": {f: acc, n: 1, human: `adressing accumulator.`},
-	"rel": {f: rel, n: 2, human: `relative addressing.`},
-	"abs": {f: abs, n: 3, human: `absolute addressing.`},
-	"abx": {f: abx, n: 3, human: `absolute indexed X.`},
-	"aby": {f: aby, n: 3, human: `absolute indexed Y.`},
-	"imm": {f: imm, n: 2, human: `immediate addressing.`},
-	"ind": {f: ind, n: 3, human: `indirect addressing.`},
-	"izx": {f: izx, n: 2, human: `indexed addressing (abs, X).`},
-	"izy": {f: izy, n: 2, human: `indexed addressing (abs),Y.`},
-	"zpg": {f: zpg, n: 2, human: `zero page addressing.`},
-	"zpx": {f: zpx, n: 2, human: `indexed addressing: zeropage,X.`},
-	"zpy": {f: zpy, n: 2, human: `indexed addressing: zeropage,Y.`},
+	"imp":  {f: imp, n: 1, human: `implied addressing.`},
+	"acc":  {f: acc, n: 1, human: `adressing accumulator.`},
+	"rel":  {f: rel, n: 2, human: `relative addressing.`},
+	"abs":  {f: abs, n: 3, human: `absolute addressing.`},
+	"abx":  {f: abx(false), n: 3, human: `absolute indexed X.`},
+	"abxd": {f: abx(true), n: 3, human: `absolute indexed X.`},
+	"aby":  {f: aby(false), n: 3, human: `absolute indexed Y.`},
+	"abyd": {f: aby(true), n: 3, human: `absolute indexed Y.`},
+	"imm":  {f: imm, n: 2, human: `immediate addressing.`},
+	"ind":  {f: ind, n: 3, human: `indirect addressing.`},
+	"izx":  {f: izx, n: 2, human: `indexed addressing (abs, X).`},
+	"izy":  {f: izy(false), n: 2, human: `indexed addressing (abs),Y.`},
+	"izyd": {f: izy(true), n: 2, human: `indexed addressing (abs),Y.`},
+	"zpg":  {f: zpg, n: 2, human: `zero page addressing.`},
+	"zpx":  {f: zpx, n: 2, human: `indexed addressing: zeropage,X.`},
+	"zpy":  {f: zpy, n: 2, human: `indexed addressing: zeropage,Y.`},
 }
 
 //
@@ -396,9 +400,9 @@ func (b block) printf(format string, args ...any) block {
 
 func (b block) End() { printf(`}`) }
 
-func dummyread(oper string) {
+func dummyread(addr string) {
 	printf(`// dummy read.`)
-	printf(`_ = cpu.Read8(%s)`, oper)
+	printf(`_ = cpu.Read8(%s)`, addr)
 }
 
 func dummywrite(addr, value string) {
@@ -406,113 +410,20 @@ func dummywrite(addr, value string) {
 	printf(`cpu.Write8(%s, %s)`, addr, value)
 }
 
-//
 // addressing modes
-//
-
-func acc(_ string) {
-	dummyread("cpu.PC")
-}
-
-func imp(_ string) {
-	dummyread("cpu.PC")
-}
-
-func ind(_ string) {
-	printf(`oper := cpu.Read16(cpu.PC)`)
-	printf(`lo := cpu.Read8(oper)`)
-	printf(`// 2 bytes address wrap around`)
-	printf(`hi := cpu.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))`)
-	printf(`oper = uint16(hi)<<8 | uint16(lo)`)
-}
-
-func imm(_ string) {}
-
-func rel(_ string) {
-	printf(`off := int16(int8(cpu.fetch()))`)
-	printf(`oper := uint16(int16(cpu.PC) + off)`)
-}
-
-func abs(_ string) {
-	printf(`oper := cpu.Read16(cpu.PC)`)
-	printf(`cpu.PC += 2`)
-}
-
-// seems that we don't even need the dummyread bool
-
-func abx(info string) {
-	printf(`addr := cpu.Read16(cpu.PC)`)
-	printf(`cpu.PC += 2`)
-	printf(`oper := addr + uint16(cpu.X)`)
-
-	switch {
-	case has(info, 'x'):
-		tickIfPageCrossed("addr", "oper")
-	default:
-		dummyread(fmt.Sprintf("%s & 0x00FF | %s & 0xFF00", "oper", "addr"))
-	}
-}
-
-func aby(info string) {
-	printf(`addr := cpu.Read16(cpu.PC)`)
-	printf(`cpu.PC += 2`)
-	printf(`oper := addr + uint16(cpu.Y)`)
-
-	switch {
-	case has(info, 'x'):
-		tickIfPageCrossed("addr", "oper")
-	default:
-		dummyread(fmt.Sprintf("%s & 0x00FF | %s & 0xFF00", "oper", "addr"))
-	}
-}
-
-func zpg(_ string) {
-	printf(`oper := uint16(cpu.fetch())`)
-}
-
-func zpx(_ string) {
-	printf(`addr := cpu.fetch()`)
-	dummyread("uint16(addr)")
-	printf(`oper := uint16(addr) + uint16(cpu.X)`)
-	printf(`oper &= 0xff`)
-}
-
-func zpy(_ string) {
-	printf(`addr := cpu.fetch()`)
-	dummyread("uint16(addr)")
-	printf(`oper := uint16(addr) + uint16(cpu.Y)`)
-	printf(`oper &= 0xff`)
-}
-
-func izx(info string) {
-	printf(`oper := uint16(cpu.fetch())`)
-	dummyread("uint16(oper)")
-	printf(`oper = uint16(uint8(oper) + cpu.X)`)
-	r16zpwrap()
-}
-
-func izy(info string) {
-	printf(`oper := uint16(cpu.fetch())`)
-	r16zpwrap()
-
-	switch {
-	case has(info, 'x'):
-		printf(`if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {`)
-		printf(`// extra cycle for page cross`)
-		dummyread(`oper + uint16(cpu.Y) - 0x100`)
-		printf(`}`)
-	case has(info, 'a'):
-		printf(`// page crossed?`)
-		printf(`if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {`)
-		dummyread(`oper + uint16(cpu.Y) - 0x100`)
-		printf(`} else {`)
-		dummyread(`oper + uint16(cpu.Y)`)
-		printf(`}`)
-	default:
-	}
-
-	printf(`oper += uint16(cpu.Y)`)
-}
+func imm()                      {}
+func acc()                      { printf("cpu.acc()") }
+func imp()                      { printf("cpu.imp()") }
+func ind()                      { printf("cpu.ind()") }
+func rel()                      { printf("cpu.rel()") }
+func abs()                      { printf("cpu.abs()") }
+func abx(dummyread bool) func() { return func() { printf("cpu.abx(%t)", dummyread) } }
+func aby(dummyread bool) func() { return func() { printf("cpu.aby(%t)", dummyread) } }
+func zpg()                      { printf(`cpu.zpg()`) }
+func zpx()                      { printf(`cpu.zpx()`) }
+func zpy()                      { printf(`cpu.zpy()`) }
+func izx()                      { printf(`cpu.izx()`) }
+func izy(dummyread bool) func() { return func() { printf("cpu.izy(%t)", dummyread) } }
 
 // helpers
 
@@ -530,14 +441,6 @@ func pull8(v string) {
 
 func pull16(v string) {
 	printf(`%s = cpu.pull16()`, v)
-}
-
-// read 16 bytes from the zero page, handling page wrap.
-func r16zpwrap() {
-	printf(`// read 16 bytes from the zero page, handling page wrap`)
-	printf(`lo := cpu.Read8(oper)`)
-	printf(`hi := cpu.Read8(uint16(uint8(oper) + 1))`)
-	printf(`oper = uint16(hi)<<8 | uint16(lo)`)
 }
 
 func branch(f cpuFlag, val bool) func(_ opdef) {
@@ -560,15 +463,13 @@ func branch(f cpuFlag, val bool) func(_ opdef) {
 			End()
 
 		dummyread("cpu.PC")
-		tickIfPageCrossed("cpu.PC", "oper")
-		printf(`cpu.PC = oper`)
+		tickIfPageCrossed("cpu.PC", "cpu.operand")
+		printf(`cpu.PC = cpu.operand`)
 		printf(`return`)
 	}
 }
 
-func tick() {
-	printf(`cpu.tick()`)
-}
+func tick() { printf(`cpu.tick()`) }
 
 func tickIfPageCrossed(a, b string) {
 	printf(`// extra cycle for page cross`)
@@ -645,7 +546,7 @@ func ARR(_ opdef) {
 
 func ASL(def opdef) {
 	if def.m != "acc" {
-		dummywrite("oper", "val")
+		dummywrite("cpu.operand", "val")
 	}
 	printf(`carry := val & 0x80`)
 	printf(`val = (val << 1) & 0xfe`)
@@ -693,7 +594,7 @@ func ISC(def opdef) {
 }
 
 func JMP(_ opdef) {
-	printf(`cpu.PC = oper`)
+	printf(`cpu.PC = cpu.operand`)
 }
 
 func LAS(def opdef) {
@@ -705,7 +606,7 @@ func LAS(def opdef) {
 
 func LSR(def opdef) {
 	if def.m != "acc" {
-		dummywrite("oper", "val")
+		dummywrite("cpu.operand", "val")
 	}
 
 	printf(`carry := val & 0x01 // carry is bit 0`)
@@ -729,7 +630,7 @@ func LXA(def opdef) {
 
 func NOP(def opdef) {
 	if !slices.Contains([]string{"acc", "imp", "rel", "imm"}, def.m) {
-		dummyread("oper")
+		dummyread("cpu.operand")
 	}
 	if def.m == "imm" {
 		printf(`_ = val`)
@@ -770,7 +671,7 @@ func RLA(def opdef) {
 
 func ROL(def opdef) {
 	if def.m != "acc" {
-		dummywrite("oper", "val")
+		dummywrite("cpu.operand", "val")
 	}
 	printf(`carry := val & 0x80`)
 	printf(`val <<= 1`)
@@ -789,7 +690,7 @@ func ROL(def opdef) {
 
 func ROR(def opdef) {
 	if def.m != "acc" {
-		dummywrite("oper", "val")
+		dummywrite("cpu.operand", "val")
 	}
 	printf(`carry := val & 0x01`)
 	printf(`val >>= 1`)
@@ -826,7 +727,7 @@ func RTS(_ opdef) {
 }
 
 func SAX(_ opdef) {
-	printf(`cpu.Write8(oper, cpu.A&cpu.X)`)
+	printf(`cpu.Write8(cpu.operand, cpu.A&cpu.X)`)
 }
 
 func SBC(def opdef) {
@@ -869,7 +770,7 @@ func LD(reg ...string) func(_ opdef) {
 
 func ST(reg string) func(_ opdef) {
 	return func(_ opdef) {
-		printf(`cpu.Write8(oper, cpu.%s)`, reg)
+		printf(`cpu.Write8(cpu.operand, cpu.%s)`, reg)
 	}
 }
 
@@ -909,7 +810,7 @@ func inc(v string) func(_ opdef) {
 		v = regOrMem(v)
 		if v == "val" {
 			// TODO: works but ugly
-			dummywrite("oper", "val")
+			dummywrite("cpu.operand", "val")
 		}
 		printf(`%s++`, v)
 		checkNZ(v)
@@ -921,7 +822,7 @@ func dec(v string) func(_ opdef) {
 		v = regOrMem(v)
 		if v == "val" {
 			// TODO: works but ugly
-			dummywrite("oper", "val")
+			dummywrite("cpu.operand", "val")
 		}
 		printf(`%s--`, v)
 		checkNZ(v)
@@ -975,9 +876,9 @@ func opcodeHeader(code uint8) {
 	}
 
 	printf(`// %s - %s`, defs[code].n, mode.human)
-	printf(`func opcode%02X(cpu*CPU){`, code)
+	printf(`func opcode%02X(cpu*CPU) {`, code)
 	if mode.f != nil {
-		mode.f(defs[code].d)
+		mode.f()
 	}
 
 	switch {
@@ -988,7 +889,7 @@ func opcodeHeader(code uint8) {
 		case "imm":
 			printf(`val := cpu.fetch()`)
 		default:
-			printf(`val := cpu.Read8(oper)`)
+			printf(`val := cpu.Read8(cpu.operand)`)
 		}
 	}
 }
@@ -1000,7 +901,7 @@ func opcodeFooter(code uint8) {
 		case "acc":
 			printf(`cpu.A = val`)
 		default:
-			printf(`cpu.Write8(oper, val)`)
+			printf(`cpu.Write8(cpu.operand, val)`)
 		}
 	}
 	printf(`}`)
@@ -1024,6 +925,10 @@ func opcodes() {
 	}
 }
 
+func funcname(i any) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
 func disasmAddrModes() {
 	// order alphabetically to get deterministic output.
 	var modes []string
@@ -1033,6 +938,13 @@ func disasmAddrModes() {
 
 	sort.Strings(modes)
 	for _, name := range modes {
+		if !slices.Contains([]string{"imp", "acc", "rel", "ind", "abs", "abx", "aby", "imm", "zpg", "zpx", "zpy", "izx", "izy"}, name) {
+			continue
+		}
+
+		if name == "" {
+			continue
+		}
 		am := addrModes[name]
 		fname := strings.ToUpper(name[:1]) + name[1:]
 		printf(`func disasm%s(cpu*CPU, pc uint16) DisasmOp {`, fname)
@@ -1096,8 +1008,6 @@ func disasmAddrModes() {
 			printf(`addr &= 0xff`)
 			printf(`pointee := cpu.Bus.Peek8(addr)`)
 			printf(`oper = fmt.Sprintf("$%%02X,Y [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
-		case "zp":
-			printf(`oper = fmt.Sprintf("$%%02X", oper1)`)
 		case "izx":
 			printf(`addr := uint16(uint8(oper1) + cpu.X)`)
 			printf(`// read 16 bytes from the zero page, handling page wrap`)
@@ -1153,7 +1063,9 @@ func disasmTable() {
 	for i := 0; i < 16; i++ {
 		for j := 0; j < 16; j++ {
 			name := defs[i*16+j].m
-			fmt.Fprintf(bb, "disasm%s, ", strings.ToUpper(name[:1])+name[1:])
+			name = strings.ToUpper(name[:1]) + name[1:]
+			name = name[:3]
+			fmt.Fprintf(bb, "disasm%s, ", name)
 		}
 		bb.WriteByte('\n')
 	}

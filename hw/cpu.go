@@ -39,6 +39,7 @@ type CPU struct {
 	A, X, Y, SP uint8
 	PC          uint16
 	P           P
+	operand     uint16
 
 	// interrupt handling
 	nmiFlag, prevNmiFlag bool
@@ -486,4 +487,128 @@ func (cpu *CPU) add(val uint8) {
 	cpu.A = uint8(sum)
 	cpu.P.clearFlags(Zero | Negative)
 	cpu.P.setNZ(cpu.A)
+}
+
+/* addressing modes */
+
+func (cpu *CPU) acc() {
+	// dummy read.
+	_ = cpu.Read8(cpu.PC)
+}
+
+func (cpu *CPU) imp() {
+	// dummy read.
+	_ = cpu.Read8(cpu.PC)
+}
+
+func (cpu *CPU) ind() {
+	cpu.operand = cpu.Read16(cpu.PC)
+	lo := cpu.Read8(cpu.operand)
+
+	// 2 bytes address wrap around
+	hi := cpu.Read8((0xff00 & cpu.operand) | (0x00ff & (cpu.operand + 1)))
+	cpu.operand = uint16(hi)<<8 | uint16(lo)
+}
+
+func (cpu *CPU) rel() {
+	off := int16(int8(cpu.fetch()))
+	cpu.operand = uint16(int16(cpu.PC) + off)
+}
+
+func (cpu *CPU) abs() {
+	cpu.operand = cpu.Read16(cpu.PC)
+	cpu.PC += 2
+}
+
+func pageCrossed(a uint16, b int8) bool {
+	return (uint16(int16(a)+int16(b)) & 0xFF00) != (a & 0xFF00)
+}
+
+func pageCrossedu(a uint16, b uint8) bool {
+	return ((a + uint16(b)) & 0xFF00) != (a & 0xFF00)
+}
+
+func (cpu *CPU) abx(dummyread bool) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	cpu.operand = addr + uint16(cpu.X)
+	crossed := pageCrossedu(addr, cpu.X)
+
+	if crossed || dummyread {
+		var off uint16
+		if crossed {
+			off = 0x100
+		}
+		// dummy read.
+		_ = cpu.Read8(cpu.operand - off)
+	}
+}
+
+func (cpu *CPU) aby(dummyread bool) {
+	addr := cpu.Read16(cpu.PC)
+	cpu.PC += 2
+	cpu.operand = addr + uint16(cpu.Y)
+	crossed := pageCrossedu(addr, cpu.Y)
+
+	if crossed || dummyread {
+		var off uint16
+		if crossed {
+			off = 0x100
+		}
+		_ = cpu.Read8(cpu.operand - off)
+	}
+}
+
+func (cpu *CPU) zpg() {
+	cpu.operand = uint16(cpu.fetch())
+}
+
+func (cpu *CPU) zpx() {
+	addr := cpu.fetch()
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
+
+	cpu.operand = uint16(addr) + uint16(cpu.X)
+	cpu.operand &= 0xff
+}
+
+func (cpu *CPU) zpy() {
+	addr := cpu.fetch()
+	// dummy read.
+	_ = cpu.Read8(uint16(addr))
+
+	cpu.operand = uint16(addr) + uint16(cpu.Y)
+	cpu.operand &= 0xff
+}
+
+func (cpu *CPU) izx() {
+	addr := uint16(cpu.fetch())
+	// dummy read.
+	_ = cpu.Read8(addr)
+	addr = uint16(uint8(addr) + cpu.X)
+
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(addr)
+	hi := cpu.Read8(uint16(uint8(addr) + 1))
+	cpu.operand = uint16(hi)<<8 | uint16(lo)
+}
+
+func (cpu *CPU) izy(dummyread bool) {
+	addr := uint16(cpu.fetch())
+
+	// read 16 bytes from the zero page, handling page wrap
+	lo := cpu.Read8(addr)
+	hi := cpu.Read8(uint16(uint8(addr) + 1))
+	addr = uint16(hi)<<8 | uint16(lo)
+
+	cpu.operand = addr + uint16(cpu.Y)
+	crossed := pageCrossedu(addr, cpu.Y)
+
+	if crossed || dummyread {
+		var off uint16
+		if crossed {
+			off = 0x100
+		}
+		_ = cpu.Read8(cpu.operand - off)
+	}
 }
