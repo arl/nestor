@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -841,12 +840,7 @@ func opcodes() {
 		}
 
 		// body
-		if def.f != nil {
-			def.f(def)
-		} else {
-			f := reflect.ValueOf(g).MethodByName(def.n)
-			f.Call([]reflect.Value{reflect.ValueOf(def)})
-		}
+		def.f(def)
 
 		// footer
 		if def.m == "acc" {
