@@ -387,8 +387,7 @@ func BRK(cpu *CPU) {
 	cpu.push16(cpu.PC + 1)
 
 	p := cpu.P
-	p.setBrk(true)
-	p.setUnused(true)
+	p.setFlags(Break | Reserved)
 	if cpu.needNmi {
 		cpu.needNmi = false
 		cpu.push8(uint8(p))
@@ -415,7 +414,7 @@ func (c *CPU) IRQ() {
 	if c.needNmi {
 		c.needNmi = false
 		p := c.P
-		p.setBrk(true)
+		p.setFlags(Break)
 		c.push8(uint8(p))
 
 		c.P.setFlags(Interrupt)
@@ -423,7 +422,7 @@ func (c *CPU) IRQ() {
 		c.dbg.Interrupt(prevpc, c.PC, true)
 	} else {
 		p := c.P
-		p.setUnused(true)
+		p.setFlags(Reserved)
 		c.push8(uint8(p))
 
 		c.P.setFlags(Interrupt)
@@ -463,14 +462,6 @@ func (cpu *CPU) setreg(reg *uint8, val uint8) {
 	cpu.P.clearFlags(Zero | Negative)
 	cpu.P.setNZ(val)
 	*reg = val
-}
-
-func (p *P) setNZ(val uint8) {
-	if val == 0 {
-		p.setFlags(Zero)
-	} else if val&0x80 != 0 {
-		p.setFlags(Negative)
-	}
 }
 
 // generalized add with carry and overflow.

@@ -516,9 +516,11 @@ func opcode23(cpu *CPU) {
 func opcode24(cpu *CPU) {
 	oper := uint16(cpu.fetch())
 	val := cpu.Read8(oper)
-	cpu.P &= 0b00111111
+	cpu.P &= 0x3d
 	cpu.P |= P(val & 0b11000000)
-	cpu.P.setZero(cpu.A&val == 0)
+	if cpu.A&val == 0 {
+		cpu.P |= Zero
+	}
 }
 
 // AND - zero page addressing.
@@ -629,9 +631,11 @@ func opcode2C(cpu *CPU) {
 	oper := cpu.Read16(cpu.PC)
 	cpu.PC += 2
 	val := cpu.Read8(oper)
-	cpu.P &= 0b00111111
+	cpu.P &= 0x3d
 	cpu.P |= P(val & 0b11000000)
-	cpu.P.setZero(cpu.A&val == 0)
+	if cpu.A&val == 0 {
+		cpu.P |= Zero
+	}
 }
 
 // AND - absolute addressing.

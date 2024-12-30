@@ -361,11 +361,19 @@ func (g *Generator) setFlags(flags ...cpuFlag) {
 	}
 	g.printf(`cpu.P |= %s`, strings.Join(flagstr, "|"))
 }
+
+func (g *Generator) setFlagsIf(cond string, flags ...cpuFlag) {
+	g.printf(`if %s {`, cond)
+	g.setFlags(flags...)
+	g.printf(`}`)
+}
+
 func (g *Generator) clearFlags(f cpuFlag) {
 	val := uint8(f)
 	val = ^val
 	g.printf(`cpu.P &= 0x%02x`, val)
 }
+
 func (g *Generator) checkFlags(f cpuFlag) string {
 	return fmt.Sprintf(`(cpu.P&0x%02x == 0x%02x)`, int(f), int(f))
 }
@@ -625,9 +633,9 @@ func (g *Generator) ASL(def opdef) {
 }
 
 func (g *Generator) BIT(_ opdef) {
-	g.printf(`cpu.P &= 0b00111111`)
+	g.clearFlags(Zero | Overflow | Negative)
 	g.printf(`cpu.P |= P(val & 0b11000000)`)
-	g.printf(`cpu.P.setZero(cpu.A&val == 0)`)
+	g.setFlagsIf(`cpu.A&val == 0`, Zero)
 }
 
 func (g *Generator) BRK(_ opdef) {
