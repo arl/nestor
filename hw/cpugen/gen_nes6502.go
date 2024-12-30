@@ -169,7 +169,7 @@ var defs = [256]opdef{
 	{i: 0x85, n: "STA", d: "     ", m: "zpg", f: ST("A")},
 	{i: 0x86, n: "STX", d: "     ", m: "zpg", f: ST("X")},
 	{i: 0x87, n: "SAX", d: "     ", m: "zpg", f: SAX},
-	{i: 0x88, n: "DEY", d: "     ", m: "imp", f: dec("Y")},
+	{i: 0x88, n: "DEY", d: "     ", m: "imp", f: dey},
 	{i: 0x89, n: "NOP", d: "r    ", m: "imm", f: NOP},
 	{i: 0x8A, n: "TXA", d: "     ", m: "imp", f: T("X", "A")},
 	{i: 0x8B, n: "ANE", d: "     ", m: "imm", f: unstable},
@@ -233,9 +233,9 @@ var defs = [256]opdef{
 	{i: 0xC5, n: "CMP", d: "r    ", m: "zpg", f: cmp("A")},
 	{i: 0xC6, n: "DEC", d: "rw   ", m: "zpg", f: dec("")},
 	{i: 0xC7, n: "DCP", d: "rw   ", m: "zpg", f: DCP},
-	{i: 0xC8, n: "INY", d: "     ", m: "imp", f: inc("Y")},
+	{i: 0xC8, n: "INY", d: "     ", m: "imp", f: iny},
 	{i: 0xC9, n: "CMP", d: "r    ", m: "imm", f: cmp("A")},
-	{i: 0xCA, n: "DEX", d: "     ", m: "imp", f: dec("X")},
+	{i: 0xCA, n: "DEX", d: "     ", m: "imp", f: dex},
 	{i: 0xCB, n: "SBX", d: "r    ", m: "imm", f: SBX},
 	{i: 0xCC, n: "CPY", d: "r    ", m: "abs", f: cmp("Y")},
 	{i: 0xCD, n: "CMP", d: "r    ", m: "abs", f: cmp("A")},
@@ -260,35 +260,35 @@ var defs = [256]opdef{
 	{i: 0xE0, n: "CPX", d: "r    ", m: "imm", f: cmp("X")},
 	{i: 0xE1, n: "SBC", d: "r    ", m: "izx", f: SBC},
 	{i: 0xE2, n: "NOP", d: "r    ", m: "imm", f: NOP},
-	{i: 0xE3, n: "ISC", d: "rw   ", m: "izx", f: ISC},
+	{i: 0xE3, n: "ISC", d: "r    ", m: "izx", f: ISC},
 	{i: 0xE4, n: "CPX", d: "r    ", m: "zpg", f: cmp("X")},
 	{i: 0xE5, n: "SBC", d: "r    ", m: "zpg", f: SBC},
-	{i: 0xE6, n: "INC", d: "rw   ", m: "zpg", f: inc("")},
-	{i: 0xE7, n: "ISC", d: "rw   ", m: "zpg", f: ISC},
-	{i: 0xE8, n: "INX", d: "     ", m: "imp", f: inc("X")},
+	{i: 0xE6, n: "INC", d: "r   ", m: "zpg", f: INC},
+	{i: 0xE7, n: "ISC", d: "r    ", m: "zpg", f: ISC},
+	{i: 0xE8, n: "INX", d: "     ", m: "imp", f: inx},
 	{i: 0xE9, n: "SBC", d: "r    ", m: "imm", f: SBC},
 	{i: 0xEA, n: "NOP", d: "     ", m: "imp", f: NOP},
 	{i: 0xEB, n: "SBC", d: "r    ", m: "imm", f: SBC},
 	{i: 0xEC, n: "CPX", d: "r    ", m: "abs", f: cmp("X")},
 	{i: 0xED, n: "SBC", d: "r    ", m: "abs", f: SBC},
-	{i: 0xEE, n: "INC", d: "rw   ", m: "abs", f: inc("")},
-	{i: 0xEF, n: "ISC", d: "rw   ", m: "abs", f: ISC},
+	{i: 0xEE, n: "INC", d: "r    ", m: "abs", f: INC},
+	{i: 0xEF, n: "ISC", d: "r    ", m: "abs", f: ISC},
 	{i: 0xF0, n: "BEQ", d: "     ", m: "rel", f: branch(Zero, true)},
 	{i: 0xF1, n: "SBC", d: "r  x ", m: "izy", f: SBC},
 	{i: 0xF2, n: "STP", d: "     ", m: "imp", f: STP},
-	{i: 0xF3, n: "ISC", d: "rw  a", m: "izyd", f: ISC},
+	{i: 0xF3, n: "ISC", d: "r   a", m: "izyd", f: ISC},
 	{i: 0xF4, n: "NOP", d: "     ", m: "zpx", f: NOP},
 	{i: 0xF5, n: "SBC", d: "r    ", m: "zpx", f: SBC},
-	{i: 0xF6, n: "INC", d: "rw   ", m: "zpx", f: inc("")},
-	{i: 0xF7, n: "ISC", d: "rw   ", m: "zpx", f: ISC},
+	{i: 0xF6, n: "INC", d: "r    ", m: "zpx", f: INC},
+	{i: 0xF7, n: "ISC", d: "r    ", m: "zpx", f: ISC},
 	{i: 0xF8, n: "SED", d: "     ", m: "imp", f: set(Decimal)},
 	{i: 0xF9, n: "SBC", d: "r  x ", m: "aby", f: SBC},
 	{i: 0xFA, n: "NOP", d: "     ", m: "imp", f: NOP},
-	{i: 0xFB, n: "ISC", d: "rw   ", m: "abyd", f: ISC},
+	{i: 0xFB, n: "ISC", d: "r    ", m: "abyd", f: ISC},
 	{i: 0xFC, n: "NOP", d: "   x ", m: "abx", f: NOP},
 	{i: 0xFD, n: "SBC", d: "r  x ", m: "abx", f: SBC},
-	{i: 0xFE, n: "INC", d: "rw   ", m: "abxd", f: inc("")},
-	{i: 0xFF, n: "ISC", d: "rw   ", m: "abxd", f: ISC},
+	{i: 0xFE, n: "INC", d: "r    ", m: "abxd", f: INC},
+	{i: 0xFF, n: "ISC", d: "r    ", m: "abxd", f: ISC},
 }
 
 type addrmode struct {
@@ -544,8 +544,16 @@ func EOR(_ opdef) {
 	checkNZ(`cpu.A`)
 }
 
+func INC(_ opdef) {
+	dummywrite("cpu.operand", "val")
+	printf(`val++`)
+	clearFlags(Zero | Negative)
+	checkNZ(`val`)
+	printf(`cpu.Write8(cpu.operand, val)`)
+}
+
 func ISC(def opdef) {
-	inc("")(def)
+	INC(def)
 	printf(`final := val`)
 	SBC(def)
 	printf(`val = final`)
@@ -763,17 +771,10 @@ func regOrMem(v string) string {
 	panic("regOrMem " + v)
 }
 
-func inc(v string) func(_ opdef) {
-	return func(_ opdef) {
-		v = regOrMem(v)
-		if v == "val" {
-			// TODO: works but ugly
-			dummywrite("cpu.operand", "val")
-		}
-		printf(`%s++`, v)
-		checkNZ(v)
-	}
-}
+func inx(_ opdef) { printf(`cpu.setreg(&cpu.X, cpu.X+1)`) }
+func iny(_ opdef) { printf(`cpu.setreg(&cpu.Y, cpu.Y+1)`) }
+func dex(_ opdef) { printf(`cpu.setreg(&cpu.X, cpu.X-1)`) }
+func dey(_ opdef) { printf(`cpu.setreg(&cpu.Y, cpu.Y-1)`) }
 
 func dec(v string) func(_ opdef) {
 	return func(_ opdef) {
