@@ -362,28 +362,6 @@ func setFlags(flags ...cpuFlag) {
 	printf(`cpu.P |= %s`, strings.Join(flagstr, "|"))
 }
 
-func setFlagsIf(cond string, flags ...cpuFlag) {
-	printf(`if %s {`, cond)
-	setFlags(flags...)
-	printf(`}`)
-}
-
-type block struct{}
-
-func (b block) Do(f func()) end {
-	f()
-	return end{}
-}
-
-type end struct{}
-
-func (e end) End() { printf(`}`) }
-
-func If(format string, args ...any) block {
-	printf(`if %s {`, fmt.Sprintf(format, args...))
-	return block{}
-}
-
 func clearFlags(f cpuFlag) {
 	val := uint8(f)
 	val = ^val
@@ -393,6 +371,30 @@ func clearFlags(f cpuFlag) {
 func checkFlags(f cpuFlag) string {
 	return fmt.Sprintf(`(cpu.P&0x%02x == 0x%02x)`, int(f), int(f))
 }
+
+func If(format string, args ...any) block {
+	printf(`if %s {`, fmt.Sprintf(format, args...))
+	return block{}
+}
+
+type block struct{}
+
+func (b block) Do(f func()) block {
+	f()
+	return b
+}
+
+func (b block) setFlags(flags ...cpuFlag) block {
+	setFlags(flags...)
+	return b
+}
+
+func (b block) printf(format string, args ...any) block {
+	printf("%s", fmt.Sprintf(format, args...))
+	return b
+}
+
+func (b block) End() { printf(`}`) }
 
 func dummyread(oper string) {
 	printf(`// dummy read.`)
@@ -546,7 +548,7 @@ func branch(f cpuFlag, val bool) func(_ opdef) {
 		}
 
 		If(`%s%s`, neg, checkFlags(f)).
-			Do(func() { printf(`  return // no branch`) }).
+			printf(`  return // no branch`).
 			End()
 
 		printf(`// A taken non-page-crossing branch ignores IRQ/NMI during its last`)
@@ -554,7 +556,7 @@ func branch(f cpuFlag, val bool) func(_ opdef) {
 		printf(`// Fixes 'branch_delays_irq' test.`)
 
 		If(`cpu.runIRQ && !cpu.prevRunIRQ`).
-			Do(func() { printf(`cpu.runIRQ = false`) }).
+			printf(`cpu.runIRQ = false`).
 			End()
 
 		dummyread("cpu.PC")
@@ -607,17 +609,13 @@ func ALR(_ opdef) {
 	printf(`cpu.A = (cpu.A >> 1) & 0x7f`)
 	checkNZ(`cpu.A`)
 	clearFlags(Carry)
-	If(`carry != 0`).
-		Do(func() { setFlags(Carry) }).
-		End()
+	If(`carry != 0`).setFlags(Carry).End()
 }
 
 func ANC(def opdef) {
 	AND(def)
 	clearFlags(Carry)
-	If(checkFlags(Negative)).
-		Do(func() { setFlags(Carry) }).
-		End()
+	If(checkFlags(Negative)).setFlags(Carry).End()
 }
 
 func AND(_ opdef) {
@@ -631,17 +629,17 @@ func ARR(_ opdef) {
 	clearFlags(Overflow)
 
 	If(`(cpu.A>>6)^(cpu.A>>5)&0x01 != 0`).
-		Do(func() { setFlags(Overflow) }).
+		setFlags(Overflow).
 		End()
 	If(checkFlags(Carry)).
-		Do(func() { printf(`cpu.A |= 1 << 7`) }).
+		printf(`cpu.A |= 1 << 7`).
 		End()
 
 	checkNZ(`cpu.A`)
 	clearFlags(Carry)
 
 	If(`(cpu.A&(1<<6) != 0)`).
-		Do(func() { setFlags(Carry) }).
+		setFlags(Carry).
 		End()
 }
 
@@ -655,7 +653,7 @@ func ASL(def opdef) {
 	clearFlags(Carry)
 
 	If(`carry != 0`).
-		Do(func() { setFlags(Carry) }).
+		setFlags(Carry).
 		End()
 }
 
@@ -663,7 +661,7 @@ func BIT(_ opdef) {
 	clearFlags(Zero | Overflow | Negative)
 	printf(`cpu.P |= P(val & 0b11000000)`)
 	If(`cpu.A&val == 0`).
-		Do(func() { setFlags(Zero) }).
+		setFlags(Zero).
 		End()
 }
 
@@ -715,7 +713,7 @@ func LSR(def opdef) {
 	checkNZ(`val`)
 	clearFlags(Carry)
 	If(`carry != 0`).
-		Do(func() { setFlags(Carry) }).
+		setFlags(Carry).
 		End()
 }
 
@@ -778,14 +776,14 @@ func ROL(def opdef) {
 	printf(`val <<= 1`)
 
 	If(checkFlags(Carry)).
-		Do(func() { printf(`val |= 1 << 0`) }).
+		printf(`val |= 1 << 0`).
 		End()
 
 	checkNZ(`val`)
 	clearFlags(Carry)
 
 	If(`carry != 0`).
-		Do(func() { setFlags(Carry) }).
+		setFlags(Carry).
 		End()
 }
 
@@ -797,13 +795,13 @@ func ROR(def opdef) {
 	printf(`val >>= 1`)
 
 	If(checkFlags(Carry)).
-		Do(func() { printf(`val |= 1 << 7`) }).
+		printf(`val |= 1 << 7`).
 		End()
 
 	checkNZ(`val`)
 	clearFlags(Carry)
 	If(`carry != 0`).
-		Do(func() { setFlags(Carry) }).
+		setFlags(Carry).
 		End()
 }
 
@@ -843,7 +841,7 @@ func SBX(def opdef) {
 	clearFlags(Carry)
 
 	If(`ival >= 0`).
-		Do(func() { setFlags(Carry) }).
+		setFlags(Carry).
 		End()
 }
 
@@ -882,7 +880,7 @@ func cmp(v string) func(_ opdef) {
 		clearFlags(Carry)
 
 		If(`val <= %s`, v).
-			Do(func() { setFlags(Carry) }).
+			setFlags(Carry).
 			End()
 	}
 }
