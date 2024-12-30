@@ -39,7 +39,7 @@ var defs = [256]opdef{
 	{i: 0x07, n: "SLO", d: "rw   ", m: "zpg", f: SLO},
 	{i: 0x08, n: "PHP", d: "     ", m: "imp", f: PHP},
 	{i: 0x09, n: "ORA", d: "r    ", m: "imm", f: ORA},
-	{i: 0x0A, n: "ASL", d: "rw   ", m: "acc", f: ASL},
+	{i: 0x0A, n: "ASL", d: "     ", m: "acc", f: ASL},
 	{i: 0x0B, n: "ANC", d: "r    ", m: "imm", f: ANC},
 	{i: 0x0C, n: "NOP", d: "     ", m: "abs", f: NOP},
 	{i: 0x0D, n: "ORA", d: "r    ", m: "abs", f: ORA},
@@ -71,7 +71,7 @@ var defs = [256]opdef{
 	{i: 0x27, n: "RLA", d: "rw   ", m: "zpg", f: RLA},
 	{i: 0x28, n: "PLP", d: "     ", m: "imp", f: PLP},
 	{i: 0x29, n: "AND", d: "r    ", m: "imm", f: AND},
-	{i: 0x2A, n: "ROL", d: "rw   ", m: "acc", f: ROL},
+	{i: 0x2A, n: "ROL", d: "     ", m: "acc", f: ROL},
 	{i: 0x2B, n: "ANC", d: "r    ", m: "imm", f: ANC},
 	{i: 0x2C, n: "BIT", d: "r    ", m: "abs", f: BIT},
 	{i: 0x2D, n: "AND", d: "r    ", m: "abs", f: AND},
@@ -103,7 +103,7 @@ var defs = [256]opdef{
 	{i: 0x47, n: "SRE", d: "rw   ", m: "zpg", f: SRE},
 	{i: 0x48, n: "PHA", d: "     ", m: "imp", f: PHA},
 	{i: 0x49, n: "EOR", d: "r    ", m: "imm", f: EOR},
-	{i: 0x4A, n: "LSR", d: "rw   ", m: "acc", f: LSR},
+	{i: 0x4A, n: "LSR", d: "     ", m: "acc", f: LSR},
 	{i: 0x4B, n: "ALR", d: "r    ", m: "imm", f: ALR},
 	{i: 0x4C, n: "JMP", d: "     ", m: "abs", f: JMP},
 	{i: 0x4D, n: "EOR", d: "r    ", m: "abs", f: EOR},
@@ -135,7 +135,7 @@ var defs = [256]opdef{
 	{i: 0x67, n: "RRA", d: "rw   ", m: "zpg", f: RRA},
 	{i: 0x68, n: "PLA", d: "     ", m: "imp", f: PLA},
 	{i: 0x69, n: "ADC", d: "r    ", m: "imm", f: ADC},
-	{i: 0x6A, n: "ROR", d: "rw   ", m: "acc", f: ROR},
+	{i: 0x6A, n: "ROR", d: "     ", m: "acc", f: ROR},
 	{i: 0x6B, n: "ARR", d: "r    ", m: "imm", f: ARR},
 	{i: 0x6C, n: "JMP", d: "     ", m: "ind", f: JMP},
 	{i: 0x6D, n: "ADC", d: "r    ", m: "abs", f: ADC},
@@ -826,11 +826,13 @@ func opcodes() {
 			mode.f()
 		}
 
+		if def.m == "acc" {
+			printf(`val := cpu.A`)
+		}
+
 		switch {
 		case strings.Contains(def.d, "r"):
 			switch def.m {
-			case "acc":
-				printf(`val := cpu.A`)
 			case "imm":
 				printf(`val := cpu.fetch()`)
 			default:
@@ -847,14 +849,10 @@ func opcodes() {
 		}
 
 		// footer
-		switch {
-		case strings.Contains(def.d, "w"):
-			switch def.m {
-			case "acc":
-				printf(`cpu.A = val`)
-			default:
-				printf(`cpu.Write8(cpu.operand, val)`)
-			}
+		if def.m == "acc" {
+			printf(`cpu.A = val`)
+		} else if strings.Contains(def.d, "w") {
+			printf(`cpu.Write8(cpu.operand, val)`)
 		}
 		printf(`}`)
 	}
