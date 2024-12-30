@@ -22,7 +22,7 @@ import (
 type DMC struct {
 	APU   apu
 	CPU   cpu
-	timer Timer
+	timer timer
 
 	sampleAddr uint16
 	sampleLen  uint16
@@ -55,7 +55,7 @@ func NewDMC(apu apu, cpu cpu, mixer mixer) DMC {
 		APU:     apu,
 		CPU:     cpu,
 		silence: true,
-		timer: Timer{
+		timer: timer{
 			Channel: DPCM,
 			Mixer:   mixer,
 		},
@@ -69,7 +69,7 @@ func (dc *DMC) initSample() {
 }
 
 func (dc *DMC) Reset(soft bool) {
-	dc.timer.Reset(soft)
+	dc.timer.reset(soft)
 
 	if !soft {
 		dc.sampleAddr = 0xC000
@@ -95,10 +95,10 @@ func (dc *DMC) Reset(soft bool) {
 	dc.last4011 = 0
 
 	period := dmcPeriodLUT[0] - 1
-	dc.timer.SetPeriod(period)
+	dc.timer.period = period
 
 	// Prevent DMC to tick on first cycle (so that sprite DMC/DMA test pass).
-	dc.timer.SetTimer(dc.timer.Period())
+	dc.timer.timer = dc.timer.period
 }
 
 var dmcPeriodLUT = [16]uint16{428, 380, 340, 320, 286, 254, 226, 214, 190, 160, 142, 128, 106, 84, 72, 54}
@@ -111,7 +111,7 @@ func (dc *DMC) WriteFLAGS(_, val uint8) {
 	dc.loop = (val & 0x40) == 0x40
 
 	period := dmcPeriodLUT[val&0x0F] - 1
-	dc.timer.SetPeriod(period)
+	dc.timer.period = period
 
 	if !dc.irqEnabled {
 		dc.CPU.ClearIrqSource(hwdefs.DMC)
@@ -145,7 +145,7 @@ func (dc *DMC) WriteLOAD(_, val uint8) {
 
 	// 4011 applies new output right away, not on the timer's reload. This
 	// fixes bad DMC sound when playing through 4011.
-	dc.timer.AddOutput(int8(dc.outlvl))
+	dc.timer.addOutput(int8(dc.outlvl))
 
 	dc.last4011 = newval
 
@@ -215,7 +215,7 @@ func (dc *DMC) SetReadBuffer(val uint8) {
 	}
 
 	if dc.sampleLen == 1 && !dc.loop {
-		if dc.bitsLeft == 1 && dc.timer.Timer() < 2 {
+		if dc.bitsLeft == 1 && dc.timer.timer < 2 {
 			// When the DMA ends on the APU cycle before the bit, counter
 			// resets. If it this happens right before the bit counter resets, a
 			// DMA is triggered and aborted 1 cycle later (causing one halted
@@ -229,7 +229,7 @@ func (dc *DMC) SetReadBuffer(val uint8) {
 }
 
 func (dc *DMC) Run(targetCycle uint32) {
-	for dc.timer.Run(targetCycle) {
+	for dc.timer.run(targetCycle) {
 		if !dc.silence {
 			if dc.shiftReg&0x01 != 0 {
 				if dc.outlvl <= 125 {
@@ -257,14 +257,14 @@ func (dc *DMC) Run(targetCycle uint32) {
 			}
 		}
 
-		dc.timer.AddOutput(int8(dc.outlvl))
+		dc.timer.addOutput(int8(dc.outlvl))
 	}
 }
 
 func (dc *DMC) IRQPending(cyclesToRun uint32) bool {
 	if dc.irqEnabled && dc.remaining > 0 {
 		// IRQ is set when the sample buffer is emptied.
-		ncycles := (uint16(dc.bitsLeft) + (dc.remaining-1)*8) * dc.timer.Period()
+		ncycles := (uint16(dc.bitsLeft) + (dc.remaining-1)*8) * dc.timer.period
 		if cyclesToRun >= uint32(ncycles) {
 			return true
 		}
@@ -277,7 +277,7 @@ func (dc *DMC) Status() bool {
 }
 
 func (dc *DMC) EndFrame() {
-	dc.timer.EndFrame()
+	dc.timer.endFrame()
 }
 
 func (dc *DMC) SetEnabled(enabled bool) {
@@ -335,5 +335,5 @@ func (dc *DMC) NeedToRun() bool {
 }
 
 func (dc *DMC) Output() uint8 {
-	return uint8(dc.timer.LastOutput())
+	return uint8(dc.timer.lastOutput)
 }

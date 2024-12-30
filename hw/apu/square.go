@@ -25,7 +25,7 @@ import (
 type SquareChannel struct {
 	apu      apu
 	envelope envelope
-	timer    Timer
+	timer    timer
 
 	isChannel1 bool
 
@@ -57,7 +57,7 @@ func NewSquareChannel(apu apu, mixer mixer, channel Channel, isChannel1 bool) Sq
 				apu:     apu,
 			},
 		},
-		timer: Timer{
+		timer: timer{
 			Channel: channel,
 			Mixer:   mixer,
 		},
@@ -153,7 +153,7 @@ func (sc *SquareChannel) updateTargetPeriod() {
 
 func (sc *SquareChannel) setPeriod(newPeriod uint16) {
 	sc.realPeriod = newPeriod
-	sc.timer.SetPeriod((sc.realPeriod * 2) + 1)
+	sc.timer.period = (sc.realPeriod * 2) + 1
 	sc.updateTargetPeriod()
 }
 
@@ -167,15 +167,15 @@ var squareDuty = [4][8]uint8{
 
 func (sc *SquareChannel) updateOutput() {
 	if sc.isMuted() {
-		sc.timer.AddOutput(0)
+		sc.timer.addOutput(0)
 	} else {
 		out := squareDuty[sc.duty][sc.dutyPos] * uint8(sc.envelope.volume())
-		sc.timer.AddOutput(int8(out))
+		sc.timer.addOutput(int8(out))
 	}
 }
 
 func (sc *SquareChannel) Run(targetCycle uint32) {
-	for sc.timer.Run(targetCycle) {
+	for sc.timer.run(targetCycle) {
 		sc.dutyPos = (sc.dutyPos - 1) & 0x07
 		sc.updateOutput()
 	}
@@ -183,7 +183,7 @@ func (sc *SquareChannel) Run(targetCycle uint32) {
 
 func (sc *SquareChannel) Reset(soft bool) {
 	sc.envelope.reset(soft)
-	sc.timer.Reset(soft)
+	sc.timer.reset(soft)
 
 	sc.duty = 0
 	sc.dutyPos = 0
@@ -228,7 +228,7 @@ func (sc *SquareChannel) ReloadLengthCounter() {
 }
 
 func (sc *SquareChannel) EndFrame() {
-	sc.timer.EndFrame()
+	sc.timer.endFrame()
 }
 
 func (sc *SquareChannel) SetEnabled(enabled bool) {
@@ -240,5 +240,5 @@ func (sc *SquareChannel) Status() bool {
 }
 
 func (sc *SquareChannel) Output() uint8 {
-	return uint8(sc.timer.LastOutput())
+	return uint8(sc.timer.lastOutput)
 }

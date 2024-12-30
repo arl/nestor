@@ -19,7 +19,7 @@ type NoiseChannel struct {
 
 	shiftReg uint16
 	mode     bool // mode flag.
-	timer    Timer
+	timer    timer
 	env      envelope
 	apu      apu
 }
@@ -33,7 +33,7 @@ func NewNoiseChannel(apu apu, mixer mixer) NoiseChannel {
 				apu:     apu,
 			},
 		},
-		timer: Timer{
+		timer: timer{
 			Channel: Noise,
 			Mixer:   mixer,
 		},
@@ -56,7 +56,7 @@ func (nc *NoiseChannel) WritePERIOD(old, val uint8) {
 	log.ModSound.InfoZ("write noise period").Uint8("val", val).End()
 
 	nc.apu.Run()
-	nc.timer.SetPeriod(noisePeriodLUT[val&0x0F] - 1)
+	nc.timer.period = noisePeriodLUT[val&0x0F] - 1
 	nc.mode = val&0x80 != 0
 }
 
@@ -68,7 +68,7 @@ func (nc *NoiseChannel) WriteLENGTH(old, val uint8) {
 }
 
 func (nc *NoiseChannel) Run(targetCycle uint32) {
-	for nc.timer.Run(targetCycle) {
+	for nc.timer.run(targetCycle) {
 		// Feedback is calculated as the exclusive-OR of bit 0 and one other
 		// bit: bit 6 if Mode flag is set, otherwise bit 1.
 		modebit := 1
@@ -81,15 +81,15 @@ func (nc *NoiseChannel) Run(targetCycle uint32) {
 		nc.shiftReg |= (feedback << 14)
 
 		if nc.isMuted() {
-			nc.timer.AddOutput(0)
+			nc.timer.addOutput(0)
 		} else {
-			nc.timer.AddOutput(int8(nc.env.volume()))
+			nc.timer.addOutput(int8(nc.env.volume()))
 		}
 	}
 }
 
 func (nc *NoiseChannel) Output() uint8 {
-	return uint8(nc.timer.LastOutput())
+	return uint8(nc.timer.lastOutput)
 }
 
 func (nc *NoiseChannel) isMuted() bool {
@@ -111,7 +111,7 @@ func (nc *NoiseChannel) ReloadLengthCounter() {
 }
 
 func (nc *NoiseChannel) EndFrame() {
-	nc.timer.EndFrame()
+	nc.timer.endFrame()
 }
 
 func (nc *NoiseChannel) SetEnabled(enabled bool) {
@@ -124,9 +124,9 @@ func (nc *NoiseChannel) Status() bool {
 
 func (nc *NoiseChannel) Reset(soft bool) {
 	nc.env.reset(soft)
-	nc.timer.Reset(soft)
+	nc.timer.reset(soft)
 
-	nc.timer.SetPeriod(noisePeriodLUT[0] - 1)
+	nc.timer.period = noisePeriodLUT[0] - 1
 	nc.shiftReg = 1
 	nc.mode = false
 }
