@@ -72,8 +72,6 @@ func (dc *DMC) Reset(soft bool) {
 	dc.timer.Reset(soft)
 
 	if !soft {
-		// At power on, the sample address is set to $C000 and the sample length
-		// is set to 1. Resetting does not reset their value
 		dc.sampleAddr = 0xC000
 		dc.sampleLen = 1
 	}
@@ -96,16 +94,10 @@ func (dc *DMC) Reset(soft bool) {
 
 	dc.last4011 = 0
 
-	// Not sure if this is accurate, but it seems to make things better rather
-	// than worse (for dpcmletterbox) "On the real thing, I think the power-on
-	// value is 428 (or the equivalent at least - it uses a linear feedback
-	// shift register), though only the even/oddness should matter for this
-	// test."
 	period := dmcPeriodLUT[0] - 1
 	dc.timer.SetPeriod(period)
 
-	// Make sure the DMC doesn't tick on the first cycle - this is part of what
-	// keeps Sprite/DMC DMA tests working while fixing dmcdc.pitch.
+	// Prevent DMC to tick on first cycle (so that sprite DMC/DMA test pass).
 	dc.timer.SetTimer(dc.timer.Period())
 }
 
@@ -191,7 +183,7 @@ func (dc *DMC) startDMCTransfer() {
 	}
 }
 
-func (dc *DMC) CurrentAddress() uint16 {
+func (dc *DMC) CurrentAddr() uint16 {
 	return dc.curaddr
 }
 

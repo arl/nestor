@@ -5,8 +5,10 @@ import (
 	"nestor/hw/hwio"
 )
 
-// DMA handles DMA transfer of OAM (sprites attributes) to the PPU
-// and DMC samples to the APU.
+// DMA handles DMA transfer of OAM (sprite attributes) to the PPU and DMC (audio
+// samples) to the APU. On real hardware, there are 2 separate DMA units, but
+// here we handle both of them in the same place to ensure correct timing and
+// synchronization when both DMC and OAM transfers occur simultaneously.
 type DMA struct {
 	cpu *CPU
 
@@ -76,23 +78,23 @@ func (dma *DMA) processPending(addr uint16) {
 	}
 
 	dmc := &dma.cpu.APU.DMC
+	cpu := dma.cpu
+
+	skipInitClock := false
 
 	isInternalReg := (addr & 0xFFE0) == 0x4000
-	skipFirstInputClock := false
 	if isInternalReg && dma.dmcRunning && (addr == 0x4016 || addr == 0x4017) {
-		dmcAddress := dmc.CurrentAddress()
+		dmcAddress := dmc.CurrentAddr()
 		if (dmcAddress & 0x1F) == (addr & 0x1F) {
 			// DMC causes a read on the same address as the CPU was reading
 			// from. This hides reads from controllers because /OE will be
 			// active the whole time.
-			skipFirstInputClock = true
+			skipInitClock = true
 		}
 	}
 
-	skipDummyReads := addr == 0x4016 || addr == 0x4017
-
 	dma.needHalt = false
-	cpu := dma.cpu
+	skipDummyReads := addr == 0x4016 || addr == 0x4017
 
 	cpu.cycleBegin(true)
 	if dma.abortDMC && skipDummyReads {
@@ -100,7 +102,7 @@ func (dma *DMA) processPending(addr uint16) {
 		// CPU will read 4016/4017 next if 4016/4017 is read here, the
 		// controllers will see 2 separate reads even though they would only see
 		// a single read on hardware.
-	} else if !skipFirstInputClock {
+	} else if !skipInitClock {
 		cpu.Bus.Read8(addr, false)
 	}
 	cpu.cycleEnd(true)
@@ -138,8 +140,6 @@ func (dma *DMA) processPending(addr uint16) {
 	spriteAddr := uint8(0)
 	val := uint8(0)
 
-	prevAddr := addr
-
 	for dma.dmcRunning || dma.oamRunning {
 		if (cpu.Cycles & 0x01) == 0 {
 			// Read cycle.
@@ -148,7 +148,7 @@ func (dma *DMA) processPending(addr uint16) {
 				// DMC DMA is ready to read a byte (both halt and dummy read
 				// cycles were performed before this)
 				processCycle()
-				val, prevAddr = dma.processRead(dmc.CurrentAddress(), prevAddr, isInternalReg)
+				val = dma.processRead(dmc.CurrentAddr(), isInternalReg)
 				cpu.cycleEnd(true)
 				dma.dmcRunning = false
 				dma.abortDMC = false
@@ -157,7 +157,7 @@ func (dma *DMA) processPending(addr uint16) {
 				// DMC DMA is not running, or not ready, run sprite DMA
 				processCycle()
 				addr := uint16(dma.oamPage)*0x100 + uint16(spriteAddr)
-				val, prevAddr = dma.processRead(addr, prevAddr, isInternalReg)
+				val = dma.processRead(addr, isInternalReg)
 				cpu.cycleEnd(true)
 				spriteAddr++
 				oamCounter++
@@ -187,7 +187,7 @@ func (dma *DMA) processPending(addr uint16) {
 				}
 			} else {
 				// Align to read cycle before starting sprite DMA (or align to
-				// perform DMC read)
+				// perform DMC read).
 				processCycle()
 				if !skipDummyReads {
 					cpu.Bus.Read8(addr, false)
@@ -198,38 +198,13 @@ func (dma *DMA) processPending(addr uint16) {
 	}
 }
 
-func (dma *DMA) processRead(addr uint16, prevAddr uint16, isInternalReg bool) (val uint8, readAddr uint16) {
-	// This is to reproduce a CPU bug that can occur during DMA which can cause
-	// the 2A03 to read from its internal registers (4015, 4016, 4017) at the
-	// same time as the DMA unit reads a byte from the bus. This bug occurs if
-	// the CPU is halted while it's reading a value in the $4000-$401F range.
-	//
-	// This has a number of side effects:
-	//  - It can cause a read of $4015 to occur without the program's knowledge,
-	//    which would clear the frame counter's IRQ flag
-	//  - It can cause additional bit deletions while reading the input (e.g more
-	//    than the DMC glitch usually causes)
-	//  - It can also *prevent* bit deletions from occurring at all in another scenario
-	//  - It can replace/corrupt the byte that the DMA is reading, causing DMC to
-	//    play the wrong sample
-
-	if !isInternalReg {
-		if addr >= 0x4000 && addr <= 0x401F {
-			// Nothing will respond on $4000-$401F on the external bus - return
-			// open bus value
-			//
-			// TODO: should read openbus here
-			val = 0x00
-		} else {
-			val = dma.cpu.Bus.Read8(addr, false)
-		}
-		return val, addr
+func (dma *DMA) processRead(addr uint16, isInternalReg bool) uint8 {
+	if !isInternalReg && addr >= 0x4000 && addr <= 0x401F {
+		// Nothing will respond on $4000-$401F on the external bus - return
+		// open bus value
+		//
+		// TODO: should read openbus here
+		return 0x00
 	}
-
-	// This glitch causes the CPU to read from the internal APU/Input registers
-	// regardless of the address the DMA unit is trying to read
-	internalAddr := 0x4000 | (addr & 0x1F)
-
-	val = dma.cpu.Bus.Read8(addr, false)
-	return val, internalAddr
+	return dma.cpu.Bus.Read8(addr, false)
 }
