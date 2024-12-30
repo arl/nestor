@@ -368,6 +368,22 @@ func (g *Generator) setFlagsIf(cond string, flags ...cpuFlag) {
 	g.printf(`}`)
 }
 
+type block struct{ g *Generator }
+
+func (b block) Do(f func()) end {
+	f()
+	return end{g: b.g}
+}
+
+type end struct{ g *Generator }
+
+func (e end) End() { e.g.printf(`}`) }
+
+func (g *Generator) If(format string, args ...any) block {
+	g.printf(`if %s {`, fmt.Sprintf(format, args...))
+	return block{g: g}
+}
+
 func (g *Generator) clearFlags(f cpuFlag) {
 	val := uint8(f)
 	val = ^val
@@ -528,19 +544,23 @@ func branch(f cpuFlag, val bool) func(g *Generator, _ opdef) {
 		if !val {
 			neg = ""
 		}
-		g.printf(`if %s%s {`, neg, g.checkFlags(f))
-		g.printf(`  return // no branch`)
-		g.printf(`}`)
+
+		g.If(`%s%s`, neg, g.checkFlags(f)).
+			Do(func() { g.printf(`  return // no branch`) }).
+			End()
+
 		g.printf(`// A taken non-page-crossing branch ignores IRQ/NMI during its last`)
 		g.printf(`// clock, so that next instruction executes before the IRQ.`)
 		g.printf(`// Fixes 'branch_delays_irq' test.`)
-		g.printf(`if cpu.runIRQ && !cpu.prevRunIRQ {`)
-		g.printf(`	cpu.runIRQ = false`)
-		g.printf(`}`)
+
+		g.If(`cpu.runIRQ && !cpu.prevRunIRQ`).
+			Do(func() { g.printf(`cpu.runIRQ = false`) }).
+			End()
+
 		g.dummyread("cpu.PC")
 		tickIfPageCrossed(g, "cpu.PC", "oper")
-		g.printf(`	cpu.PC = oper`)
-		g.printf(`	return`)
+		g.printf(`cpu.PC = oper`)
+		g.printf(`return`)
 	}
 }
 
@@ -550,9 +570,12 @@ func tick(g *Generator) {
 
 func tickIfPageCrossed(g *Generator, a, b string) {
 	g.printf(`// extra cycle for page cross`)
-	g.printf(`if 0xFF00&(%s) != 0xFF00&(%s) {`, a, b)
-	g.dummyread(fmt.Sprintf("(%s) & 0x00FF | (%s) & 0xFF00", b, a))
-	g.printf(`}`)
+	g.If(`0xFF00&(%s) != 0xFF00&(%s)`, a, b).
+		Do(func() {
+			addr := fmt.Sprintf("(%s) & 0x00FF | (%s) & 0xFF00", b, a)
+			g.dummyread(addr)
+		}).
+		End()
 }
 
 func copybits(dst, src, mask string) string {
@@ -584,17 +607,17 @@ func (g *Generator) ALR(_ opdef) {
 	g.printf(`cpu.A = (cpu.A >> 1) & 0x7f`)
 	g.checkNZ(`cpu.A`)
 	g.clearFlags(Carry)
-	g.printf(`if carry != 0 {`)
-	g.setFlags(Carry)
-	g.printf(`}`)
+	g.If(`carry != 0`).
+		Do(func() { g.setFlags(Carry) }).
+		End()
 }
 
 func (g *Generator) ANC(def opdef) {
 	g.AND(def)
 	g.clearFlags(Carry)
-	g.printf(`if %s {`, g.checkFlags(Negative))
-	g.setFlags(Carry)
-	g.printf(`}`)
+	g.If(g.checkFlags(Negative)).
+		Do(func() { g.setFlags(Carry) }).
+		End()
 }
 
 func (g *Generator) AND(_ opdef) {
@@ -606,17 +629,20 @@ func (g *Generator) ARR(_ opdef) {
 	g.printf(`cpu.A &= val`)
 	g.printf(`cpu.A >>= 1`)
 	g.clearFlags(Overflow)
-	g.printf(`if (cpu.A>>6)^(cpu.A>>5)&0x01 != 0 {`)
-	g.setFlags(Overflow)
-	g.printf(`}`)
-	g.printf(`if %s {`, g.checkFlags(Carry))
-	g.printf(`	cpu.A |= 1 << 7`)
-	g.printf(`}`)
+
+	g.If(`(cpu.A>>6)^(cpu.A>>5)&0x01 != 0`).
+		Do(func() { g.setFlags(Overflow) }).
+		End()
+	g.If(g.checkFlags(Carry)).
+		Do(func() { g.printf(`cpu.A |= 1 << 7`) }).
+		End()
+
 	g.checkNZ(`cpu.A`)
 	g.clearFlags(Carry)
-	g.printf(`if (cpu.A&(1<<6) != 0) {`)
-	g.setFlags(Carry)
-	g.printf(`}`)
+
+	g.If(`(cpu.A&(1<<6) != 0)`).
+		Do(func() { g.setFlags(Carry) }).
+		End()
 }
 
 func (g *Generator) ASL(def opdef) {
@@ -627,15 +653,18 @@ func (g *Generator) ASL(def opdef) {
 	g.printf(`val = (val << 1) & 0xfe`)
 	g.checkNZ(`val`)
 	g.clearFlags(Carry)
-	g.printf(`if carry != 0 {`)
-	g.setFlags(Carry)
-	g.printf(`}`)
+
+	g.If(`carry != 0`).
+		Do(func() { g.setFlags(Carry) }).
+		End()
 }
 
 func (g *Generator) BIT(_ opdef) {
 	g.clearFlags(Zero | Overflow | Negative)
 	g.printf(`cpu.P |= P(val & 0b11000000)`)
-	g.setFlagsIf(`cpu.A&val == 0`, Zero)
+	g.If(`cpu.A&val == 0`).
+		Do(func() { g.setFlags(Zero) }).
+		End()
 }
 
 func (g *Generator) BRK(_ opdef) {
@@ -685,9 +714,9 @@ func (g *Generator) LSR(def opdef) {
 	g.printf(`val = (val >> 1)&0x7f`)
 	g.checkNZ(`val`)
 	g.clearFlags(Carry)
-	g.printf(`if carry != 0 {`)
-	g.setFlags(Carry)
-	g.printf(`}`)
+	g.If(`carry != 0`).
+		Do(func() { g.setFlags(Carry) }).
+		End()
 }
 
 func (g *Generator) LXA(def opdef) {
@@ -747,32 +776,35 @@ func (g *Generator) ROL(def opdef) {
 	}
 	g.printf(`carry := val & 0x80`)
 	g.printf(`val <<= 1`)
-	g.printf(`if %s {`, g.checkFlags(Carry))
-	g.printf(`	val |= 1 << 0`)
-	g.printf(`}`)
+
+	g.If(g.checkFlags(Carry)).
+		Do(func() { g.printf(`val |= 1 << 0`) }).
+		End()
+
 	g.checkNZ(`val`)
 	g.clearFlags(Carry)
-	g.printf(`if carry != 0 {`)
-	g.setFlags(Carry)
-	g.printf(`}`)
+
+	g.If(`carry != 0`).
+		Do(func() { g.setFlags(Carry) }).
+		End()
 }
 
 func (g *Generator) ROR(def opdef) {
 	if def.m != "acc" {
 		g.dummywrite("oper", "val")
 	}
-	g.printf(`{`)
 	g.printf(`carry := val & 0x01`)
 	g.printf(`val >>= 1`)
-	g.printf(`if %s {`, g.checkFlags(Carry))
-	g.printf(`	val |= 1 << 7`)
-	g.printf(`}`)
+
+	g.If(g.checkFlags(Carry)).
+		Do(func() { g.printf(`val |= 1 << 7`) }).
+		End()
+
 	g.checkNZ(`val`)
 	g.clearFlags(Carry)
-	g.printf(`if carry != 0 {`)
-	g.setFlags(Carry)
-	g.printf(`}`)
-	g.printf(`}`)
+	g.If(`carry != 0`).
+		Do(func() { g.setFlags(Carry) }).
+		End()
 }
 
 func (g *Generator) RRA(def opdef) {
@@ -809,9 +841,10 @@ func (g *Generator) SBX(def opdef) {
 	g.printf(`cpu.X = uint8(ival)`)
 	g.checkNZ(`cpu.X`)
 	g.clearFlags(Carry)
-	g.printf(`if ival >= 0 {`)
-	g.setFlags(Carry)
-	g.printf(`}`)
+
+	g.If(`ival >= 0`).
+		Do(func() { g.setFlags(Carry) }).
+		End()
 }
 
 func (g *Generator) SLO(def opdef) {
@@ -847,9 +880,10 @@ func cmp(v string) func(g *Generator, _ opdef) {
 		v = regOrMem(v)
 		g.checkNZ(fmt.Sprintf("%s - val", v))
 		g.clearFlags(Carry)
-		g.printf(`if val <= %s {`, v)
-		g.setFlags(Carry)
-		g.printf(`}`)
+
+		g.If(`val <= %s`, v).
+			Do(func() { g.setFlags(Carry) }).
+			End()
 	}
 }
 
