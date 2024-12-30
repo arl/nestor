@@ -9,9 +9,7 @@ import (
 	"log"
 	"os"
 	"reflect"
-	"runtime"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -887,119 +885,6 @@ func opcodes() {
 	}
 }
 
-func funcname(i any) string {
-	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
-}
-
-func disasmAddrModes() {
-	// order alphabetically to get deterministic output.
-	var modes []string
-	for k := range addrModes {
-		modes = append(modes, k)
-	}
-
-	sort.Strings(modes)
-	for _, name := range modes {
-		if !slices.Contains([]string{"imp", "acc", "rel", "ind", "abs", "abx", "aby", "imm", "zpg", "zpx", "zpy", "izx", "izy"}, name) {
-			continue
-		}
-
-		if name == "" {
-			continue
-		}
-		am := addrModes[name]
-		fname := strings.ToUpper(name[:1]) + name[1:]
-		printf(`func disasm%s(cpu*CPU, pc uint16) DisasmOp {`, fname)
-		for n := 0; n < am.n; n++ {
-			printf(`oper%d := cpu.Bus.Peek8(pc+%d)`, n, n)
-		}
-		var bytes []string
-		for n := 0; n < am.n; n++ {
-			bytes = append(bytes, "oper"+strconv.Itoa(n))
-		}
-
-		if am.n == 3 {
-			printf(`operaddr := uint16(oper1)|uint16(oper2)<<8`)
-		}
-		printf(`oper := ""`)
-		printf(``)
-
-		abxy := func(xy byte) {
-			printf(`addr := operaddr + uint16(cpu.%c)`, xy)
-			printf(`pointee := cpu.Bus.Peek8(addr)`)
-			printf(`oper = fmt.Sprintf("%%s,%c [%%s] = $%%02X", formatAddr(operaddr), formatAddr(addr), pointee)`, xy)
-		}
-
-		switch name {
-		case "imp":
-		case "acc":
-			printf(`oper = "A"`)
-		case "rel":
-			printf(`oper = fmt.Sprintf("$%%04X", uint16(int16(pc+2) + int16(int8(oper1))))`)
-		case "ind":
-			printf(`lo := cpu.Bus.Peek8(operaddr)`)
-			printf(`// 2 bytes address wrap around`)
-			printf(`hi := cpu.Bus.Peek8((0xff00 & operaddr) | (0x00ff & (operaddr + 1)))`)
-			printf(`dest := uint16(hi)<<8 | uint16(lo)`)
-			printf(`pointee := cpu.Bus.Peek8(dest)`)
-			printf(`oper = fmt.Sprintf("(%%s) [%%s] = $%%02X", formatAddr(operaddr), formatAddr(dest), pointee)`)
-		case "abs":
-			printf(`if oper0 == 0x20 || oper0 == 0x4C {`)
-			printf("        // JSR / JMP")
-			printf(`        oper = fmt.Sprintf("$%%04X", operaddr)`)
-			printf(`} else {`)
-			printf(`        pointee := cpu.Bus.Peek8(operaddr)`)
-			printf(`        oper = fmt.Sprintf("%%s = $%%02X", formatAddr(operaddr), pointee)`)
-			printf(`}`)
-		case "abx":
-			abxy('X')
-		case "aby":
-			abxy('Y')
-		case "imm":
-			printf(`oper = fmt.Sprintf("#$%%02X", oper1)`)
-		case "zpg":
-			printf(`pointee := cpu.Bus.Peek8(uint16(oper1))`)
-			printf(`oper = fmt.Sprintf("$%%02X = $%%02X", oper1, pointee)`)
-		case "zpx":
-			printf(`addr := uint16(oper1) + uint16(cpu.X)`)
-			printf(`addr &= 0xff`)
-			printf(`pointee := cpu.Bus.Peek8(addr)`)
-			printf(`oper = fmt.Sprintf("$%%02X,X [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
-		case "zpy":
-			printf(`addr := uint16(oper1) + uint16(cpu.Y)`)
-			printf(`addr &= 0xff`)
-			printf(`pointee := cpu.Bus.Peek8(addr)`)
-			printf(`oper = fmt.Sprintf("$%%02X,Y [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
-		case "izx":
-			printf(`addr := uint16(uint8(oper1) + cpu.X)`)
-			printf(`// read 16 bytes from the zero page, handling page wrap`)
-			printf(`lo := cpu.Bus.Peek8(addr)`)
-			printf(`hi := cpu.Bus.Peek8(uint16(uint8(addr) + 1))`)
-			printf(`addr = uint16(hi)<<8 | uint16(lo)`)
-			printf(`pointee := cpu.Bus.Peek8(addr)`)
-			printf(`oper = fmt.Sprintf("($%%02X,X) [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
-		case "izy":
-			printf(`// read 16 bytes from the zero page, handling page wrap`)
-			printf(`lo := cpu.Bus.Peek8(uint16(oper1))`)
-			printf(`hi := cpu.Bus.Peek8(uint16(uint8(oper1) + 1))`)
-			printf(`addr := uint16(hi)<<8 | uint16(lo)`)
-			printf(`addr += uint16(cpu.Y)`)
-			printf(`pointee := cpu.Bus.Peek8(addr)`)
-			printf(`oper = fmt.Sprintf("($%%02X),Y [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
-		}
-
-		printf(``)
-		printf(`return DisasmOp{`)
-		printf(`	PC: pc,`)
-		printf(`	Opcode: opcodeNames[oper0],`)
-		printf(`	Buf: []byte{%s},`, strings.Join(bytes, ","))
-		printf(`	Oper: oper,`)
-		printf(`}`)
-		printf(`}`)
-		printf(``)
-	}
-}
-
 func opcodesTable() {
 	bb := &strings.Builder{}
 	for i := 0; i < 16; i++ {
@@ -1083,7 +968,6 @@ func main() {
 	opcodes()
 	unstableOpcodes()
 	opcodesTable()
-	disasmAddrModes()
 	disasmTable()
 	opcodeNamesTable()
 
