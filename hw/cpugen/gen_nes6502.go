@@ -21,7 +21,7 @@ type opdef struct {
 	i uint8  // opcode value (same as index into 'defs')
 	n string // name
 	m string // addressing mode
-	f func(g *Generator, def opdef)
+	f func(def opdef)
 
 	dontgen bool // manually written
 
@@ -35,157 +35,157 @@ type opdef struct {
 
 var defs = [256]opdef{
 	{i: 0x00, n: "BRK", d: "     ", m: "imp", dontgen: true},
-	{i: 0x01, n: "ORA", d: "r    ", m: "izx"},
-	{i: 0x02, n: "STP", d: "     ", m: "imp"},
-	{i: 0x03, n: "SLO", d: "rw   ", m: "izx"},
-	{i: 0x04, n: "NOP", d: "     ", m: "zpg"},
-	{i: 0x05, n: "ORA", d: "r    ", m: "zpg"},
-	{i: 0x06, n: "ASL", d: "rw   ", m: "zpg"},
-	{i: 0x07, n: "SLO", d: "rw   ", m: "zpg"},
-	{i: 0x08, n: "PHP", d: "     ", m: "imp"},
-	{i: 0x09, n: "ORA", d: "r    ", m: "imm"},
-	{i: 0x0A, n: "ASL", d: "rw   ", m: "acc"},
-	{i: 0x0B, n: "ANC", d: "r    ", m: "imm"},
-	{i: 0x0C, n: "NOP", d: "     ", m: "abs"},
-	{i: 0x0D, n: "ORA", d: "r    ", m: "abs"},
-	{i: 0x0E, n: "ASL", d: "rw   ", m: "abs"},
-	{i: 0x0F, n: "SLO", d: "rw   ", m: "abs"},
+	{i: 0x01, n: "ORA", d: "r    ", m: "izx", f: ORA},
+	{i: 0x02, n: "STP", d: "     ", m: "imp", f: STP},
+	{i: 0x03, n: "SLO", d: "rw   ", m: "izx", f: SLO},
+	{i: 0x04, n: "NOP", d: "     ", m: "zpg", f: NOP},
+	{i: 0x05, n: "ORA", d: "r    ", m: "zpg", f: ORA},
+	{i: 0x06, n: "ASL", d: "rw   ", m: "zpg", f: ASL},
+	{i: 0x07, n: "SLO", d: "rw   ", m: "zpg", f: SLO},
+	{i: 0x08, n: "PHP", d: "     ", m: "imp", f: PHP},
+	{i: 0x09, n: "ORA", d: "r    ", m: "imm", f: ORA},
+	{i: 0x0A, n: "ASL", d: "rw   ", m: "acc", f: ASL},
+	{i: 0x0B, n: "ANC", d: "r    ", m: "imm", f: ANC},
+	{i: 0x0C, n: "NOP", d: "     ", m: "abs", f: NOP},
+	{i: 0x0D, n: "ORA", d: "r    ", m: "abs", f: ORA},
+	{i: 0x0E, n: "ASL", d: "rw   ", m: "abs", f: ASL},
+	{i: 0x0F, n: "SLO", d: "rw   ", m: "abs", f: SLO},
 	{i: 0x10, n: "BPL", d: "     ", m: "rel", f: branch(Negative, false)},
-	{i: 0x11, n: "ORA", d: "r  x ", m: "izy"},
-	{i: 0x12, n: "STP", d: "     ", m: "imp"},
-	{i: 0x13, n: "SLO", d: "rw  a", m: "izy"},
-	{i: 0x14, n: "NOP", d: "     ", m: "zpx"},
-	{i: 0x15, n: "ORA", d: "r    ", m: "zpx"},
-	{i: 0x16, n: "ASL", d: "rw   ", m: "zpx"},
-	{i: 0x17, n: "SLO", d: "rw   ", m: "zpx"},
+	{i: 0x11, n: "ORA", d: "r  x ", m: "izy", f: ORA},
+	{i: 0x12, n: "STP", d: "     ", m: "imp", f: STP},
+	{i: 0x13, n: "SLO", d: "rw  a", m: "izy", f: SLO},
+	{i: 0x14, n: "NOP", d: "     ", m: "zpx", f: NOP},
+	{i: 0x15, n: "ORA", d: "r    ", m: "zpx", f: ORA},
+	{i: 0x16, n: "ASL", d: "rw   ", m: "zpx", f: ASL},
+	{i: 0x17, n: "SLO", d: "rw   ", m: "zpx", f: SLO},
 	{i: 0x18, n: "CLC", d: "     ", m: "imp", f: clear(Carry)},
-	{i: 0x19, n: "ORA", d: "r  x ", m: "aby"},
-	{i: 0x1A, n: "NOP", d: "     ", m: "imp"},
-	{i: 0x1B, n: "SLO", d: "rw   ", m: "aby"},
-	{i: 0x1C, n: "NOP", d: "   x ", m: "abx"},
-	{i: 0x1D, n: "ORA", d: "r  x ", m: "abx"},
-	{i: 0x1E, n: "ASL", d: "rw   ", m: "abx"},
-	{i: 0x1F, n: "SLO", d: "rw   ", m: "abx"},
+	{i: 0x19, n: "ORA", d: "r  x ", m: "aby", f: ORA},
+	{i: 0x1A, n: "NOP", d: "     ", m: "imp", f: NOP},
+	{i: 0x1B, n: "SLO", d: "rw   ", m: "aby", f: SLO},
+	{i: 0x1C, n: "NOP", d: "   x ", m: "abx", f: NOP},
+	{i: 0x1D, n: "ORA", d: "r  x ", m: "abx", f: ORA},
+	{i: 0x1E, n: "ASL", d: "rw   ", m: "abx", f: ASL},
+	{i: 0x1F, n: "SLO", d: "rw   ", m: "abx", f: SLO},
 	{i: 0x20, n: "JSR", d: "     ", m: "abs", dontgen: true},
-	{i: 0x21, n: "AND", d: "r    ", m: "izx"},
-	{i: 0x22, n: "STP", d: "     ", m: "imp"},
-	{i: 0x23, n: "RLA", d: "rw   ", m: "izx"},
-	{i: 0x24, n: "BIT", d: "r    ", m: "zpg"},
-	{i: 0x25, n: "AND", d: "r    ", m: "zpg"},
-	{i: 0x26, n: "ROL", d: "rw   ", m: "zpg"},
-	{i: 0x27, n: "RLA", d: "rw   ", m: "zpg"},
-	{i: 0x28, n: "PLP", d: "     ", m: "imp"},
-	{i: 0x29, n: "AND", d: "r    ", m: "imm"},
-	{i: 0x2A, n: "ROL", d: "rw   ", m: "acc"},
-	{i: 0x2B, n: "ANC", d: "r    ", m: "imm"},
-	{i: 0x2C, n: "BIT", d: "r    ", m: "abs"},
-	{i: 0x2D, n: "AND", d: "r    ", m: "abs"},
-	{i: 0x2E, n: "ROL", d: "rw   ", m: "abs"},
-	{i: 0x2F, n: "RLA", d: "rw   ", m: "abs"},
+	{i: 0x21, n: "AND", d: "r    ", m: "izx", f: AND},
+	{i: 0x22, n: "STP", d: "     ", m: "imp", f: STP},
+	{i: 0x23, n: "RLA", d: "rw   ", m: "izx", f: RLA},
+	{i: 0x24, n: "BIT", d: "r    ", m: "zpg", f: BIT},
+	{i: 0x25, n: "AND", d: "r    ", m: "zpg", f: AND},
+	{i: 0x26, n: "ROL", d: "rw   ", m: "zpg", f: ROL},
+	{i: 0x27, n: "RLA", d: "rw   ", m: "zpg", f: RLA},
+	{i: 0x28, n: "PLP", d: "     ", m: "imp", f: PLP},
+	{i: 0x29, n: "AND", d: "r    ", m: "imm", f: AND},
+	{i: 0x2A, n: "ROL", d: "rw   ", m: "acc", f: ROL},
+	{i: 0x2B, n: "ANC", d: "r    ", m: "imm", f: ANC},
+	{i: 0x2C, n: "BIT", d: "r    ", m: "abs", f: BIT},
+	{i: 0x2D, n: "AND", d: "r    ", m: "abs", f: AND},
+	{i: 0x2E, n: "ROL", d: "rw   ", m: "abs", f: ROL},
+	{i: 0x2F, n: "RLA", d: "rw   ", m: "abs", f: RLA},
 	{i: 0x30, n: "BMI", d: "     ", m: "rel", f: branch(Negative, true)},
-	{i: 0x31, n: "AND", d: "r  x ", m: "izy"},
-	{i: 0x32, n: "STP", d: "     ", m: "imp"},
-	{i: 0x33, n: "RLA", d: "rw  a", m: "izy"},
-	{i: 0x34, n: "NOP", d: "     ", m: "zpx"},
-	{i: 0x35, n: "AND", d: "r    ", m: "zpx"},
-	{i: 0x36, n: "ROL", d: "rw   ", m: "zpx"},
-	{i: 0x37, n: "RLA", d: "rw   ", m: "zpx"},
+	{i: 0x31, n: "AND", d: "r  x ", m: "izy", f: AND},
+	{i: 0x32, n: "STP", d: "     ", m: "imp", f: STP},
+	{i: 0x33, n: "RLA", d: "rw  a", m: "izy", f: RLA},
+	{i: 0x34, n: "NOP", d: "     ", m: "zpx", f: NOP},
+	{i: 0x35, n: "AND", d: "r    ", m: "zpx", f: AND},
+	{i: 0x36, n: "ROL", d: "rw   ", m: "zpx", f: ROL},
+	{i: 0x37, n: "RLA", d: "rw   ", m: "zpx", f: RLA},
 	{i: 0x38, n: "SEC", d: "     ", m: "imp", f: set(Carry)},
-	{i: 0x39, n: "AND", d: "r  x ", m: "aby"},
-	{i: 0x3A, n: "NOP", d: "     ", m: "imp"},
-	{i: 0x3B, n: "RLA", d: "rw   ", m: "aby"},
-	{i: 0x3C, n: "NOP", d: "   x ", m: "abx"},
-	{i: 0x3D, n: "AND", d: "r  x ", m: "abx"},
-	{i: 0x3E, n: "ROL", d: "rw   ", m: "abx"},
-	{i: 0x3F, n: "RLA", d: "rw   ", m: "abx"},
-	{i: 0x40, n: "RTI", d: "     ", m: "imp"},
-	{i: 0x41, n: "EOR", d: "r    ", m: "izx"},
-	{i: 0x42, n: "STP", d: "     ", m: "imp"},
-	{i: 0x43, n: "SRE", d: "rw   ", m: "izx"},
-	{i: 0x44, n: "NOP", d: "     ", m: "zpg"},
-	{i: 0x45, n: "EOR", d: "r    ", m: "zpg"},
-	{i: 0x46, n: "LSR", d: "rw   ", m: "zpg"},
-	{i: 0x47, n: "SRE", d: "rw   ", m: "zpg"},
-	{i: 0x48, n: "PHA", d: "     ", m: "imp"},
-	{i: 0x49, n: "EOR", d: "r    ", m: "imm"},
-	{i: 0x4A, n: "LSR", d: "rw   ", m: "acc"},
-	{i: 0x4B, n: "ALR", d: "r    ", m: "imm"},
-	{i: 0x4C, n: "JMP", d: "     ", m: "abs"},
-	{i: 0x4D, n: "EOR", d: "r    ", m: "abs"},
-	{i: 0x4E, n: "LSR", d: "rw   ", m: "abs"},
-	{i: 0x4F, n: "SRE", d: "rw   ", m: "abs"},
+	{i: 0x39, n: "AND", d: "r  x ", m: "aby", f: AND},
+	{i: 0x3A, n: "NOP", d: "     ", m: "imp", f: NOP},
+	{i: 0x3B, n: "RLA", d: "rw   ", m: "aby", f: RLA},
+	{i: 0x3C, n: "NOP", d: "   x ", m: "abx", f: NOP},
+	{i: 0x3D, n: "AND", d: "r  x ", m: "abx", f: AND},
+	{i: 0x3E, n: "ROL", d: "rw   ", m: "abx", f: ROL},
+	{i: 0x3F, n: "RLA", d: "rw   ", m: "abx", f: RLA},
+	{i: 0x40, n: "RTI", d: "     ", m: "imp", f: RTI},
+	{i: 0x41, n: "EOR", d: "r    ", m: "izx", f: EOR},
+	{i: 0x42, n: "STP", d: "     ", m: "imp", f: STP},
+	{i: 0x43, n: "SRE", d: "rw   ", m: "izx", f: SRE},
+	{i: 0x44, n: "NOP", d: "     ", m: "zpg", f: NOP},
+	{i: 0x45, n: "EOR", d: "r    ", m: "zpg", f: EOR},
+	{i: 0x46, n: "LSR", d: "rw   ", m: "zpg", f: LSR},
+	{i: 0x47, n: "SRE", d: "rw   ", m: "zpg", f: SRE},
+	{i: 0x48, n: "PHA", d: "     ", m: "imp", f: PHA},
+	{i: 0x49, n: "EOR", d: "r    ", m: "imm", f: EOR},
+	{i: 0x4A, n: "LSR", d: "rw   ", m: "acc", f: LSR},
+	{i: 0x4B, n: "ALR", d: "r    ", m: "imm", f: ALR},
+	{i: 0x4C, n: "JMP", d: "     ", m: "abs", f: JMP},
+	{i: 0x4D, n: "EOR", d: "r    ", m: "abs", f: EOR},
+	{i: 0x4E, n: "LSR", d: "rw   ", m: "abs", f: LSR},
+	{i: 0x4F, n: "SRE", d: "rw   ", m: "abs", f: SRE},
 	{i: 0x50, n: "BVC", d: "     ", m: "rel", f: branch(Overflow, false)},
-	{i: 0x51, n: "EOR", d: "r  x ", m: "izy"},
-	{i: 0x52, n: "STP", d: "     ", m: "imp"},
-	{i: 0x53, n: "SRE", d: "rw  a", m: "izy"},
-	{i: 0x54, n: "NOP", d: "     ", m: "zpx"},
-	{i: 0x55, n: "EOR", d: "r    ", m: "zpx"},
-	{i: 0x56, n: "LSR", d: "rw   ", m: "zpx"},
-	{i: 0x57, n: "SRE", d: "rw   ", m: "zpx"},
+	{i: 0x51, n: "EOR", d: "r  x ", m: "izy", f: EOR},
+	{i: 0x52, n: "STP", d: "     ", m: "imp", f: STP},
+	{i: 0x53, n: "SRE", d: "rw  a", m: "izy", f: SRE},
+	{i: 0x54, n: "NOP", d: "     ", m: "zpx", f: NOP},
+	{i: 0x55, n: "EOR", d: "r    ", m: "zpx", f: EOR},
+	{i: 0x56, n: "LSR", d: "rw   ", m: "zpx", f: LSR},
+	{i: 0x57, n: "SRE", d: "rw   ", m: "zpx", f: SRE},
 	{i: 0x58, n: "CLI", d: "     ", m: "imp", f: clear(Interrupt)},
-	{i: 0x59, n: "EOR", d: "r  x ", m: "aby"},
-	{i: 0x5A, n: "NOP", d: "     ", m: "imp"},
-	{i: 0x5B, n: "SRE", d: "rw   ", m: "aby"},
-	{i: 0x5C, n: "NOP", d: "   x ", m: "abx"},
-	{i: 0x5D, n: "EOR", d: "r  x ", m: "abx"},
-	{i: 0x5E, n: "LSR", d: "rw   ", m: "abx"},
-	{i: 0x5F, n: "SRE", d: "rw   ", m: "abx"},
-	{i: 0x60, n: "RTS", d: "     ", m: "imp"},
-	{i: 0x61, n: "ADC", d: "r    ", m: "izx"},
-	{i: 0x62, n: "STP", d: "     ", m: "imp"},
-	{i: 0x63, n: "RRA", d: "rw   ", m: "izx"},
-	{i: 0x64, n: "NOP", d: "     ", m: "zpg"},
-	{i: 0x65, n: "ADC", d: "r    ", m: "zpg"},
-	{i: 0x66, n: "ROR", d: "rw   ", m: "zpg"},
-	{i: 0x67, n: "RRA", d: "rw   ", m: "zpg"},
-	{i: 0x68, n: "PLA", d: "     ", m: "imp"},
-	{i: 0x69, n: "ADC", d: "r    ", m: "imm"},
-	{i: 0x6A, n: "ROR", d: "rw   ", m: "acc"},
-	{i: 0x6B, n: "ARR", d: "r    ", m: "imm"},
-	{i: 0x6C, n: "JMP", d: "     ", m: "ind"},
-	{i: 0x6D, n: "ADC", d: "r    ", m: "abs"},
-	{i: 0x6E, n: "ROR", d: "rw   ", m: "abs"},
-	{i: 0x6F, n: "RRA", d: "rw   ", m: "abs"},
+	{i: 0x59, n: "EOR", d: "r  x ", m: "aby", f: EOR},
+	{i: 0x5A, n: "NOP", d: "     ", m: "imp", f: NOP},
+	{i: 0x5B, n: "SRE", d: "rw   ", m: "aby", f: SRE},
+	{i: 0x5C, n: "NOP", d: "   x ", m: "abx", f: NOP},
+	{i: 0x5D, n: "EOR", d: "r  x ", m: "abx", f: EOR},
+	{i: 0x5E, n: "LSR", d: "rw   ", m: "abx", f: LSR},
+	{i: 0x5F, n: "SRE", d: "rw   ", m: "abx", f: SRE},
+	{i: 0x60, n: "RTS", d: "     ", m: "imp", f: RTS},
+	{i: 0x61, n: "ADC", d: "r    ", m: "izx", f: ADC},
+	{i: 0x62, n: "STP", d: "     ", m: "imp", f: STP},
+	{i: 0x63, n: "RRA", d: "rw   ", m: "izx", f: RRA},
+	{i: 0x64, n: "NOP", d: "     ", m: "zpg", f: NOP},
+	{i: 0x65, n: "ADC", d: "r    ", m: "zpg", f: ADC},
+	{i: 0x66, n: "ROR", d: "rw   ", m: "zpg", f: ROR},
+	{i: 0x67, n: "RRA", d: "rw   ", m: "zpg", f: RRA},
+	{i: 0x68, n: "PLA", d: "     ", m: "imp", f: PLA},
+	{i: 0x69, n: "ADC", d: "r    ", m: "imm", f: ADC},
+	{i: 0x6A, n: "ROR", d: "rw   ", m: "acc", f: ROR},
+	{i: 0x6B, n: "ARR", d: "r    ", m: "imm", f: ARR},
+	{i: 0x6C, n: "JMP", d: "     ", m: "ind", f: JMP},
+	{i: 0x6D, n: "ADC", d: "r    ", m: "abs", f: ADC},
+	{i: 0x6E, n: "ROR", d: "rw   ", m: "abs", f: ROR},
+	{i: 0x6F, n: "RRA", d: "rw   ", m: "abs", f: RRA},
 	{i: 0x70, n: "BVS", d: "     ", m: "rel", f: branch(Overflow, true)},
-	{i: 0x71, n: "ADC", d: "r  x ", m: "izy"},
-	{i: 0x72, n: "STP", d: "     ", m: "imp"},
-	{i: 0x73, n: "RRA", d: "rw  a", m: "izy"},
-	{i: 0x74, n: "NOP", d: "     ", m: "zpx"},
-	{i: 0x75, n: "ADC", d: "r    ", m: "zpx"},
-	{i: 0x76, n: "ROR", d: "rw   ", m: "zpx"},
-	{i: 0x77, n: "RRA", d: "rw   ", m: "zpx"},
+	{i: 0x71, n: "ADC", d: "r  x ", m: "izy", f: ADC},
+	{i: 0x72, n: "STP", d: "     ", m: "imp", f: STP},
+	{i: 0x73, n: "RRA", d: "rw  a", m: "izy", f: RRA},
+	{i: 0x74, n: "NOP", d: "     ", m: "zpx", f: NOP},
+	{i: 0x75, n: "ADC", d: "r    ", m: "zpx", f: ADC},
+	{i: 0x76, n: "ROR", d: "rw   ", m: "zpx", f: ROR},
+	{i: 0x77, n: "RRA", d: "rw   ", m: "zpx", f: RRA},
 	{i: 0x78, n: "SEI", d: "     ", m: "imp", f: set(Interrupt)},
-	{i: 0x79, n: "ADC", d: "r  x ", m: "aby"},
-	{i: 0x7A, n: "NOP", d: "     ", m: "imp"},
-	{i: 0x7B, n: "RRA", d: "rw   ", m: "aby"},
-	{i: 0x7C, n: "NOP", d: "   x ", m: "abx"},
-	{i: 0x7D, n: "ADC", d: "r  x ", m: "abx"},
-	{i: 0x7E, n: "ROR", d: "rw   ", m: "abx"},
-	{i: 0x7F, n: "RRA", d: "rw   ", m: "abx"},
-	{i: 0x80, n: "NOP", d: "r    ", m: "imm"},
+	{i: 0x79, n: "ADC", d: "r  x ", m: "aby", f: ADC},
+	{i: 0x7A, n: "NOP", d: "     ", m: "imp", f: NOP},
+	{i: 0x7B, n: "RRA", d: "rw   ", m: "aby", f: RRA},
+	{i: 0x7C, n: "NOP", d: "   x ", m: "abx", f: NOP},
+	{i: 0x7D, n: "ADC", d: "r  x ", m: "abx", f: ADC},
+	{i: 0x7E, n: "ROR", d: "rw   ", m: "abx", f: ROR},
+	{i: 0x7F, n: "RRA", d: "rw   ", m: "abx", f: RRA},
+	{i: 0x80, n: "NOP", d: "r    ", m: "imm", f: NOP},
 	{i: 0x81, n: "STA", d: "     ", m: "izx", f: ST("A")},
-	{i: 0x82, n: "NOP", d: "r    ", m: "imm"},
-	{i: 0x83, n: "SAX", d: "     ", m: "izx"},
+	{i: 0x82, n: "NOP", d: "r    ", m: "imm", f: NOP},
+	{i: 0x83, n: "SAX", d: "     ", m: "izx", f: SAX},
 	{i: 0x84, n: "STY", d: "     ", m: "zpg", f: ST("Y")},
 	{i: 0x85, n: "STA", d: "     ", m: "zpg", f: ST("A")},
 	{i: 0x86, n: "STX", d: "     ", m: "zpg", f: ST("X")},
-	{i: 0x87, n: "SAX", d: "     ", m: "zpg"},
+	{i: 0x87, n: "SAX", d: "     ", m: "zpg", f: SAX},
 	{i: 0x88, n: "DEY", d: "     ", m: "imp", f: dec("Y")},
-	{i: 0x89, n: "NOP", d: "r    ", m: "imm"},
+	{i: 0x89, n: "NOP", d: "r    ", m: "imm", f: NOP},
 	{i: 0x8A, n: "TXA", d: "     ", m: "imp", f: T("X", "A")},
 	{i: 0x8B, n: "ANE", d: "     ", m: "imm", f: unstable},
 	{i: 0x8C, n: "STY", d: "     ", m: "abs", f: ST("Y")},
 	{i: 0x8D, n: "STA", d: "     ", m: "abs", f: ST("A")},
 	{i: 0x8E, n: "STX", d: "     ", m: "abs", f: ST("X")},
-	{i: 0x8F, n: "SAX", d: "     ", m: "abs"},
+	{i: 0x8F, n: "SAX", d: "     ", m: "abs", f: SAX},
 	{i: 0x90, n: "BCC", d: "     ", m: "rel", f: branch(Carry, false)},
 	{i: 0x91, n: "STA", d: "    a", m: "izy", f: ST("A")},
-	{i: 0x92, n: "STP", d: "     ", m: "imp"},
+	{i: 0x92, n: "STP", d: "     ", m: "imp", f: STP},
 	{i: 0x93, n: "SHA", d: "     ", m: "izy", f: unstable},
 	{i: 0x94, n: "STY", d: "     ", m: "zpx", f: ST("Y")},
 	{i: 0x95, n: "STA", d: "     ", m: "zpx", f: ST("A")},
 	{i: 0x96, n: "STX", d: "     ", m: "zpy", f: ST("X")},
-	{i: 0x97, n: "SAX", d: "     ", m: "zpy"},
+	{i: 0x97, n: "SAX", d: "     ", m: "zpy", f: SAX},
 	{i: 0x98, n: "TYA", d: "     ", m: "imp", f: T("Y", "A")},
 	{i: 0x99, n: "STA", d: "     ", m: "aby", f: ST("A")},
 	{i: 0x9A, n: "TXS", d: "     ", m: "imp", f: T("X", "SP")},
@@ -205,14 +205,14 @@ var defs = [256]opdef{
 	{i: 0xA8, n: "TAY", d: "     ", m: "imp", f: T("A", "Y")},
 	{i: 0xA9, n: "LDA", d: "r    ", m: "imm", f: LD("A")},
 	{i: 0xAA, n: "TAX", d: "     ", m: "imp", f: T("A", "X")},
-	{i: 0xAB, n: "LXA", d: "r    ", m: "imm"},
+	{i: 0xAB, n: "LXA", d: "r    ", m: "imm", f: LXA},
 	{i: 0xAC, n: "LDY", d: "r    ", m: "abs", f: LD("Y")},
 	{i: 0xAD, n: "LDA", d: "r    ", m: "abs", f: LD("A")},
 	{i: 0xAE, n: "LDX", d: "r    ", m: "abs", f: LD("X")},
 	{i: 0xAF, n: "LAX", d: "r    ", m: "abs", f: LD("A", "X")},
 	{i: 0xB0, n: "BCS", d: "     ", m: "rel", f: branch(Carry, true)},
 	{i: 0xB1, n: "LDA", d: "r  x ", m: "izy", f: LD("A")},
-	{i: 0xB2, n: "STP", d: "     ", m: "imp"},
+	{i: 0xB2, n: "STP", d: "     ", m: "imp", f: STP},
 	{i: 0xB3, n: "LAX", d: "r  x ", m: "izy", f: LD("A", "X")},
 	{i: 0xB4, n: "LDY", d: "r    ", m: "zpx", f: LD("Y")},
 	{i: 0xB5, n: "LDA", d: "r    ", m: "zpx", f: LD("A")},
@@ -221,81 +221,81 @@ var defs = [256]opdef{
 	{i: 0xB8, n: "CLV", d: "     ", m: "imp", f: clear(Overflow)},
 	{i: 0xB9, n: "LDA", d: "r  x ", m: "aby", f: LD("A")},
 	{i: 0xBA, n: "TSX", d: "     ", m: "imp", f: T("SP", "X")},
-	{i: 0xBB, n: "LAS", d: "r  x ", m: "aby"},
+	{i: 0xBB, n: "LAS", d: "r  x ", m: "aby", f: LAS},
 	{i: 0xBC, n: "LDY", d: "r  x ", m: "abx", f: LD("Y")},
 	{i: 0xBD, n: "LDA", d: "r  x ", m: "abx", f: LD("A")},
 	{i: 0xBE, n: "LDX", d: "r  x ", m: "aby", f: LD("X")},
 	{i: 0xBF, n: "LAX", d: "r  x ", m: "aby", f: LD("A", "X")},
 	{i: 0xC0, n: "CPY", d: "r    ", m: "imm", f: cmp("Y")},
 	{i: 0xC1, n: "CMP", d: "r    ", m: "izx", f: cmp("A")},
-	{i: 0xC2, n: "NOP", d: "r    ", m: "imm"},
-	{i: 0xC3, n: "DCP", d: "rw   ", m: "izx"},
+	{i: 0xC2, n: "NOP", d: "r    ", m: "imm", f: NOP},
+	{i: 0xC3, n: "DCP", d: "rw   ", m: "izx", f: DCP},
 	{i: 0xC4, n: "CPY", d: "r    ", m: "zpg", f: cmp("Y")},
 	{i: 0xC5, n: "CMP", d: "r    ", m: "zpg", f: cmp("A")},
 	{i: 0xC6, n: "DEC", d: "rw   ", m: "zpg", f: dec("")},
-	{i: 0xC7, n: "DCP", d: "rw   ", m: "zpg"},
+	{i: 0xC7, n: "DCP", d: "rw   ", m: "zpg", f: DCP},
 	{i: 0xC8, n: "INY", d: "     ", m: "imp", f: inc("Y")},
 	{i: 0xC9, n: "CMP", d: "r    ", m: "imm", f: cmp("A")},
 	{i: 0xCA, n: "DEX", d: "     ", m: "imp", f: dec("X")},
-	{i: 0xCB, n: "SBX", d: "r    ", m: "imm"},
+	{i: 0xCB, n: "SBX", d: "r    ", m: "imm", f: SBX},
 	{i: 0xCC, n: "CPY", d: "r    ", m: "abs", f: cmp("Y")},
 	{i: 0xCD, n: "CMP", d: "r    ", m: "abs", f: cmp("A")},
 	{i: 0xCE, n: "DEC", d: "rw   ", m: "abs", f: dec("")},
-	{i: 0xCF, n: "DCP", d: "rw   ", m: "abs"},
+	{i: 0xCF, n: "DCP", d: "rw   ", m: "abs", f: DCP},
 	{i: 0xD0, n: "BNE", d: "     ", m: "rel", f: branch(Zero, false)},
 	{i: 0xD1, n: "CMP", d: "r  x ", m: "izy", f: cmp("A")},
-	{i: 0xD2, n: "STP", d: "     ", m: "imp"},
-	{i: 0xD3, n: "DCP", d: "rw  a", m: "izy"},
-	{i: 0xD4, n: "NOP", d: "     ", m: "zpx"},
+	{i: 0xD2, n: "STP", d: "     ", m: "imp", f: STP},
+	{i: 0xD3, n: "DCP", d: "rw  a", m: "izy", f: DCP},
+	{i: 0xD4, n: "NOP", d: "     ", m: "zpx", f: NOP},
 	{i: 0xD5, n: "CMP", d: "r    ", m: "zpx", f: cmp("A")},
 	{i: 0xD6, n: "DEC", d: "rw   ", m: "zpx", f: dec("")},
-	{i: 0xD7, n: "DCP", d: "rw   ", m: "zpx"},
+	{i: 0xD7, n: "DCP", d: "rw   ", m: "zpx", f: DCP},
 	{i: 0xD8, n: "CLD", d: "     ", m: "imp", f: clear(Decimal)},
 	{i: 0xD9, n: "CMP", d: "r  x ", m: "aby", f: cmp("A")},
-	{i: 0xDA, n: "NOP", d: "     ", m: "imp"},
-	{i: 0xDB, n: "DCP", d: "rw   ", m: "aby"},
-	{i: 0xDC, n: "NOP", d: "   x ", m: "abx"},
+	{i: 0xDA, n: "NOP", d: "     ", m: "imp", f: NOP},
+	{i: 0xDB, n: "DCP", d: "rw   ", m: "aby", f: DCP},
+	{i: 0xDC, n: "NOP", d: "   x ", m: "abx", f: NOP},
 	{i: 0xDD, n: "CMP", d: "r  x ", m: "abx", f: cmp("A")},
 	{i: 0xDE, n: "DEC", d: "rw   ", m: "abx", f: dec("")},
-	{i: 0xDF, n: "DCP", d: "rw   ", m: "abx"},
+	{i: 0xDF, n: "DCP", d: "rw   ", m: "abx", f: DCP},
 	{i: 0xE0, n: "CPX", d: "r    ", m: "imm", f: cmp("X")},
-	{i: 0xE1, n: "SBC", d: "r    ", m: "izx"},
-	{i: 0xE2, n: "NOP", d: "r    ", m: "imm"},
-	{i: 0xE3, n: "ISC", d: "rw   ", m: "izx"},
+	{i: 0xE1, n: "SBC", d: "r    ", m: "izx", f: SBC},
+	{i: 0xE2, n: "NOP", d: "r    ", m: "imm", f: NOP},
+	{i: 0xE3, n: "ISC", d: "rw   ", m: "izx", f: ISC},
 	{i: 0xE4, n: "CPX", d: "r    ", m: "zpg", f: cmp("X")},
-	{i: 0xE5, n: "SBC", d: "r    ", m: "zpg"},
+	{i: 0xE5, n: "SBC", d: "r    ", m: "zpg", f: SBC},
 	{i: 0xE6, n: "INC", d: "rw   ", m: "zpg", f: inc("")},
-	{i: 0xE7, n: "ISC", d: "rw   ", m: "zpg"},
+	{i: 0xE7, n: "ISC", d: "rw   ", m: "zpg", f: ISC},
 	{i: 0xE8, n: "INX", d: "     ", m: "imp", f: inc("X")},
-	{i: 0xE9, n: "SBC", d: "r    ", m: "imm"},
-	{i: 0xEA, n: "NOP", d: "     ", m: "imp"},
-	{i: 0xEB, n: "SBC", d: "r    ", m: "imm"},
+	{i: 0xE9, n: "SBC", d: "r    ", m: "imm", f: SBC},
+	{i: 0xEA, n: "NOP", d: "     ", m: "imp", f: NOP},
+	{i: 0xEB, n: "SBC", d: "r    ", m: "imm", f: SBC},
 	{i: 0xEC, n: "CPX", d: "r    ", m: "abs", f: cmp("X")},
-	{i: 0xED, n: "SBC", d: "r    ", m: "abs"},
+	{i: 0xED, n: "SBC", d: "r    ", m: "abs", f: SBC},
 	{i: 0xEE, n: "INC", d: "rw   ", m: "abs", f: inc("")},
-	{i: 0xEF, n: "ISC", d: "rw   ", m: "abs"},
+	{i: 0xEF, n: "ISC", d: "rw   ", m: "abs", f: ISC},
 	{i: 0xF0, n: "BEQ", d: "     ", m: "rel", f: branch(Zero, true)},
-	{i: 0xF1, n: "SBC", d: "r  x ", m: "izy"},
-	{i: 0xF2, n: "STP", d: "     ", m: "imp"},
-	{i: 0xF3, n: "ISC", d: "rw  a", m: "izy"},
-	{i: 0xF4, n: "NOP", d: "     ", m: "zpx"},
-	{i: 0xF5, n: "SBC", d: "r    ", m: "zpx"},
+	{i: 0xF1, n: "SBC", d: "r  x ", m: "izy", f: SBC},
+	{i: 0xF2, n: "STP", d: "     ", m: "imp", f: STP},
+	{i: 0xF3, n: "ISC", d: "rw  a", m: "izy", f: ISC},
+	{i: 0xF4, n: "NOP", d: "     ", m: "zpx", f: NOP},
+	{i: 0xF5, n: "SBC", d: "r    ", m: "zpx", f: SBC},
 	{i: 0xF6, n: "INC", d: "rw   ", m: "zpx", f: inc("")},
-	{i: 0xF7, n: "ISC", d: "rw   ", m: "zpx"},
+	{i: 0xF7, n: "ISC", d: "rw   ", m: "zpx", f: ISC},
 	{i: 0xF8, n: "SED", d: "     ", m: "imp", f: set(Decimal)},
-	{i: 0xF9, n: "SBC", d: "r  x ", m: "aby"},
-	{i: 0xFA, n: "NOP", d: "     ", m: "imp"},
-	{i: 0xFB, n: "ISC", d: "rw   ", m: "aby"},
-	{i: 0xFC, n: "NOP", d: "   x ", m: "abx"},
-	{i: 0xFD, n: "SBC", d: "r  x ", m: "abx"},
+	{i: 0xF9, n: "SBC", d: "r  x ", m: "aby", f: SBC},
+	{i: 0xFA, n: "NOP", d: "     ", m: "imp", f: NOP},
+	{i: 0xFB, n: "ISC", d: "rw   ", m: "aby", f: ISC},
+	{i: 0xFC, n: "NOP", d: "   x ", m: "abx", f: NOP},
+	{i: 0xFD, n: "SBC", d: "r  x ", m: "abx", f: SBC},
 	{i: 0xFE, n: "INC", d: "rw   ", m: "abx", f: inc("")},
-	{i: 0xFF, n: "ISC", d: "rw   ", m: "abx"},
+	{i: 0xFF, n: "ISC", d: "rw   ", m: "abx", f: ISC},
 }
 
 type addrmode struct {
 	human string // human readable name
 	n     int    // number of bytes
-	f     func(g *Generator, details string)
+	f     func(details string)
 }
 
 var addrModes = map[string]addrmode{
@@ -354,226 +354,226 @@ func (f cpuFlag) String() string {
 	panic("unexpected")
 }
 
-func (g *Generator) setFlags(flags ...cpuFlag) {
+func setFlags(flags ...cpuFlag) {
 	var flagstr []string
 	for _, f := range flags {
 		flagstr = append(flagstr, f.String())
 	}
-	g.printf(`cpu.P |= %s`, strings.Join(flagstr, "|"))
+	printf(`cpu.P |= %s`, strings.Join(flagstr, "|"))
 }
 
-func (g *Generator) setFlagsIf(cond string, flags ...cpuFlag) {
-	g.printf(`if %s {`, cond)
-	g.setFlags(flags...)
-	g.printf(`}`)
+func setFlagsIf(cond string, flags ...cpuFlag) {
+	printf(`if %s {`, cond)
+	setFlags(flags...)
+	printf(`}`)
 }
 
-type block struct{ g *Generator }
+type block struct{}
 
 func (b block) Do(f func()) end {
 	f()
-	return end{g: b.g}
+	return end{}
 }
 
-type end struct{ g *Generator }
+type end struct{}
 
-func (e end) End() { e.g.printf(`}`) }
+func (e end) End() { printf(`}`) }
 
-func (g *Generator) If(format string, args ...any) block {
-	g.printf(`if %s {`, fmt.Sprintf(format, args...))
-	return block{g: g}
+func If(format string, args ...any) block {
+	printf(`if %s {`, fmt.Sprintf(format, args...))
+	return block{}
 }
 
-func (g *Generator) clearFlags(f cpuFlag) {
+func clearFlags(f cpuFlag) {
 	val := uint8(f)
 	val = ^val
-	g.printf(`cpu.P &= 0x%02x`, val)
+	printf(`cpu.P &= 0x%02x`, val)
 }
 
-func (g *Generator) checkFlags(f cpuFlag) string {
+func checkFlags(f cpuFlag) string {
 	return fmt.Sprintf(`(cpu.P&0x%02x == 0x%02x)`, int(f), int(f))
 }
 
-func (g *Generator) dummyread(oper string) {
-	g.printf(`// dummy read.`)
-	g.printf(`_ = cpu.Read8(%s)`, oper)
+func dummyread(oper string) {
+	printf(`// dummy read.`)
+	printf(`_ = cpu.Read8(%s)`, oper)
 }
 
-func (g *Generator) dummywrite(addr, value string) {
-	g.printf(`// dummy write.`)
-	g.printf(`cpu.Write8(%s, %s)`, addr, value)
+func dummywrite(addr, value string) {
+	printf(`// dummy write.`)
+	printf(`cpu.Write8(%s, %s)`, addr, value)
 }
 
 //
 // addressing modes
 //
 
-func acc(g *Generator, _ string) {
-	g.dummyread("cpu.PC")
+func acc(_ string) {
+	dummyread("cpu.PC")
 }
 
-func imp(g *Generator, _ string) {
-	g.dummyread("cpu.PC")
+func imp(_ string) {
+	dummyread("cpu.PC")
 }
 
-func ind(g *Generator, _ string) {
-	g.printf(`oper := cpu.Read16(cpu.PC)`)
-	g.printf(`lo := cpu.Read8(oper)`)
-	g.printf(`// 2 bytes address wrap around`)
-	g.printf(`hi := cpu.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))`)
-	g.printf(`oper = uint16(hi)<<8 | uint16(lo)`)
+func ind(_ string) {
+	printf(`oper := cpu.Read16(cpu.PC)`)
+	printf(`lo := cpu.Read8(oper)`)
+	printf(`// 2 bytes address wrap around`)
+	printf(`hi := cpu.Read8((0xff00 & oper) | (0x00ff & (oper + 1)))`)
+	printf(`oper = uint16(hi)<<8 | uint16(lo)`)
 }
 
-func imm(g *Generator, _ string) {}
+func imm(_ string) {}
 
-func rel(g *Generator, _ string) {
-	g.printf(`off := int16(int8(cpu.fetch()))`)
-	g.printf(`oper := uint16(int16(cpu.PC) + off)`)
+func rel(_ string) {
+	printf(`off := int16(int8(cpu.fetch()))`)
+	printf(`oper := uint16(int16(cpu.PC) + off)`)
 }
 
-func abs(g *Generator, _ string) {
-	g.printf(`oper := cpu.Read16(cpu.PC)`)
-	g.printf(`cpu.PC += 2`)
+func abs(_ string) {
+	printf(`oper := cpu.Read16(cpu.PC)`)
+	printf(`cpu.PC += 2`)
 }
 
 // seems that we don't even need the dummyread bool
 
-func abx(g *Generator, info string) {
-	g.printf(`addr := cpu.Read16(cpu.PC)`)
-	g.printf(`cpu.PC += 2`)
-	g.printf(`oper := addr + uint16(cpu.X)`)
+func abx(info string) {
+	printf(`addr := cpu.Read16(cpu.PC)`)
+	printf(`cpu.PC += 2`)
+	printf(`oper := addr + uint16(cpu.X)`)
 
 	switch {
 	case has(info, 'x'):
-		tickIfPageCrossed(g, "addr", "oper")
+		tickIfPageCrossed("addr", "oper")
 	default:
-		g.dummyread(fmt.Sprintf("%s & 0x00FF | %s & 0xFF00", "oper", "addr"))
+		dummyread(fmt.Sprintf("%s & 0x00FF | %s & 0xFF00", "oper", "addr"))
 	}
 }
 
-func aby(g *Generator, info string) {
-	g.printf(`addr := cpu.Read16(cpu.PC)`)
-	g.printf(`cpu.PC += 2`)
-	g.printf(`oper := addr + uint16(cpu.Y)`)
+func aby(info string) {
+	printf(`addr := cpu.Read16(cpu.PC)`)
+	printf(`cpu.PC += 2`)
+	printf(`oper := addr + uint16(cpu.Y)`)
 
 	switch {
 	case has(info, 'x'):
-		tickIfPageCrossed(g, "addr", "oper")
+		tickIfPageCrossed("addr", "oper")
 	default:
-		g.dummyread(fmt.Sprintf("%s & 0x00FF | %s & 0xFF00", "oper", "addr"))
+		dummyread(fmt.Sprintf("%s & 0x00FF | %s & 0xFF00", "oper", "addr"))
 	}
 }
 
-func zpg(g *Generator, _ string) {
-	g.printf(`oper := uint16(cpu.fetch())`)
+func zpg(_ string) {
+	printf(`oper := uint16(cpu.fetch())`)
 }
 
-func zpx(g *Generator, _ string) {
-	g.printf(`addr := cpu.fetch()`)
-	g.dummyread("uint16(addr)")
-	g.printf(`oper := uint16(addr) + uint16(cpu.X)`)
-	g.printf(`oper &= 0xff`)
+func zpx(_ string) {
+	printf(`addr := cpu.fetch()`)
+	dummyread("uint16(addr)")
+	printf(`oper := uint16(addr) + uint16(cpu.X)`)
+	printf(`oper &= 0xff`)
 }
 
-func zpy(g *Generator, _ string) {
-	g.printf(`addr := cpu.fetch()`)
-	g.dummyread("uint16(addr)")
-	g.printf(`oper := uint16(addr) + uint16(cpu.Y)`)
-	g.printf(`oper &= 0xff`)
+func zpy(_ string) {
+	printf(`addr := cpu.fetch()`)
+	dummyread("uint16(addr)")
+	printf(`oper := uint16(addr) + uint16(cpu.Y)`)
+	printf(`oper &= 0xff`)
 }
 
-func izx(g *Generator, info string) {
-	g.printf(`oper := uint16(cpu.fetch())`)
-	g.dummyread("uint16(oper)")
-	g.printf(`oper = uint16(uint8(oper) + cpu.X)`)
-	r16zpwrap(g)
+func izx(info string) {
+	printf(`oper := uint16(cpu.fetch())`)
+	dummyread("uint16(oper)")
+	printf(`oper = uint16(uint8(oper) + cpu.X)`)
+	r16zpwrap()
 }
 
-func izy(g *Generator, info string) {
-	g.printf(`oper := uint16(cpu.fetch())`)
-	r16zpwrap(g)
+func izy(info string) {
+	printf(`oper := uint16(cpu.fetch())`)
+	r16zpwrap()
 
 	switch {
 	case has(info, 'x'):
-		g.printf(`if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {`)
-		g.printf(`// extra cycle for page cross`)
-		g.dummyread(`oper + uint16(cpu.Y) - 0x100`)
-		g.printf(`}`)
+		printf(`if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {`)
+		printf(`// extra cycle for page cross`)
+		dummyread(`oper + uint16(cpu.Y) - 0x100`)
+		printf(`}`)
 	case has(info, 'a'):
-		g.printf(`// page crossed?`)
-		g.printf(`if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {`)
-		g.dummyread(`oper + uint16(cpu.Y) - 0x100`)
-		g.printf(`} else {`)
-		g.dummyread(`oper + uint16(cpu.Y)`)
-		g.printf(`}`)
+		printf(`// page crossed?`)
+		printf(`if 0xFF00&(oper) != 0xFF00&(oper+uint16(cpu.Y)) {`)
+		dummyread(`oper + uint16(cpu.Y) - 0x100`)
+		printf(`} else {`)
+		dummyread(`oper + uint16(cpu.Y)`)
+		printf(`}`)
 	default:
 	}
 
-	g.printf(`oper += uint16(cpu.Y)`)
+	printf(`oper += uint16(cpu.Y)`)
 }
 
 // helpers
 
-func push8(g *Generator, v string) {
-	g.printf(`cpu.push8(%s)`, v)
+func push8(v string) {
+	printf(`cpu.push8(%s)`, v)
 }
 
-func push16(g *Generator, v string) {
-	g.printf(`cpu.push16(%s)`, v)
+func push16(v string) {
+	printf(`cpu.push16(%s)`, v)
 }
 
-func pull8(g *Generator, v string) {
-	g.printf(`%s = cpu.pull8()`, v)
+func pull8(v string) {
+	printf(`%s = cpu.pull8()`, v)
 }
 
-func pull16(g *Generator, v string) {
-	g.printf(`%s = cpu.pull16()`, v)
+func pull16(v string) {
+	printf(`%s = cpu.pull16()`, v)
 }
 
 // read 16 bytes from the zero page, handling page wrap.
-func r16zpwrap(g *Generator) {
-	g.printf(`// read 16 bytes from the zero page, handling page wrap`)
-	g.printf(`lo := cpu.Read8(oper)`)
-	g.printf(`hi := cpu.Read8(uint16(uint8(oper) + 1))`)
-	g.printf(`oper = uint16(hi)<<8 | uint16(lo)`)
+func r16zpwrap() {
+	printf(`// read 16 bytes from the zero page, handling page wrap`)
+	printf(`lo := cpu.Read8(oper)`)
+	printf(`hi := cpu.Read8(uint16(uint8(oper) + 1))`)
+	printf(`oper = uint16(hi)<<8 | uint16(lo)`)
 }
 
-func branch(f cpuFlag, val bool) func(g *Generator, _ opdef) {
-	return func(g *Generator, _ opdef) {
+func branch(f cpuFlag, val bool) func(_ opdef) {
+	return func(_ opdef) {
 		neg := "!"
 		if !val {
 			neg = ""
 		}
 
-		g.If(`%s%s`, neg, g.checkFlags(f)).
-			Do(func() { g.printf(`  return // no branch`) }).
+		If(`%s%s`, neg, checkFlags(f)).
+			Do(func() { printf(`  return // no branch`) }).
 			End()
 
-		g.printf(`// A taken non-page-crossing branch ignores IRQ/NMI during its last`)
-		g.printf(`// clock, so that next instruction executes before the IRQ.`)
-		g.printf(`// Fixes 'branch_delays_irq' test.`)
+		printf(`// A taken non-page-crossing branch ignores IRQ/NMI during its last`)
+		printf(`// clock, so that next instruction executes before the IRQ.`)
+		printf(`// Fixes 'branch_delays_irq' test.`)
 
-		g.If(`cpu.runIRQ && !cpu.prevRunIRQ`).
-			Do(func() { g.printf(`cpu.runIRQ = false`) }).
+		If(`cpu.runIRQ && !cpu.prevRunIRQ`).
+			Do(func() { printf(`cpu.runIRQ = false`) }).
 			End()
 
-		g.dummyread("cpu.PC")
-		tickIfPageCrossed(g, "cpu.PC", "oper")
-		g.printf(`cpu.PC = oper`)
-		g.printf(`return`)
+		dummyread("cpu.PC")
+		tickIfPageCrossed("cpu.PC", "oper")
+		printf(`cpu.PC = oper`)
+		printf(`return`)
 	}
 }
 
-func tick(g *Generator) {
-	g.printf(`cpu.tick()`)
+func tick() {
+	printf(`cpu.tick()`)
 }
 
-func tickIfPageCrossed(g *Generator, a, b string) {
-	g.printf(`// extra cycle for page cross`)
-	g.If(`0xFF00&(%s) != 0xFF00&(%s)`, a, b).
+func tickIfPageCrossed(a, b string) {
+	printf(`// extra cycle for page cross`)
+	If(`0xFF00&(%s) != 0xFF00&(%s)`, a, b).
 		Do(func() {
 			addr := fmt.Sprintf("(%s) & 0x00FF | (%s) & 0xFF00", b, a)
-			g.dummyread(addr)
+			dummyread(addr)
 		}).
 		End()
 }
@@ -582,316 +582,316 @@ func copybits(dst, src, mask string) string {
 	return fmt.Sprintf(`((%s) & (^%s)) | ((%s) & (%s))`, dst, mask, src, mask)
 }
 
-func (g *Generator) checkNZ(val string) {
-	g.printf(`cpu.P.clearFlags(Zero | Negative)`)
-	g.printf(`cpu.P.setNZ(%s)`, val)
+func checkNZ(val string) {
+	printf(`cpu.P.clearFlags(Zero | Negative)`)
+	printf(`cpu.P.setNZ(%s)`, val)
 }
 
 //
 // opcode generators
 //
 
-func (g *Generator) STP(def opdef) {
+func STP(def opdef) {
 	g.unstable = append(g.unstable, def.i)
-	g.printf(`cpu.halt()`)
+	printf(`cpu.halt()`)
 }
 
-func (g *Generator) ADC(_ opdef) {
-	g.printf(`cpu.add(val)`)
+func ADC(_ opdef) {
+	printf(`cpu.add(val)`)
 }
 
-func (g *Generator) ALR(_ opdef) {
-	g.printf(`// like and + lsr but saves one tick`)
-	g.printf(`cpu.A &= val`)
-	g.printf(`carry := cpu.A & 0x01 // carry is bit 0`)
-	g.printf(`cpu.A = (cpu.A >> 1) & 0x7f`)
-	g.checkNZ(`cpu.A`)
-	g.clearFlags(Carry)
-	g.If(`carry != 0`).
-		Do(func() { g.setFlags(Carry) }).
+func ALR(_ opdef) {
+	printf(`// like and + lsr but saves one tick`)
+	printf(`cpu.A &= val`)
+	printf(`carry := cpu.A & 0x01 // carry is bit 0`)
+	printf(`cpu.A = (cpu.A >> 1) & 0x7f`)
+	checkNZ(`cpu.A`)
+	clearFlags(Carry)
+	If(`carry != 0`).
+		Do(func() { setFlags(Carry) }).
 		End()
 }
 
-func (g *Generator) ANC(def opdef) {
-	g.AND(def)
-	g.clearFlags(Carry)
-	g.If(g.checkFlags(Negative)).
-		Do(func() { g.setFlags(Carry) }).
+func ANC(def opdef) {
+	AND(def)
+	clearFlags(Carry)
+	If(checkFlags(Negative)).
+		Do(func() { setFlags(Carry) }).
 		End()
 }
 
-func (g *Generator) AND(_ opdef) {
-	g.printf(`cpu.A &= val`)
-	g.checkNZ(`cpu.A`)
+func AND(_ opdef) {
+	printf(`cpu.A &= val`)
+	checkNZ(`cpu.A`)
 }
 
-func (g *Generator) ARR(_ opdef) {
-	g.printf(`cpu.A &= val`)
-	g.printf(`cpu.A >>= 1`)
-	g.clearFlags(Overflow)
+func ARR(_ opdef) {
+	printf(`cpu.A &= val`)
+	printf(`cpu.A >>= 1`)
+	clearFlags(Overflow)
 
-	g.If(`(cpu.A>>6)^(cpu.A>>5)&0x01 != 0`).
-		Do(func() { g.setFlags(Overflow) }).
+	If(`(cpu.A>>6)^(cpu.A>>5)&0x01 != 0`).
+		Do(func() { setFlags(Overflow) }).
 		End()
-	g.If(g.checkFlags(Carry)).
-		Do(func() { g.printf(`cpu.A |= 1 << 7`) }).
+	If(checkFlags(Carry)).
+		Do(func() { printf(`cpu.A |= 1 << 7`) }).
 		End()
 
-	g.checkNZ(`cpu.A`)
-	g.clearFlags(Carry)
+	checkNZ(`cpu.A`)
+	clearFlags(Carry)
 
-	g.If(`(cpu.A&(1<<6) != 0)`).
-		Do(func() { g.setFlags(Carry) }).
+	If(`(cpu.A&(1<<6) != 0)`).
+		Do(func() { setFlags(Carry) }).
 		End()
 }
 
-func (g *Generator) ASL(def opdef) {
+func ASL(def opdef) {
 	if def.m != "acc" {
-		g.dummywrite("oper", "val")
+		dummywrite("oper", "val")
 	}
-	g.printf(`carry := val & 0x80`)
-	g.printf(`val = (val << 1) & 0xfe`)
-	g.checkNZ(`val`)
-	g.clearFlags(Carry)
+	printf(`carry := val & 0x80`)
+	printf(`val = (val << 1) & 0xfe`)
+	checkNZ(`val`)
+	clearFlags(Carry)
 
-	g.If(`carry != 0`).
-		Do(func() { g.setFlags(Carry) }).
+	If(`carry != 0`).
+		Do(func() { setFlags(Carry) }).
 		End()
 }
 
-func (g *Generator) BIT(_ opdef) {
-	g.clearFlags(Zero | Overflow | Negative)
-	g.printf(`cpu.P |= P(val & 0b11000000)`)
-	g.If(`cpu.A&val == 0`).
-		Do(func() { g.setFlags(Zero) }).
+func BIT(_ opdef) {
+	clearFlags(Zero | Overflow | Negative)
+	printf(`cpu.P |= P(val & 0b11000000)`)
+	If(`cpu.A&val == 0`).
+		Do(func() { setFlags(Zero) }).
 		End()
 }
 
-func (g *Generator) BRK(_ opdef) {
-	tick(g)
-	push16(g, `cpu.PC+1`)
-	g.printf(`p := cpu.P`)
-	g.setFlags(Break)
-	push8(g, `uint8(p)`)
-	g.setFlags(Interrupt)
-	g.printf(`cpu.PC = cpu.Read16(CpuIRQvector)`)
+func BRK(_ opdef) {
+	tick()
+	push16(`cpu.PC+1`)
+	printf(`p := cpu.P`)
+	setFlags(Break)
+	push8(`uint8(p)`)
+	setFlags(Interrupt)
+	printf(`cpu.PC = cpu.Read16(CpuIRQvector)`)
 }
 
-func (g *Generator) DCP(def opdef) {
-	dec("")(g, def)
-	cmp("A")(g, def)
+func DCP(def opdef) {
+	dec("")(def)
+	cmp("A")(def)
 }
 
-func (g *Generator) EOR(_ opdef) {
-	g.printf(`cpu.A ^= val`)
-	g.checkNZ(`cpu.A`)
+func EOR(_ opdef) {
+	printf(`cpu.A ^= val`)
+	checkNZ(`cpu.A`)
 }
 
-func (g *Generator) ISC(def opdef) {
-	inc("")(g, def)
-	g.printf(`final := val`)
-	g.SBC(def)
-	g.printf(`val = final`)
+func ISC(def opdef) {
+	inc("")(def)
+	printf(`final := val`)
+	SBC(def)
+	printf(`val = final`)
 }
 
-func (g *Generator) JMP(_ opdef) {
-	g.printf(`cpu.PC = oper`)
+func JMP(_ opdef) {
+	printf(`cpu.PC = oper`)
 }
 
-func (g *Generator) LAS(def opdef) {
-	g.printf(`cpu.A = cpu.SP & val`)
-	g.checkNZ(`cpu.A`)
-	g.printf(`cpu.X = cpu.A`)
-	g.printf(`cpu.SP = cpu.A`)
+func LAS(def opdef) {
+	printf(`cpu.A = cpu.SP & val`)
+	checkNZ(`cpu.A`)
+	printf(`cpu.X = cpu.A`)
+	printf(`cpu.SP = cpu.A`)
 }
 
-func (g *Generator) LSR(def opdef) {
+func LSR(def opdef) {
 	if def.m != "acc" {
-		g.dummywrite("oper", "val")
+		dummywrite("oper", "val")
 	}
 
-	g.printf(`carry := val & 0x01 // carry is bit 0`)
-	g.printf(`val = (val >> 1)&0x7f`)
-	g.checkNZ(`val`)
-	g.clearFlags(Carry)
-	g.If(`carry != 0`).
-		Do(func() { g.setFlags(Carry) }).
+	printf(`carry := val & 0x01 // carry is bit 0`)
+	printf(`val = (val >> 1)&0x7f`)
+	checkNZ(`val`)
+	clearFlags(Carry)
+	If(`carry != 0`).
+		Do(func() { setFlags(Carry) }).
 		End()
 }
 
-func (g *Generator) LXA(def opdef) {
+func LXA(def opdef) {
 	g.unstable = append(g.unstable, def.i)
 
 	const mask = 0xff
-	g.printf(`val = (cpu.A | 0x%02x) & val`, mask)
-	g.printf(`cpu.A = val`)
-	g.printf(`cpu.X = val`)
-	g.checkNZ(`cpu.A`)
+	printf(`val = (cpu.A | 0x%02x) & val`, mask)
+	printf(`cpu.A = val`)
+	printf(`cpu.X = val`)
+	checkNZ(`cpu.A`)
 }
 
-func (g *Generator) NOP(def opdef) {
+func NOP(def opdef) {
 	if !slices.Contains([]string{"acc", "imp", "rel", "imm"}, def.m) {
-		g.dummyread("oper")
+		dummyread("oper")
 	}
 	if def.m == "imm" {
-		g.printf(`_ = val`)
+		printf(`_ = val`)
 	}
 }
 
-func (g *Generator) ORA(_ opdef) {
-	g.printf(`cpu.setreg(&cpu.A, cpu.A|val)`)
+func ORA(_ opdef) {
+	printf(`cpu.setreg(&cpu.A, cpu.A|val)`)
 }
 
-func (g *Generator) PHA(_ opdef) {
-	push8(g, `cpu.A`)
+func PHA(_ opdef) {
+	push8(`cpu.A`)
 }
 
-func (g *Generator) PHP(_ opdef) {
-	g.printf(`p := cpu.P | 0x%02x`, int(Break|Reserved))
-	push8(g, `uint8(p)`)
+func PHP(_ opdef) {
+	printf(`p := cpu.P | 0x%02x`, int(Break|Reserved))
+	push8(`uint8(p)`)
 }
 
-func (g *Generator) PLA(_ opdef) {
-	g.dummyread("uint16(cpu.SP) + 0x0100")
-	pull8(g, `cpu.A`)
-	g.checkNZ(`cpu.A`)
+func PLA(_ opdef) {
+	dummyread("uint16(cpu.SP) + 0x0100")
+	pull8(`cpu.A`)
+	checkNZ(`cpu.A`)
 }
 
-func (g *Generator) PLP(_ opdef) {
-	g.printf(`var p uint8`)
-	g.dummyread("uint16(cpu.SP) + 0x0100")
-	pull8(g, `p`)
-	g.printf(`const mask uint8 = 0b11001111 // ignore B and U bits`)
-	g.printf(`cpu.P = P(%s)`, copybits(`uint8(cpu.P)`, `p`, `mask`))
+func PLP(_ opdef) {
+	printf(`var p uint8`)
+	dummyread("uint16(cpu.SP) + 0x0100")
+	pull8(`p`)
+	printf(`const mask uint8 = 0b11001111 // ignore B and U bits`)
+	printf(`cpu.P = P(%s)`, copybits(`uint8(cpu.P)`, `p`, `mask`))
 }
 
-func (g *Generator) RLA(def opdef) {
-	g.ROL(def)
-	g.AND(def)
+func RLA(def opdef) {
+	ROL(def)
+	AND(def)
 }
 
-func (g *Generator) ROL(def opdef) {
+func ROL(def opdef) {
 	if def.m != "acc" {
-		g.dummywrite("oper", "val")
+		dummywrite("oper", "val")
 	}
-	g.printf(`carry := val & 0x80`)
-	g.printf(`val <<= 1`)
+	printf(`carry := val & 0x80`)
+	printf(`val <<= 1`)
 
-	g.If(g.checkFlags(Carry)).
-		Do(func() { g.printf(`val |= 1 << 0`) }).
+	If(checkFlags(Carry)).
+		Do(func() { printf(`val |= 1 << 0`) }).
 		End()
 
-	g.checkNZ(`val`)
-	g.clearFlags(Carry)
+	checkNZ(`val`)
+	clearFlags(Carry)
 
-	g.If(`carry != 0`).
-		Do(func() { g.setFlags(Carry) }).
+	If(`carry != 0`).
+		Do(func() { setFlags(Carry) }).
 		End()
 }
 
-func (g *Generator) ROR(def opdef) {
+func ROR(def opdef) {
 	if def.m != "acc" {
-		g.dummywrite("oper", "val")
+		dummywrite("oper", "val")
 	}
-	g.printf(`carry := val & 0x01`)
-	g.printf(`val >>= 1`)
+	printf(`carry := val & 0x01`)
+	printf(`val >>= 1`)
 
-	g.If(g.checkFlags(Carry)).
-		Do(func() { g.printf(`val |= 1 << 7`) }).
+	If(checkFlags(Carry)).
+		Do(func() { printf(`val |= 1 << 7`) }).
 		End()
 
-	g.checkNZ(`val`)
-	g.clearFlags(Carry)
-	g.If(`carry != 0`).
-		Do(func() { g.setFlags(Carry) }).
-		End()
-}
-
-func (g *Generator) RRA(def opdef) {
-	g.ROR(def)
-	g.ADC(def)
-}
-
-func (g *Generator) RTI(_ opdef) {
-	g.printf(`var p uint8`)
-	g.dummyread("uint16(cpu.SP) + 0x0100")
-	pull8(g, `p`)
-	g.printf(`const mask uint8 = 0b11001111 // ignore B and U bits`)
-	g.printf(`cpu.P = P(%s)`, copybits(`uint8(cpu.P)`, `p`, `mask`))
-	pull16(g, `cpu.PC`)
-}
-
-func (g *Generator) RTS(_ opdef) {
-	g.dummyread("uint16(cpu.SP) + 0x0100")
-	pull16(g, `cpu.PC`)
-	g.printf(`cpu.fetch()`)
-}
-
-func (g *Generator) SAX(_ opdef) {
-	g.printf(`cpu.Write8(oper, cpu.A&cpu.X)`)
-}
-
-func (g *Generator) SBC(def opdef) {
-	g.printf(`val ^= 0xff`)
-	g.printf(`cpu.add(val)`)
-}
-
-func (g *Generator) SBX(def opdef) {
-	g.printf(`ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)`)
-	g.printf(`cpu.X = uint8(ival)`)
-	g.checkNZ(`cpu.X`)
-	g.clearFlags(Carry)
-
-	g.If(`ival >= 0`).
-		Do(func() { g.setFlags(Carry) }).
+	checkNZ(`val`)
+	clearFlags(Carry)
+	If(`carry != 0`).
+		Do(func() { setFlags(Carry) }).
 		End()
 }
 
-func (g *Generator) SLO(def opdef) {
-	g.ASL(def)
-	g.printf(`cpu.setreg(&cpu.A, cpu.A|val)`)
+func RRA(def opdef) {
+	ROR(def)
+	ADC(def)
 }
 
-func (g *Generator) SRE(def opdef) {
-	g.LSR(def)
-	g.EOR(def)
+func RTI(_ opdef) {
+	printf(`var p uint8`)
+	dummyread("uint16(cpu.SP) + 0x0100")
+	pull8(`p`)
+	printf(`const mask uint8 = 0b11001111 // ignore B and U bits`)
+	printf(`cpu.P = P(%s)`, copybits(`uint8(cpu.P)`, `p`, `mask`))
+	pull16(`cpu.PC`)
+}
+
+func RTS(_ opdef) {
+	dummyread("uint16(cpu.SP) + 0x0100")
+	pull16(`cpu.PC`)
+	printf(`cpu.fetch()`)
+}
+
+func SAX(_ opdef) {
+	printf(`cpu.Write8(oper, cpu.A&cpu.X)`)
+}
+
+func SBC(def opdef) {
+	printf(`val ^= 0xff`)
+	printf(`cpu.add(val)`)
+}
+
+func SBX(def opdef) {
+	printf(`ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)`)
+	printf(`cpu.X = uint8(ival)`)
+	checkNZ(`cpu.X`)
+	clearFlags(Carry)
+
+	If(`ival >= 0`).
+		Do(func() { setFlags(Carry) }).
+		End()
+}
+
+func SLO(def opdef) {
+	ASL(def)
+	printf(`cpu.setreg(&cpu.A, cpu.A|val)`)
+}
+
+func SRE(def opdef) {
+	LSR(def)
+	EOR(def)
 }
 
 //
 // opcode helpers
 //
 
-func LD(reg ...string) func(g *Generator, _ opdef) {
-	return func(g *Generator, _ opdef) {
+func LD(reg ...string) func(_ opdef) {
+	return func(_ opdef) {
 		for _, r := range reg {
-			g.printf(`cpu.setreg(&cpu.%s, val)`, r)
+			printf(`cpu.setreg(&cpu.%s, val)`, r)
 		}
 	}
 }
 
-func ST(reg string) func(g *Generator, _ opdef) {
-	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.Write8(oper, cpu.%s)`, reg)
+func ST(reg string) func(_ opdef) {
+	return func(_ opdef) {
+		printf(`cpu.Write8(oper, cpu.%s)`, reg)
 	}
 }
 
-func cmp(v string) func(g *Generator, _ opdef) {
-	return func(g *Generator, _ opdef) {
+func cmp(v string) func(_ opdef) {
+	return func(_ opdef) {
 		v = regOrMem(v)
-		g.checkNZ(fmt.Sprintf("%s - val", v))
-		g.clearFlags(Carry)
+		checkNZ(fmt.Sprintf("%s - val", v))
+		clearFlags(Carry)
 
-		g.If(`val <= %s`, v).
-			Do(func() { g.setFlags(Carry) }).
+		If(`val <= %s`, v).
+			Do(func() { setFlags(Carry) }).
 			End()
 	}
 }
 
-func T(src, dst string) func(g *Generator, _ opdef) {
-	return func(g *Generator, _ opdef) {
-		g.printf(`cpu.%s = cpu.%s`, dst, src)
+func T(src, dst string) func(_ opdef) {
+	return func(_ opdef) {
+		printf(`cpu.%s = cpu.%s`, dst, src)
 		if dst != "SP" {
-			g.checkNZ(fmt.Sprintf(`cpu.%s`, src))
+			checkNZ(fmt.Sprintf(`cpu.%s`, src))
 		}
 	}
 }
@@ -906,50 +906,46 @@ func regOrMem(v string) string {
 	panic("regOrMem " + v)
 }
 
-func inc(v string) func(g *Generator, _ opdef) {
-	return func(g *Generator, _ opdef) {
+func inc(v string) func(_ opdef) {
+	return func(_ opdef) {
 		v = regOrMem(v)
 		if v == "val" {
 			// TODO: works but ugly
-			g.dummywrite("oper", "val")
+			dummywrite("oper", "val")
 		}
-		g.printf(`%s++`, v)
-		g.checkNZ(v)
+		printf(`%s++`, v)
+		checkNZ(v)
 	}
 }
 
-func dec(v string) func(g *Generator, _ opdef) {
-	return func(g *Generator, _ opdef) {
+func dec(v string) func(_ opdef) {
+	return func(_ opdef) {
 		v = regOrMem(v)
 		if v == "val" {
 			// TODO: works but ugly
-			g.dummywrite("oper", "val")
+			dummywrite("oper", "val")
 		}
-		g.printf(`%s--`, v)
-		g.checkNZ(v)
+		printf(`%s--`, v)
+		checkNZ(v)
 	}
 }
 
-func clear(f cpuFlag) func(g *Generator, _ opdef) {
-	return func(g *Generator, _ opdef) {
-		g.clearFlags(f)
+func clear(f cpuFlag) func(_ opdef) {
+	return func(_ opdef) {
+		clearFlags(f)
 	}
 }
 
-func set(f cpuFlag) func(g *Generator, _ opdef) {
-	return func(g *Generator, _ opdef) {
-		g.setFlags(f)
+func set(f cpuFlag) func(_ opdef) {
+	return func(_ opdef) {
+		setFlags(f)
 	}
 }
 
-func unstable(g *Generator, def opdef) {
+func unstable(def opdef) {
 	g.unstable = append(g.unstable, def.i)
-	insertPanic(g, fmt.Sprintf("unsupported unstable opcode 0x%02X (%s)", def.i, def.n))
-}
-
-func insertPanic(g *Generator, msg string) {
-	g.printf(`msg := fmt.Sprintf("%s\nPC:0x%%04X", cpu.PC)`, msg)
-	g.printf(`panic(msg)`)
+	printf(`msg := fmt.Sprintf("unsupported unstable opcode 0x%02X (%s)\nPC:0x%%04X", cpu.PC)`, def.i, def.n)
+	printf(`panic(msg)`)
 }
 
 type Generator struct {
@@ -957,12 +953,12 @@ type Generator struct {
 	unstable []uint8
 }
 
-func (g *Generator) header() {
-	g.printf(`// Code generated by cpugen/gen_nes6502.go. DO NOT EDIT.`)
-	g.printf(`package %s`, pkgname)
-	g.printf(`import (`)
-	g.printf(`"fmt"`)
-	g.printf(`)`)
+func header() {
+	printf(`// Code generated by cpugen/gen_nes6502.go. DO NOT EDIT.`)
+	printf(`package %s`, pkgname)
+	printf(`import (`)
+	printf(`"fmt"`)
+	printf(`)`)
 }
 
 func has(details string, c byte) bool {
@@ -974,63 +970,63 @@ func has(details string, c byte) bool {
 	return false
 }
 
-func (g *Generator) opcodeHeader(code uint8) {
+func opcodeHeader(code uint8) {
 	mode, ok := addrModes[defs[code].m]
 	if !ok {
 		panic(fmt.Sprintf("unknown addressing mode (opcode: 0x%02X)", code))
 	}
 
-	g.printf(`// %s - %s`, defs[code].n, mode.human)
-	g.printf(`func opcode%02X(cpu*CPU){`, code)
+	printf(`// %s - %s`, defs[code].n, mode.human)
+	printf(`func opcode%02X(cpu*CPU){`, code)
 	if mode.f != nil {
-		mode.f(g, defs[code].d)
+		mode.f(defs[code].d)
 	}
 
 	switch {
 	case strings.Contains(defs[code].d, "r"):
 		switch defs[code].m {
 		case "acc":
-			g.printf(`val := cpu.A`)
+			printf(`val := cpu.A`)
 		case "imm":
-			g.printf(`val := cpu.fetch()`)
+			printf(`val := cpu.fetch()`)
 		default:
-			g.printf(`val := cpu.Read8(oper)`)
+			printf(`val := cpu.Read8(oper)`)
 		}
 	}
 }
 
-func (g *Generator) opcodeFooter(code uint8) {
+func opcodeFooter(code uint8) {
 	switch {
 	case strings.Contains(defs[code].d, "w"):
 		switch defs[code].m {
 		case "acc":
-			g.printf(`cpu.A = val`)
+			printf(`cpu.A = val`)
 		default:
-			g.printf(`cpu.Write8(oper, val)`)
+			printf(`cpu.Write8(oper, val)`)
 		}
 	}
-	g.printf(`}`)
+	printf(`}`)
 }
 
-func (g *Generator) opcodes() {
+func opcodes() {
 	for _, def := range defs {
 		if def.dontgen {
 			continue
 		}
-		g.opcodeHeader(def.i)
+		opcodeHeader(def.i)
 		if def.f != nil {
-			def.f(g, def)
+			def.f(def)
 		} else {
 			f := reflect.ValueOf(g).MethodByName(def.n)
 			f.Call([]reflect.Value{reflect.ValueOf(def)})
 		}
 
-		g.opcodeFooter(def.i)
-		g.printf("\n")
+		opcodeFooter(def.i)
+		printf("\n")
 	}
 }
 
-func (g *Generator) disasmAddrModes() {
+func disasmAddrModes() {
 	// order alphabetically to get deterministic output.
 	var modes []string
 	for k := range addrModes {
@@ -1041,9 +1037,9 @@ func (g *Generator) disasmAddrModes() {
 	for _, name := range modes {
 		am := addrModes[name]
 		fname := strings.ToUpper(name[:1]) + name[1:]
-		g.printf(`func disasm%s(cpu*CPU, pc uint16) DisasmOp {`, fname)
+		printf(`func disasm%s(cpu*CPU, pc uint16) DisasmOp {`, fname)
 		for n := 0; n < am.n; n++ {
-			g.printf(`oper%d := cpu.Bus.Peek8(pc+%d)`, n, n)
+			printf(`oper%d := cpu.Bus.Peek8(pc+%d)`, n, n)
 		}
 		var bytes []string
 		for n := 0; n < am.n; n++ {
@@ -1051,90 +1047,90 @@ func (g *Generator) disasmAddrModes() {
 		}
 
 		if am.n == 3 {
-			g.printf(`operaddr := uint16(oper1)|uint16(oper2)<<8`)
+			printf(`operaddr := uint16(oper1)|uint16(oper2)<<8`)
 		}
-		g.printf(`oper := ""`)
-		g.printf(``)
+		printf(`oper := ""`)
+		printf(``)
 
 		abxy := func(xy byte) {
-			g.printf(`addr := operaddr + uint16(cpu.%c)`, xy)
-			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
-			g.printf(`oper = fmt.Sprintf("%%s,%c [%%s] = $%%02X", formatAddr(operaddr), formatAddr(addr), pointee)`, xy)
+			printf(`addr := operaddr + uint16(cpu.%c)`, xy)
+			printf(`pointee := cpu.Bus.Peek8(addr)`)
+			printf(`oper = fmt.Sprintf("%%s,%c [%%s] = $%%02X", formatAddr(operaddr), formatAddr(addr), pointee)`, xy)
 		}
 
 		switch name {
 		case "imp":
 		case "acc":
-			g.printf(`oper = "A"`)
+			printf(`oper = "A"`)
 		case "rel":
-			g.printf(`oper = fmt.Sprintf("$%%04X", uint16(int16(pc+2) + int16(int8(oper1))))`)
+			printf(`oper = fmt.Sprintf("$%%04X", uint16(int16(pc+2) + int16(int8(oper1))))`)
 		case "ind":
-			g.printf(`lo := cpu.Bus.Peek8(operaddr)`)
-			g.printf(`// 2 bytes address wrap around`)
-			g.printf(`hi := cpu.Bus.Peek8((0xff00 & operaddr) | (0x00ff & (operaddr + 1)))`)
-			g.printf(`dest := uint16(hi)<<8 | uint16(lo)`)
-			g.printf(`pointee := cpu.Bus.Peek8(dest)`)
-			g.printf(`oper = fmt.Sprintf("(%%s) [%%s] = $%%02X", formatAddr(operaddr), formatAddr(dest), pointee)`)
+			printf(`lo := cpu.Bus.Peek8(operaddr)`)
+			printf(`// 2 bytes address wrap around`)
+			printf(`hi := cpu.Bus.Peek8((0xff00 & operaddr) | (0x00ff & (operaddr + 1)))`)
+			printf(`dest := uint16(hi)<<8 | uint16(lo)`)
+			printf(`pointee := cpu.Bus.Peek8(dest)`)
+			printf(`oper = fmt.Sprintf("(%%s) [%%s] = $%%02X", formatAddr(operaddr), formatAddr(dest), pointee)`)
 		case "abs":
-			g.printf(`if oper0 == 0x20 || oper0 == 0x4C {`)
-			g.printf("        // JSR / JMP")
-			g.printf(`        oper = fmt.Sprintf("$%%04X", operaddr)`)
-			g.printf(`} else {`)
-			g.printf(`        pointee := cpu.Bus.Peek8(operaddr)`)
-			g.printf(`        oper = fmt.Sprintf("%%s = $%%02X", formatAddr(operaddr), pointee)`)
-			g.printf(`}`)
+			printf(`if oper0 == 0x20 || oper0 == 0x4C {`)
+			printf("        // JSR / JMP")
+			printf(`        oper = fmt.Sprintf("$%%04X", operaddr)`)
+			printf(`} else {`)
+			printf(`        pointee := cpu.Bus.Peek8(operaddr)`)
+			printf(`        oper = fmt.Sprintf("%%s = $%%02X", formatAddr(operaddr), pointee)`)
+			printf(`}`)
 		case "abx":
 			abxy('X')
 		case "aby":
 			abxy('Y')
 		case "imm":
-			g.printf(`oper = fmt.Sprintf("#$%%02X", oper1)`)
+			printf(`oper = fmt.Sprintf("#$%%02X", oper1)`)
 		case "zpg":
-			g.printf(`pointee := cpu.Bus.Peek8(uint16(oper1))`)
-			g.printf(`oper = fmt.Sprintf("$%%02X = $%%02X", oper1, pointee)`)
+			printf(`pointee := cpu.Bus.Peek8(uint16(oper1))`)
+			printf(`oper = fmt.Sprintf("$%%02X = $%%02X", oper1, pointee)`)
 		case "zpx":
-			g.printf(`addr := uint16(oper1) + uint16(cpu.X)`)
-			g.printf(`addr &= 0xff`)
-			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
-			g.printf(`oper = fmt.Sprintf("$%%02X,X [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
+			printf(`addr := uint16(oper1) + uint16(cpu.X)`)
+			printf(`addr &= 0xff`)
+			printf(`pointee := cpu.Bus.Peek8(addr)`)
+			printf(`oper = fmt.Sprintf("$%%02X,X [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
 		case "zpy":
-			g.printf(`addr := uint16(oper1) + uint16(cpu.Y)`)
-			g.printf(`addr &= 0xff`)
-			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
-			g.printf(`oper = fmt.Sprintf("$%%02X,Y [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
+			printf(`addr := uint16(oper1) + uint16(cpu.Y)`)
+			printf(`addr &= 0xff`)
+			printf(`pointee := cpu.Bus.Peek8(addr)`)
+			printf(`oper = fmt.Sprintf("$%%02X,Y [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
 		case "zp":
-			g.printf(`oper = fmt.Sprintf("$%%02X", oper1)`)
+			printf(`oper = fmt.Sprintf("$%%02X", oper1)`)
 		case "izx":
-			g.printf(`addr := uint16(uint8(oper1) + cpu.X)`)
-			g.printf(`// read 16 bytes from the zero page, handling page wrap`)
-			g.printf(`lo := cpu.Bus.Peek8(addr)`)
-			g.printf(`hi := cpu.Bus.Peek8(uint16(uint8(addr) + 1))`)
-			g.printf(`addr = uint16(hi)<<8 | uint16(lo)`)
-			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
-			g.printf(`oper = fmt.Sprintf("($%%02X,X) [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
+			printf(`addr := uint16(uint8(oper1) + cpu.X)`)
+			printf(`// read 16 bytes from the zero page, handling page wrap`)
+			printf(`lo := cpu.Bus.Peek8(addr)`)
+			printf(`hi := cpu.Bus.Peek8(uint16(uint8(addr) + 1))`)
+			printf(`addr = uint16(hi)<<8 | uint16(lo)`)
+			printf(`pointee := cpu.Bus.Peek8(addr)`)
+			printf(`oper = fmt.Sprintf("($%%02X,X) [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
 		case "izy":
-			g.printf(`// read 16 bytes from the zero page, handling page wrap`)
-			g.printf(`lo := cpu.Bus.Peek8(uint16(oper1))`)
-			g.printf(`hi := cpu.Bus.Peek8(uint16(uint8(oper1) + 1))`)
-			g.printf(`addr := uint16(hi)<<8 | uint16(lo)`)
-			g.printf(`addr += uint16(cpu.Y)`)
-			g.printf(`pointee := cpu.Bus.Peek8(addr)`)
-			g.printf(`oper = fmt.Sprintf("($%%02X),Y [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
+			printf(`// read 16 bytes from the zero page, handling page wrap`)
+			printf(`lo := cpu.Bus.Peek8(uint16(oper1))`)
+			printf(`hi := cpu.Bus.Peek8(uint16(uint8(oper1) + 1))`)
+			printf(`addr := uint16(hi)<<8 | uint16(lo)`)
+			printf(`addr += uint16(cpu.Y)`)
+			printf(`pointee := cpu.Bus.Peek8(addr)`)
+			printf(`oper = fmt.Sprintf("($%%02X),Y [%%s] = $%%02X", oper1, formatAddr(addr), pointee)`)
 		}
 
-		g.printf(``)
-		g.printf(`return DisasmOp{`)
-		g.printf(`	PC: pc,`)
-		g.printf(`	Opcode: opcodeNames[oper0],`)
-		g.printf(`	Buf: []byte{%s},`, strings.Join(bytes, ","))
-		g.printf(`	Oper: oper,`)
-		g.printf(`}`)
-		g.printf(`}`)
-		g.printf(``)
+		printf(``)
+		printf(`return DisasmOp{`)
+		printf(`	PC: pc,`)
+		printf(`	Opcode: opcodeNames[oper0],`)
+		printf(`	Buf: []byte{%s},`, strings.Join(bytes, ","))
+		printf(`	Oper: oper,`)
+		printf(`}`)
+		printf(`}`)
+		printf(``)
 	}
 }
 
-func (g *Generator) opcodesTable() {
+func opcodesTable() {
 	bb := &strings.Builder{}
 	for i := 0; i < 16; i++ {
 		for j := 0; j < 16; j++ {
@@ -1147,14 +1143,14 @@ func (g *Generator) opcodesTable() {
 		}
 		bb.WriteByte('\n')
 	}
-	g.printf(`// nes 6502 opcodes table`)
-	g.printf(`var ops = [256]func(*CPU){`)
-	g.printf(bb.String())
-	g.printf(`}`)
-	g.printf(``)
+	printf(`// nes 6502 opcodes table`)
+	printf(`var ops = [256]func(*CPU){`)
+	printf(bb.String())
+	printf(`}`)
+	printf(``)
 }
 
-func (g *Generator) disasmTable() {
+func disasmTable() {
 	bb := &strings.Builder{}
 	for i := 0; i < 16; i++ {
 		for j := 0; j < 16; j++ {
@@ -1163,37 +1159,39 @@ func (g *Generator) disasmTable() {
 		}
 		bb.WriteByte('\n')
 	}
-	g.printf(`// nes 6502 opcodes disassembly table`)
-	g.printf(`var disasmOps = [256]func(*CPU, uint16) DisasmOp {`)
-	g.printf(bb.String())
-	g.printf(`}`)
-	g.printf(``)
+	printf(`// nes 6502 opcodes disassembly table`)
+	printf(`var disasmOps = [256]func(*CPU, uint16) DisasmOp {`)
+	printf(bb.String())
+	printf(`}`)
+	printf(``)
 }
 
-func (g *Generator) opcodeNamesTable() {
+func opcodeNamesTable() {
 	var names [256]string
 	for i, def := range defs {
 		names[i] = strconv.Quote(def.n)
 	}
-	g.printf(`var opcodeNames = [256]string{`)
+	printf(`var opcodeNames = [256]string{`)
 	for i := 0; i < 16; i++ {
-		g.printf("%s,", strings.Join(names[i*16:i*16+16], ", "))
+		printf("%s,", strings.Join(names[i*16:i*16+16], ", "))
 	}
-	g.printf(`}`)
+	printf(`}`)
 }
 
-func (g *Generator) unstableOpcodes() {
-	g.printf(`// list of unstable opcodes (unsupported)`)
-	g.printf(`var unstableOps = [256]uint8{`)
+func unstableOpcodes() {
+	printf(`// list of unstable opcodes (unsupported)`)
+	printf(`var unstableOps = [256]uint8{`)
 	for _, code := range g.unstable {
-		g.printf(`0x%02X: 1, // %s`, code, defs[code].n)
+		printf(`0x%02X: 1, // %s`, code, defs[code].n)
 	}
-	g.printf(`}`)
+	printf(`}`)
 }
 
-func (g *Generator) printf(format string, args ...any) {
+func printf(format string, args ...any) {
 	fmt.Fprintf(g, "%s\n", fmt.Sprintf(format, args...))
 }
+
+var g Generator
 
 func main() {
 	log.SetFlags(0)
@@ -1207,15 +1205,15 @@ func main() {
 		w = bb
 	}
 
-	g := &Generator{Writer: w}
+	g = Generator{Writer: w}
 
-	g.header()
-	g.opcodes()
-	g.unstableOpcodes()
-	g.opcodesTable()
-	g.disasmAddrModes()
-	g.disasmTable()
-	g.opcodeNamesTable()
+	header()
+	opcodes()
+	unstableOpcodes()
+	opcodesTable()
+	disasmAddrModes()
+	disasmTable()
+	opcodeNamesTable()
 
 	if *outf == "stdout" {
 		return
