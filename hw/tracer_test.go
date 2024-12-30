@@ -10,7 +10,7 @@ import (
 )
 
 func BenchmarkDisasmOpString(b *testing.B) {
-	const want = `C000  4C F5 C5  JMP $C5F5         `
+	const want = `C000  4C F5 C5  JMP $C5F5                       `
 
 	op := DisasmOp{
 		Opcode: "JMP",
