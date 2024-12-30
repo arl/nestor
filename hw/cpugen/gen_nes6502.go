@@ -445,40 +445,12 @@ func pull16(v string) {
 
 func branch(f cpuFlag, val bool) func(_ opdef) {
 	return func(_ opdef) {
-		neg := "!"
-		if !val {
-			neg = ""
+		if val {
+			printf(`cpu.branch(%s, 0)`, f)
+		} else {
+			printf(`cpu.branch(%s, %s)`, f, f)
 		}
-
-		If(`%s%s`, neg, checkFlags(f)).
-			printf(`  return // no branch`).
-			End()
-
-		printf(`// A taken non-page-crossing branch ignores IRQ/NMI during its last`)
-		printf(`// clock, so that next instruction executes before the IRQ.`)
-		printf(`// Fixes 'branch_delays_irq' test.`)
-
-		If(`cpu.runIRQ && !cpu.prevRunIRQ`).
-			printf(`cpu.runIRQ = false`).
-			End()
-
-		dummyread("cpu.PC")
-		tickIfPageCrossed("cpu.PC", "cpu.operand")
-		printf(`cpu.PC = cpu.operand`)
-		printf(`return`)
 	}
-}
-
-func tick() { printf(`cpu.tick()`) }
-
-func tickIfPageCrossed(a, b string) {
-	printf(`// extra cycle for page cross`)
-	If(`0xFF00&(%s) != 0xFF00&(%s)`, a, b).
-		Do(func() {
-			addr := fmt.Sprintf("(%s) & 0x00FF | (%s) & 0xFF00", b, a)
-			dummyread(addr)
-		}).
-		End()
 }
 
 func copybits(dst, src, mask string) string {
@@ -564,16 +536,6 @@ func BIT(_ opdef) {
 	If(`cpu.A&val == 0`).
 		setFlags(Zero).
 		End()
-}
-
-func BRK(_ opdef) {
-	tick()
-	push16(`cpu.PC+1`)
-	printf(`p := cpu.P`)
-	setFlags(Break)
-	push8(`uint8(p)`)
-	setFlags(Interrupt)
-	printf(`cpu.PC = cpu.Read16(CpuIRQvector)`)
 }
 
 func DCP(def opdef) {

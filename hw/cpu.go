@@ -201,6 +201,29 @@ func (c *CPU) Run(ncycles int64) {
 	}
 }
 
+func (cpu *CPU) branch(flag, val P) {
+	if cpu.P&flag == val {
+		return // no branch
+	}
+	// A taken, non-page-crossing branch ignores IRQ/NMI during its last clock,
+	// so that next instruction executes before the IRQ. Fixes
+	// 'branch_delays_irq' test.
+	if cpu.runIRQ && !cpu.prevRunIRQ {
+		cpu.runIRQ = false
+	}
+
+	// dummy read.
+	_ = cpu.Read8(cpu.PC)
+
+	// extra cycle for page cross
+	if 0xFF00&(cpu.PC) != 0xFF00&(cpu.operand) {
+		// dummy read.
+		_ = cpu.Read8(cpu.PC&0xFF00 | cpu.operand&0x00FF)
+	}
+
+	cpu.PC = cpu.operand
+}
+
 func JSR(cpu *CPU) {
 	pclo := cpu.fetch()
 

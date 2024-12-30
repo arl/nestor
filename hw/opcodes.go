@@ -177,24 +177,7 @@ func opcode0F(cpu *CPU) {
 // BPL - relative addressing.
 func opcode10(cpu *CPU) {
 	cpu.rel()
-	if cpu.P&0x80 == 0x80 {
-		return // no branch
-	}
-	// A taken non-page-crossing branch ignores IRQ/NMI during its last
-	// clock, so that next instruction executes before the IRQ.
-	// Fixes 'branch_delays_irq' test.
-	if cpu.runIRQ && !cpu.prevRunIRQ {
-		cpu.runIRQ = false
-	}
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
-	// extra cycle for page cross
-	if 0xFF00&(cpu.PC) != 0xFF00&(cpu.operand) {
-		// dummy read.
-		_ = cpu.Read8((cpu.operand)&0x00FF | (cpu.PC)&0xFF00)
-	}
-	cpu.PC = cpu.operand
-	return
+	cpu.branch(Negative, Negative)
 }
 
 // ORA - indexed addressing (abs),Y.
@@ -578,24 +561,7 @@ func opcode2F(cpu *CPU) {
 // BMI - relative addressing.
 func opcode30(cpu *CPU) {
 	cpu.rel()
-	if !(cpu.P&0x80 == 0x80) {
-		return // no branch
-	}
-	// A taken non-page-crossing branch ignores IRQ/NMI during its last
-	// clock, so that next instruction executes before the IRQ.
-	// Fixes 'branch_delays_irq' test.
-	if cpu.runIRQ && !cpu.prevRunIRQ {
-		cpu.runIRQ = false
-	}
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
-	// extra cycle for page cross
-	if 0xFF00&(cpu.PC) != 0xFF00&(cpu.operand) {
-		// dummy read.
-		_ = cpu.Read8((cpu.operand)&0x00FF | (cpu.PC)&0xFF00)
-	}
-	cpu.PC = cpu.operand
-	return
+	cpu.branch(Negative, 0)
 }
 
 // AND - indexed addressing (abs),Y.
@@ -996,24 +962,7 @@ func opcode4F(cpu *CPU) {
 // BVC - relative addressing.
 func opcode50(cpu *CPU) {
 	cpu.rel()
-	if cpu.P&0x40 == 0x40 {
-		return // no branch
-	}
-	// A taken non-page-crossing branch ignores IRQ/NMI during its last
-	// clock, so that next instruction executes before the IRQ.
-	// Fixes 'branch_delays_irq' test.
-	if cpu.runIRQ && !cpu.prevRunIRQ {
-		cpu.runIRQ = false
-	}
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
-	// extra cycle for page cross
-	if 0xFF00&(cpu.PC) != 0xFF00&(cpu.operand) {
-		// dummy read.
-		_ = cpu.Read8((cpu.operand)&0x00FF | (cpu.PC)&0xFF00)
-	}
-	cpu.PC = cpu.operand
-	return
+	cpu.branch(Overflow, Overflow)
 }
 
 // EOR - indexed addressing (abs),Y.
@@ -1406,24 +1355,7 @@ func opcode6F(cpu *CPU) {
 // BVS - relative addressing.
 func opcode70(cpu *CPU) {
 	cpu.rel()
-	if !(cpu.P&0x40 == 0x40) {
-		return // no branch
-	}
-	// A taken non-page-crossing branch ignores IRQ/NMI during its last
-	// clock, so that next instruction executes before the IRQ.
-	// Fixes 'branch_delays_irq' test.
-	if cpu.runIRQ && !cpu.prevRunIRQ {
-		cpu.runIRQ = false
-	}
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
-	// extra cycle for page cross
-	if 0xFF00&(cpu.PC) != 0xFF00&(cpu.operand) {
-		// dummy read.
-		_ = cpu.Read8((cpu.operand)&0x00FF | (cpu.PC)&0xFF00)
-	}
-	cpu.PC = cpu.operand
-	return
+	cpu.branch(Overflow, 0)
 }
 
 // ADC - indexed addressing (abs),Y.
@@ -1712,24 +1644,7 @@ func opcode8F(cpu *CPU) {
 // BCC - relative addressing.
 func opcode90(cpu *CPU) {
 	cpu.rel()
-	if cpu.P&0x01 == 0x01 {
-		return // no branch
-	}
-	// A taken non-page-crossing branch ignores IRQ/NMI during its last
-	// clock, so that next instruction executes before the IRQ.
-	// Fixes 'branch_delays_irq' test.
-	if cpu.runIRQ && !cpu.prevRunIRQ {
-		cpu.runIRQ = false
-	}
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
-	// extra cycle for page cross
-	if 0xFF00&(cpu.PC) != 0xFF00&(cpu.operand) {
-		// dummy read.
-		_ = cpu.Read8((cpu.operand)&0x00FF | (cpu.PC)&0xFF00)
-	}
-	cpu.PC = cpu.operand
-	return
+	cpu.branch(Carry, Carry)
 }
 
 // STA - indexed addressing (abs),Y.
@@ -1949,24 +1864,7 @@ func opcodeAF(cpu *CPU) {
 // BCS - relative addressing.
 func opcodeB0(cpu *CPU) {
 	cpu.rel()
-	if !(cpu.P&0x01 == 0x01) {
-		return // no branch
-	}
-	// A taken non-page-crossing branch ignores IRQ/NMI during its last
-	// clock, so that next instruction executes before the IRQ.
-	// Fixes 'branch_delays_irq' test.
-	if cpu.runIRQ && !cpu.prevRunIRQ {
-		cpu.runIRQ = false
-	}
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
-	// extra cycle for page cross
-	if 0xFF00&(cpu.PC) != 0xFF00&(cpu.operand) {
-		// dummy read.
-		_ = cpu.Read8((cpu.operand)&0x00FF | (cpu.PC)&0xFF00)
-	}
-	cpu.PC = cpu.operand
-	return
+	cpu.branch(Carry, 0)
 }
 
 // LDA - indexed addressing (abs),Y.
@@ -2278,24 +2176,7 @@ func opcodeCF(cpu *CPU) {
 // BNE - relative addressing.
 func opcodeD0(cpu *CPU) {
 	cpu.rel()
-	if cpu.P&0x02 == 0x02 {
-		return // no branch
-	}
-	// A taken non-page-crossing branch ignores IRQ/NMI during its last
-	// clock, so that next instruction executes before the IRQ.
-	// Fixes 'branch_delays_irq' test.
-	if cpu.runIRQ && !cpu.prevRunIRQ {
-		cpu.runIRQ = false
-	}
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
-	// extra cycle for page cross
-	if 0xFF00&(cpu.PC) != 0xFF00&(cpu.operand) {
-		// dummy read.
-		_ = cpu.Read8((cpu.operand)&0x00FF | (cpu.PC)&0xFF00)
-	}
-	cpu.PC = cpu.operand
-	return
+	cpu.branch(Zero, Zero)
 }
 
 // CMP - indexed addressing (abs),Y.
@@ -2640,24 +2521,7 @@ func opcodeEF(cpu *CPU) {
 // BEQ - relative addressing.
 func opcodeF0(cpu *CPU) {
 	cpu.rel()
-	if !(cpu.P&0x02 == 0x02) {
-		return // no branch
-	}
-	// A taken non-page-crossing branch ignores IRQ/NMI during its last
-	// clock, so that next instruction executes before the IRQ.
-	// Fixes 'branch_delays_irq' test.
-	if cpu.runIRQ && !cpu.prevRunIRQ {
-		cpu.runIRQ = false
-	}
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
-	// extra cycle for page cross
-	if 0xFF00&(cpu.PC) != 0xFF00&(cpu.operand) {
-		// dummy read.
-		_ = cpu.Read8((cpu.operand)&0x00FF | (cpu.PC)&0xFF00)
-	}
-	cpu.PC = cpu.operand
-	return
+	cpu.branch(Zero, 0)
 }
 
 // SBC - indexed addressing (abs),Y.
