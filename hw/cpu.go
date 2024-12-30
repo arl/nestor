@@ -121,7 +121,6 @@ func (r *reg4017) Read4017(old uint8, peek bool) uint8 { return r.Read(old, peek
 func (c *CPU) Reset(soft bool) {
 	if soft {
 		c.SP -= 0x03
-		c.P.setIntDisable(true)
 	} else {
 		c.A = 0x00
 		c.X = 0x00
@@ -130,8 +129,8 @@ func (c *CPU) Reset(soft bool) {
 
 		c.SP = 0xFD
 		c.P = 0x00
-		c.P.setIntDisable(true)
 	}
+	c.P.setFlags(Interrupt)
 
 	c.DMA.reset()
 
@@ -323,12 +322,12 @@ func (c *CPU) pull16() uint16 {
 
 /* DMC */
 
-func (c *CPU) StartDmcTransfer() {
+func (c *CPU) StartDMCTransfer() {
 	c.DMA.startDMCTransfer()
 }
 
-func (c *CPU) StopDmcTransfer() {
-	c.DMA.stopDmcTransfer()
+func (c *CPU) StopDMCTransfer() {
+	c.DMA.stopDMCTransfer()
 }
 
 /* interrupt handling */
@@ -378,7 +377,7 @@ func (c *CPU) handleInterrupts() {
 	// second-to-last cycle that matters. Keep the IRQ lines values from the
 	// previous cycle. The before-to-last cycle's values will be used.
 	c.prevRunIRQ = c.runIRQ
-	c.runIRQ = c.irqFlag != 0 && !c.P.intDisable()
+	c.runIRQ = c.irqFlag != 0 && !c.P.checkFlag(Interrupt)
 }
 
 func BRK(cpu *CPU) {
@@ -393,11 +392,11 @@ func BRK(cpu *CPU) {
 	if cpu.needNmi {
 		cpu.needNmi = false
 		cpu.push8(uint8(p))
-		cpu.P.setIntDisable(true)
+		cpu.P.setFlags(Interrupt)
 		cpu.PC = cpu.Read16(NMIVector)
 	} else {
 		cpu.push8(uint8(p))
-		cpu.P.setIntDisable(true)
+		cpu.P.setFlags(Interrupt)
 		cpu.PC = cpu.Read16(IRQVector)
 	}
 
@@ -419,7 +418,7 @@ func (c *CPU) IRQ() {
 		p.setBrk(true)
 		c.push8(uint8(p))
 
-		c.P.setIntDisable(true)
+		c.P.setFlags(Interrupt)
 		c.PC = c.Read16(NMIVector)
 		c.dbg.Interrupt(prevpc, c.PC, true)
 	} else {
@@ -427,7 +426,7 @@ func (c *CPU) IRQ() {
 		p.setUnused(true)
 		c.push8(uint8(p))
 
-		c.P.setIntDisable(true)
+		c.P.setFlags(Interrupt)
 		c.PC = c.Read16(IRQVector)
 		c.dbg.Interrupt(prevpc, c.PC, false)
 	}

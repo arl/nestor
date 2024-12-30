@@ -187,7 +187,7 @@ func (dc *DMC) WriteSAMPLELEN(_, val uint8) {
 
 func (dc *DMC) startDMCTransfer() {
 	if dc.bufEmpty && dc.remaining > 0 {
-		dc.CPU.StartDmcTransfer()
+		dc.CPU.StartDMCTransfer()
 	}
 }
 
@@ -321,7 +321,7 @@ func (dc *DMC) ProcessClock() {
 		if dc.disableDelay == 0 {
 			dc.remaining = 0
 			// Abort any on-going transfer that hasn't fully started.
-			dc.CPU.StopDmcTransfer()
+			dc.CPU.StopDMCTransfer()
 		}
 	}
 

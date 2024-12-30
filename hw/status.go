@@ -36,19 +36,6 @@ func (p P) checkFlag(flag uint8) bool {
 	return uint8(p)&flag == flag
 }
 
-func (p *P) setCarry(val bool) {
-	var ival P
-	if val {
-		ival = 1
-	}
-	*p &^= 0x1
-	*p |= ival
-}
-
-func (p P) zero() bool {
-	return p&0x2 != 0
-}
-
 func (p *P) setZero(val bool) {
 	var ival P
 	if val {

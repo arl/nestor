@@ -37,6 +37,6 @@ type cpu interface {
 
 	CurrentCycle() int64
 
-	StartDmcTransfer()
-	StopDmcTransfer()
+	StartDMCTransfer()
+	StopDMCTransfer()
 }
