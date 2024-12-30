@@ -1549,7 +1549,9 @@ func opcode8A(cpu *CPU) {
 
 // ANE - immediate addressing.
 func opcode8B(cpu *CPU) {
+	val := cpu.fetch()
 	msg := fmt.Sprintf("unsupported unstable opcode 0x8B (ANE)\nPC:0x%04X", cpu.PC)
+	_ = val
 	panic(msg)
 }
 
@@ -1598,7 +1600,9 @@ func opcode92(cpu *CPU) {
 // SHA - indexed addressing (abs),Y.
 func opcode93(cpu *CPU) {
 	cpu.izy(false)
+	val := cpu.Read8(cpu.operand)
 	msg := fmt.Sprintf("unsupported unstable opcode 0x93 (SHA)\nPC:0x%04X", cpu.PC)
+	_ = val
 	panic(msg)
 }
 
@@ -1649,14 +1653,18 @@ func opcode9A(cpu *CPU) {
 // TAS - absolute indexed X.
 func opcode9B(cpu *CPU) {
 	cpu.abx(false)
+	val := cpu.Read8(cpu.operand)
 	msg := fmt.Sprintf("unsupported unstable opcode 0x9B (TAS)\nPC:0x%04X", cpu.PC)
+	_ = val
 	panic(msg)
 }
 
 // SHY - absolute indexed Y.
 func opcode9C(cpu *CPU) {
 	cpu.aby(false)
+	val := cpu.Read8(cpu.operand)
 	msg := fmt.Sprintf("unsupported unstable opcode 0x9C (SHY)\nPC:0x%04X", cpu.PC)
+	_ = val
 	panic(msg)
 }
 
@@ -1669,14 +1677,18 @@ func opcode9D(cpu *CPU) {
 // SHX - absolute indexed X.
 func opcode9E(cpu *CPU) {
 	cpu.abx(false)
+	val := cpu.Read8(cpu.operand)
 	msg := fmt.Sprintf("unsupported unstable opcode 0x9E (SHX)\nPC:0x%04X", cpu.PC)
+	_ = val
 	panic(msg)
 }
 
 // SHA - absolute indexed Y.
 func opcode9F(cpu *CPU) {
 	cpu.aby(false)
+	val := cpu.Read8(cpu.operand)
 	msg := fmt.Sprintf("unsupported unstable opcode 0x9F (SHA)\nPC:0x%04X", cpu.PC)
+	_ = val
 	panic(msg)
 }
 
