@@ -401,16 +401,16 @@ func (b block) End() { printf(`}`) }
 func imm()                      {}
 func acc()                      { printf("cpu.acc()") }
 func imp()                      { printf("cpu.imp()") }
-func ind()                      { printf("cpu.ind()") }
-func rel()                      { printf("cpu.rel()") }
-func abs()                      { printf("cpu.abs()") }
-func abx(dummyread bool) func() { return func() { printf("cpu.abx(%t)", dummyread) } }
-func aby(dummyread bool) func() { return func() { printf("cpu.aby(%t)", dummyread) } }
-func zpg()                      { printf(`cpu.zpg()`) }
-func zpx()                      { printf(`cpu.zpx()`) }
-func zpy()                      { printf(`cpu.zpy()`) }
-func izx()                      { printf(`cpu.izx()`) }
-func izy(dummyread bool) func() { return func() { printf("cpu.izy(%t)", dummyread) } }
+func ind()                      { printf("oper := cpu.ind()") }
+func rel()                      { printf("oper := cpu.rel()") }
+func zpg()                      { printf(`oper := cpu.zpg()`) }
+func zpx()                      { printf(`oper := cpu.zpx()`) }
+func zpy()                      { printf(`oper := cpu.zpy()`) }
+func abs()                      { printf("oper := cpu.abs()") }
+func abx(dummyread bool) func() { return func() { printf("oper := cpu.abx(%t)", dummyread) } }
+func aby(dummyread bool) func() { return func() { printf("oper := cpu.aby(%t)", dummyread) } }
+func izx()                      { printf(`oper := cpu.izx()`) }
+func izy(dummyread bool) func() { return func() { printf("oper := cpu.izy(%t)", dummyread) } }
 
 // helpers
 
@@ -433,9 +433,9 @@ func pull16(v string) {
 func branch(f cpuFlag, val bool) func(_ opdef) {
 	return func(_ opdef) {
 		if val {
-			printf(`cpu.branch(%s, 0)`, f)
+			printf(`cpu.branch(oper, %s, 0)`, f)
 		} else {
-			printf(`cpu.branch(%s, %s)`, f, f)
+			printf(`cpu.branch(oper, %s, %s)`, f, f)
 		}
 	}
 }
@@ -513,7 +513,7 @@ func ARR(_ opdef) {
 
 func ASL(def opdef) {
 	if def.m != "acc" {
-		dummywrite("cpu.operand", "val")
+		dummywrite("oper", "val")
 	}
 	printf(`carry := val & 0x80`)
 	printf(`val = (val << 1) & 0xfe`)
@@ -544,11 +544,11 @@ func EOR(_ opdef) {
 }
 
 func INC(_ opdef) {
-	dummywrite("cpu.operand", "val")
+	dummywrite("oper", "val")
 	printf(`val++`)
 	clearFlags(Zero | Negative)
 	checkNZ(`val`)
-	printf(`cpu.Write8(cpu.operand, val)`)
+	printf(`cpu.Write8(oper, val)`)
 }
 
 func ISC(def opdef) {
@@ -559,7 +559,7 @@ func ISC(def opdef) {
 }
 
 func JMP(_ opdef) {
-	printf(`cpu.PC = cpu.operand`)
+	printf(`cpu.PC = oper`)
 }
 
 func LAS(def opdef) {
@@ -571,7 +571,7 @@ func LAS(def opdef) {
 
 func LSR(def opdef) {
 	if def.m != "acc" {
-		dummywrite("cpu.operand", "val")
+		dummywrite("oper", "val")
 	}
 
 	printf(`carry := val & 0x01 // carry is bit 0`)
@@ -595,7 +595,7 @@ func LXA(def opdef) {
 
 func NOP(def opdef) {
 	if !slices.Contains([]string{"acc", "imp", "rel", "imm"}, def.m) {
-		dummyread("cpu.operand")
+		dummyread("oper")
 	}
 	if def.m == "imm" {
 		printf(`_ = val`)
@@ -636,7 +636,7 @@ func RLA(def opdef) {
 
 func ROL(def opdef) {
 	if def.m != "acc" {
-		dummywrite("cpu.operand", "val")
+		dummywrite("oper", "val")
 	}
 	printf(`carry := val & 0x80`)
 	printf(`val <<= 1`)
@@ -655,7 +655,7 @@ func ROL(def opdef) {
 
 func ROR(def opdef) {
 	if def.m != "acc" {
-		dummywrite("cpu.operand", "val")
+		dummywrite("oper", "val")
 	}
 	printf(`carry := val & 0x01`)
 	printf(`val >>= 1`)
@@ -692,7 +692,7 @@ func RTS(_ opdef) {
 }
 
 func SAX(_ opdef) {
-	printf(`cpu.Write8(cpu.operand, cpu.A&cpu.X)`)
+	printf(`cpu.Write8(oper, cpu.A&cpu.X)`)
 }
 
 func SBC(def opdef) {
@@ -735,7 +735,7 @@ func LD(reg ...string) func(_ opdef) {
 
 func ST(reg string) func(_ opdef) {
 	return func(_ opdef) {
-		printf(`cpu.Write8(cpu.operand, cpu.%s)`, reg)
+		printf(`cpu.Write8(oper, cpu.%s)`, reg)
 	}
 }
 
@@ -780,7 +780,7 @@ func dec(v string) func(_ opdef) {
 		v = regOrMem(v)
 		if v == "val" {
 			// TODO: works but ugly
-			dummywrite("cpu.operand", "val")
+			dummywrite("oper", "val")
 		}
 		printf(`%s--`, v)
 		checkNZ(v)
@@ -830,7 +830,7 @@ func opcodes() {
 		case def.m == "imm":
 			printf(`val := cpu.fetch8()`)
 		case def.d == rd, def.d == rw:
-			printf(`val := cpu.Read8(cpu.operand)`)
+			printf(`val := cpu.Read8(oper)`)
 		}
 
 		// body
@@ -841,7 +841,7 @@ func opcodes() {
 		case def.m == "acc":
 			printf(`cpu.A = val`)
 		case def.d == rw:
-			printf(`cpu.Write8(cpu.operand, val)`)
+			printf(`cpu.Write8(oper, val)`)
 		}
 
 		printf(`}`)
