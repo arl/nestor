@@ -1,7 +1,6 @@
 package hw
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand/v2"
@@ -9,6 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/go-faster/jx"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"nestor/emu/log"
 	"nestor/hw/hwio"
@@ -28,18 +31,40 @@ func TestOpcodes(t *testing.T) {
 		log.SetOutput(io.Discard)
 	}
 
+	var dontTest = [256]uint8{
+		0x02: 1, // STP
+		0x12: 1, // STP
+		0x22: 1, // STP
+		0x32: 1, // STP
+		0x42: 1, // STP
+		0x52: 1, // STP
+		0x62: 1, // STP
+		0x72: 1, // STP
+		0x8B: 1, // ANE
+		0x92: 1, // STP
+		0x93: 1, // SHA
+		0x9B: 1, // TAS
+		0x9C: 1, // SHY
+		0x9E: 1, // SHX
+		0x9F: 1, // SHA
+		0xAB: 1, // LXA
+		0xB2: 1, // STP
+		0xD2: 1, // STP
+		0xF2: 1, // STP
+	}
+
 	testsDir := tests.TomHarteProcTestsPath(t)
 
 	// Run tests for all implemented opcodes.
 	for opcode := range ops {
 		opstr := fmt.Sprintf("%02x", opcode)
-		switch {
-		case unstableOps[uint8(opcode)] == 1:
+
+		if dontTest[opcode] == 1 {
 			t.Run(opstr, func(t *testing.T) { t.Skipf("skipping unsupported opcode") })
-		default:
-			opfile := filepath.Join(testsDir, opstr+".json")
-			t.Run(opstr, testOpcodes(opfile))
+			continue
 		}
+
+		t.Run(opstr, testOpcodes(filepath.Join(testsDir, opstr+".json")))
 	}
 }
 
@@ -88,6 +113,129 @@ func (tm *testMem) WriteMEM(addr uint16, val uint8) {
 	tm.m[addr] = val
 }
 
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func mustT[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+type (
+	Cycle struct {
+		Addr uint16 `json:"addr"`
+		Val  uint8  `json:"val"`
+		RW   string
+	}
+	CPUState struct {
+		PC  uint16  `json:"pc"`
+		SP  uint8   `json:"s"`
+		A   uint8   `json:"a"`
+		X   uint8   `json:"x"`
+		Y   uint8   `json:"y"`
+		P   uint8   `json:"p"`
+		RAM [][]int `json:"ram"`
+	}
+	TestCase struct {
+		Name    string   `json:"name"`
+		Initial CPUState `json:"initial"`
+		Final   CPUState `json:"final"`
+		Cycles  []Cycle  `json:"cycles"`
+	}
+)
+
+func fastDecode(t *testing.T, path string) []TestCase {
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	dec := jx.GetDecoder()
+	dec.Reset(f)
+
+	tests := make([]TestCase, 10000)
+
+	i := 0
+	must(dec.Arr(func(d *jx.Decoder) error {
+		must(d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			switch string(key) {
+			case "name":
+				tests[i].Name = mustT(d.Str())
+			case "initial":
+				must(d.ObjBytes(decodeCPUState(&tests[i].Initial)))
+			case "final":
+				must(d.ObjBytes(decodeCPUState(&tests[i].Final)))
+			case "cycles":
+				must(d.Arr(decodeCycles(&tests[i].Cycles)))
+			default:
+				panic("unexpected key: " + string(key))
+			}
+			return nil
+		}))
+		i++
+		return nil
+	}))
+
+	return tests[:i]
+}
+
+func decodeCPUState(s *CPUState) func(d *jx.Decoder, key []byte) error {
+	return func(d *jx.Decoder, key []byte) error {
+		switch string(key) {
+		case "pc":
+			s.PC = mustT(d.UInt16())
+		case "s":
+			s.SP = mustT(d.UInt8())
+		case "a":
+			s.A = mustT(d.UInt8())
+		case "x":
+			s.X = mustT(d.UInt8())
+		case "y":
+			s.Y = mustT(d.UInt8())
+		case "p":
+			s.P = mustT(d.UInt8())
+		case "ram":
+			must(d.Arr(func(d *jx.Decoder) error {
+				row := make([]int, 0, 2)
+
+				it := mustT(d.ArrIter())
+				for it.Next() {
+					row = append(row, mustT(d.Int()))
+				}
+
+				s.RAM = append(s.RAM, row)
+				return nil
+			}))
+		}
+		return nil
+	}
+}
+
+func decodeCycles(cycles *[]Cycle) func(d *jx.Decoder) error {
+	*cycles = make([]Cycle, 0, 10)
+	return func(d *jx.Decoder) error {
+		var c Cycle
+		it := mustT(d.ArrIter())
+		it.Next()
+		c.Addr = mustT(d.UInt16())
+		it.Next()
+		c.Val = mustT(d.UInt8())
+		it.Next()
+		c.RW = mustT(d.Str())
+		it.Next()
+		*cycles = append(*cycles, c)
+		return nil
+	}
+}
+
+var noPPU *PPU = nil
+
 // testOpcodes runs the opcodes tests in the given json file path (should be of
 // the form tests/tomharte.processor.tests/<op>.json). These comes from
 // github.com/TomHarte/ProcessorTests/blob/main/nes6502.
@@ -95,32 +243,7 @@ func testOpcodes(opfile string) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
 
-		buf, err := os.ReadFile(opfile)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		type (
-			CPUState struct {
-				PC  int     `json:"pc"`
-				SP  int     `json:"s"`
-				A   int     `json:"a"`
-				X   int     `json:"x"`
-				Y   int     `json:"y"`
-				P   int     `json:"p"`
-				RAM [][]int `json:"ram"`
-			}
-			TestCase struct {
-				Name    string   `json:"name"`
-				Initial CPUState `json:"initial"`
-				Final   CPUState `json:"final"`
-				Cycles  [][]any  `json:"cycles"`
-			}
-		)
-		var tests []TestCase
-		if err := json.Unmarshal(buf, &tests); err != nil {
-			t.Fatal(err)
-		}
+		tests := fastDecode(t, opfile)
 
 		if testing.Short() {
 			t.Log("with --short, just test a single case per opcode, random")
@@ -136,12 +259,12 @@ func testOpcodes(opfile string) func(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.Name, func(t *testing.T) {
 				cpu := NewCPU(noPPU)
-				cpu.A = uint8(tt.Initial.A)
-				cpu.X = uint8(tt.Initial.X)
-				cpu.Y = uint8(tt.Initial.Y)
+				cpu.A = tt.Initial.A
+				cpu.X = tt.Initial.X
+				cpu.Y = tt.Initial.Y
 				cpu.P = P(tt.Initial.P)
-				cpu.SP = uint8(tt.Initial.SP)
-				cpu.PC = uint16(tt.Initial.PC)
+				cpu.SP = tt.Initial.SP
+				cpu.PC = tt.Initial.PC
 
 				// Preload RAM with test values.
 				cpu.Bus = bus
@@ -159,15 +282,20 @@ func testOpcodes(opfile string) func(t *testing.T) {
 					t.Log("test output:")
 				}
 
-				// check cpu state
-				runAndCheckState(t, cpu, int64(len(tt.Cycles))-1,
-					"PC", tt.Final.PC,
-					"SP", tt.Final.SP,
-					"A", tt.Final.A,
-					"X", tt.Final.X,
-					"Y", tt.Final.Y,
-					"P", tt.Final.P,
-				)
+				cpu.Run(cpu.Cycles + int64(len(tt.Cycles)-1))
+
+				got := CPUState{
+					A:  cpu.A,
+					X:  cpu.X,
+					Y:  cpu.Y,
+					P:  uint8(cpu.P),
+					SP: cpu.SP,
+					PC: cpu.PC,
+				}
+
+				if diff := cmp.Diff(got, tt.Final, cmpopts.IgnoreFields(CPUState{}, "RAM")); diff != "" {
+					t.Errorf("cpu state mismatch (-got +want):\n%s", diff)
+				}
 
 				// check cycles
 				if len(tt.Cycles) != int(cpu.Cycles) {
@@ -181,19 +309,15 @@ func testOpcodes(opfile string) func(t *testing.T) {
 					t.Errorf("ram accesses count mismatch: got %d want %d", len(tmem.accesses), len(tt.Cycles))
 				}
 
-				for i, row := range tt.Cycles {
-					addr := uint16(row[0].(float64))
-					val := uint8(row[1].(float64))
-					typ := row[2].(string)
-
-					if tmem.accesses[i].addr != addr {
-						t.Errorf("ram access %d: addr mismatch: got 0x%04x want 0x%04x", i, tmem.accesses[i].addr, addr)
+				for i, cycle := range tt.Cycles {
+					if tmem.accesses[i].addr != cycle.Addr {
+						t.Errorf("ram access %d: addr mismatch: got 0x%04x want 0x%04x", i, tmem.accesses[i].addr, cycle.Addr)
 					}
-					if tmem.accesses[i].val != val {
-						t.Errorf("ram access %d: val mismatch: got 0x%02x want 0x%02x", i, tmem.accesses[i].val, val)
+					if tmem.accesses[i].val != cycle.Val {
+						t.Errorf("ram access %d: val mismatch: got 0x%02x want 0x%02x", i, tmem.accesses[i].val, cycle.Val)
 					}
-					if tmem.accesses[i].typ != typ {
-						t.Errorf("ram access %d: type mismatch: got %s want %s", i, tmem.accesses[i].typ, typ)
+					if tmem.accesses[i].typ != cycle.RW {
+						t.Errorf("ram access %d: type mismatch: got %s want %s", i, tmem.accesses[i].typ, cycle.RW)
 					}
 				}
 
@@ -210,156 +334,10 @@ func testOpcodes(opfile string) func(t *testing.T) {
 	}
 }
 
-func prettyCycles(cycles [][]any) []string {
+func prettyCycles(cycles []Cycle) []string {
 	strs := make([]string, len(cycles))
-	for i, row := range cycles {
-		addr := int(row[0].(float64))
-		val := int(row[1].(float64))
-		strs[i] = fmt.Sprintf("%s 0x%04x = 0x%02x", row[2], addr, val)
+	for i, c := range cycles {
+		strs[i] = fmt.Sprintf("%s 0x%04x = 0x%02x", c.RW, c.Addr, c.Val)
 	}
 	return strs
-}
-
-func TestCPx(t *testing.T) {
-	t.Run("40 - 41", func(t *testing.T) {
-		// LDX #$40
-		// CPX #$41
-		cpu := loadCPUWith(t, `0600: a2 40 e0 41`)
-		cpu.Cycles = 0
-		cpu.PC = 0x0600
-		cpu.P = 0b00110000
-		runAndCheckState(t, cpu, 4,
-			"A", 0x00,
-			"X", 0x40,
-			"Y", 0x00,
-			"P", 0b10110000,
-		)
-	})
-	t.Run("40 - 40", func(t *testing.T) {
-		// LDX #$40
-		// CPX #$40
-		cpu := loadCPUWith(t, `0600: a2 40 e0 40`)
-		cpu.Cycles = 0
-		cpu.PC = 0x0600
-		cpu.P = 0b00110000
-		runAndCheckState(t, cpu, 4,
-			"A", 0x00,
-			"X", 0x40,
-			"Y", 0x00,
-			"P", 0b00110011,
-		)
-	})
-	t.Run("40 - 39", func(t *testing.T) {
-		// LDX #$40
-		// CPX #$39
-		cpu := loadCPUWith(t, `0600: a2 40 e0 39`)
-		cpu.Cycles = 0
-		cpu.PC = 0x0600
-		cpu.P = 0b00110000
-		runAndCheckState(t, cpu, 4,
-			"A", 0x00,
-			"X", 0x40,
-			"Y", 0x00,
-			"P", 0b00110001,
-		)
-	})
-}
-
-func TestLDA_STA(t *testing.T) {
-	dump := `0600: a9 01 8d 00 02 a9 05 8d 01 02 a9 08 8d 02 02`
-	cpu := loadCPUWith(t, dump)
-	cpu.Cycles = 0
-	cpu.PC = 0x0600
-	runAndCheckState(t, cpu, 6*3,
-		"A", 0x08,
-		"PC", 0x060F,
-		"SP", 0xFD,
-	)
-}
-
-func TestEOR(t *testing.T) {
-	t.Run("zeropage", func(t *testing.T) {
-		dump := `
-0000: 06
-0100: 45 00`
-		cpu := loadCPUWith(t, dump)
-		cpu.Cycles = 0
-		cpu.PC = 0x0100
-		cpu.A = 0x80
-		runAndCheckState(t, cpu, 3,
-			"A", 0x86,
-			"Pn", 1,
-			"Pz", 0,
-		)
-	})
-}
-
-func TestROR(t *testing.T) {
-	t.Run("zeropage", func(t *testing.T) {
-		dump := `
-0000: 55
-0100: 66 00
-# reset vector
-FFFC: 00 01`
-		cpu := loadCPUWith(t, dump)
-		cpu.A = 0x80
-		cpu.P.setCarry(true)
-		runAndCheckState(t, cpu, 5,
-			"Pn", 1,
-			"Pc", 1,
-			"Pz", 0,
-		)
-		wantMem8(t, cpu, 0x0000, 0xAA)
-	})
-}
-
-func TestStack(t *testing.T) {
-	dump := `
-# upper stack
-01E0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-01F0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-# ram
-0200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-0210: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-# instructions
-0600: a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68
-0610: 99 00 02 c8 c0 20 d0 f7
-# reset vector
-FFFC: 00 06
-`
-	cpu := loadCPUWith(t, dump)
-	cpu.Cycles = 0
-	cpu.P = 0x30
-	cpu.SP = 0xFF
-	runAndCheckState(t, cpu, 562,
-		"PC", 0x0618,
-		"A", 0x00,
-		"X", 0x10,
-		"Y", 0x20,
-		"SP", 0xFF,
-		"mem", `
-01f0: 0f 0e 0d 0c 0b 0a 09 08 07 06 05 04 03 02 01 00
-0200: 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
-0210: 0f 0e 0d 0c 0b 0a 09 08 07 06 05 04 03 02 01 00`,
-	)
-}
-
-func TestStackSmall(t *testing.T) {
-	dump := `
-# upper stack
-01E0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-01F0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-# instructions
-0600: a9 aa 48 a9 11 68`
-	cpu := loadCPUWith(t, dump)
-	cpu.Cycles = 0
-	cpu.PC = 0x0600
-	cpu.P = 0x30
-	cpu.SP = 0xFF
-	runAndCheckState(t, cpu, 8,
-		"PC", 0x0606,
-		"A", 0xAA,
-		"SP", 0xFF,
-		"Pn", 1,
-	)
 }

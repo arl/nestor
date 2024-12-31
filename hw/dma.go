@@ -5,8 +5,10 @@ import (
 	"nestor/hw/hwio"
 )
 
-// DMA handles DMA transfer of OAM (sprites attributes) to the PPU
-// and DMC samples to the APU.
+// DMA handles DMA transfer of OAM (sprite attributes) to the PPU and DMC (audio
+// samples) to the APU. On real hardware, there are 2 separate DMA units, but
+// here we handle both of them in the same place to ensure correct timing and
+// synchronization when both DMC and OAM transfers occur simultaneously.
 type DMA struct {
 	cpu *CPU
 
@@ -52,7 +54,7 @@ func (dma *DMA) startDMCTransfer() {
 	dma.needHalt = true
 }
 
-func (dma *DMA) stopDmcTransfer() {
+func (dma *DMA) stopDMCTransfer() {
 	log.ModDMA.DebugZ("stop DMC DMA transfer").End()
 	if dma.dmcRunning {
 		if dma.needHalt {
@@ -76,35 +78,31 @@ func (dma *DMA) processPending(addr uint16) {
 	}
 
 	dmc := &dma.cpu.APU.DMC
+	cpu := dma.cpu
+
+	skipInitClock := false
 
 	isInternalReg := (addr & 0xFFE0) == 0x4000
-	skipFirstInputClock := false
 	if isInternalReg && dma.dmcRunning && (addr == 0x4016 || addr == 0x4017) {
-		dmcAddress := dmc.CurrentAddress()
+		dmcAddress := dmc.CurrentAddr()
 		if (dmcAddress & 0x1F) == (addr & 0x1F) {
-			// DMC will cause a read on the same address as the CPU was reading
-			// from This will hide the reads from the controllers because /OE
-			// will be active the whole time
-			skipFirstInputClock = true
+			// DMC causes a read on the same address as the CPU was reading
+			// from. This hides reads from controllers because /OE will be
+			// active the whole time.
+			skipInitClock = true
 		}
 	}
 
-	// On Famicom, each dummy/idle read to 4016/4017 is intepreted as a read of
-	// the joypad registers On NES (or AV Famicom), only the first dummy/idle
-	// read causes side effects (e.g only a single bit is lost).
-	const isNesBehavior = true
-	skipDummyReads := (isNesBehavior && (addr == 0x4016 || addr == 0x4017))
-
 	dma.needHalt = false
-	cpu := dma.cpu
+	skipDummyReads := addr == 0x4016 || addr == 0x4017
 
 	cpu.cycleBegin(true)
-	if dma.abortDMC && isNesBehavior && (addr == 0x4016 || addr == 0x4017) {
-		// Skip halt cycle dummy read on 4016/4017 The DMA was aborted, and the
-		// CPU will read 4016/4017 next If 4016/4017 is read here, the
+	if dma.abortDMC && skipDummyReads {
+		// Skip halt cycle dummy read on 4016/4017. The DMA was aborted, and the
+		// CPU will read 4016/4017 next if 4016/4017 is read here, the
 		// controllers will see 2 separate reads even though they would only see
-		// a single read on hardware (except the original Famicom)
-	} else if isNesBehavior && !skipFirstInputClock {
+		// a single read on hardware.
+	} else if !skipInitClock {
 		cpu.Bus.Read8(addr, false)
 	}
 	cpu.cycleEnd(true)
@@ -142,8 +140,6 @@ func (dma *DMA) processPending(addr uint16) {
 	spriteAddr := uint8(0)
 	val := uint8(0)
 
-	prevAddr := addr
-
 	for dma.dmcRunning || dma.oamRunning {
 		if (cpu.Cycles & 0x01) == 0 {
 			// Read cycle.
@@ -152,7 +148,7 @@ func (dma *DMA) processPending(addr uint16) {
 				// DMC DMA is ready to read a byte (both halt and dummy read
 				// cycles were performed before this)
 				processCycle()
-				val, prevAddr = dma.processRead(dmc.CurrentAddress(), prevAddr, isInternalReg)
+				val = dma.processRead(dmc.CurrentAddr(), isInternalReg)
 				cpu.cycleEnd(true)
 				dma.dmcRunning = false
 				dma.abortDMC = false
@@ -161,7 +157,7 @@ func (dma *DMA) processPending(addr uint16) {
 				// DMC DMA is not running, or not ready, run sprite DMA
 				processCycle()
 				addr := uint16(dma.oamPage)*0x100 + uint16(spriteAddr)
-				val, prevAddr = dma.processRead(addr, prevAddr, isInternalReg)
+				val = dma.processRead(addr, isInternalReg)
 				cpu.cycleEnd(true)
 				spriteAddr++
 				oamCounter++
@@ -191,7 +187,7 @@ func (dma *DMA) processPending(addr uint16) {
 				}
 			} else {
 				// Align to read cycle before starting sprite DMA (or align to
-				// perform DMC read)
+				// perform DMC read).
 				processCycle()
 				if !skipDummyReads {
 					cpu.Bus.Read8(addr, false)
@@ -202,77 +198,13 @@ func (dma *DMA) processPending(addr uint16) {
 	}
 }
 
-func (dma *DMA) processRead(addr uint16, prevAddr uint16, isInternalReg bool) (val uint8, readAddr uint16) {
-	// This is to reproduce a CPU bug that can occur during DMA which can cause
-	// the 2A03 to read from its internal registers (4015, 4016, 4017) at the
-	// same time as the DMA unit reads a byte from the bus. This bug occurs if
-	// the CPU is halted while it's reading a value in the $4000-$401F range.
-	//
-	// This has a number of side effects:
-	//  - It can cause a read of $4015 to occur without the program's knowledge,
-	//    which would clear the frame counter's IRQ flag
-	//  - It can cause additional bit deletions while reading the input (e.g more
-	//    than the DMC glitch usually causes)
-	//  - It can also *prevent* bit deletions from occurring at all in another scenario
-	//  - It can replace/corrupt the byte that the DMA is reading, causing DMC to
-	//    play the wrong sample
-
-	if !isInternalReg {
-		if addr >= 0x4000 && addr <= 0x401F {
-			// Nothing will respond on $4000-$401F on the external bus - return
-			// open bus value
-			//
-			// TODO: should read openbus here
-			val = 0x00
-		} else {
-			val = dma.cpu.Bus.Read8(addr, false)
-		}
-		return val, addr
+func (dma *DMA) processRead(addr uint16, isInternalReg bool) uint8 {
+	if !isInternalReg && addr >= 0x4000 && addr <= 0x401F {
+		// Nothing will respond on $4000-$401F on the external bus - return
+		// open bus value
+		//
+		// TODO: should read openbus here
+		return 0x00
 	}
-
-	// This glitch causes the CPU to read from the internal APU/Input registers
-	// regardless of the address the DMA unit is trying to read
-	internalAddr := 0x4000 | (addr & 0x1F)
-	isSameAddress := internalAddr == addr
-
-	switch internalAddr {
-	case 0x4015:
-		val = dma.cpu.Bus.Read8(internalAddr, false)
-		if !isSameAddress {
-			// Also trigger a read from the actual address the CPU was
-			// supposed to read from (external bus)
-			dma.cpu.Bus.Read8(addr, false)
-		}
-
-	case 0x4016, 0x4017:
-		if prevAddr == internalAddr {
-			// Reading from the same input register twice in a row, skip the
-			// read entirely to avoid triggering a bit loss from the read, since
-			// the controller won't react to this read Return the same value as
-			// the last read, instead On PAL, the behavior is unknown - for now,
-			// don't cause any bit deletions.
-			//
-			// TODO: get value from openbus
-			val = 0x00
-		} else {
-			val = dma.cpu.Bus.Read8(internalAddr, false)
-		}
-
-		if !isSameAddress {
-			// The DMA unit is reading from a different address, read from it
-			// too (external bus).
-			//
-			const openbusMask = uint8(0xE0)
-			extval := dma.cpu.Bus.Read8(addr, false)
-
-			// Merge values, keep the external value for all open bus pins on
-			// the 4016/4017 port AND all other bits together (bus conflict).
-			val = (extval & openbusMask) | ((val & ^openbusMask) & (extval & ^openbusMask))
-		}
-
-	default:
-		val = dma.cpu.Bus.Read8(addr, false)
-	}
-
-	return val, internalAddr
+	return dma.cpu.Bus.Read8(addr, false)
 }

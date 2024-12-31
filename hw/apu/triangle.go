@@ -8,20 +8,18 @@ import (
 // The TriangleChannel contains the following: Timer, 32-step sequencer, Length
 // Counter, Linear Counter, 4-bit DAC.
 //
-//  +---------+    +---------+
-//  |LinearCtr|    | Length  |
-//  +---------+    +---------+
-//       |              |
-//       v              v
-//  +---------+        |\             |\         +---------+    +---------+
-//  |  Timer  |------->| >----------->| >------->|Sequencer|--->|   DAC   |
-//  +---------+        |/             |/         +---------+    +---------+
-//
-
+//	+---------+    +---------+
+//	|LinearCtr|    | Length  |
+//	+---------+    +---------+
+//	     |              |
+//	     v              v
+//	+---------+        |\             |\         +---------+    +---------+
+//	|  Timer  |------->| >----------->| >------->|Sequencer|--->|   DAC   |
+//	+---------+        |/             |/         +---------+    +---------+
 type TriangleChannel struct {
 	apu        apu
 	lenCounter lengthCounter
-	timer      Timer
+	timer      timer
 
 	linearCounter       uint8
 	linearCounterReload uint8
@@ -43,7 +41,7 @@ func NewTriangleChannel(apu apu, mixer mixer) TriangleChannel {
 			channel: Triangle,
 			apu:     apu,
 		},
-		timer: Timer{
+		timer: timer{
 			Channel: Triangle,
 			Mixer:   mixer,
 		},
@@ -58,24 +56,24 @@ var triangleSequence = [32]int8{
 }
 
 func (tc *TriangleChannel) Run(targetCycle uint32) {
-	for tc.timer.Run(targetCycle) {
+	for tc.timer.run(targetCycle) {
 		// The sequencer is clocked by the timer as long as both the linear
 		// counter and the length counter are nonzero.
 		if tc.lenCounter.status() && tc.linearCounter > 0 {
 			tc.pos = (tc.pos + 1) & 0x1F
 
-			if tc.timer.Period() >= 2 {
+			if tc.timer.period >= 2 {
 				// Disabling the triangle channel when period is < 2 removes
 				// "pops" in the audio that are caused by the ultrasonic
 				// frequencies
-				tc.timer.AddOutput(triangleSequence[tc.pos])
+				tc.timer.addOutput(triangleSequence[tc.pos])
 			}
 		}
 	}
 }
 
 func (tc *TriangleChannel) Reset(soft bool) {
-	tc.timer.Reset(soft)
+	tc.timer.reset(soft)
 	tc.lenCounter.reset(soft)
 
 	tc.linearCounter = 0
@@ -106,8 +104,8 @@ func (tc *TriangleChannel) WriteUNUSED(_, _ uint8) {
 func (tc *TriangleChannel) WriteTIMER(_, val uint8) {
 	tc.apu.Run()
 
-	period := (tc.timer.Period() & 0xFF00) | uint16(val)
-	tc.timer.SetPeriod(period)
+	period := (tc.timer.period & 0xFF00) | uint16(val)
+	tc.timer.period = period
 
 	log.ModSound.InfoZ("write triangle timer").
 		Uint8("reg", val).
@@ -120,8 +118,8 @@ func (tc *TriangleChannel) WriteLENGTH(_, val uint8) {
 
 	tc.lenCounter.load(val >> 3)
 
-	period := (tc.timer.Period() & 0xFF) | (uint16(val&0x07) << 8)
-	tc.timer.SetPeriod(period)
+	period := (tc.timer.period & 0xFF) | (uint16(val&0x07) << 8)
+	tc.timer.period = period
 
 	// Sets the linear counter reload flag (side effect).
 	tc.linearReload = true
@@ -153,7 +151,7 @@ func (tc *TriangleChannel) ReloadLengthCounter() {
 }
 
 func (tc *TriangleChannel) EndFrame() {
-	tc.timer.EndFrame()
+	tc.timer.endFrame()
 }
 
 func (tc *TriangleChannel) SetEnabled(enabled bool) {
@@ -165,5 +163,5 @@ func (tc *TriangleChannel) Status() bool {
 }
 
 func (tc *TriangleChannel) Output() uint8 {
-	return uint8(tc.timer.LastOutput())
+	return uint8(tc.timer.lastOutput)
 }

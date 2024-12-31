@@ -1,8 +1,8 @@
 package apu
 
-// Timer is a divider driven by the ~1.79 MHz clock and is used by all APU
+// timer is a divider driven by the ~1.79 MHz clock and is used by all APU
 // channels.
-type Timer struct {
+type timer struct {
 	Mixer mixer
 
 	prevCycle  uint32
@@ -13,25 +13,21 @@ type Timer struct {
 	Channel Channel
 }
 
-func (t *Timer) Reset(_ bool) {
+func (t *timer) reset(_ bool) {
 	t.timer = 0
 	t.period = 0
 	t.prevCycle = 0
 	t.lastOutput = 0
 }
 
-func (t *Timer) AddOutput(output int8) {
+func (t *timer) addOutput(output int8) {
 	if output != t.lastOutput {
 		t.Mixer.AddDelta(t.Channel, t.prevCycle, int16(output-t.lastOutput))
 		t.lastOutput = output
 	}
 }
 
-func (t *Timer) LastOutput() int8 {
-	return t.lastOutput
-}
-
-func (t *Timer) Run(targetCycle uint32) bool {
+func (t *timer) run(targetCycle uint32) bool {
 	cyclesToRun := uint16(targetCycle - t.prevCycle)
 
 	if cyclesToRun > t.timer {
@@ -45,22 +41,6 @@ func (t *Timer) Run(targetCycle uint32) bool {
 	return false
 }
 
-func (t *Timer) EndFrame() {
+func (t *timer) endFrame() {
 	t.prevCycle = 0
-}
-
-func (t *Timer) SetPeriod(period uint16) {
-	t.period = period
-}
-
-func (t *Timer) Period() uint16 {
-	return t.period
-}
-
-func (t *Timer) Timer() uint16 {
-	return t.timer
-}
-
-func (t *Timer) SetTimer(timer uint16) {
-	t.timer = timer
 }
