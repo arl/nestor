@@ -227,35 +227,35 @@ var defs = [256]opdef{
 	{i: 0xC0, n: "CPY", d: rd, m: "imm", f: cmp("Y")},
 	{i: 0xC1, n: "CMP", d: rd, m: "izx", f: cmp("A")},
 	{i: 0xC2, n: "NOP", d: rd, m: "imm", f: NOP},
-	{i: 0xC3, n: "DCP", d: rw, m: "izx", f: DCP},
+	{i: 0xC3, n: "DCP", d: rd, m: "izx", f: DCP},
 	{i: 0xC4, n: "CPY", d: rd, m: "zpg", f: cmp("Y")},
 	{i: 0xC5, n: "CMP", d: rd, m: "zpg", f: cmp("A")},
-	{i: 0xC6, n: "DEC", d: rw, m: "zpg", f: dec("")},
-	{i: 0xC7, n: "DCP", d: rw, m: "zpg", f: DCP},
+	{i: 0xC6, n: "DEC", d: rd, m: "zpg", f: DEC},
+	{i: 0xC7, n: "DCP", d: rd, m: "zpg", f: DCP},
 	{i: 0xC8, n: "INY", d: no, m: "imp", f: iny},
 	{i: 0xC9, n: "CMP", d: rd, m: "imm", f: cmp("A")},
 	{i: 0xCA, n: "DEX", d: no, m: "imp", f: dex},
 	{i: 0xCB, n: "SBX", d: rd, m: "imm", f: SBX},
 	{i: 0xCC, n: "CPY", d: rd, m: "abs", f: cmp("Y")},
 	{i: 0xCD, n: "CMP", d: rd, m: "abs", f: cmp("A")},
-	{i: 0xCE, n: "DEC", d: rw, m: "abs", f: dec("")},
-	{i: 0xCF, n: "DCP", d: rw, m: "abs", f: DCP},
+	{i: 0xCE, n: "DEC", d: rd, m: "abs", f: DEC},
+	{i: 0xCF, n: "DCP", d: rd, m: "abs", f: DCP},
 	{i: 0xD0, n: "BNE", d: no, m: "rel", f: branch(Zero, false)},
 	{i: 0xD1, n: "CMP", d: rd, m: "izy", f: cmp("A")},
 	{i: 0xD2, n: "STP", d: no, m: "imp", f: STP},
-	{i: 0xD3, n: "DCP", d: rw, m: "izyd", f: DCP},
+	{i: 0xD3, n: "DCP", d: rd, m: "izyd", f: DCP},
 	{i: 0xD4, n: "NOP", d: no, m: "zpx", f: NOP},
 	{i: 0xD5, n: "CMP", d: rd, m: "zpx", f: cmp("A")},
-	{i: 0xD6, n: "DEC", d: rw, m: "zpx", f: dec("")},
-	{i: 0xD7, n: "DCP", d: rw, m: "zpx", f: DCP},
+	{i: 0xD6, n: "DEC", d: rd, m: "zpx", f: DEC},
+	{i: 0xD7, n: "DCP", d: rd, m: "zpx", f: DCP},
 	{i: 0xD8, n: "CLD", d: no, m: "imp", f: clear(Decimal)},
 	{i: 0xD9, n: "CMP", d: rd, m: "aby", f: cmp("A")},
 	{i: 0xDA, n: "NOP", d: no, m: "imp", f: NOP},
-	{i: 0xDB, n: "DCP", d: rw, m: "abyd", f: DCP},
+	{i: 0xDB, n: "DCP", d: rd, m: "abyd", f: DCP},
 	{i: 0xDC, n: "NOP", d: no, m: "abx", f: NOP},
 	{i: 0xDD, n: "CMP", d: rd, m: "abx", f: cmp("A")},
-	{i: 0xDE, n: "DEC", d: rw, m: "abxd", f: dec("")},
-	{i: 0xDF, n: "DCP", d: rw, m: "abxd", f: DCP},
+	{i: 0xDE, n: "DEC", d: rd, m: "abxd", f: DEC},
+	{i: 0xDF, n: "DCP", d: rd, m: "abxd", f: DCP},
 	{i: 0xE0, n: "CPX", d: rd, m: "imm", f: cmp("X")},
 	{i: 0xE1, n: "SBC", d: rd, m: "izx", f: SBC},
 	{i: 0xE2, n: "NOP", d: rd, m: "imm", f: NOP},
@@ -533,8 +533,16 @@ func BIT(_ opdef) {
 		End()
 }
 
+func DEC(_ opdef) {
+	dummywrite("oper", "val")
+	printf(`val--`)
+	clearFlags(Zero | Negative)
+	checkNZ(`val`)
+	printf(`cpu.Write8(oper, val)`)
+}
+
 func DCP(def opdef) {
-	dec("")(def)
+	DEC(def)
 	cmp("A")(def)
 }
 
@@ -774,18 +782,6 @@ func inx(_ opdef) { printf(`cpu.setreg(&cpu.X, cpu.X+1)`) }
 func iny(_ opdef) { printf(`cpu.setreg(&cpu.Y, cpu.Y+1)`) }
 func dex(_ opdef) { printf(`cpu.setreg(&cpu.X, cpu.X-1)`) }
 func dey(_ opdef) { printf(`cpu.setreg(&cpu.Y, cpu.Y-1)`) }
-
-func dec(v string) func(_ opdef) {
-	return func(_ opdef) {
-		v = regOrMem(v)
-		if v == "val" {
-			// TODO: works but ugly
-			dummywrite("oper", "val")
-		}
-		printf(`%s--`, v)
-		checkNZ(v)
-	}
-}
 
 func clear(f cpuFlag) func(_ opdef) {
 	return func(_ opdef) {
