@@ -446,11 +446,6 @@ func copybits(dst, src, mask string) string {
 	return fmt.Sprintf(`((%s) & (^%s)) | ((%s) & (%s))`, dst, mask, src, mask)
 }
 
-func checkNZ(val string) {
-	printf(`cpu.P.clearFlags(Zero | Negative)`)
-	printf(`cpu.P.setNZ(%s)`, val)
-}
-
 func dummyread(addr string) {
 	printf(`_ = cpu.Read8(%s) // dummy read`, addr)
 }
@@ -477,20 +472,25 @@ func ALR(_ opdef) {
 	printf(`cpu.A &= val`)
 	printf(`carry := cpu.A & 0x01 // carry is bit 0`)
 	printf(`cpu.A = (cpu.A >> 1) & 0x7f`)
-	checkNZ(`cpu.A`)
-	clearFlags(Carry)
-	If(`carry != 0`).setFlags(Carry).End()
+	clearFlags(Zero, Negative, Carry)
+	printf(`cpu.P.setNZ(cpu.A)`)
+	If(`carry != 0`).
+		setFlags(Carry).
+		End()
 }
 
 func ANC(def opdef) {
 	AND(def)
 	clearFlags(Carry)
-	If(hasFlag(Negative)).setFlags(Carry).End()
+	If(hasFlag(Negative)).
+		setFlags(Carry).
+		End()
 }
 
 func AND(_ opdef) {
 	printf(`cpu.A &= val`)
-	checkNZ(`cpu.A`)
+	clearFlags(Zero, Negative)
+	printf(`cpu.P.setNZ(cpu.A)`)
 }
 
 func ARR(_ opdef) {
@@ -505,9 +505,8 @@ func ARR(_ opdef) {
 		printf(`cpu.A |= 1 << 7`).
 		End()
 
-	checkNZ(`cpu.A`)
-	clearFlags(Carry)
-
+	clearFlags(Zero, Negative, Carry)
+	printf(`cpu.P.setNZ(cpu.A)`)
 	If(`(cpu.A&(1<<6) != 0)`).
 		setFlags(Carry).
 		End()
@@ -519,9 +518,8 @@ func ASL(def opdef) {
 	}
 	printf(`carry := val & 0x80`)
 	printf(`val = (val << 1) & 0xfe`)
-	checkNZ(`val`)
-	clearFlags(Carry)
-
+	clearFlags(Zero, Negative, Carry)
+	printf(`cpu.P.setNZ(val)`)
 	If(`carry != 0`).
 		setFlags(Carry).
 		End()
@@ -539,7 +537,7 @@ func DEC(_ opdef) {
 	dummywrite("oper", "val")
 	printf(`val--`)
 	clearFlags(Zero, Negative)
-	checkNZ(`val`)
+	printf(`cpu.P.setNZ(val)`)
 	printf(`cpu.Write8(oper, val)`)
 }
 
@@ -550,14 +548,15 @@ func DCP(def opdef) {
 
 func EOR(_ opdef) {
 	printf(`cpu.A ^= val`)
-	checkNZ(`cpu.A`)
+	clearFlags(Zero, Negative)
+	printf(`cpu.P.setNZ(cpu.A)`)
 }
 
 func INC(_ opdef) {
 	dummywrite("oper", "val")
 	printf(`val++`)
 	clearFlags(Zero, Negative)
-	checkNZ(`val`)
+	printf(`cpu.P.setNZ(val)`)
 	printf(`cpu.Write8(oper, val)`)
 }
 
@@ -574,7 +573,8 @@ func JMP(_ opdef) {
 
 func LAS(def opdef) {
 	printf(`cpu.A = cpu.SP & val`)
-	checkNZ(`cpu.A`)
+	clearFlags(Zero, Negative)
+	printf(`cpu.P.setNZ(cpu.A)`)
 	printf(`cpu.X = cpu.A`)
 	printf(`cpu.SP = cpu.A`)
 }
@@ -586,8 +586,8 @@ func LSR(def opdef) {
 
 	printf(`carry := val & 0x01 // carry is bit 0`)
 	printf(`val = (val >> 1)&0x7f`)
-	checkNZ(`val`)
-	clearFlags(Carry)
+	clearFlags(Zero, Negative, Carry)
+	printf(`cpu.P.setNZ(val)`)
 	If(`carry != 0`).
 		setFlags(Carry).
 		End()
@@ -600,7 +600,8 @@ func LXA(def opdef) {
 	printf(`val = (cpu.A | 0x%02x) & val`, mask)
 	printf(`cpu.A = val`)
 	printf(`cpu.X = val`)
-	checkNZ(`cpu.A`)
+	clearFlags(Zero, Negative)
+	printf(`cpu.P.setNZ(cpu.A)`)
 }
 
 func NOP(def opdef) {
@@ -628,7 +629,8 @@ func PHP(_ opdef) {
 func PLA(_ opdef) {
 	dummyread("uint16(cpu.SP) + 0x0100")
 	pull8(`cpu.A`)
-	checkNZ(`cpu.A`)
+	clearFlags(Zero, Negative)
+	printf(`cpu.P.setNZ(cpu.A)`)
 }
 
 func PLP(_ opdef) {
@@ -655,8 +657,8 @@ func ROL(def opdef) {
 		printf(`val |= 1 << 0`).
 		End()
 
-	checkNZ(`val`)
-	clearFlags(Carry)
+	clearFlags(Zero, Negative, Carry)
+	printf(`cpu.P.setNZ(val)`)
 
 	If(`carry != 0`).
 		setFlags(Carry).
@@ -674,8 +676,9 @@ func ROR(def opdef) {
 		printf(`val |= 1 << 7`).
 		End()
 
-	checkNZ(`val`)
-	clearFlags(Carry)
+	clearFlags(Zero, Negative, Carry)
+	printf(`cpu.P.setNZ(val)`)
+
 	If(`carry != 0`).
 		setFlags(Carry).
 		End()
@@ -713,9 +716,8 @@ func SBC(def opdef) {
 func SBX(def opdef) {
 	printf(`ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)`)
 	printf(`cpu.X = uint8(ival)`)
-	checkNZ(`cpu.X`)
-	clearFlags(Carry)
-
+	clearFlags(Zero, Negative, Carry)
+	printf(`cpu.P.setNZ(cpu.X)`)
 	If(`ival >= 0`).
 		setFlags(Carry).
 		End()
@@ -752,8 +754,9 @@ func ST(reg string) func(_ opdef) {
 func cmp(v string) func(_ opdef) {
 	return func(_ opdef) {
 		v = regOrMem(v)
-		checkNZ(fmt.Sprintf("%s - val", v))
-		clearFlags(Carry)
+
+		clearFlags(Zero, Negative, Carry)
+		printf(`cpu.P.setNZ(%s - val)`, v)
 
 		If(`val <= %s`, v).
 			setFlags(Carry).
@@ -765,7 +768,8 @@ func T(src, dst string) func(_ opdef) {
 	return func(_ opdef) {
 		printf(`cpu.%s = cpu.%s`, dst, src)
 		if dst != "SP" {
-			checkNZ(fmt.Sprintf(`cpu.%s`, src))
+			clearFlags(Zero, Negative)
+			printf(`cpu.P.setNZ(cpu.%s)`, src)
 		}
 	}
 }
