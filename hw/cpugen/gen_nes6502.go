@@ -688,7 +688,7 @@ func RTI(_ opdef) {
 func RTS(_ opdef) {
 	dummyread("uint16(cpu.SP) + 0x0100")
 	pull16(`cpu.PC`)
-	printf(`cpu.fetch()`)
+	printf(`cpu.fetch8()`)
 }
 
 func SAX(_ opdef) {
@@ -828,7 +828,7 @@ func opcodes() {
 		case def.m == "acc":
 			printf(`val := cpu.A`)
 		case def.m == "imm":
-			printf(`val := cpu.fetch()`)
+			printf(`val := cpu.fetch8()`)
 		case def.d == rd, def.d == rw:
 			printf(`val := cpu.Read8(cpu.operand)`)
 		}

@@ -11,9 +11,9 @@ import (
 
 // Locations reserved for vector pointers.
 const (
-	NMIVector   = uint16(0xFFFA) // Non-Maskable Interrupt
-	ResetVector = uint16(0xFFFC) // Reset
-	IRQVector   = uint16(0xFFFE) // Interrupt Request
+	nmiVector   = uint16(0xfffa) // Non-Maskable Interrupt
+	resetVector = uint16(0xfffc) // Reset
+	irqVector   = uint16(0xfffe) // Interrupt Request
 )
 
 type CPU struct {
@@ -68,6 +68,16 @@ func NewCPU(ppu *PPU) *CPU {
 	return cpu
 }
 
+type nopDebugger struct{}
+
+func (nopDebugger) Reset()                                     {}
+func (nopDebugger) Trace(pc uint16)                            {}
+func (nopDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {}
+func (nopDebugger) WatchRead(addr uint16)                      {}
+func (nopDebugger) WatchWrite(addr uint16, val uint16)         {}
+func (nopDebugger) Break(msg string)                           {}
+func (nopDebugger) FrameEnd()                                  {}
+
 func (c *CPU) PlugInputDevice(ip *input.Provider) {
 	c.input.provider = ip
 }
@@ -77,7 +87,7 @@ func (c *CPU) InitBus() {
 	// CPU internal RAM, mirrored.
 	c.Bus.MapBank(0x0000, c, 0)
 
-	// Map the 8 PPU registers (bank 1) from 0x2000 to 0x3FFF.
+	// Map the 8 PPU registers (bank 1) from 0x2000 to 0x3ffF.
 	for off := uint16(0x2000); off < 0x4000; off += 8 {
 		c.Bus.MapBank(off, c.PPU, 1)
 	}
@@ -136,7 +146,7 @@ func (c *CPU) Reset(soft bool) {
 	c.DMA.reset()
 
 	// Directly read from the bus to avoid side effects.
-	c.PC = hwio.Read16(c.Bus, ResetVector)
+	c.PC = hwio.Read16(c.Bus, resetVector)
 	c.dbg.Reset()
 
 	c.Cycles = -1
@@ -216,16 +226,16 @@ func (cpu *CPU) branch(flag, val P) {
 	_ = cpu.Read8(cpu.PC)
 
 	// extra cycle for page cross
-	if 0xFF00&(cpu.PC) != 0xFF00&(cpu.operand) {
+	if 0xff00&(cpu.PC) != 0xff00&(cpu.operand) {
 		// dummy read.
-		_ = cpu.Read8(cpu.PC&0xFF00 | cpu.operand&0x00FF)
+		_ = cpu.Read8(cpu.PC&0xff00 | cpu.operand&0x00ff)
 	}
 
 	cpu.PC = cpu.operand
 }
 
 func JSR(cpu *CPU) {
-	pclo := cpu.fetch()
+	pclo := cpu.fetch8()
 
 	// dummy read.
 	_ = cpu.Read8(uint16(cpu.SP) + 0x0100)
@@ -286,10 +296,16 @@ func (c *CPU) cycleEnd(forRead bool) {
 	c.handleInterrupts()
 }
 
-func (c *CPU) fetch() uint8 {
+func (c *CPU) fetch8() uint8 {
 	val := c.Read8(c.PC)
 	c.PC++
 	return val
+}
+
+func (c *CPU) fetch16() uint16 {
+	lo := c.fetch8()
+	hi := c.fetch8()
+	return uint16(hi)<<8 | uint16(lo)
 }
 
 func (c *CPU) Read8(addr uint16) uint8 {
@@ -310,13 +326,6 @@ func (c *CPU) Read16(addr uint16) uint16 {
 	lo := c.Read8(addr)
 	hi := c.Read8(addr + 1)
 	return uint16(hi)<<8 | uint16(lo)
-}
-
-func (c *CPU) Write16(addr uint16, val uint16) {
-	lo := uint8(val & 0xff)
-	hi := uint8(val >> 8)
-	c.Write8(addr, lo)
-	c.Write8(addr+1, hi)
 }
 
 /* stack operations */
@@ -416,11 +425,11 @@ func BRK(cpu *CPU) {
 		cpu.needNmi = false
 		cpu.push8(uint8(p))
 		cpu.P.setFlags(Interrupt)
-		cpu.PC = cpu.Read16(NMIVector)
+		cpu.PC = cpu.Read16(nmiVector)
 	} else {
 		cpu.push8(uint8(p))
 		cpu.P.setFlags(Interrupt)
-		cpu.PC = cpu.Read16(IRQVector)
+		cpu.PC = cpu.Read16(irqVector)
 	}
 
 	// Ensure we don't start an NMI right after running a BRK instruction (first
@@ -442,7 +451,7 @@ func (c *CPU) IRQ() {
 		c.push8(uint8(p))
 
 		c.P.setFlags(Interrupt)
-		c.PC = c.Read16(NMIVector)
+		c.PC = c.Read16(nmiVector)
 		c.dbg.Interrupt(prevpc, c.PC, true)
 	} else {
 		p := c.P
@@ -450,7 +459,7 @@ func (c *CPU) IRQ() {
 		c.push8(uint8(p))
 
 		c.P.setFlags(Interrupt)
-		c.PC = c.Read16(IRQVector)
+		c.PC = c.Read16(irqVector)
 		c.dbg.Interrupt(prevpc, c.PC, false)
 	}
 }
@@ -469,16 +478,6 @@ func (cpu *CPU) Disasm(pc uint16) DisasmOp {
 	opcode := cpu.Bus.Peek8(pc)
 	return disasmOps[opcode](cpu, pc)
 }
-
-type nopDebugger struct{}
-
-func (nopDebugger) Reset()                                     {}
-func (nopDebugger) Trace(pc uint16)                            {}
-func (nopDebugger) Interrupt(prevpc, curpc uint16, isNMI bool) {}
-func (nopDebugger) WatchRead(addr uint16)                      {}
-func (nopDebugger) WatchWrite(addr uint16, val uint16)         {}
-func (nopDebugger) Break(msg string)                           {}
-func (nopDebugger) FrameEnd()                                  {}
 
 /* helpers for opcodes */
 
@@ -515,99 +514,90 @@ func (cpu *CPU) add(val uint8) {
 /* addressing modes */
 
 func (cpu *CPU) acc() {
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(cpu.PC) // dummy read.
 }
 
 func (cpu *CPU) imp() {
-	// dummy read.
-	_ = cpu.Read8(cpu.PC)
+	_ = cpu.Read8(cpu.PC) // dummy read.
 }
 
 func (cpu *CPU) ind() {
-	cpu.operand = cpu.Read16(cpu.PC)
-	lo := cpu.Read8(cpu.operand)
+	addr := cpu.Read16(cpu.PC)
 
 	// 2 bytes address wrap around
-	hi := cpu.Read8((0xff00 & cpu.operand) | (0x00ff & (cpu.operand + 1)))
+	lo := cpu.Read8(addr)
+	hi := cpu.Read8((0xff00 & addr) | (0x00ff & (addr + 1)))
 	cpu.operand = uint16(hi)<<8 | uint16(lo)
 }
 
 func (cpu *CPU) rel() {
-	off := int16(int8(cpu.fetch()))
+	off := int16(int8(cpu.fetch8()))
 	cpu.operand = uint16(int16(cpu.PC) + off)
 }
 
 func (cpu *CPU) abs() {
-	cpu.operand = cpu.Read16(cpu.PC)
-	cpu.PC += 2
+	cpu.operand = cpu.fetch16()
 }
 
-func pageCrossed(a uint16, b int8) bool {
-	return (uint16(int16(a)+int16(b)) & 0xFF00) != (a & 0xFF00)
-}
-
-func pageCrossedu(a uint16, b uint8) bool {
-	return ((a + uint16(b)) & 0xFF00) != (a & 0xFF00)
+func pageCrossed(a uint16, b uint8) bool {
+	return ((a + uint16(b)) & 0xff00) != (a & 0xff00)
 }
 
 func (cpu *CPU) abx(dummyread bool) {
-	addr := cpu.Read16(cpu.PC)
-	cpu.PC += 2
+	addr := cpu.fetch16()
 	cpu.operand = addr + uint16(cpu.X)
-	crossed := pageCrossedu(addr, cpu.X)
+	crossed := pageCrossed(addr, cpu.X)
 
 	if crossed || dummyread {
 		var off uint16
 		if crossed {
 			off = 0x100
 		}
-		// dummy read.
-		_ = cpu.Read8(cpu.operand - off)
+		_ = cpu.Read8(cpu.operand - off) // dummy read.
+
 	}
 }
 
 func (cpu *CPU) aby(dummyread bool) {
-	addr := cpu.Read16(cpu.PC)
-	cpu.PC += 2
+	addr := cpu.fetch16()
 	cpu.operand = addr + uint16(cpu.Y)
-	crossed := pageCrossedu(addr, cpu.Y)
+	crossed := pageCrossed(addr, cpu.Y)
 
 	if crossed || dummyread {
 		var off uint16
 		if crossed {
 			off = 0x100
 		}
-		_ = cpu.Read8(cpu.operand - off)
+		_ = cpu.Read8(cpu.operand - off) // dummy read.
 	}
 }
 
 func (cpu *CPU) zpg() {
-	cpu.operand = uint16(cpu.fetch())
+	cpu.operand = uint16(cpu.fetch8())
 }
 
 func (cpu *CPU) zpx() {
-	addr := cpu.fetch()
-	// dummy read.
-	_ = cpu.Read8(uint16(addr))
+	addr := cpu.fetch8()
+
+	_ = cpu.Read8(uint16(addr)) // dummy read.
 
 	cpu.operand = uint16(addr) + uint16(cpu.X)
 	cpu.operand &= 0xff
 }
 
 func (cpu *CPU) zpy() {
-	addr := cpu.fetch()
-	// dummy read.
-	_ = cpu.Read8(uint16(addr))
+	addr := cpu.fetch8()
+
+	_ = cpu.Read8(uint16(addr)) // dummy read.
 
 	cpu.operand = uint16(addr) + uint16(cpu.Y)
 	cpu.operand &= 0xff
 }
 
 func (cpu *CPU) izx() {
-	addr := uint16(cpu.fetch())
-	// dummy read.
-	_ = cpu.Read8(addr)
+	addr := uint16(cpu.fetch8())
+
+	_ = cpu.Read8(addr) // dummy read.
 	addr = uint16(uint8(addr) + cpu.X)
 
 	// read 16 bytes from the zero page, handling page wrap
@@ -617,7 +607,7 @@ func (cpu *CPU) izx() {
 }
 
 func (cpu *CPU) izy(dummyread bool) {
-	addr := uint16(cpu.fetch())
+	addr := uint16(cpu.fetch8())
 
 	// read 16 bytes from the zero page, handling page wrap
 	lo := cpu.Read8(addr)
@@ -625,13 +615,13 @@ func (cpu *CPU) izy(dummyread bool) {
 	addr = uint16(hi)<<8 | uint16(lo)
 
 	cpu.operand = addr + uint16(cpu.Y)
-	crossed := pageCrossedu(addr, cpu.Y)
+	crossed := pageCrossed(addr, cpu.Y)
 
 	if crossed || dummyread {
 		var off uint16
 		if crossed {
 			off = 0x100
 		}
-		_ = cpu.Read8(cpu.operand - off)
+		_ = cpu.Read8(cpu.operand - off) // dummy read.
 	}
 }

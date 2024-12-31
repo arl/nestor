@@ -88,7 +88,7 @@ func opcode08(cpu *CPU) {
 
 // ORA - immediate addressing.
 func opcode09(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.setreg(&cpu.A, cpu.A|val)
 }
 
@@ -109,7 +109,7 @@ func opcode0A(cpu *CPU) {
 
 // ANC - immediate addressing.
 func opcode0B(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.A &= val
 	cpu.P.clearFlags(Zero | Negative)
 	cpu.P.setNZ(cpu.A)
@@ -438,7 +438,7 @@ func opcode28(cpu *CPU) {
 
 // AND - immediate addressing.
 func opcode29(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.A &= val
 	cpu.P.clearFlags(Zero | Negative)
 	cpu.P.setNZ(cpu.A)
@@ -464,7 +464,7 @@ func opcode2A(cpu *CPU) {
 
 // ANC - immediate addressing.
 func opcode2B(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.A &= val
 	cpu.P.clearFlags(Zero | Negative)
 	cpu.P.setNZ(cpu.A)
@@ -835,7 +835,7 @@ func opcode48(cpu *CPU) {
 
 // EOR - immediate addressing.
 func opcode49(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.A ^= val
 	cpu.P.clearFlags(Zero | Negative)
 	cpu.P.setNZ(cpu.A)
@@ -858,7 +858,7 @@ func opcode4A(cpu *CPU) {
 
 // ALR - immediate addressing.
 func opcode4B(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	// like and + lsr but saves one tick
 	cpu.A &= val
 	carry := cpu.A & 0x01 // carry is bit 0
@@ -1105,7 +1105,7 @@ func opcode60(cpu *CPU) {
 	cpu.imp()
 	_ = cpu.Read8(uint16(cpu.SP) + 0x0100) // dummy read
 	cpu.PC = cpu.pull16()
-	cpu.fetch()
+	cpu.fetch8()
 }
 
 // ADC - indexed addressing (abs, X).
@@ -1204,7 +1204,7 @@ func opcode68(cpu *CPU) {
 
 // ADC - immediate addressing.
 func opcode69(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.add(val)
 }
 
@@ -1228,7 +1228,7 @@ func opcode6A(cpu *CPU) {
 
 // ARR - immediate addressing.
 func opcode6B(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.A &= val
 	cpu.A >>= 1
 	cpu.P &= 0xbf
@@ -1481,7 +1481,7 @@ func opcode7F(cpu *CPU) {
 
 // NOP - immediate addressing.
 func opcode80(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	_ = val
 }
 
@@ -1493,7 +1493,7 @@ func opcode81(cpu *CPU) {
 
 // NOP - immediate addressing.
 func opcode82(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	_ = val
 }
 
@@ -1535,7 +1535,7 @@ func opcode88(cpu *CPU) {
 
 // NOP - immediate addressing.
 func opcode89(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	_ = val
 }
 
@@ -1549,7 +1549,7 @@ func opcode8A(cpu *CPU) {
 
 // ANE - immediate addressing.
 func opcode8B(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	msg := fmt.Sprintf("unsupported unstable opcode 0x8B (ANE)\nPC:0x%04X", cpu.PC)
 	_ = val
 	panic(msg)
@@ -1694,7 +1694,7 @@ func opcode9F(cpu *CPU) {
 
 // LDY - immediate addressing.
 func opcodeA0(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.setreg(&cpu.Y, val)
 }
 
@@ -1707,7 +1707,7 @@ func opcodeA1(cpu *CPU) {
 
 // LDX - immediate addressing.
 func opcodeA2(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.setreg(&cpu.X, val)
 }
 
@@ -1758,7 +1758,7 @@ func opcodeA8(cpu *CPU) {
 
 // LDA - immediate addressing.
 func opcodeA9(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.setreg(&cpu.A, val)
 }
 
@@ -1772,7 +1772,7 @@ func opcodeAA(cpu *CPU) {
 
 // LXA - immediate addressing.
 func opcodeAB(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	val = (cpu.A | 0xff) & val
 	cpu.A = val
 	cpu.X = val
@@ -1928,7 +1928,7 @@ func opcodeBF(cpu *CPU) {
 
 // CPY - immediate addressing.
 func opcodeC0(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.P.clearFlags(Zero | Negative)
 	cpu.P.setNZ(cpu.Y - val)
 	cpu.P &= 0xfe
@@ -1951,7 +1951,7 @@ func opcodeC1(cpu *CPU) {
 
 // NOP - immediate addressing.
 func opcodeC2(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	_ = val
 }
 
@@ -2032,7 +2032,7 @@ func opcodeC8(cpu *CPU) {
 
 // CMP - immediate addressing.
 func opcodeC9(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.P.clearFlags(Zero | Negative)
 	cpu.P.setNZ(cpu.A - val)
 	cpu.P &= 0xfe
@@ -2049,7 +2049,7 @@ func opcodeCA(cpu *CPU) {
 
 // SBX - immediate addressing.
 func opcodeCB(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	ival := (int16(cpu.A) & int16(cpu.X)) - int16(val)
 	cpu.X = uint8(ival)
 	cpu.P.clearFlags(Zero | Negative)
@@ -2287,7 +2287,7 @@ func opcodeDF(cpu *CPU) {
 
 // CPX - immediate addressing.
 func opcodeE0(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	cpu.P.clearFlags(Zero | Negative)
 	cpu.P.setNZ(cpu.X - val)
 	cpu.P &= 0xfe
@@ -2306,7 +2306,7 @@ func opcodeE1(cpu *CPU) {
 
 // NOP - immediate addressing.
 func opcodeE2(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	_ = val
 }
 
@@ -2382,7 +2382,7 @@ func opcodeE8(cpu *CPU) {
 
 // SBC - immediate addressing.
 func opcodeE9(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	val ^= 0xff
 	cpu.add(val)
 }
@@ -2394,7 +2394,7 @@ func opcodeEA(cpu *CPU) {
 
 // SBC - immediate addressing.
 func opcodeEB(cpu *CPU) {
-	val := cpu.fetch()
+	val := cpu.fetch8()
 	val ^= 0xff
 	cpu.add(val)
 }
