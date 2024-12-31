@@ -31,18 +31,40 @@ func TestOpcodes(t *testing.T) {
 		log.SetOutput(io.Discard)
 	}
 
+	var dontTest = [256]uint8{
+		0x02: 1, // STP
+		0x12: 1, // STP
+		0x22: 1, // STP
+		0x32: 1, // STP
+		0x42: 1, // STP
+		0x52: 1, // STP
+		0x62: 1, // STP
+		0x72: 1, // STP
+		0x8B: 1, // ANE
+		0x92: 1, // STP
+		0x93: 1, // SHA
+		0x9B: 1, // TAS
+		0x9C: 1, // SHY
+		0x9E: 1, // SHX
+		0x9F: 1, // SHA
+		0xAB: 1, // LXA
+		0xB2: 1, // STP
+		0xD2: 1, // STP
+		0xF2: 1, // STP
+	}
+
 	testsDir := tests.TomHarteProcTestsPath(t)
 
 	// Run tests for all implemented opcodes.
 	for opcode := range ops {
 		opstr := fmt.Sprintf("%02x", opcode)
-		switch {
-		case unstableOps[uint8(opcode)] == 1:
+
+		if dontTest[opcode] == 1 {
 			t.Run(opstr, func(t *testing.T) { t.Skipf("skipping unsupported opcode") })
-		default:
-			opfile := filepath.Join(testsDir, opstr+".json")
-			t.Run(opstr, testOpcodes(opfile))
+			continue
 		}
+
+		t.Run(opstr, testOpcodes(filepath.Join(testsDir, opstr+".json")))
 	}
 }
 
