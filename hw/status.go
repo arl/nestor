@@ -32,8 +32,8 @@ func (p *P) clearFlags(flags uint8) {
 	*p &= ^P(flags)
 }
 
-func (p P) checkFlag(flag uint8) bool {
-	return uint8(p)&flag == flag
+func (p P) hasFlag(flag P) bool {
+	return p&flag == flag
 }
 
 func (p *P) setNZ(val uint8) {

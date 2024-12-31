@@ -410,7 +410,7 @@ func (c *CPU) handleInterrupts() {
 	// second-to-last cycle that matters. Keep the IRQ lines values from the
 	// previous cycle. The before-to-last cycle's values will be used.
 	c.prevRunIRQ = c.runIRQ
-	c.runIRQ = c.irqFlag != 0 && !c.P.checkFlag(Interrupt)
+	c.runIRQ = c.irqFlag != 0 && !c.P.hasFlag(Interrupt)
 }
 
 func BRK(cpu *CPU) {
@@ -490,7 +490,7 @@ func (cpu *CPU) setreg(reg *uint8, val uint8) {
 // generalized add with carry and overflow.
 func (cpu *CPU) add(val uint8) {
 	var carry uint16
-	if cpu.P.checkFlag(Carry) {
+	if cpu.P.hasFlag(Carry) {
 		carry = 1
 	}
 

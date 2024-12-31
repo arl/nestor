@@ -360,17 +360,19 @@ func setFlags(flags ...cpuFlag) {
 	for _, f := range flags {
 		flagstr = append(flagstr, f.String())
 	}
-	printf(`cpu.P |= %s`, strings.Join(flagstr, "|"))
+	printf(`cpu.P.setFlags(%s)`, strings.Join(flagstr, "|"))
 }
 
-func clearFlags(f cpuFlag) {
-	val := uint8(f)
-	val = ^val
-	printf(`cpu.P &= 0x%02x`, val)
+func clearFlags(flags ...cpuFlag) {
+	var flagstr []string
+	for _, f := range flags {
+		flagstr = append(flagstr, f.String())
+	}
+	printf(`cpu.P.clearFlags(%s)`, strings.Join(flagstr, "|"))
 }
 
-func checkFlags(f cpuFlag) string {
-	return fmt.Sprintf(`(cpu.P&0x%02x == 0x%02x)`, int(f), int(f))
+func hasFlag(f cpuFlag) string {
+	return fmt.Sprintf(`cpu.P.hasFlag(%s)`, f)
 }
 
 func If(format string, args ...any) block {
@@ -483,7 +485,7 @@ func ALR(_ opdef) {
 func ANC(def opdef) {
 	AND(def)
 	clearFlags(Carry)
-	If(checkFlags(Negative)).setFlags(Carry).End()
+	If(hasFlag(Negative)).setFlags(Carry).End()
 }
 
 func AND(_ opdef) {
@@ -499,7 +501,7 @@ func ARR(_ opdef) {
 	If(`(cpu.A>>6)^(cpu.A>>5)&0x01 != 0`).
 		setFlags(Overflow).
 		End()
-	If(checkFlags(Carry)).
+	If(hasFlag(Carry)).
 		printf(`cpu.A |= 1 << 7`).
 		End()
 
@@ -526,7 +528,7 @@ func ASL(def opdef) {
 }
 
 func BIT(_ opdef) {
-	clearFlags(Zero | Overflow | Negative)
+	clearFlags(Zero, Overflow, Negative)
 	printf(`cpu.P |= P(val & 0b11000000)`)
 	If(`cpu.A&val == 0`).
 		setFlags(Zero).
@@ -536,7 +538,7 @@ func BIT(_ opdef) {
 func DEC(_ opdef) {
 	dummywrite("oper", "val")
 	printf(`val--`)
-	clearFlags(Zero | Negative)
+	clearFlags(Zero, Negative)
 	checkNZ(`val`)
 	printf(`cpu.Write8(oper, val)`)
 }
@@ -554,7 +556,7 @@ func EOR(_ opdef) {
 func INC(_ opdef) {
 	dummywrite("oper", "val")
 	printf(`val++`)
-	clearFlags(Zero | Negative)
+	clearFlags(Zero, Negative)
 	checkNZ(`val`)
 	printf(`cpu.Write8(oper, val)`)
 }
@@ -619,7 +621,7 @@ func PHA(_ opdef) {
 }
 
 func PHP(_ opdef) {
-	printf(`p := cpu.P | 0x%02x`, int(Break|Reserved))
+	printf(`p := cpu.P | Break |Reserved`)
 	push8(`uint8(p)`)
 }
 
@@ -649,7 +651,7 @@ func ROL(def opdef) {
 	printf(`carry := val & 0x80`)
 	printf(`val <<= 1`)
 
-	If(checkFlags(Carry)).
+	If(hasFlag(Carry)).
 		printf(`val |= 1 << 0`).
 		End()
 
@@ -668,7 +670,7 @@ func ROR(def opdef) {
 	printf(`carry := val & 0x01`)
 	printf(`val >>= 1`)
 
-	If(checkFlags(Carry)).
+	If(hasFlag(Carry)).
 		printf(`val |= 1 << 7`).
 		End()
 
