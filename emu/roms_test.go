@@ -222,13 +222,13 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			// Handle reset request.
 			switch {
 			case framesBeforeReset == 0:
+				t.Log("pressing RESET...")
 				nes.Reset(true)
 				framesBeforeReset = -1
 			case framesBeforeReset > 0:
 				framesBeforeReset--
 			case result == 0x81:
 				framesBeforeReset = 30 // in 20 frames >= 100ms
-				t.Log("pressing RESET...")
 			}
 		}
 		if result != 0x00 {
