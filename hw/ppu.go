@@ -447,7 +447,7 @@ func (p *PPU) renderPixel() {
 		p.framebuf[p.Scanline*256+x] = colu32
 	}
 
-	// Perform background shifts:
+	// Perform background shifts.
 	p.bg.bgShiftlo <<= 1
 	p.bg.bgShifthi <<= 1
 	p.bg.atShiftlo = (p.bg.atShiftlo << 1) | btou8(p.bg.atLatchlo)
