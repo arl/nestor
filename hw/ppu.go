@@ -59,7 +59,9 @@ type PPU struct {
 	vramTmp    loopy
 	writeLatch bool
 
-	busAddr uint16
+	busAddr         uint16
+	openBus         uint8
+	openBusDecayBuf [8]uint32
 
 	bg bgregs
 }
@@ -93,6 +95,7 @@ func (p *PPU) SetFrameBuffer(framebuf []byte) {
 
 func (p *PPU) Reset() {
 	p.Scanline = -1
+	p.frameCount = 1
 	p.Cycle = 339
 	p.writeLatch = false
 	p.vramAddr = 0
@@ -109,6 +112,9 @@ func (p *PPU) Reset() {
 	for i := range p.oamMem {
 		p.oamMem[i] = 0x00
 	}
+
+	p.openBus = 0
+	p.openBusDecayBuf = [8]uint32{0, 0, 0, 0, 0, 0, 0, 0}
 }
 
 func (p *PPU) Run(until uint64) {
@@ -857,4 +863,43 @@ func (p *PPU) loadSprites() {
 		p.oam[i].dataL = p.Bus.Read8(addr)
 		p.oam[i].dataH = p.Bus.Read8(addr + 8)
 	}
+}
+
+func (p *PPU) setOpenBus(mask uint8, val uint8) {
+	// Decay expired bits, set new bits and update stamps on each individual bit.
+	if mask == 0xFF {
+		// Shortcut when mask is 0xFF - all bits are set to the value and stamps
+		// updated.
+		p.openBus = val
+		for i := range p.openBusDecayBuf {
+			p.openBusDecayBuf[i] = p.frameCount
+		}
+	} else {
+		openBus := (uint16(p.openBus) << 8)
+		for i := range 8 {
+			openBus >>= 1
+			if mask&0x01 != 0 {
+				if val&0x01 != 0 {
+					openBus |= 0x80
+				} else {
+					openBus &= 0xFF7F
+				}
+				p.openBusDecayBuf[i] = p.frameCount
+			} else if p.frameCount-p.openBusDecayBuf[i] > 3 {
+				// Decay bits to 0 after 3 frames. This is a very conservative
+				// estimate, individual bits tend to decay much faster than
+				// this.
+				openBus &= 0xFF7F
+			}
+			val >>= 1
+			mask >>= 1
+		}
+
+		p.openBus = uint8(openBus)
+	}
+}
+
+func (p *PPU) applyOpenBus(mask uint8, val uint8) uint8 {
+	p.setOpenBus(^mask, val)
+	return val | (p.openBus & mask)
 }
