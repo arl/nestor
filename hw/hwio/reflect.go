@@ -67,40 +67,42 @@ func MustInitRegs(data any) {
 // It parses the special "hwio" struct tag, that describes how to configure a
 // register. The struct tag can have the following comma-separated options:
 //
-//	reset=0xAABB    initial (reset) value of the register. Notice that this
-//	                value doesn't go through the read/write mask, so it can
-//	                be used to also initialize read-only bits. If not
-//	                specified, registers initialize to zero.
+//		reset=0xAABB    initial (reset) value of the register. Notice that this
+//		                value doesn't go through the read/write mask, so it can
+//		                be used to also initialize read-only bits. If not
+//		                specified, registers initialize to zero.
 //
-//	rwmask=0xAABB   bitmaks specifying which bits are read-write, i.e. can
-//	                be written. It is common for registers to have read-only
-//	                bits, so this argument allows to specify which bit can
-//	                be written through bus writes. User code can of course
-//	                still modify read-only bits by directly manipulating
-//	                IoReg.Value. If this argument is not specified, all bits
-//	                are writable.
+//		rwmask=0xAABB   bitmaks specifying which bits are read-write, i.e. can
+//		                be written. It is common for registers to have read-only
+//		                bits, so this argument allows to specify which bit can
+//		                be written through bus writes. User code can of course
+//		                still modify read-only bits by directly manipulating
+//		                IoReg.Value. If this argument is not specified, all bits
+//		                are writable.
 //
-//	rcb=ReadFunc    read-callback to be invoked each time the register is
-//	                read. This allows to return bits whose value are computed
-//	                every time the register is accessed. See IoRead32.ReadCb
-//	                for more information. This option can be specified without
-//	                a argument, in which case the default function name is
-//	                composed by the uppercased struct field name, prefixed
-//	                by "Read" (eg: for a field called "Reg1", the default
-//	                read callback name is readREG1).
+//		rcb=ReadFunc    read-callback to be invoked each time the register is
+//		                read. This allows to return bits whose value are computed
+//		                every time the register is accessed. This option can be
+//		                specified without any argument, in which case the default
+//		                function name is composed by the uppercased struct field
+//		                name, prefixed by "Read" (eg: for a field called "Reg1",
+//		                the default read callback name is readREG1).
 //
-//	wcb=WriteFunc   write-callback to be invoked each time the register is
-//	                written. This allows to perform operations every time the
-//	                register is written. See IoWrite32.WriteCb for more
-//	                information. Similar to rcb, the default argument for
-//	                this option is the uppercased struct field name, prefixed
-//	                by "Write".
+//		pcb=PeekFunc    peek-callback to be invoked each time the register is
+//		                peeked, this is like a read but without any side effects,
+//	                 handy for implementing debugging/tracing.
 //
-//	readonly        the register is read-only; any attempt to write to it will
-//	                be ignored and logged as errors.
+//		wcb=WriteFunc   write-callback to be invoked each time the register is
+//		                written. This allows to perform operations every time the
+//		                register is written. Similar to rcb, the default argument
+//		                for this option is the uppercased struct field name,
+//		                prefixed by "Write".
 //
-//	writeonly       the register is write-only; any attempt to read from it
-//	                will be ignored and logged as errors.
+//		readonly        the register is read-only; any attempt to write to it will
+//		                be ignored and logged as errors.
+//
+//		writeonly       the register is write-only; any attempt to read from it
+//		                will be ignored and logged as errors.
 func InitRegs(data any) error {
 	val := reflect.ValueOf(data).Elem()
 
@@ -138,6 +140,18 @@ func InitRegs(data any) error {
 				valueField.FieldByName("ReadCb").Set(meth)
 			}
 
+			// Use the specified pcb or use Peek<FIELDNAME>
+			pcb := tag.Get("pcb")
+			if pcb == "" {
+				pcb = "Peek" + strings.ToUpper(varField.Name)
+			}
+			if meth := val.Addr().MethodByName(pcb); !meth.IsValid() {
+				return fmt.Errorf("cannot find method: %q", pcb)
+			} else {
+				valueField.FieldByName("PeekCb").Set(meth)
+			}
+
+			// Use the specified wcb or use Write<FIELDNAME>
 			wcb := tag.Get("wcb")
 			if wcb == "" {
 				wcb = "Write" + strings.ToUpper(varField.Name)
@@ -218,6 +232,17 @@ func InitRegs(data any) error {
 					return fmt.Errorf("cannot find method: %q", rcb)
 				} else {
 					valueField.FieldByName("ReadCb").Set(meth)
+				}
+			}
+
+			if pcb := tag.Get("pcb"); pcb != "" {
+				if pcb == "true" {
+					pcb = "Peek" + strings.ToUpper(varField.Name)
+				}
+				if meth := val.Addr().MethodByName(pcb); !meth.IsValid() {
+					return fmt.Errorf("cannot find method: %q", pcb)
+				} else {
+					valueField.FieldByName("PeekCb").Set(meth)
 				}
 			}
 

@@ -5,22 +5,28 @@ import "testing"
 type test1 struct {
 	Reg1   Reg8 `hwio:"offset=0x111,reset=0x23,rwmask=0x1,wcb"`
 	Reg2   Reg8 `hwio:"offset=0x444,bank=1,rcb"`
+	Reg3   Reg8 `hwio:"offset=0x446,bank=1,pcb"`
 	called bool
+	peeked bool
 }
 
 func (t *test1) WriteREG1(old, val uint8) {
 	t.called = true
 }
 
-func (t *test1) ReadREG2(val uint8, peek bool) uint8 {
+func (t *test1) ReadREG2(val uint8) uint8 {
 	return val | 1
+}
+
+func (t *test1) PeekREG3(val uint8) uint8 {
+	t.peeked = true
+	return 0x42
 }
 
 func TestReflect(t *testing.T) {
 	ts := &test1{}
 
-	err := InitRegs(ts)
-	if err != nil {
+	if err := InitRegs(ts); err != nil {
 		t.Fatal(err)
 	}
 
@@ -29,11 +35,11 @@ func TestReflect(t *testing.T) {
 		t.Error("invalid names:", ts.Reg1, ts.Reg2)
 	}
 
-	if got := ts.Reg2.Read8(0, false); got != 1 {
+	if got := ts.Reg2.Read8(0); got != 1 {
 		t.Error("invalid read8:", got)
 	}
 
-	val := ts.Reg1.Read8(0, false)
+	val := ts.Reg1.Read8(0)
 	if val != 0x23 {
 		t.Error("invalid read8", val)
 	}
@@ -44,6 +50,13 @@ func TestReflect(t *testing.T) {
 	}
 	if !ts.called {
 		t.Error("callback not called")
+	}
+
+	if ts.Reg3.Peek8(0) != 0x42 {
+		t.Error("invalid peek")
+	}
+	if !ts.peeked {
+		t.Errorf("peek callback not called")
 	}
 }
 
@@ -71,7 +84,7 @@ func TestParseBank(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(info) != 1 {
+	if len(info) != 2 {
 		t.Fatal("wrong number of regs in bank:", len(info))
 	}
 	if info[0].offset != 0x444 {
@@ -92,12 +105,12 @@ func TestReadWriteOnly(t *testing.T) {
 	}
 
 	ts.Reg1.Write8(0, 0) // this should be ignored
-	if got := ts.Reg1.Read8(0, false); got != 0x23 {
+	if got := ts.Reg1.Read8(0); got != 0x23 {
 		t.Error("invalid reg1 read:", got)
 	}
 
 	ts.Reg2.Write8(0, 0x23)
-	if got := ts.Reg2.Read8(0, false); got != 0 {
+	if got := ts.Reg2.Read8(0); got != 0 {
 		t.Error("invalid reg2 read:", got)
 	}
 }

@@ -11,9 +11,13 @@ import (
 const logUnmapped = false
 
 type BankIO8 interface {
-	// Read8 reads a byte from the given address. If peek is true, the read
-	// shouldn't have any side effects (debugging/tracing).
-	Read8(addr uint16, peek bool) uint8
+	// Read8 reads a byte from the given address.
+	Read8(addr uint16) uint8
+
+	// Peek8  performs a read without side effects, for debugging/tracking.
+	Peek8(addr uint16) uint8
+
+	// Write8 writes a byte to the given address.
 	Write8(addr uint16, val uint8)
 }
 
@@ -25,8 +29,14 @@ func Write16(b BankIO8, addr uint16, val uint16) {
 }
 
 func Read16(b BankIO8, addr uint16) uint16 {
-	lo := b.Read8(addr, false)
-	hi := b.Read8(addr+1, false)
+	lo := b.Read8(addr)
+	hi := b.Read8(addr + 1)
+	return uint16(hi)<<8 | uint16(lo)
+}
+
+func Peek16(b BankIO8, addr uint16) uint16 {
+	lo := b.Peek8(addr)
+	hi := b.Peek8(addr + 1)
 	return uint16(hi)<<8 | uint16(lo)
 }
 
@@ -155,10 +165,10 @@ func (t *Table) Unmap(begin, end uint16) {
 // Read8 searches in the table for the device mapped at the given address and
 // forward the read to it. Accesses to unmapped addresses are logged as errors
 // if peek is false.
-func (t *Table) Read8(addr uint16, peek bool) uint8 {
+func (t *Table) Read8(addr uint16) uint8 {
 	io := t.table8.Search(addr)
 	if io == nil {
-		if logUnmapped && !peek {
+		if logUnmapped {
 			log.ModHwIo.ErrorZ("unmapped Read8").
 				String("name", t.Name).
 				Hex16("addr", addr).
@@ -166,12 +176,16 @@ func (t *Table) Read8(addr uint16, peek bool) uint8 {
 		}
 		return 0
 	}
-	return io.(BankIO8).Read8(addr, peek)
+	return io.(BankIO8).Read8(addr)
 }
 
-// Peek8 is a convenience function.
 func (t *Table) Peek8(addr uint16) uint8 {
-	return t.Read8(addr, true)
+	io := t.table8.Search(addr)
+	if io == nil {
+		return 0
+	}
+
+	return io.(BankIO8).Peek8(addr)
 }
 
 func (t *Table) Write8(addr uint16, val uint8) {

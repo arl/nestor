@@ -5,10 +5,10 @@ import "testing"
 func TestReg8(t *testing.T) {
 	r := Reg8{Value: 0x11, RoMask: 0xF0}
 
-	if got := r.Read8(0, false); got != 0x11 {
+	if got := r.Read8(0); got != 0x11 {
 		t.Errorf("invalid read: %x", got)
 	}
-	if got := r.Read8(9999, false); got != 0x11 {
+	if got := r.Read8(9999); got != 0x11 {
 		t.Errorf("invalid read with offset: %x", got)
 	}
 
