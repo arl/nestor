@@ -55,5 +55,6 @@ Run "nestor <command> --help" for more information on a command.
  - [x] mapper 0
  - [ ] mapper 1
  - [x] mapper 2
+ - [x] mapper 3
  - [ ] other mappers...
  - [ ] save states
