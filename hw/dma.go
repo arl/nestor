@@ -206,5 +206,7 @@ func (dma *DMA) processRead(addr uint16, isInternalReg bool) uint8 {
 		// TODO: should read openbus here
 		return 0x00
 	}
-	return dma.cpu.Bus.Read8(addr, false)
+	val := dma.cpu.Bus.Read8(addr, false)
+	log.ModDMA.DebugZ("read").Hex16("addr", addr).Hex8("val", val).End()
+	return val
 }

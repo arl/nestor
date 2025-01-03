@@ -43,6 +43,6 @@ func SetNTMirroring(ppu *PPU, m ines.Mirroring) {
 		ppu.Bus.MapMemorySlice(0x3800, 0x3BFF, A, false)
 		ppu.Bus.MapMemorySlice(0x3C00, 0x3EFF, B, false)
 	default:
-		panic("unexpected mirroring: " + strconv.Itoa(int(m)))
+		panic("unsupported mirroring: " + strconv.Itoa(int(m)))
 	}
 }

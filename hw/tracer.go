@@ -28,76 +28,42 @@ type tracer struct {
 
 func hexEncode(dst []byte, v byte) {
 	const hextable = "0123456789ABCDEF"
+	_ = dst[1]
 	dst[0] = hextable[v>>4]
 	dst[1] = hextable[v&0x0f]
 }
 
+func (t *tracer) append(buf []byte, state cpuState) {
+	copy(buf, "A:XX X:XX Y:XX P:XX S:XX ")
+
+	_ = buf[24]
+	hexEncode(buf[2:4], state.A)
+	hexEncode(buf[7:9], state.X)
+	hexEncode(buf[12:14], state.Y)
+	hexEncode(buf[17:19], byte(state.P))
+	hexEncode(buf[22:24], state.SP)
+}
+
 // write the execution trace for current cycle.
 func (t *tracer) write(state cpuState) {
-	const totalLen = 88
-	buf := make([]byte, totalLen)
+	const maxTraceBytes = maxDisasmOpBytes + 41
 
 	dis := t.d.Disasm(state.PC)
-	buf = append(buf[:0], dis.Bytes()...)
-	off := min(totalLen, len(buf))
-	buf = buf[:max(totalLen, len(buf))]
+	buf := make([]byte, maxTraceBytes)
+	off := copy(buf[0:], dis.Bytes())
 
-	for off < 49 {
+	for off < maxDisasmOpBytes+1 {
 		buf[off] = ' '
 		off++
 	}
-
-	buf[off] = 'A'
-	off++
-	buf[off] = ':'
-	off++
-	hexEncode(buf[off:], state.A)
-	off += 2
-	buf[off] = ' '
-	off++
-
-	buf[off] = 'X'
-	off++
-	buf[off] = ':'
-	off++
-	hexEncode(buf[off:], state.X)
-	off += 2
-	buf[off] = ' '
-	off++
-
-	buf[off] = 'Y'
-	off++
-	buf[off] = ':'
-	off++
-	hexEncode(buf[off:], state.Y)
-	off += 2
-	buf[off] = ' '
-	off++
-
-	buf[off] = 'P'
-	off++
-	buf[off] = ':'
-	off++
-	hexEncode(buf[off:], byte(state.P))
-	off += 2
-	buf[off] = ' '
-	off++
-
-	buf[off] = 'S'
-	off++
-	buf[off] = ':'
-	off++
-	hexEncode(buf[off:], state.SP)
-	off += 2
-	buf[off] = ' '
-	off++
+	t.append(buf[off:], state)
 
 	scanline := state.Scanline
 	if scanline == 261 {
 		scanline = -1
 	}
 
-	buf = fmt.Appendf(buf[:off], "PPU:%-3d,%-3d %d\n", scanline, state.PPUCycle, state.Clock)
+	buf = fmt.Appendf(buf[:off+25], "PPU:%-3d,%-3d %d\n", scanline, state.PPUCycle, state.Clock)
 	t.w.Write(buf)
 }
 
@@ -108,44 +74,29 @@ type DisasmOp struct {
 	PC     uint16
 }
 
+const maxDisasmOpBytes = 48
+
 // Bytes returns the string representation of a DisasmOp, this is optimized
 // version, suitable for the execution tracer.
 func (d DisasmOp) Bytes() []byte {
-	const totalLen = 48
-	buf := make([]byte, totalLen)
+	buf := make([]byte, 128)
+	copy(buf, "XXXX  xx        XXX                                                                                                             ")
 
+	_ = buf[127]
 	hexEncode(buf[0:], byte(d.PC>>8))
 	hexEncode(buf[2:], byte(d.PC))
-	buf[4] = ' '
-	buf[5] = ' '
 
-	off := 6
-	for i := range d.Buf {
-		hexEncode(buf[off:], d.Buf[i])
-		buf[off+2] = ' '
-		off += 3
+	hexEncode(buf[6:], d.Buf[0])
+	if len(d.Buf) >= 2 {
+		hexEncode(buf[9:], d.Buf[1])
+	}
+	if len(d.Buf) == 3 {
+		hexEncode(buf[12:], d.Buf[2])
 	}
 
-	for ; off < 16; off++ {
-		buf[off] = ' '
-	}
-
-	off += copy(buf[off:], []byte(d.Opcode))
-	buf[off] = ' '
-	off++
-
-	buf = append(buf[:off], d.Oper...)
-	off += len(d.Oper)
-	if len(buf) > totalLen {
-		buf = append(buf, ' ')
-	} else {
-		buf = buf[:totalLen]
-		for i := off; i < totalLen; i++ {
-			buf[i] = ' '
-		}
-	}
-
-	return buf
+	copy(buf[16:], d.Opcode)
+	n := copy(buf[20:], d.Oper)
+	return buf[:20+n+1]
 }
 
 var addressLabels = map[uint16]string{
