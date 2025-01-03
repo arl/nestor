@@ -26,6 +26,7 @@ type PPU struct {
 	masterClock uint64
 	Cycle       uint32 // Current cycle/pixel in scanline
 	Scanline    int    // Current scanline being drawn
+	frameCount  uint32 // Current frame
 
 	Nametables    [0x800]byte
 	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000,wcb"`
@@ -169,11 +170,13 @@ func (p *PPU) doScanline(sm scanlineMode) {
 			p.preventVblank = false
 		}
 	case postRender:
-		// nothing to do
-		if p.Cycle == 1 {
+		switch p.Cycle {
+		case 1:
 			// At the start of vblank, the bus address is set back
 			// to VRAM address.
 			p.busAddr = p.vramAddr.addr()
+		case 340:
+			p.frameCount++
 		}
 
 	case preRender, renderMode:
