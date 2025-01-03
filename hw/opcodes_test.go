@@ -95,13 +95,17 @@ func (tm *testMem) clear() {
 	tm.m = nil
 }
 
-func (tm *testMem) ReadMEM(addr uint16, _ bool) uint8 {
+func (tm *testMem) ReadMEM(addr uint16) uint8 {
 	val := tm.m[addr]
 	if tm.verbose {
 		fmt.Printf("[%d] read 0x%04x = 0x%02x\n", len(tm.accesses), addr, val)
 	}
 	tm.accesses = append(tm.accesses, memAccess{addr, val, "read"})
 	return val
+}
+
+func (tm *testMem) PeekMEM(addr uint16) uint8 {
+	return tm.m[addr]
 }
 
 func (tm *testMem) WriteMEM(addr uint16, val uint8) {

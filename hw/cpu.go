@@ -111,6 +111,7 @@ func (c *CPU) InitBus() {
 	hwio.MustInitRegs(&reg4017)
 	c.Bus.MapBank(0x4017, &reg4017, 0)
 	reg4017.Read = c.input.ReadOUT
+	reg4017.Peek = c.input.PeekOUT
 	if c.APU != nil {
 		reg4017.Write = c.APU.frameCounter.WriteFRAMECOUNTER
 	}
@@ -120,13 +121,15 @@ func (c *CPU) InitBus() {
 // - read 0x4017 -> reads controller state (OUT register)
 // - write 0x4017 -> writes to APU frame counter.
 type reg4017 struct {
-	Reg   hwio.Reg8 `hwio:"offset=0,rcb=Read4017,wcb=Write4017"`
+	Reg   hwio.Reg8 `hwio:"offset=0,pcb=Peek4017,rcb=Read4017,wcb=Write4017"`
 	Write func(old, val uint8)
-	Read  func(old uint8, peek bool) uint8
+	Read  func(old uint8) uint8
+	Peek  func(old uint8) uint8
 }
 
-func (r *reg4017) Write4017(old, val uint8)            { r.Write(old, val) }
-func (r *reg4017) Read4017(old uint8, peek bool) uint8 { return r.Read(old, peek) }
+func (r *reg4017) Peek4017(old uint8) uint8 { return r.Peek(old) }
+func (r *reg4017) Read4017(old uint8) uint8 { return r.Read(old) }
+func (r *reg4017) Write4017(old, val uint8) { r.Write(old, val) }
 
 func (c *CPU) Reset(soft bool) {
 	if soft {
@@ -311,15 +314,16 @@ func (c *CPU) fetch16() uint16 {
 func (c *CPU) Read8(addr uint16) uint8 {
 	c.DMA.processPending(addr)
 	c.cycleBegin(true)
-	val := c.Bus.Read8(addr, false)
-	c.cycleEnd(true)
-	return val
+	defer c.cycleEnd(true)
+
+	return c.Bus.Read8(addr)
 }
 
 func (c *CPU) Write8(addr uint16, val uint8) {
 	c.cycleBegin(false)
+	defer c.cycleEnd(false)
+
 	c.Bus.Write8(addr, val)
-	c.cycleEnd(false)
 }
 
 func (c *CPU) Read16(addr uint16) uint16 {

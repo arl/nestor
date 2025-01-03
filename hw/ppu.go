@@ -37,12 +37,12 @@ type PPU struct {
 
 	PPUCTRL   hwio.Reg8 `hwio:"bank=1,offset=0x0,writeonly,wcb"`
 	PPUMASK   hwio.Reg8 `hwio:"bank=1,offset=0x1,writeonly,wcb"`
-	PPUSTATUS hwio.Reg8 `hwio:"bank=1,offset=0x2,readonly,rcb"`
+	PPUSTATUS hwio.Reg8 `hwio:"bank=1,offset=0x2,readonly,pcb,rcb"`
 	OAMADDR   hwio.Reg8 `hwio:"bank=1,offset=0x3,writeonly,wcb"`
-	OAMDATA   hwio.Reg8 `hwio:"bank=1,offset=0x4,rcb,wcb"`
+	OAMDATA   hwio.Reg8 `hwio:"bank=1,offset=0x4,pcb,rcb,wcb"`
 	PPUSCROLL hwio.Reg8 `hwio:"bank=1,offset=0x5,writeonly,wcb"`
 	PPUADDR   hwio.Reg8 `hwio:"bank=1,offset=0x6,writeonly,wcb"`
-	PPUDATA   hwio.Reg8 `hwio:"bank=1,offset=0x7,rcb,wcb"`
+	PPUDATA   hwio.Reg8 `hwio:"bank=1,offset=0x7,pcb,rcb,wcb"`
 
 	oamMem     [0x100]byte
 	oamAddr    byte
@@ -543,20 +543,26 @@ func (p *PPU) WritePPUMASK(old, val uint8) {
 }
 
 // PPUSTATUS: $2002
-func (p *PPU) ReadPPUSTATUS(val uint8, peek bool) uint8 {
+func (p *PPU) PeekPPUSTATUS(val uint8) uint8 {
+	const openBusMask = 0x1F
+
 	cur := ppustatus(val)
-	if peek {
-		ret := ppustatus(0)
-		ret.setSpriteOverflow(cur.spriteOverflow())
-		ret.setSpriteHit(cur.spriteHit())
-		ret.setVblank(cur.vblank())
+	ret := ppustatus(0)
+	ret.setSpriteOverflow(cur.spriteOverflow())
+	ret.setSpriteHit(cur.spriteHit())
+	ret.setVblank(cur.vblank())
 
-		if p.Scanline == 241 && p.Cycle < 3 {
-			ret.setVblank(false)
-		}
-
-		return uint8(ret)
+	if p.Scanline == 241 && p.Cycle < 3 {
+		ret.setVblank(false)
 	}
+
+	return uint8(ret) | (p.openBus & openBusMask)
+}
+
+func (p *PPU) ReadPPUSTATUS(val uint8) uint8 {
+	const openBusMask = 0x1F
+
+	cur := ppustatus(val)
 
 	p.writeLatch = false
 	ret := ppustatus(0)
@@ -577,8 +583,7 @@ func (p *PPU) ReadPPUSTATUS(val uint8, peek bool) uint8 {
 
 	p.PPUSTATUS.Value = uint8(cur)
 
-	// TODO: emulate open bus?
-	return uint8(ret)
+	return p.applyOpenBus(openBusMask, uint8(ret))
 }
 
 // PPUSCROLL: $2005
@@ -609,13 +614,14 @@ func (p *PPU) WritePPUADDR(old, val uint8) {
 }
 
 // PPUDATA: $2007
-func (p *PPU) ReadPPUDATA(_ uint8, peek bool) uint8 {
+func (p *PPU) PeekPPUDATA(_ uint8) uint8 {
+	return p.ppudataBuf
+}
+
+func (p *PPU) ReadPPUDATA(_ uint8) uint8 {
 	// Reading VRAM is too slow so the actual data
 	// will be returned at the next read.
 	val := p.ppudataBuf
-	if peek {
-		return val
-	}
 	p.ppudataBuf = p.Read8(p.vramAddr.addr())
 
 	if p.busAddr&0x3FFF >= 0x3F00 {
@@ -625,7 +631,7 @@ func (p *PPU) ReadPPUDATA(_ uint8, peek bool) uint8 {
 		val = (p.readPalette(p.busAddr) & 0x3F)
 		const mask uint16 = 1 << 12
 		// TODO (peek)
-		p.ppudataBuf = p.Bus.Read8(p.busAddr & ^mask, false)
+		p.ppudataBuf = p.Bus.Read8(p.busAddr & ^mask)
 	}
 
 	p.vramIncr()
@@ -659,7 +665,7 @@ func (p *PPU) vramIncr() {
 
 func (p *PPU) Read8(addr uint16) uint8 {
 	p.busAddr = addr
-	return p.Bus.Read8(addr, false)
+	return p.Bus.Read8(addr)
 }
 
 func (p *PPU) Write8(addr uint16, val uint8) {
@@ -731,11 +737,13 @@ func (p *PPU) WriteOAMADDR(_, val uint8) {
 }
 
 // OAMDATA: $2004
-func (p *PPU) ReadOAMDATA(_ uint8, peek bool) uint8 {
+func (p *PPU) PeekOAMDATA(_ uint8) uint8 {
+	return p.oamMem[p.oamAddr]
+}
+
+func (p *PPU) ReadOAMDATA(_ uint8) uint8 {
 	val := p.oamMem[p.oamAddr]
-	if !peek {
-		log.ModPPU.DebugZ("Read from OAMDATA").Hex8("val", val).End()
-	}
+	log.ModPPU.DebugZ("Read from OAMDATA").Hex8("val", val).End()
 	return val
 }
 
@@ -846,7 +854,7 @@ func (p *PPU) loadSprites() {
 		}
 		addr += uint16(sprY + (sprY & 8)) // Select the second tile if on 8x16.
 
-		p.oam[i].dataL = p.Bus.Read8(addr, false)
-		p.oam[i].dataH = p.Bus.Read8(addr+8, false)
+		p.oam[i].dataL = p.Bus.Read8(addr)
+		p.oam[i].dataH = p.Bus.Read8(addr + 8)
 	}
 }
