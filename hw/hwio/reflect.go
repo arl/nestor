@@ -71,6 +71,7 @@ func MustInitRegs(data any) {
 //		                value doesn't go through the read/write mask, so it can
 //		                be used to also initialize read-only bits. If not
 //		                specified, registers initialize to zero.
+//	                    (only for Reg8).
 //
 //		rwmask=0xAABB   bitmaks specifying which bits are read-write, i.e. can
 //		                be written. It is common for registers to have read-only
@@ -163,6 +164,8 @@ func InitRegs(data any) error {
 			}
 
 		case Mem:
+			const nbits = 8
+
 			if ssize := tag.Get("size"); ssize != "" {
 				if size, err := strconv.ParseInt(ssize, 0, 30); err != nil {
 					return fmt.Errorf("invalid size: %q", ssize)

@@ -38,10 +38,9 @@ func (reg Reg8) String() string {
 	return s + "}"
 }
 
-func (reg *Reg8) write(val uint8, romask uint8) {
-	romask = romask | reg.RoMask
+func (reg *Reg8) write(val uint8) {
 	old := reg.Value
-	reg.Value = (reg.Value & romask) | (val &^ romask)
+	reg.Value = (val & reg.RoMask) | (reg.Value & ^reg.RoMask)
 	if reg.WriteCb != nil {
 		reg.WriteCb(old, reg.Value)
 	}
@@ -55,7 +54,7 @@ func (reg *Reg8) Write8(addr uint16, val uint8) {
 			End()
 		return
 	}
-	reg.write(val, 0)
+	reg.write(val)
 }
 
 func (reg *Reg8) Read8(addr uint16) uint8 {

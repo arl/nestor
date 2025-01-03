@@ -3,7 +3,7 @@ package hwio
 import "testing"
 
 func TestReg8(t *testing.T) {
-	r := Reg8{Value: 0x11, RoMask: 0xF0}
+	r := Reg8{Value: 0x11, RoMask: 0x0F}
 
 	if got := r.Read8(0); got != 0x11 {
 		t.Errorf("invalid read: %x", got)
@@ -12,11 +12,11 @@ func TestReg8(t *testing.T) {
 		t.Errorf("invalid read with offset: %x", got)
 	}
 
-	r.Write8(0, 0x77)
+	r.Write8(0, 0x07)
 	if r.Value != 0x17 {
 		t.Errorf("writemask not respected: %x", r.Value)
 	}
-	r.Write8(9999, 0x88)
+	r.Write8(9999, 0x08)
 	if r.Value != 0x18 {
 		t.Errorf("writemask with offset not respected: %x", r.Value)
 	}
