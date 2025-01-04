@@ -40,7 +40,7 @@ func (reg Reg8) String() string {
 
 func (reg *Reg8) write(val uint8) {
 	old := reg.Value
-	reg.Value = (val & reg.RoMask) | (reg.Value & ^reg.RoMask)
+	reg.Value = (reg.Value & reg.RoMask) | (val &^ reg.RoMask)
 	if reg.WriteCb != nil {
 		reg.WriteCb(old, reg.Value)
 	}
