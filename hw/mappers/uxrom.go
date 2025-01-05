@@ -17,7 +17,7 @@ type uxrom struct {
 	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
 
 	// switchable PRGROM bank
-	PRGROM hwio.Manual `hwio:"offset=0x8000,size=0x8000"`
+	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000"`
 	cur    uint32      // current bank
 }
 

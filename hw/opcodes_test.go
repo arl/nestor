@@ -69,7 +69,7 @@ func TestOpcodes(t *testing.T) {
 }
 
 type testMem struct {
-	MEM      hwio.Manual      `hwio:"offset=0x0000,size=0x10000"`
+	MEM      hwio.Device      `hwio:"offset=0x0000,size=0x10000,rcb,wcb,pcb"`
 	m        map[uint16]uint8 // actual mapped mem
 	accesses []memAccess      // stores all accesses
 	verbose  bool
@@ -78,7 +78,7 @@ type testMem struct {
 type memAccess struct {
 	addr uint16
 	val  uint8
-	typ  string // "read" or "wwrite"
+	typ  string // "read" or "write"
 }
 
 func (tm *testMem) prefill(addr uint16, val uint8) {
@@ -310,7 +310,7 @@ func testOpcodes(opfile string) func(t *testing.T) {
 
 				// check ram accesses
 				if len(tt.Cycles) != len(tmem.accesses) {
-					t.Errorf("ram accesses count mismatch: got %d want %d", len(tmem.accesses), len(tt.Cycles))
+					t.Fatalf("ram accesses count mismatch: got %d want %d", len(tmem.accesses), len(tt.Cycles))
 				}
 
 				for i, cycle := range tt.Cycles {
