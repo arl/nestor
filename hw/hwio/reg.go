@@ -6,11 +6,11 @@ import (
 	"nestor/emu/log"
 )
 
-type RegFlags uint8
+type RWFlags uint8
 
 const (
-	RegFlagReadOnly RegFlags = (1 << iota)
-	RegFlagWriteOnly
+	ReadOnlyFlag RWFlags = (1 << iota)
+	WriteOnlyFlag
 )
 
 type Reg8 struct {
@@ -18,7 +18,7 @@ type Reg8 struct {
 	Value  uint8
 	RoMask uint8
 
-	Flags   RegFlags
+	Flags   RWFlags
 	ReadCb  func(val uint8) uint8
 	PeekCb  func(val uint8) uint8
 	WriteCb func(old uint8, val uint8)
@@ -47,7 +47,7 @@ func (reg *Reg8) write(val uint8) {
 }
 
 func (reg *Reg8) Write8(addr uint16, val uint8) {
-	if reg.Flags&RegFlagReadOnly != 0 {
+	if reg.Flags&ReadOnlyFlag != 0 {
 		log.ModHwIo.ErrorZ("invalid Write8 to readonly reg").
 			String("name", reg.Name).
 			Hex16("addr", addr).
@@ -58,7 +58,7 @@ func (reg *Reg8) Write8(addr uint16, val uint8) {
 }
 
 func (reg *Reg8) Read8(addr uint16) uint8 {
-	if reg.Flags&RegFlagWriteOnly != 0 {
+	if reg.Flags&WriteOnlyFlag != 0 {
 		log.ModHwIo.ErrorZ("invalid Read8 from writeonly reg").
 			String("name", reg.Name).
 			Hex16("addr", addr).

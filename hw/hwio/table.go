@@ -6,10 +6,6 @@ import (
 	"nestor/emu/log"
 )
 
-// log unmapped accesses (useful for debugging but verbose on NES since many
-// games read from open bus)
-const logUnmapped = false
-
 type BankIO8 interface {
 	// Read8 reads a byte from the given address.
 	Read8(addr uint16) uint8
@@ -40,10 +36,40 @@ func Peek16(b BankIO8, addr uint16) uint16 {
 	return uint16(hi)<<8 | uint16(lo)
 }
 
-type Table struct {
+// LogUnmapped is a BankIO8 that logs all accesses to the console.
+// meant to be used as Table.Unmapped for debugging.
+type LogUnmapped struct {
 	Name string
+}
 
+func (b *LogUnmapped) Peek8(addr uint16) uint8 {
+	return 0
+}
+
+func (b *LogUnmapped) Read8(addr uint16) uint8 {
+	log.ModHwIo.WarnZ("unmapped Read8").
+		String("name", b.Name).
+		Hex16("addr", addr).
+		End()
+	return 0
+}
+
+func (b *LogUnmapped) Write8(addr uint16, val uint8) {
+	log.ModHwIo.WarnZ("unmapped Write8").
+		String("name", b.Name).
+		Hex16("addr", addr).
+		Hex8("val", val).
+		End()
+}
+
+type Table struct {
 	table8 radixTree
+
+	// if non-nil, unmapped accesses are forwarded to this device, allows for
+	// easy open bus implementations.
+	Unmapped BankIO8
+
+	Name string
 }
 
 func NewTable(name string) *Table {
@@ -82,8 +108,8 @@ func (t *Table) MapBank(addr uint16, bank any, bankNum int) {
 			t.MapMem(addr+reg.offset, r)
 		case *Reg8:
 			t.MapReg8(addr+reg.offset, r)
-		case *Manual:
-			t.MapManual(addr+reg.offset, r)
+		case *Device:
+			t.MapDevice(addr+reg.offset, r)
 		default:
 			panic(fmt.Errorf("invalid reg type: %T", r))
 		}
@@ -120,7 +146,7 @@ func (t *Table) MapReg8(addr uint16, io *Reg8) {
 	t.mapBus8(addr, 1, io, false)
 }
 
-func (t *Table) MapManual(addr uint16, io *Manual) {
+func (t *Table) MapDevice(addr uint16, io *Device) {
 	t.mapBus8(addr, uint16(io.Size), io, false)
 }
 
@@ -168,11 +194,8 @@ func (t *Table) Unmap(begin, end uint16) {
 func (t *Table) Read8(addr uint16) uint8 {
 	io := t.table8.Search(addr)
 	if io == nil {
-		if logUnmapped {
-			log.ModHwIo.ErrorZ("unmapped Read8").
-				String("name", t.Name).
-				Hex16("addr", addr).
-				End()
+		if t.Unmapped != nil {
+			return t.Unmapped.Read8(addr)
 		}
 		return 0
 	}
@@ -182,6 +205,9 @@ func (t *Table) Read8(addr uint16) uint8 {
 func (t *Table) Peek8(addr uint16) uint8 {
 	io := t.table8.Search(addr)
 	if io == nil {
+		if t.Unmapped != nil {
+			return t.Unmapped.Peek8(addr)
+		}
 		return 0
 	}
 
@@ -191,12 +217,8 @@ func (t *Table) Peek8(addr uint16) uint8 {
 func (t *Table) Write8(addr uint16, val uint8) {
 	io := t.table8.Search(addr)
 	if io == nil {
-		if logUnmapped {
-			log.ModHwIo.ErrorZ("unmapped Write8").
-				String("name", t.Name).
-				Hex16("addr", addr).
-				Hex8("val", val).
-				End()
+		if t.Unmapped != nil {
+			t.Unmapped.Write8(addr, val)
 		}
 		return
 	}
