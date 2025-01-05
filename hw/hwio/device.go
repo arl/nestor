@@ -14,40 +14,40 @@ type Device struct {
 	WriteCb func(addr uint16, val uint8)
 }
 
-func (m *Device) Read8(addr uint16) uint8 {
+func (d *Device) Read8(addr uint16) uint8 {
 	switch {
-	case m.Flags&WriteOnlyFlag != 0:
+	case d.Flags&WriteOnlyFlag != 0:
 		log.ModHwIo.ErrorZ("invalid Read8 from writeonly device").
-			String("name", m.Name).
+			String("name", d.Name).
 			Hex16("addr", addr).
 			End()
 		fallthrough
-	case m.ReadCb == nil:
+	case d.ReadCb == nil:
 		return 0
 	}
-	return m.ReadCb(addr)
+	return d.ReadCb(addr)
 }
 
-func (m *Device) Peek8(addr uint16) uint8 {
-	if m.PeekCb != nil {
-		return m.PeekCb(addr)
+func (d *Device) Peek8(addr uint16) uint8 {
+	if d.PeekCb != nil {
+		return d.PeekCb(addr)
 	}
 	return 0
 }
 
-func (m *Device) Write8(addr uint16, val uint8) {
+func (d *Device) Write8(addr uint16, val uint8) {
 	switch {
-	case m.Flags&ReadOnlyFlag != 0:
+	case d.Flags&ReadOnlyFlag != 0:
 		log.ModHwIo.ErrorZ("invalid Write8 to readonly device").
-			String("name", m.Name).
+			String("name", d.Name).
 			Hex16("addr", addr).
 			End()
 		fallthrough
-	case m.WriteCb == nil:
+	case d.WriteCb == nil:
 		return
 	}
 
-	m.WriteCb(addr, val)
+	d.WriteCb(addr, val)
 }
 
 func nopRead8(_ uint16) uint8     { return 0 }

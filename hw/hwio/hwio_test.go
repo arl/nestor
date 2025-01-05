@@ -28,22 +28,6 @@ type testTable struct {
 	devval uint8
 }
 
-// $2001
-func (tbl *testTable) ReadREG1(val uint8) uint8 {
-	return tbl.Reg1.Value + 1
-}
-
-// $2002
-func (tbl *testTable) PeekReg2(val uint8) uint8 {
-	return 0x12
-}
-
-func (tbl *testTable) ReadDEV(addr uint16) uint8         { return 0xE1 }
-func (tbl *testTable) WriteDEV(addr uint16, val uint8)   { tbl.devval = uint8(addr) & val }
-func (tbl *testTable) ReadRODEV(addr uint16) uint8       { return 0xC5 }
-func (tbl *testTable) PeekRODEV(addr uint16) uint8       { return 0xC8 }
-func (tbl *testTable) WriteWODEV(addr uint16, val uint8) { tbl.devval = uint8(addr) & ^val }
-
 func newTestTable(tb testing.TB) *testTable {
 	tbl := &testTable{t: tb}
 	hwio.MustInitRegs(tbl)
@@ -55,6 +39,23 @@ func newTestTable(tb testing.TB) *testTable {
 	tbl.Bus.Unmapped = &openbus{}
 	return tbl
 }
+
+// $2001
+func (tbl *testTable) ReadREG1(val uint8) uint8 { return tbl.Reg1.Value + 1 }
+
+// $2002
+func (tbl *testTable) PeekReg2(val uint8) uint8 { return 0x12 }
+
+// $4100-41FF
+func (tbl *testTable) ReadDEV(addr uint16) uint8       { return 0xE1 }
+func (tbl *testTable) WriteDEV(addr uint16, val uint8) { tbl.devval = uint8(addr) & val }
+
+// $4200-42FF
+func (tbl *testTable) ReadRODEV(addr uint16) uint8 { return 0xC5 }
+func (tbl *testTable) PeekRODEV(addr uint16) uint8 { return 0xC8 }
+
+// $4300-43FF
+func (tbl *testTable) WriteWODEV(addr uint16, val uint8) { tbl.devval = uint8(addr) & ^val }
 
 func (tbl *testTable) wantRead8(addr uint16, want uint8) {
 	tbl.t.Helper()
@@ -76,7 +77,7 @@ func (tbl *testTable) wantPeek8(addr uint16, want uint8) {
 	}
 }
 
-func TestTableMapMem(t *testing.T) {
+func TestTableMem(t *testing.T) {
 	tbl := newTestTable(t)
 
 	// Mem
@@ -84,6 +85,10 @@ func TestTableMapMem(t *testing.T) {
 	tbl.Write8(0x00, 0x12)
 	tbl.wantRead8(0x00, 0x12)
 	tbl.wantRead8(0x800, 0x12)
+}
+
+func TestTableRegs(t *testing.T) {
+	tbl := newTestTable(t)
 
 	// Reg1
 	tbl.wantRead8(0x2001, 0x9a)
@@ -100,10 +105,17 @@ func TestTableMapMem(t *testing.T) {
 	tbl.Write8(0x2002, 0x9b)
 	tbl.wantRead8(0x2002, 0x00)
 	tbl.wantPeek8(0x2002, 0x12)
+}
 
+func TestTableUnmapped(t *testing.T) {
+	tbl := newTestTable(t)
 	// Unmapped
 	tbl.wantRead8(0x2020, 0xd3)
 	tbl.wantPeek8(0x2020, 0xd4)
+}
+
+func TestTableMapMemorySlice(t *testing.T) {
+	tbl := newTestTable(t)
 
 	// MapMemorySlice
 	rom := bytes.Repeat([]byte("\x12\x34"), 0x100)
@@ -113,6 +125,10 @@ func TestTableMapMem(t *testing.T) {
 	tbl.wantRead8(0x3001, 0x34)
 	tbl.wantRead8(0x3199, 0x34)
 	tbl.wantRead8(0x3200, 0xd3) // unmapped
+}
+
+func TestTableDevice(t *testing.T) {
+	tbl := newTestTable(t)
 
 	// MapDevice
 	tbl.wantRead8(0x4000, 0x00)
