@@ -19,7 +19,8 @@ const (
 type CPU struct {
 	Bus *hwio.Table
 
-	RAM hwio.Mem `hwio:"bank=0,offset=0x0,size=0x800,vsize=0x2000"`
+	RAM     hwio.Mem    `hwio:"bank=0,offset=0x0,size=0x800,vsize=0x2000"`
+	PPUMMap hwio.Device `hwio:"bank=0,offset=0x2000,size=0x2000,rcb,pcb,wcb"`
 
 	PPU *PPU // non-nil when there's a PPU.
 	DMA DMA
@@ -81,15 +82,16 @@ func (c *CPU) PlugInputDevice(ip *input.Provider) {
 	c.input.provider = ip
 }
 
+// Forward to PPU memory map handlers.
+func (c *CPU) ReadPPUMMAP(addr uint16) uint8       { return c.PPU.Read8(addr) }
+func (c *CPU) PeekPPUMMAP(addr uint16) uint8       { return c.PPU.Peek8(addr) }
+func (c *CPU) WritePPUMMAP(addr uint16, val uint8) { c.PPU.Write8(addr, val) }
+
 func (c *CPU) InitBus() {
 	hwio.MustInitRegs(c)
-	// CPU internal RAM, mirrored.
-	c.Bus.MapBank(0x0000, c, 0)
 
-	// Map the 8 PPU registers (bank 1) from 0x2000 to 0x3ffF.
-	for off := uint16(0x2000); off < 0x4000; off += 8 {
-		c.Bus.MapBank(off, c.PPU, 1)
-	}
+	// Map CPU internal RAM (mirrored) and memory-mapped PPU registers.
+	c.Bus.MapBank(0x0000, c, 0)
 
 	// Map PPU OAMDMA register.
 	c.DMA.InitBus(c)
