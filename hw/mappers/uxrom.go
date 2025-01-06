@@ -41,10 +41,12 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	//            (UNROM uses bits 2-0; UOROM uses bits 3-0)
 	prev := m.cur
 	m.cur = uint32(val & 0b111)
-	modMapper.DebugZ("PRGROM bank switch").
-		Uint32("prev", prev).
-		Uint32("new", m.cur).
-		End()
+	if prev != m.cur {
+		modMapper.DebugZ("PRGROM bank switch").
+			Uint32("prev", prev).
+			Uint32("new", m.cur).
+			End()
+	}
 }
 
 func loadUxROM(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {

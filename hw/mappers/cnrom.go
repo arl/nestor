@@ -37,21 +37,13 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 	// CNROM only uses loweest 2 bits
 	prev := m.cur
 	m.cur = uint32(val & 0b11)
-
-	copyCHRROM(m.ppu, m.rom, m.cur)
-
-	modMapper.InfoZ("CHRROM bank switch").
-		Uint32("prev", prev).
-		Uint32("new", m.cur).
-		End()
-}
-
-func copyCHRROM(ppu *hw.PPU, rom *ines.Rom, bank uint32) {
-	// Copy CHRROM bank to PPU memory.
-	// CHRROM is 8KB in size
-	start := bank * 0x2000
-	end := start + 0x2000
-	copy(ppu.PatternTables.Data, rom.CHRROM[start:end])
+	if prev != m.cur {
+		copyCHRROM(m.ppu, m.rom, m.cur)
+		modMapper.InfoZ("CHRROM bank switch").
+			Uint32("prev", prev).
+			Uint32("new", m.cur).
+			End()
+	}
 }
 
 // TODO: bus conflicts
