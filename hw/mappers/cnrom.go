@@ -16,11 +16,13 @@ type cnrom struct {
 	ppu *hw.PPU
 
 	// switchable CHRROM bank
-	PRGROM hwio.Mem `hwio:"offset=0x8000,vsize=0x8000,readonly"`
-	cur    uint32   // current CHRROM bank
+	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,wcb"`
+	cur    uint32      // current CHRROM bank
 }
 
-func (m *cnrom) ReadPRGROM(addr uint16, _ bool) uint8 {
+func (m *cnrom) ReadPRGROM(addr uint16) uint8 {
+	addr &= 0x7FFF                        // max PRGROM size is 32KB
+	addr &= uint16(len(m.rom.PRGROM) - 1) // PRGROM mirrors
 	return m.rom.PRGROM[addr]
 }
 
@@ -47,11 +49,12 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 func copyCHRROM(ppu *hw.PPU, rom *ines.Rom, bank uint32) {
 	// Copy CHRROM bank to PPU memory.
 	// CHRROM is 8KB in size
-	copy(ppu.PatternTables.Data, rom.CHRROM[bank*0x2000:(bank+1)*0x2000])
+	start := bank * 0x2000
+	end := start + 0x2000
+	copy(ppu.PatternTables.Data, rom.CHRROM[start:end])
 }
 
 // TODO: bus conflicts
-
 func loadCNROM(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
 	cnrom := &cnrom{
 		rom: rom,
@@ -59,12 +62,7 @@ func loadCNROM(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
 	}
 	hwio.MustInitRegs(cnrom)
 
-	// CPU mapping.
-	// Dimension the PRGROM based on the length of the cartridge PRGROM.
-	// PRGROM mirrors are taken care of by hwio.Mem 'vsize'.
-	cnrom.PRGROM.Data = make([]byte, len(rom.PRGROM))
-	copy(cnrom.PRGROM.Data, rom.PRGROM)
-
+	// Map CNROM banks onto CPU address space.
 	cpu.Bus.MapBank(0x0000, cnrom, 0)
 
 	// PPU mapping.
