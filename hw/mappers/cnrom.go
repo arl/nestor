@@ -16,7 +16,7 @@ type cnrom struct {
 	ppu *hw.PPU
 
 	// switchable CHRROM bank
-	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,wcb"`
+	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,pcb=ReadPRGROM,wcb"`
 	cur    uint32      // current CHRROM bank
 }
 
