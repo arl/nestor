@@ -123,7 +123,6 @@ func (p *PPU) Run(until uint64) {
 }
 
 func (p *PPU) Tick() {
-
 	switch {
 	case p.Scanline < 240:
 		p.doScanline(renderMode)
@@ -134,6 +133,7 @@ func (p *PPU) Tick() {
 	case p.Scanline == 261:
 		p.doScanline(preRender)
 	}
+
 	p.Cycle++
 	if p.Cycle >= NumCycles {
 		p.Cycle %= NumCycles
@@ -526,8 +526,32 @@ func ppuregFromAddr(addr uint16) ppureg {
 }
 
 func (p *PPU) Peek8(addr uint16) uint8 {
-	// panic()
-	return p.Bus.Read8(addr)
+	openBusMask := uint8(0xFF)
+	ret := uint8(0)
+
+	switch ppuregFromAddr(addr) {
+	case PPUSTATUS:
+		var tmp ppustatus
+		tmp.setSpriteOverflow(p.PPUSTATUS.spriteOverflow())
+		tmp.setSpriteHit(p.PPUSTATUS.spriteHit())
+		tmp.setVblank(p.PPUSTATUS.vblank())
+		if p.Scanline == int(vblankNMI) && p.Cycle < 4 {
+			tmp.setVblank(false)
+		}
+		openBusMask = 0x1F
+		ret = uint8(tmp)
+	case OAMDATA:
+		ret = p.oamMem[p.oamAddr]
+	case PPUDATA:
+		ret = p.ppudataBuf
+		if (p.busAddr & 0x3FFF) >= 0x3F00 {
+			ret = (p.readPalette(p.busAddr) & 0x3F) | (p.openBus & 0xC0)
+			openBusMask = 0xC0
+		} else {
+			openBusMask = 0x00
+		}
+	}
+	return ret | (p.openBus & openBusMask)
 }
 
 func (p *PPU) Read8(addr uint16) uint8 {
@@ -539,11 +563,13 @@ func (p *PPU) Read8(addr uint16) uint8 {
 	case PPUDATA:
 		return p.ReadPPUDATA()
 	}
-	// TODO: openbus
-	return 0
+	const openBusMask = 0xFF
+	return p.applyOpenBus(openBusMask, 0)
 }
 
 func (p *PPU) Write8(addr uint16, val uint8) {
+	p.setOpenBus(0xFF, val)
+
 	switch ppuregFromAddr(addr) {
 	case PPUCTRL:
 		p.WritePPUCTRL(val)
@@ -587,7 +613,6 @@ func (p *PPU) WritePPUMASK(val uint8) {
 	log.ModPPU.DebugZ("Write to PPUMASK").Hex8("val", val).End()
 }
 
-
 // PPUSTATUS: $2002
 func (p *PPU) PeekPPUSTATUS() uint8 {
 	const openBusMask = 0x1F
@@ -606,8 +631,6 @@ func (p *PPU) PeekPPUSTATUS() uint8 {
 }
 
 func (p *PPU) ReadPPUSTATUS() uint8 {
-	const openBusMask = 0x1F
-
 	p.writeLatch = false
 	var ret ppustatus
 	// TODO: optimize to a single OR-operation
@@ -625,7 +648,7 @@ func (p *PPU) ReadPPUSTATUS() uint8 {
 		// anyway, causing NMI to not occur that frame.
 		p.preventVblank = true
 	}
-
+	const openBusMask = 0x1F
 	return p.applyOpenBus(openBusMask, uint8(ret))
 }
 
@@ -662,6 +685,8 @@ func (p *PPU) PeekPPUDATA(_ uint8) uint8 {
 }
 
 func (p *PPU) ReadPPUDATA() uint8 {
+	openBusMask := uint8(0xC0)
+
 	// Reading VRAM is too slow so the actual data
 	// will be returned at the next read.
 	val := p.ppudataBuf
@@ -671,10 +696,11 @@ func (p *PPU) ReadPPUDATA() uint8 {
 		// This is a palette read, they're immediate but they still overwrite
 		// the read buffer, on which we apply mirroring (ignor bit 12 of the
 		// vram address). (passes Blargg's vram_access test)
-		val = (p.readPalette(p.busAddr) & 0x3F)
+		val = (p.readPalette(p.busAddr) & 0x3F) | p.openBus&0xC0
 		const mask uint16 = 1 << 12
-		// TODO (peek)
 		p.ppudataBuf = p.Bus.Read8(p.busAddr & ^mask)
+	} else {
+		openBusMask = 0x00
 	}
 
 	p.vramIncr()
@@ -682,7 +708,7 @@ func (p *PPU) ReadPPUDATA() uint8 {
 		Hex16("addr", p.vramAddr.addr()).
 		Hex8("val", val).
 		End()
-	return val
+	return p.applyOpenBus(openBusMask, val)
 }
 
 // PPUDATA: $2007
@@ -786,7 +812,9 @@ func (p *PPU) PeekOAMDATA() uint8 {
 func (p *PPU) ReadOAMDATA() uint8 {
 	val := p.oamMem[p.oamAddr]
 	log.ModPPU.DebugZ("Read from OAMDATA").Hex8("val", val).End()
-	return val
+
+	const openBusMask = 0x00
+	return p.applyOpenBus(openBusMask, val)
 }
 
 // OAMDATA: $2004

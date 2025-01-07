@@ -9,6 +9,8 @@ import (
 	"testing"
 	"unsafe"
 
+	"golang.org/x/sync/errgroup"
+
 	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/hw/hwio"
@@ -27,12 +29,13 @@ func TestNestest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nes, err := powerUp(rom)
+	flog, err := os.CreateTemp("", "nestor.nestest.*.log")
 	if err != nil {
 		t.Fatal(err)
 	}
+	println("nestest log:", flog.Name())
 
-	flog, err := os.CreateTemp("", "nestor.nestest.*.log")
+	nes, err := powerUp(rom)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,15 +148,24 @@ func TestBlarggRoms(t *testing.T) {
 
 		"oam_stress/oam_stress.nes",
 
+		"ppu_open_bus/ppu_open_bus.nes",
+
 		"sprdma_and_dmc_dma/sprdma_and_dmc_dma.nes",
 		"sprdma_and_dmc_dma/sprdma_and_dmc_dma_512.nes",
 	}
 
+	var g errgroup.Group
+	g.SetLimit(8)
+
 	for _, romName := range tests {
 		// Ensure tests run on all platforms.
 		romPath := filepath.Join(romsDir, filepath.FromSlash(romName))
-		t.Run(romName, runBlarggTestRom(romPath))
+		g.Go(func() error {
+			t.Run(romName, runBlarggTestRom(romPath))
+			return nil
+		})
 	}
+	g.Wait()
 }
 
 func runBlarggTestRom(path string) func(t *testing.T) {
