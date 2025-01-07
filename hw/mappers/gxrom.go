@@ -1,19 +1,16 @@
 package mappers
 
 import (
-	"nestor/hw"
 	"nestor/hw/hwio"
-	"nestor/ines"
 )
 
-var GxROM = hw.MapperDesc{
+var GxROM = MapperDesc{
 	Name: "GxROM",
 	Load: loadGxROM,
 }
 
 type gxrom struct {
-	rom *ines.Rom
-	ppu *hw.PPU
+	*base
 
 	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
 
@@ -61,20 +58,19 @@ func (m *gxrom) WritePRGROM(addr uint16, val uint8) {
 	}
 }
 
-func loadGxROM(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
+func loadGxROM(b *base) error {
 	gxrom := &gxrom{
-		rom: rom,
-		ppu: ppu,
+		base: b,
 	}
 
 	hwio.MustInitRegs(gxrom)
 
 	// CPU mapping.
-	cpu.Bus.MapBank(0x0000, gxrom, 0)
+	b.cpu.Bus.MapBank(0x0000, gxrom, 0)
 
 	// PPU mapping.
-	hw.SetNTMirroring(ppu, rom.Mirroring())
-	copy(ppu.PatternTables.Data, rom.CHRROM)
+	b.setNametableMirroring()
+	copy(b.ppu.PatternTables.Data, b.rom.CHRROM)
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.

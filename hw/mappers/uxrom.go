@@ -1,18 +1,16 @@
 package mappers
 
 import (
-	"nestor/hw"
 	"nestor/hw/hwio"
-	"nestor/ines"
 )
 
-var UxROM = hw.MapperDesc{
+var UxROM = MapperDesc{
 	Name: "UxROM",
 	Load: loadUxROM,
 }
 
 type uxrom struct {
-	rom *ines.Rom
+	*base
 
 	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
 
@@ -49,16 +47,16 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	}
 }
 
-func loadUxROM(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
-	uxrom := &uxrom{rom: rom}
+func loadUxROM(b *base) error {
+	uxrom := &uxrom{base: b}
 	hwio.MustInitRegs(uxrom)
 
 	// CPU mapping.
-	cpu.Bus.MapBank(0x0000, uxrom, 0)
+	b.cpu.Bus.MapBank(0x0000, uxrom, 0)
 
 	// PPU mapping.
-	hw.SetNTMirroring(ppu, rom.Mirroring())
-	copy(ppu.PatternTables.Data, rom.CHRROM)
+	b.setNametableMirroring()
+	copy(b.ppu.PatternTables.Data, b.rom.CHRROM)
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.

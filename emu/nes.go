@@ -1,6 +1,7 @@
 package emu
 
 import (
+	"errors"
 	"fmt"
 
 	"nestor/hw"
@@ -26,12 +27,12 @@ func powerUp(rom *ines.Rom) (*NES, error) {
 	cpu.InitBus()
 
 	// Load mapper.
-	mapper, ok := mappers.All[rom.Mapper()]
-	if !ok {
-		return nil, fmt.Errorf("unsupported mapper %03d", rom.Mapper())
-	}
-	if err := mapper.Load(rom, cpu, ppu); err != nil {
-		return nil, fmt.Errorf("error while loading mapper %03d (%s): %s", rom.Mapper(), mapper.Name, err)
+	err := mappers.Load(rom, cpu, ppu)
+	if err != nil {
+		if errors.Is(err, mappers.ErrUnsupportedMapper) {
+			return nil, fmt.Errorf("unsupported mapper %03d", rom.Mapper())
+		}
+		return nil, err
 	}
 
 	nes := &NES{

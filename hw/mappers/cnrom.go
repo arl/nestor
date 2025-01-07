@@ -1,19 +1,16 @@
 package mappers
 
 import (
-	"nestor/hw"
 	"nestor/hw/hwio"
-	"nestor/ines"
 )
 
-var CNROM = hw.MapperDesc{
+var CNROM = MapperDesc{
 	Name: "CNROM",
 	Load: loadCNROM,
 }
 
 type cnrom struct {
-	rom *ines.Rom
-	ppu *hw.PPU
+	*base
 
 	// switchable CHRROM bank
 	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,pcb=ReadPRGROM,wcb"`
@@ -47,19 +44,18 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 }
 
 // TODO: bus conflicts
-func loadCNROM(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
+func loadCNROM(b *base) error {
 	cnrom := &cnrom{
-		rom: rom,
-		ppu: ppu,
+		base: b,
 	}
 	hwio.MustInitRegs(cnrom)
 
 	// Map CNROM banks onto CPU address space.
-	cpu.Bus.MapBank(0x0000, cnrom, 0)
+	b.cpu.Bus.MapBank(0x0000, cnrom, 0)
 
 	// PPU mapping.
-	hw.SetNTMirroring(ppu, rom.Mirroring())
-	copyCHRROM(ppu, rom, 0)
+	b.setNametableMirroring()
+	copyCHRROM(b.ppu, b.rom, 0)
 	// copy(ppu.PatternTables.Data, rom.CHRROM)
 	return nil
 
