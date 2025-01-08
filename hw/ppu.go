@@ -542,10 +542,11 @@ func (p *PPU) Peek8(addr uint16) uint8 {
 		ret = uint8(tmp)
 	case OAMDATA:
 		ret = p.oamMem[p.oamAddr]
+		openBusMask = 0x00
 	case PPUDATA:
 		ret = p.ppudataBuf
-		if (p.busAddr & 0x3FFF) >= 0x3F00 {
-			ret = (p.readPalette(p.busAddr) & 0x3F) | (p.openBus & 0xC0)
+		if (p.vramAddr.addr()) >= 0x3F00 {
+			ret = (p.readPalette(p.vramAddr.addr()) & 0x3F) | (p.openBus & 0xC0)
 			openBusMask = 0xC0
 		} else {
 			openBusMask = 0x00
