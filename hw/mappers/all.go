@@ -15,7 +15,10 @@ func Load(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
 	if !ok {
 		return fmt.Errorf("unsupported mapper %d", rom.Mapper())
 	}
-	base := newbase(desc, rom, cpu, ppu)
+	base, err := newbase(desc, rom, cpu, ppu)
+	if err != nil {
+		return fmt.Errorf("mapper initialization failed: %w", err)
+	}
 	if err := base.load(); err != nil {
 		return fmt.Errorf("failed to load mapper %s: %w", desc.Name, err)
 	}

@@ -1,6 +1,7 @@
 package mappers
 
 import (
+	"fmt"
 	"strconv"
 
 	"nestor/hw"
@@ -15,13 +16,20 @@ type base struct {
 	ppu *hw.PPU
 }
 
-func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) *base {
+func ispow2(n int) bool {
+	return n&(n-1) == 0
+}
+
+func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, error) {
+	if !ispow2(len(rom.PRGROM)) {
+		return nil, fmt.Errorf("only support PRGROM with size that is power of 2, got %d", len(rom.PRGROM))
+	}
 	return &base{
 		desc: desc,
 		rom:  rom,
 		cpu:  cpu,
 		ppu:  ppu,
-	}
+	}, nil
 }
 
 func (b *base) load() error {

@@ -5,8 +5,10 @@ import (
 )
 
 var CNROM = MapperDesc{
-	Name: "CNROM",
-	Load: loadCNROM,
+	Name:           "CNROM",
+	Load:           loadCNROM,
+	PRGROMpagesize: 0x8000,
+	CHRROMpagesize: 0x2000,
 }
 
 type cnrom struct {
@@ -45,9 +47,7 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 
 // TODO: bus conflicts
 func loadCNROM(b *base) error {
-	cnrom := &cnrom{
-		base: b,
-	}
+	cnrom := &cnrom{base: b}
 	hwio.MustInitRegs(cnrom)
 
 	// CPU mapping.

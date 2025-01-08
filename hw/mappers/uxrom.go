@@ -5,8 +5,10 @@ import (
 )
 
 var UxROM = MapperDesc{
-	Name: "UxROM",
-	Load: loadUxROM,
+	Name:           "UxROM",
+	Load:           loadUxROM,
+	PRGROMpagesize: 0x4000,
+	CHRROMpagesize: 0x2000,
 }
 
 type uxrom struct {

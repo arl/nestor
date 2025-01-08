@@ -5,8 +5,10 @@ import (
 )
 
 var GxROM = MapperDesc{
-	Name: "GxROM",
-	Load: loadGxROM,
+	Name:           "GxROM",
+	Load:           loadGxROM,
+	PRGROMpagesize: 0x8000,
+	CHRROMpagesize: 0x2000,
 }
 
 type gxrom struct {
@@ -14,8 +16,6 @@ type gxrom struct {
 
 	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
 
-	// 32KB switchable PRGROM bank
-	// 8KB switchable CHRROM bank
 	PRGROM hwio.Device
 	curchr uint32
 	curprg uint32
@@ -59,13 +59,9 @@ func (m *gxrom) WritePRGROM(addr uint16, val uint8) {
 }
 
 func loadGxROM(b *base) error {
-	gxrom := &gxrom{
-		base: b,
-	}
-
+	gxrom := &gxrom{base: b}
 	hwio.MustInitRegs(gxrom)
 
-	// CPU mapping.
 	// CPU mapping.
 	gxrom.PRGROM = hwio.Device{
 		Name:    "PRGROM",
