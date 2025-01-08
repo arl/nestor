@@ -108,7 +108,7 @@ func TestBlarggRoms(t *testing.T) {
 		"apu_test/rom_singles/8-dmc_rates.nes",
 
 		"cpu_dummy_writes/cpu_dummy_writes_oam.nes",
-		// "cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
+		"cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
 
 		"cpu_interrupts_v2/rom_singles/1-cli_latency.nes",
 		// "cpu_interrupts_v2/rom_singles/2-nmi_and_brk.nes",
