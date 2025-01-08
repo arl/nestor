@@ -16,7 +16,7 @@ type gxrom struct {
 
 	// 32KB switchable PRGROM bank
 	// 8KB switchable CHRROM bank
-	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,wcb"`
+	PRGROM hwio.Device
 	curchr uint32
 	curprg uint32
 }
@@ -66,6 +66,15 @@ func loadGxROM(b *base) error {
 	hwio.MustInitRegs(gxrom)
 
 	// CPU mapping.
+	// CPU mapping.
+	gxrom.PRGROM = hwio.Device{
+		Name:    "PRGROM",
+		Size:    0x8000,
+		ReadCb:  gxrom.ReadPRGROM,
+		PeekCb:  gxrom.ReadPRGROM,
+		WriteCb: gxrom.WritePRGROM,
+	}
+	b.cpu.Bus.MapDevice(0x8000, &gxrom.PRGROM)
 	b.cpu.Bus.MapBank(0x0000, gxrom, 0)
 
 	// PPU mapping.

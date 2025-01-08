@@ -15,8 +15,8 @@ type uxrom struct {
 	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
 
 	// switchable PRGROM bank
-	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,pcb=ReadPRGROM,wcb"`
-	cur    uint32      // current bank
+	PRGROM hwio.Device
+	cur    uint32 // current bank
 }
 
 func (m *uxrom) ReadPRGROM(addr uint16) uint8 {
@@ -52,7 +52,14 @@ func loadUxROM(b *base) error {
 	hwio.MustInitRegs(uxrom)
 
 	// CPU mapping.
-	b.cpu.Bus.MapBank(0x0000, uxrom, 0)
+	uxrom.PRGROM = hwio.Device{
+		Name:    "PRGROM",
+		Size:    0x8000,
+		ReadCb:  uxrom.ReadPRGROM,
+		PeekCb:  uxrom.ReadPRGROM,
+		WriteCb: uxrom.WritePRGROM,
+	}
+	b.cpu.Bus.MapDevice(0x8000, &uxrom.PRGROM)
 
 	// PPU mapping.
 	b.setNametableMirroring()

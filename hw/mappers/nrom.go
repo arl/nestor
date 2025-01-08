@@ -13,7 +13,7 @@ var NROM = MapperDesc{
 
 type nrom struct {
 	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
-	PRGROM hwio.Mem `hwio:"offset=0x8000,vsize=0x8000,readonly"`
+	PRGROM hwio.Mem
 }
 
 func loadNROM(b *base) error {
@@ -21,12 +21,13 @@ func loadNROM(b *base) error {
 	hwio.MustInitRegs(nrom)
 
 	// CPU mapping.
-
-	// Dimension the PRGROM based on the length of the cartridge PRGROM.
-	// PRGROM mirrors are taken care of by hwio.Mem 'vsize'.
-	nrom.PRGROM.Data = make([]byte, len(b.rom.PRGROM))
-	copy(nrom.PRGROM.Data, b.rom.PRGROM)
-
+	nrom.PRGROM = hwio.Mem{
+		Name:  "PRGROM",
+		Data:  b.rom.PRGROM,
+		VSize: 0x8000,
+		Flags: hwio.MemFlag8ReadOnly,
+	}
+	b.cpu.Bus.MapMem(0x8000, &nrom.PRGROM)
 	b.cpu.Bus.MapBank(0x0000, nrom, 0)
 
 	// PPU mapping.

@@ -13,8 +13,8 @@ type cnrom struct {
 	*base
 
 	// switchable CHRROM bank
-	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,pcb=ReadPRGROM,wcb"`
-	cur    uint32      // current CHRROM bank
+	PRGROM hwio.Device
+	cur    uint32 // current CHRROM bank
 }
 
 func (m *cnrom) ReadPRGROM(addr uint16) uint8 {
@@ -50,13 +50,19 @@ func loadCNROM(b *base) error {
 	}
 	hwio.MustInitRegs(cnrom)
 
-	// Map CNROM banks onto CPU address space.
-	b.cpu.Bus.MapBank(0x0000, cnrom, 0)
+	// CPU mapping.
+	cnrom.PRGROM = hwio.Device{
+		Name:    "PRGROM",
+		Size:    0x8000,
+		ReadCb:  cnrom.ReadPRGROM,
+		PeekCb:  cnrom.ReadPRGROM,
+		WriteCb: cnrom.WritePRGROM,
+	}
+	b.cpu.Bus.MapDevice(0x8000, &cnrom.PRGROM)
 
 	// PPU mapping.
 	b.setNametableMirroring()
 	copyCHRROM(b.ppu, b.rom, 0)
-	// copy(ppu.PatternTables.Data, rom.CHRROM)
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.
