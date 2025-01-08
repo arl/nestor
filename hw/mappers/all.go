@@ -10,15 +10,16 @@ import (
 
 var modMapper = log.NewModule("mapper")
 
-var ErrUnsupportedMapper = fmt.Errorf("unsupported mapper")
-
 func Load(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
 	desc, ok := All[rom.Mapper()]
 	if !ok {
-		return ErrUnsupportedMapper
+		return fmt.Errorf("unsupported mapper %d", rom.Mapper())
 	}
 	base := newbase(desc, rom, cpu, ppu)
-	return base.load()
+	if err := base.load(); err != nil {
+		return fmt.Errorf("failed to load mapper %s: %w", desc.Name, err)
+	}
+	return nil
 }
 
 type MapperDesc struct {
