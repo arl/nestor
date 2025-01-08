@@ -15,8 +15,8 @@ type cnrom struct {
 	*base
 
 	// switchable CHRROM bank
-	PRGROM hwio.Device
-	cur    uint32 // current CHRROM bank
+	PRGROM  hwio.Device
+	chrPage uint32
 }
 
 func (m *cnrom) ReadPRGROM(addr uint16) uint8 {
@@ -34,13 +34,13 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 	// |||| ||||
 	// ++++-++++- Select 8 KB CHR ROM bank for PPU $0000-$1FFF
 	// CNROM only uses loweest 2 bits
-	prev := m.cur
-	m.cur = uint32(val & 0b11)
-	if prev != m.cur {
-		copyCHRROM(m.ppu, m.rom, m.cur)
+	prev := m.chrPage
+	m.chrPage = uint32(val & 0b11)
+	if prev != m.chrPage {
+		copyCHRROM(m.ppu, m.rom, m.chrPage)
 		modMapper.InfoZ("CHRROM bank switch").
 			Uint32("prev", prev).
-			Uint32("new", m.cur).
+			Uint32("new", m.chrPage).
 			End()
 	}
 }

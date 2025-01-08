@@ -17,12 +17,12 @@ type uxrom struct {
 	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
 
 	// switchable PRGROM bank
-	PRGROM hwio.Device
-	cur    uint32 // current bank
+	PRGROM  hwio.Device
+	prgPage uint32
 }
 
 func (m *uxrom) ReadPRGROM(addr uint16) uint8 {
-	banknum := m.cur
+	banknum := m.prgPage
 	if addr >= 0xC000 {
 		banknum = uint32(m.rom.PRGROMSlots() - 1)
 	}
@@ -39,12 +39,12 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	//      ||||
 	//      ++++- Select 16 KB PRG ROM bank for CPU $8000-$BFFF
 	//            (UNROM uses bits 2-0; UOROM uses bits 3-0)
-	prev := m.cur
-	m.cur = uint32(val & 0b111)
-	if prev != m.cur {
+	prev := m.prgPage
+	m.prgPage = uint32(val & 0b111)
+	if prev != m.prgPage {
 		modMapper.DebugZ("PRGROM bank switch").
 			Uint32("prev", prev).
-			Uint32("new", m.cur).
+			Uint32("new", m.prgPage).
 			End()
 	}
 }
