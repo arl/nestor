@@ -400,6 +400,33 @@ func TestBlarggPPUtests(t *testing.T) {
 	}
 }
 
+func TestBlarggAPUtests(t *testing.T) {
+	const frameidx = 25
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"01.len_ctr.nes",
+		"02.len_table.nes",
+		"03.irq_flag.nes",
+		"04.clock_jitter.nes",
+		"05.len_timing_mode0.nes",
+		"06.len_timing_mode1.nes",
+		"07.irq_flag_timing.nes",
+		"08.irq_timing.nes",
+		"09.reset_timing.nes",
+		"10.len_halt_timing.nes",
+		"11.len_reload_timing.nes",
+	}
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(tests.RomsPath(t), "blargg_apu_2005.07.30", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
 func TestTimingVBlankNMI(t *testing.T) {
 	if !testing.Verbose() {
 		log.SetOutput(io.Discard)
@@ -428,6 +455,8 @@ func TestTimingVBlankNMI(t *testing.T) {
 }
 
 func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame int64) {
+	t.Parallel()
+
 	rom, err := ines.ReadRom(romPath)
 	if err != nil {
 		t.Fatal(err)
