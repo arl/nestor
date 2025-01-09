@@ -111,8 +111,8 @@ func TestBlarggRoms(t *testing.T) {
 		"cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
 
 		"cpu_interrupts_v2/rom_singles/1-cli_latency.nes",
-		// "cpu_interrupts_v2/rom_singles/2-nmi_and_brk.nes",
-		// "cpu_interrupts_v2/rom_singles/3-nmi_and_irq.nes",
+		"cpu_interrupts_v2/rom_singles/2-nmi_and_brk.nes",
+		"cpu_interrupts_v2/rom_singles/3-nmi_and_irq.nes",
 		"cpu_interrupts_v2/rom_singles/4-irq_and_dma.nes",
 		"cpu_interrupts_v2/rom_singles/5-branch_delays_irq.nes",
 

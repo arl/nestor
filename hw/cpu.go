@@ -444,26 +444,19 @@ func BRK(cpu *CPU) {
 }
 
 func (c *CPU) IRQ() {
-	c.Read8(c.PC) // dummy reads
-	c.Read8(c.PC)
-
 	prevpc := c.PC
+	c.Read8(c.PC) // dummy read
+	c.Read8(c.PC) // dummy read
 	c.push16(c.PC)
 
 	if c.needNmi {
 		c.needNmi = false
-		p := c.P
-		p.setFlags(Break)
-		c.push8(uint8(p))
-
+		c.push8(uint8(c.P) | Reserved)
 		c.P.setFlags(Interrupt)
 		c.PC = c.Read16(nmiVector)
 		c.dbg.Interrupt(prevpc, c.PC, true)
 	} else {
-		p := c.P
-		p.setFlags(Reserved)
-		c.push8(uint8(p))
-
+		c.push8(uint8(c.P) | Reserved)
 		c.P.setFlags(Interrupt)
 		c.PC = c.Read16(irqVector)
 		c.dbg.Interrupt(prevpc, c.PC, false)
