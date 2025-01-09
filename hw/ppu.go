@@ -535,7 +535,7 @@ func (p *PPU) Peek8(addr uint16) uint8 {
 		tmp.setSpriteOverflow(p.PPUSTATUS.spriteOverflow())
 		tmp.setSpriteHit(p.PPUSTATUS.spriteHit())
 		tmp.setVblank(p.PPUSTATUS.vblank())
-		if p.Scanline == int(vblankNMI) && p.Cycle < 4 {
+		if p.Scanline == 241 && p.Cycle < 4 {
 			tmp.setVblank(false)
 		}
 		openBusMask = 0x1F
