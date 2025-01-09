@@ -116,6 +116,8 @@ func TestBlarggRoms(t *testing.T) {
 		"cpu_interrupts_v2/rom_singles/4-irq_and_dma.nes",
 		"cpu_interrupts_v2/rom_singles/5-branch_delays_irq.nes",
 
+		"cpu_exec_space/test_cpu_exec_space_ppuio.nes",
+
 		"cpu_reset/ram_after_reset.nes",
 		"cpu_reset/registers.nes",
 
