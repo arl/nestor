@@ -5,10 +5,10 @@ import (
 )
 
 var CNROM = MapperDesc{
-	Name:           "CNROM",
-	Load:           loadCNROM,
-	PRGROMpagesize: 0x8000,
-	CHRROMpagesize: 0x2000,
+	Name:         "CNROM",
+	Load:         loadCNROM,
+	PRGROMbanksz: 0x8000,
+	CHRROMbanksz: 0x2000,
 }
 
 type cnrom struct {
@@ -16,12 +16,11 @@ type cnrom struct {
 
 	// switchable CHRROM bank
 	PRGROM  hwio.Device
-	chrPage uint32
+	chrbank uint32
 }
 
 func (m *cnrom) ReadPRGROM(addr uint16) uint8 {
-	addr &= 0x7FFF                        // max PRGROM size is 32KB
-	addr &= uint16(len(m.rom.PRGROM) - 1) // PRGROM mirrors
+	addr &= uint16(m.desc.PRGROMbanksz - 1) // max PRGROM size is 32KB
 	return m.rom.PRGROM[addr]
 }
 
@@ -34,13 +33,13 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 	// |||| ||||
 	// ++++-++++- Select 8 KB CHR ROM bank for PPU $0000-$1FFF
 	// CNROM only uses loweest 2 bits
-	prev := m.chrPage
-	m.chrPage = uint32(val & 0b11)
-	if prev != m.chrPage {
-		copyCHRROM(m.ppu, m.rom, m.chrPage)
+	prev := m.chrbank
+	m.chrbank = uint32(val & 0b11)
+	if prev != m.chrbank {
+		copyCHRROM(m.ppu, m.rom, m.chrbank)
 		modMapper.InfoZ("CHRROM bank switch").
 			Uint32("prev", prev).
-			Uint32("new", m.chrPage).
+			Uint32("new", m.chrbank).
 			End()
 	}
 }

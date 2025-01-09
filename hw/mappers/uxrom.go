@@ -5,10 +5,10 @@ import (
 )
 
 var UxROM = MapperDesc{
-	Name:           "UxROM",
-	Load:           loadUxROM,
-	PRGROMpagesize: 0x4000,
-	CHRROMpagesize: 0x2000,
+	Name:         "UxROM",
+	Load:         loadUxROM,
+	PRGROMbanksz: 0x4000,
+	CHRROMbanksz: 0x2000,
 }
 
 type uxrom struct {
@@ -18,15 +18,14 @@ type uxrom struct {
 
 	// switchable PRGROM bank
 	PRGROM  hwio.Device
-	prgPage uint32
+	prgbank uint32
 }
 
 func (m *uxrom) ReadPRGROM(addr uint16) uint8 {
-	banknum := m.prgPage
 	if addr >= 0xC000 {
-		banknum = uint32(m.rom.PRGROMSlots() - 1)
+		m.prgbank = uint32(m.rom.PRGROMSlots() - 1)
 	}
-	romaddr := (banknum * 0x4000) + uint32(addr&0x3FFF)
+	romaddr := (m.prgbank * m.desc.PRGROMbanksz) + uint32(addr)&(m.desc.PRGROMbanksz-1)
 	return m.rom.PRGROM[romaddr]
 }
 
@@ -39,12 +38,12 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	//      ||||
 	//      ++++- Select 16 KB PRG ROM bank for CPU $8000-$BFFF
 	//            (UNROM uses bits 2-0; UOROM uses bits 3-0)
-	prev := m.prgPage
-	m.prgPage = uint32(val & 0b111)
-	if prev != m.prgPage {
+	prev := m.prgbank
+	m.prgbank = uint32(val & 0b111)
+	if prev != m.prgbank {
 		modMapper.DebugZ("PRGROM bank switch").
 			Uint32("prev", prev).
-			Uint32("new", m.prgPage).
+			Uint32("new", m.prgbank).
 			End()
 	}
 }

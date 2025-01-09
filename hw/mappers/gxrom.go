@@ -5,10 +5,10 @@ import (
 )
 
 var GxROM = MapperDesc{
-	Name:           "GxROM",
-	Load:           loadGxROM,
-	PRGROMpagesize: 0x8000,
-	CHRROMpagesize: 0x2000,
+	Name:         "GxROM",
+	Load:         loadGxROM,
+	PRGROMbanksz: 0x8000,
+	CHRROMbanksz: 0x2000,
 }
 
 type gxrom struct {
@@ -16,14 +16,13 @@ type gxrom struct {
 	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
 	PRGROM hwio.Device
 
-	chrPage uint32
-	prgPage uint32
+	chrbank uint32
+	prgbank uint32
 }
 
 func (m *gxrom) ReadPRGROM(addr uint16) uint8 {
-	banknum := m.prgPage
-	addr &= 0x7FFF // max PRGROM size is 32KB
-	romaddr := (banknum * 0x8000) + uint32(addr)
+	addr &= uint16(m.desc.PRGROMbanksz - 1) // limit to max PRGROM size
+	romaddr := (m.prgbank * m.desc.PRGROMbanksz) + uint32(addr)
 	return m.rom.PRGROM[romaddr]
 }
 
@@ -36,22 +35,22 @@ func (m *gxrom) WritePRGROM(addr uint16, val uint8) {
 	//   ||   ||
 	//   ||   ++- Select 8 KB CHR ROM bank for PPU $0000-$1FFF
 	//   ++------ Select 32 KB PRG ROM bank for CPU $8000-$FFFF
-	prevchr := m.chrPage
-	m.chrPage = uint32(val & 0x3)
-	if prevchr != m.chrPage {
-		copyCHRROM(m.ppu, m.rom, m.chrPage)
+	prevchr := m.chrbank
+	m.chrbank = uint32(val & 0x3)
+	if prevchr != m.chrbank {
+		copyCHRROM(m.ppu, m.rom, m.chrbank)
 		modMapper.DebugZ("CHRROM bank switch").
 			Uint32("prev", prevchr).
-			Uint32("new", m.chrPage).
+			Uint32("new", m.chrbank).
 			End()
 	}
 
-	prevprg := m.prgPage
-	m.prgPage = uint32((val >> 4) & 0x3)
-	if prevprg != m.prgPage {
+	prevprg := m.prgbank
+	m.prgbank = uint32((val >> 4) & 0x3)
+	if prevprg != m.prgbank {
 		modMapper.DebugZ("PRGROM bank switch").
 			Uint32("prev", prevprg).
-			Uint32("new", m.prgPage).
+			Uint32("new", m.prgbank).
 			End()
 	}
 }
