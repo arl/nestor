@@ -132,6 +132,8 @@ type Mirroring int
 const (
 	HorzMirroring Mirroring = iota
 	VertMirroring
+	OnlyAScreen
+	OnlyBScreen
 )
 
 func (m Mirroring) String() string {
@@ -140,6 +142,10 @@ func (m Mirroring) String() string {
 		return "horizontal"
 	case VertMirroring:
 		return "vertical"
+	case OnlyAScreen:
+		return "onlyA"
+	case OnlyBScreen:
+		return "onlyB"
 	}
 	return "unknown"
 }

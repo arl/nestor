@@ -36,5 +36,6 @@ var All = map[uint16]MapperDesc{
 	0:  NROM,
 	2:  UxROM,
 	3:  CNROM,
+	7:  AxROM,
 	66: GxROM,
 }

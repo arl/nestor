@@ -20,7 +20,7 @@ type cnrom struct {
 }
 
 func (m *cnrom) ReadPRGROM(addr uint16) uint8 {
-	addr &= uint16(m.desc.PRGROMbanksz - 1) // max PRGROM size is 32KB
+	addr &= uint16(m.desc.PRGROMbanksz - 1) // limit to max PRGROM size
 	return m.rom.PRGROM[addr]
 }
 
@@ -60,7 +60,7 @@ func loadCNROM(b *base) error {
 	b.cpu.Bus.MapDevice(0x8000, &cnrom.PRGROM)
 
 	// PPU mapping.
-	b.setNametableMirroring()
+	b.setNametableMirroring(b.rom.Mirroring())
 	copyCHRROM(b.ppu, b.rom, 0)
 	return nil
 

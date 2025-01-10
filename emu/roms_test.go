@@ -152,6 +152,8 @@ func TestBlarggRoms(t *testing.T) {
 
 		"ppu_open_bus/ppu_open_bus.nes",
 
+		// "ppu_read_buffer/test_ppu_read_buffer.nes", // fails at test #72
+
 		"sprdma_and_dmc_dma/sprdma_and_dmc_dma.nes",
 		"sprdma_and_dmc_dma/sprdma_and_dmc_dma_512.nes",
 	}
