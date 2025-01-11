@@ -61,7 +61,7 @@ func (b *base) setNametables(ntidx0, ntidx1, ntidx2, ntidx3 uint16) {
 }
 
 func (b *base) setNametableMirroring(m ines.NTMirroring) {
-	// b.cpu.Bus.Unmap(0x2000, 0x3EFF)
+	b.ppu.Bus.Unmap(0x2000, 0x3EFF)
 	A := b.ppu.Nametables[:0x400]
 	B := b.ppu.Nametables[0x400:0x800]
 

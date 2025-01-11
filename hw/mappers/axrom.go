@@ -50,8 +50,8 @@ func (m *axrom) WritePRGROM(addr uint16, val uint8) {
 		m.ntm = ines.OnlyAScreen
 	}
 	if prevntm != m.ntm {
-		modMapper.DebugZ("PRGROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prev).Uint32("new", m.prgbank).End()
 		m.setNametableMirroring(m.ntm)
+		modMapper.DebugZ("select NT mirroring").String("mapper", m.desc.Name).Stringer("prev", prevntm).Stringer("new", m.ntm).End()
 	}
 }
 
