@@ -369,12 +369,13 @@ func clearFlags(flags ...cpuFlag) {
 	printf(`cpu.P.clearFlags(%s)`, strings.Join(flagstr, "|"))
 }
 
-func hasFlag(f cpuFlag) string {
-	return fmt.Sprintf(`cpu.P.hasFlag(%s)`, f)
-}
-
 func If(format string, args ...any) block {
 	printf(`if %s {`, fmt.Sprintf(format, args...))
+	return block{}
+}
+
+func IfFlag(f cpuFlag) block {
+	printf(`if cpu.P.hasFlag(%s) {`, f)
 	return block{}
 }
 
@@ -492,7 +493,7 @@ func ALR() {
 func ANC() {
 	AND()
 	clearFlags(Carry)
-	If(hasFlag(Negative)).
+	IfFlag(Negative).
 		setFlags(Carry).
 		End()
 }
@@ -511,7 +512,7 @@ func ARR() {
 	If(`(cpu.A>>6)^(cpu.A>>5)&0x01 != 0`).
 		setFlags(Overflow).
 		End()
-	If(hasFlag(Carry)).
+	IfFlag(Carry).
 		printf(`cpu.A |= 1 << 7`).
 		End()
 
@@ -665,7 +666,7 @@ func ROL() {
 	printf(`carry := val & 0x80`)
 	printf(`val <<= 1`)
 
-	If(hasFlag(Carry)).
+	IfFlag(Carry).
 		printf(`val |= 1 << 0`).
 		End()
 
@@ -686,7 +687,7 @@ func ROR() {
 	printf(`carry := val & 0x01`)
 	printf(`val >>= 1`)
 
-	If(hasFlag(Carry)).
+	IfFlag(Carry).
 		printf(`val |= 1 << 7`).
 		End()
 
@@ -874,7 +875,7 @@ func opcodesTable() {
 	}
 	printf(`// nes 6502 opcodes table`)
 	printf(`var ops = [256]func(*CPU){`)
-	printf(bb.String())
+	printf("%s", bb.String())
 	printf(`}`)
 	printf(``)
 }
@@ -892,7 +893,7 @@ func disasmTable() {
 	}
 	printf(`// nes 6502 opcodes disassembly table`)
 	printf(`var disasmOps = [256]func(*CPU, uint16) DisasmOp {`)
-	printf(bb.String())
+	printf("%s", bb.String())
 	printf(`}`)
 	printf(``)
 }
