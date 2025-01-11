@@ -5,10 +5,11 @@ import (
 )
 
 var CNROM = MapperDesc{
-	Name:         "CNROM",
-	Load:         loadCNROM,
-	PRGROMbanksz: 0x8000,
-	CHRROMbanksz: 0x2000,
+	Name:            "CNROM",
+	Load:            loadCNROM,
+	PRGROMbanksz:    0x8000,
+	CHRROMbanksz:    0x2000,
+	HasBusConflicts: func(b *base) bool { return b.rom.SubMapper() == 2 },
 }
 
 type cnrom struct {
@@ -25,7 +26,9 @@ func (m *cnrom) ReadPRGROM(addr uint16) uint8 {
 }
 
 func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
-	// Switch bank.
+	if m.hasBusConflicts {
+		val &= m.ReadPRGROM(addr)
+	}
 
 	// 7  bit  0
 	// ---- ----
@@ -41,7 +44,6 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 	}
 }
 
-// TODO: bus conflicts
 func loadCNROM(b *base) error {
 	cnrom := &cnrom{base: b}
 	hwio.MustInitRegs(cnrom)
@@ -59,8 +61,8 @@ func loadCNROM(b *base) error {
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
 	copyCHRROM(b.ppu, b.rom, 0)
+
 	return nil
 
-	// TODO: load and map PRG-RAM if present in cartridge.
 	// TODO: load and map CHR-RAM if present in cartridge.
 }

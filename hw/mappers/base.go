@@ -14,6 +14,8 @@ type base struct {
 
 	nametables [0x800]byte
 
+	hasBusConflicts bool
+
 	desc MapperDesc
 }
 
@@ -26,7 +28,13 @@ func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, e
 		return nil, fmt.Errorf("only support PRGROM with power of 2 size, got %d", len(rom.PRGROM))
 	}
 
-	return &base{desc: desc, rom: rom, cpu: cpu, ppu: ppu}, nil
+	return &base{
+		desc:            desc,
+		rom:             rom,
+		cpu:             cpu,
+		ppu:             ppu,
+		hasBusConflicts: desc.HasBusConflicts != nil && desc.HasBusConflicts(&base{rom: rom}),
+	}, nil
 }
 
 func (b *base) load() error {

@@ -26,10 +26,11 @@ func Load(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
 }
 
 type MapperDesc struct {
-	Name         string
-	Load         func(*base) error
-	PRGROMbanksz uint32
-	CHRROMbanksz uint32
+	Name            string
+	Load            func(*base) error
+	PRGROMbanksz    uint32
+	CHRROMbanksz    uint32
+	HasBusConflicts func(*base) bool
 }
 
 var All = map[uint16]MapperDesc{

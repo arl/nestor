@@ -475,6 +475,44 @@ func TestUxROMSubmappers(t *testing.T) {
 	}
 }
 
+func TestAxROMSubmappers(t *testing.T) {
+	const frameidx = 60
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"7_test_0.nes",
+		"7_test_1.nes",
+		"7_test_2.nes",
+	}
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join("..", "tests", "mapper7", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
+func TestCNROMSubmappers(t *testing.T) {
+	const frameidx = 60
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"3_test_0.nes",
+		"3_test_1.nes",
+		"3_test_2.nes",
+	}
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join("..", "tests", "mapper3", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
 func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame int64) {
 	t.Parallel()
 

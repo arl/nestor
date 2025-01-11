@@ -6,9 +6,10 @@ import (
 )
 
 var AxROM = MapperDesc{
-	Name:         "AxROM",
-	Load:         loadAxROM,
-	PRGROMbanksz: 0x8000,
+	Name:            "AxROM",
+	Load:            loadAxROM,
+	PRGROMbanksz:    0x8000,
+	HasBusConflicts: func(b *base) bool { return b.rom.SubMapper() == 2 },
 }
 
 type axrom struct {
@@ -29,7 +30,9 @@ func (m *axrom) ReadPRGROM(addr uint16) uint8 {
 }
 
 func (m *axrom) WritePRGROM(addr uint16, val uint8) {
-	// Switch bank.
+	if m.hasBusConflicts {
+		val &= m.ReadPRGROM(addr)
+	}
 
 	// 7  bit  0
 	// ---- ----

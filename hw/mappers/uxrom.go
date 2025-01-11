@@ -5,10 +5,11 @@ import (
 )
 
 var UxROM = MapperDesc{
-	Name:         "UxROM",
-	Load:         loadUxROM,
-	PRGROMbanksz: 0x4000,
-	CHRROMbanksz: 0x2000,
+	Name:            "UxROM",
+	Load:            loadUxROM,
+	PRGROMbanksz:    0x4000,
+	CHRROMbanksz:    0x2000,
+	HasBusConflicts: func(b *base) bool { return b.rom.SubMapper() == 2 },
 }
 
 type uxrom struct {
@@ -37,8 +38,6 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	if m.hasBusConflicts {
 		val &= m.ReadPRGROM(addr)
 	}
-
-	// Switch bank.
 
 	// 7  bit  0
 	// ---- ----

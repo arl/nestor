@@ -27,8 +27,6 @@ func (m *gxrom) ReadPRGROM(addr uint16) uint8 {
 }
 
 func (m *gxrom) WritePRGROM(addr uint16, val uint8) {
-	// Switch bank.
-
 	// 7  bit  0
 	// ---- ----
 	// xxPP xxCC
