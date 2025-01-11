@@ -19,6 +19,7 @@ type axrom struct {
 	// switchable PRGROM bank
 	PRGROM  hwio.Device
 	prgbank uint32
+	ntm     ines.NTMirroring
 }
 
 func (m *axrom) ReadPRGROM(addr uint16) uint8 {
@@ -37,19 +38,20 @@ func (m *axrom) WritePRGROM(addr uint16, val uint8) {
 	//    |  +++- Select 32 KB PRG ROM bank for CPU $8000-$FFFF
 	//    +------ Select 1 KB VRAM page for all 4 nametables
 	prev := m.prgbank
-	m.prgbank = uint32(val & 0x3)
-
-	if val&0x10 == 0x10 {
-		m.setNametableMirroring(ines.OnlyBScreen)
-	} else {
-		m.setNametableMirroring(ines.OnlyAScreen)
+	m.prgbank = uint32(val & 0x7)
+	if prev != m.prgbank {
+		modMapper.DebugZ("PRGROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prev).Uint32("new", m.prgbank).End()
 	}
 
-	if prev != m.prgbank {
-		modMapper.DebugZ("PRGROM bank switch").
-			Uint32("prev", prev).
-			Uint32("new", m.prgbank).
-			End()
+	prevntm := m.ntm
+	if val&0x10 == 0x10 {
+		m.ntm = ines.OnlyBScreen
+	} else {
+		m.ntm = ines.OnlyAScreen
+	}
+	if prevntm != m.ntm {
+		modMapper.DebugZ("PRGROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prev).Uint32("new", m.prgbank).End()
+		m.setNametableMirroring(m.ntm)
 	}
 }
 
