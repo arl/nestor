@@ -128,6 +128,8 @@ func (t *Table) UnmapBank(addr uint16, bank any, bankNum int) {
 			t.Unmap(addr+reg.offset, addr+reg.offset+uint16(r.VSize)-1)
 		case *Reg8:
 			t.Unmap(addr+reg.offset, addr+reg.offset+0)
+		case *Device:
+			t.Unmap(addr+reg.offset, addr+reg.offset+uint16(r.Size)-1)
 		default:
 			panic(fmt.Errorf("invalid reg type: %T", r))
 		}

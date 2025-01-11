@@ -15,15 +15,27 @@ func (ob *openbus) Peek8(addr uint16) uint8       { return 0xD4 }
 func (ob *openbus) Write8(addr uint16, val uint8) {}
 
 type testTable struct {
-	t          testing.TB
-	Bus        *hwio.Table
-	RAM        hwio.Mem    `hwio:"bank=0,offset=0x0,size=0x800,vsize=0x2000"`
-	Reg1       hwio.Reg8   `hwio:"bank=1,offset=0x1,rwmask=0xF0,rcb,reset=0x99"`
-	Reg2       hwio.Reg8   `hwio:"bank=1,offset=0x2,rwmask=0xF0,readonly,pcb=PeekReg2"`
+	t   testing.TB
+	Bus *hwio.Table
+
+	// mapped to $0000-$07FF, mirrored at $0800-$0FFF
+	RAM hwio.Mem `hwio:"bank=0,offset=0x0,size=0x800,vsize=0x2000"`
+
+	// $2000
+	Reg0 hwio.Reg8 `hwio:"bank=1,offset=0x0,reset=0x77"`
+	// $2001
+	Reg1 hwio.Reg8 `hwio:"bank=1,offset=0x1,rwmask=0xF0,rcb,reset=0x99"`
+	// $2002
+	Reg2 hwio.Reg8 `hwio:"bank=1,offset=0x2,rwmask=0xF0,readonly,pcb=PeekReg2"`
+
+	// $4000-$40FF
 	DefaultDev hwio.Device `hwio:"bank=2,offset=0x0,size=0x100"`
-	DEV        hwio.Device `hwio:"bank=2,offset=0x100,size=0x100,rcb,wcb"` // no peek-callback
-	RoDEV      hwio.Device `hwio:"bank=2,offset=0x200,size=0x100,rcb,pcb,readonly"`
-	WoDEV      hwio.Device `hwio:"bank=2,offset=0x300,size=0x100,wcb,writeonly"` // no peek-callback
+	// $4100-$41FF
+	DEV hwio.Device `hwio:"bank=2,offset=0x100,size=0x100,rcb,wcb"` // no peek-callback
+	// $4200-$42FF
+	RoDEV hwio.Device `hwio:"bank=2,offset=0x200,size=0x100,rcb,pcb,readonly"`
+	// $4300-$43FF
+	WoDEV hwio.Device `hwio:"bank=2,offset=0x300,size=0x100,wcb,writeonly"` // no peek-callback
 
 	devval uint8
 }
@@ -127,13 +139,13 @@ func TestTableMapMemorySlice(t *testing.T) {
 	tbl.wantRead8(0x3200, 0xd3) // unmapped
 }
 
-func TestTableDevice(t *testing.T) {
+func TestTableMapDevice(t *testing.T) {
 	tbl := newTestTable(t)
 
 	// MapDevice
+	tbl.Write8(0x4000, 0xff)
 	tbl.wantRead8(0x4000, 0x00)
 	tbl.wantPeek8(0x4000, 0x00)
-	tbl.Write8(0x4000, 0xff)
 
 	tbl.wantRead8(0x4100, 0xe1)
 	tbl.wantPeek8(0x4100, 0x00)
@@ -155,4 +167,73 @@ func TestTableDevice(t *testing.T) {
 	if tbl.devval != 0x50 {
 		t.Errorf("devval = %02X, want 0x27", tbl.devval)
 	}
+}
+
+func TestUnmapBank(t *testing.T) {
+	t.Run("hwio.Mem", func(t *testing.T) {
+		tbl := newTestTable(t)
+
+		tbl.Write8(40, 0x12)
+		tbl.Bus.UnmapBank(0x0000, tbl, 0)
+		tbl.wantRead8(0x40, 0xd3) // openbus
+		tbl.wantPeek8(0x40, 0xd4) // openbus
+	})
+	t.Run("hwio.Reg8", func(t *testing.T) {
+		tbl := newTestTable(t)
+
+		tbl.wantRead8(0x2001, 0x9a)
+		tbl.Write8(0x2001, 0xff)
+		tbl.Bus.UnmapBank(0x2000, tbl, 1)
+		tbl.wantRead8(0x2001, 0xd3) // openbus
+		tbl.wantPeek8(0x2001, 0xd4) // openbus
+	})
+	t.Run("hwio.Device", func(t *testing.T) {
+		tbl := newTestTable(t)
+
+		tbl.wantRead8(0x417F, 0xE1)
+		tbl.Bus.UnmapBank(0x4000, tbl, 2)
+		tbl.wantRead8(0x417F, 0xd3) // openbus
+		tbl.wantPeek8(0x417F, 0xd4) // openbus
+	})
+}
+
+func TestUnmap(t *testing.T) {
+	t.Run("partial ", func(t *testing.T) {
+		tbl := newTestTable(t)
+
+		tbl.Write8(0x40, 0x12)
+		tbl.wantRead8(0x40, 0x12)
+		tbl.Bus.Unmap(0x0000, 0x003F)
+		tbl.wantRead8(0x00, 0xd3) // openbus
+		tbl.wantPeek8(0x40, 0xd4) // openbus
+	})
+	t.Run("full", func(t *testing.T) {
+		tbl := newTestTable(t)
+
+		tbl.Write8(0x40, 0x12)
+		tbl.wantRead8(0x40, 0x12)
+		tbl.Bus.Unmap(0x0000, 0x1FFF)
+		tbl.wantRead8(0x2000, 0x77)
+		tbl.wantPeek8(0x2000, 0x77)
+	})
+	t.Run("overshoot", func(t *testing.T) {
+		tbl := newTestTable(t)
+
+		tbl.Write8(0x40, 0x12)
+		tbl.wantRead8(0x40, 0x12)
+		tbl.Bus.Unmap(0x0000, 0x2000) // overshoot bank0 end
+		tbl.wantRead8(0x2000, 0xD3)   // openbus
+		tbl.wantPeek8(0x2000, 0xD4)
+	})
+	t.Run("multiple", func(t *testing.T) {
+		tbl := newTestTable(t)
+
+		tbl.Bus.Unmap(0x4001, 0x42FF) // unmap 3 devices
+		tbl.wantRead8(0x4002, 0xD3)   // openbus
+		tbl.wantPeek8(0x4003, 0xD4)
+		tbl.wantRead8(0x4004, 0xD3) // openbus
+		tbl.wantPeek8(0x4005, 0xD4)
+		tbl.wantRead8(0x4006, 0xD3) // openbus
+		tbl.wantPeek8(0x4007, 0xD4)
+	})
 }
