@@ -38,7 +38,7 @@ func loadNROM(b *base) error {
 	b.cpu.Bus.MapBank(0x0000, nrom, 0)
 
 	// PPU mapping.
-	b.setNametableMirroring(b.rom.Mirroring())
+	b.setNTMirroring(b.rom.Mirroring())
 	copy(b.ppu.PatternTables.Data, b.rom.CHRROM)
 	return nil
 

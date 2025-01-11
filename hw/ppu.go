@@ -19,7 +19,7 @@ type PPU struct {
 	// The PPU addresses a 14-bit (16kB) address space, $0000-$3FFF, completely
 	// separate from the CPU's address bus. It is either directly accessed by
 	// the PPU itself, or via the CPU with memory mapped registers at $2006 and
-	// $2007
+	// $2007.
 	Bus *hwio.Table
 	CPU *CPU
 
@@ -28,7 +28,6 @@ type PPU struct {
 	Scanline    int    // Current scanline being drawn
 	frameCount  uint32 // Current frame
 
-	Nametables    [0x800]byte
 	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000,wcb"`
 
 	// $3F00-$3F1F	$0020	Palette RAM indexes
@@ -84,7 +83,7 @@ func NewPPU() *PPU {
 }
 
 func (p *PPU) SetFrameBuffer(framebuf []byte) {
-	// we're using a RGBA8 framebuffer.
+	// We're using a RGBA8 framebuffer.
 	p.framebuf = unsafe.Slice((*uint32)(unsafe.Pointer(&framebuf[0])), len(framebuf)/4)
 }
 
@@ -99,10 +98,6 @@ func (p *PPU) Reset() {
 	p.PPUSTATUS = 0
 	p.oddFrame = false
 	p.preventVblank = false
-
-	for i := range p.Nametables {
-		p.Nametables[i] = 0xff
-	}
 
 	for i := range p.oamMem {
 		p.oamMem[i] = 0x00

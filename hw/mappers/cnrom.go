@@ -57,7 +57,7 @@ func loadCNROM(b *base) error {
 	b.cpu.Bus.MapDevice(0x8000, &cnrom.PRGROM)
 
 	// PPU mapping.
-	b.setNametableMirroring(b.rom.Mirroring())
+	b.setNTMirroring(b.rom.Mirroring())
 	copyCHRROM(b.ppu, b.rom, 0)
 	return nil
 
