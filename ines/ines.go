@@ -127,30 +127,20 @@ func (hdr *header) IsNES20() bool {
 	return hdr.raw[7]&0x0c == 0x08
 }
 
-type Mirroring int
+// NTMirroring describes the layout of the NES 2x2 background nametable
+// graphics.
+type NTMirroring int
+
+//go:generate go run golang.org/x/tools/cmd/stringer -type=NTMirroring
 
 const (
-	HorzMirroring Mirroring = iota
+	HorzMirroring NTMirroring = 1 + iota
 	VertMirroring
 	OnlyAScreen
 	OnlyBScreen
 )
 
-func (m Mirroring) String() string {
-	switch m {
-	case HorzMirroring:
-		return "horizontal"
-	case VertMirroring:
-		return "vertical"
-	case OnlyAScreen:
-		return "onlyA"
-	case OnlyBScreen:
-		return "onlyB"
-	}
-	return "unknown"
-}
-
-func (hdr *header) Mirroring() Mirroring {
+func (hdr *header) Mirroring() NTMirroring {
 	if hdr.raw[6]&(1<<0) != 0 {
 		return VertMirroring
 	}
