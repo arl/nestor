@@ -19,6 +19,9 @@ type uxrom struct {
 	// switchable PRGROM bank
 	PRGROM  hwio.Device
 	prgbank uint32
+
+	bankmask        uint8
+	hasBusConflicts bool
 }
 
 func (m *uxrom) ReadPRGROM(addr uint16) uint8 {
@@ -31,6 +34,10 @@ func (m *uxrom) ReadPRGROM(addr uint16) uint8 {
 }
 
 func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
+	if m.hasBusConflicts {
+		val &= m.ReadPRGROM(addr)
+	}
+
 	// Switch bank.
 
 	// 7  bit  0
@@ -40,14 +47,18 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	//      ++++- Select 16 KB PRG ROM bank for CPU $8000-$BFFF
 	//            (UNROM uses bits 2-0; UOROM uses bits 3-0)
 	prev := m.prgbank
-	m.prgbank = uint32(val & 0b111)
+	m.prgbank = uint32(val & m.bankmask)
 	if prev != m.prgbank {
 		modMapper.DebugZ("PRGROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prev).Uint32("new", m.prgbank).End()
 	}
 }
 
 func loadUxROM(b *base) error {
-	uxrom := &uxrom{base: b}
+	uxrom := &uxrom{
+		base:            b,
+		hasBusConflicts: b.rom.SubMapper() == 2,
+		bankmask:        uint8(len(b.rom.PRGROM)>>14) - 1,
+	}
 	hwio.MustInitRegs(uxrom)
 
 	// CPU mapping.

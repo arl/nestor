@@ -456,6 +456,25 @@ func TestTimingVBlankNMI(t *testing.T) {
 	}
 }
 
+func TestUxROMSubmappers(t *testing.T) {
+	const frameidx = 60
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"2_test_0.nes",
+		"2_test_1.nes",
+		"2_test_2.nes",
+	}
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join("..", "tests", "mapper2", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
 func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame int64) {
 	t.Parallel()
 
