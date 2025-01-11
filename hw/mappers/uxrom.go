@@ -41,10 +41,7 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	prev := m.prgbank
 	m.prgbank = uint32(val & 0b111)
 	if prev != m.prgbank {
-		modMapper.DebugZ("PRGROM bank switch").
-			Uint32("prev", prev).
-			Uint32("new", m.prgbank).
-			End()
+		modMapper.DebugZ("PRGROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prev).Uint32("new", m.prgbank).End()
 	}
 }
 

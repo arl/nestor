@@ -39,19 +39,13 @@ func (m *gxrom) WritePRGROM(addr uint16, val uint8) {
 	m.chrbank = uint32(val & 0x3)
 	if prevchr != m.chrbank {
 		copyCHRROM(m.ppu, m.rom, m.chrbank)
-		modMapper.DebugZ("CHRROM bank switch").
-			Uint32("prev", prevchr).
-			Uint32("new", m.chrbank).
-			End()
+		modMapper.DebugZ("CHRROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prevchr).Uint32("new", m.chrbank).End()
 	}
 
 	prevprg := m.prgbank
 	m.prgbank = uint32((val >> 4) & 0x3)
 	if prevprg != m.prgbank {
-		modMapper.DebugZ("PRGROM bank switch").
-			Uint32("prev", prevprg).
-			Uint32("new", m.prgbank).
-			End()
+		modMapper.DebugZ("PRGROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prevprg).Uint32("new", m.prgbank).End()
 	}
 }
 

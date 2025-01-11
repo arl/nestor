@@ -32,15 +32,12 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 	// cccc ccCC
 	// |||| ||||
 	// ++++-++++- Select 8 KB CHR ROM bank for PPU $0000-$1FFF
-	// CNROM only uses loweest 2 bits
+	// CNROM only uses lowest 2 bits
 	prev := m.chrbank
 	m.chrbank = uint32(val & 0b11)
 	if prev != m.chrbank {
 		copyCHRROM(m.ppu, m.rom, m.chrbank)
-		modMapper.InfoZ("CHRROM bank switch").
-			Uint32("prev", prev).
-			Uint32("new", m.chrbank).
-			End()
+		modMapper.InfoZ("CHRROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prev).Uint32("new", m.chrbank).End()
 	}
 }
 
