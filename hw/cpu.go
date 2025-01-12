@@ -510,6 +510,43 @@ func (cpu *CPU) add(val uint8) {
 	cpu.P.setNZ(cpu.A)
 }
 
+func (cpu *CPU) sh(baseaddr uint16, idxreg, valreg uint8) {
+	// See thread/test rom: https://forums.nesdev.org/viewtopic.php?p=297765
+	crossed := pageCrossed(baseaddr, idxreg)
+
+	// Dummy read
+	cyc := cpu.Cycles
+	addr := baseaddr + uint16(idxreg)
+	if crossed {
+		addr -= 0x100
+	}
+	cpu.Read8(addr)
+
+	hadDma := false
+	if cpu.Cycles-cyc > 1 {
+		// Dummy read took more than 1 cycle, so it was interrupted by a DMA.
+		hadDma = true
+	}
+
+	operand := baseaddr + uint16(idxreg)
+	hi := operand >> 8
+	lo := operand & 0xFF
+	if crossed {
+		// When a page is crossed, the address written to is ANDed with the
+		// register.
+		hi &= uint16(valreg)
+	}
+
+	// When a DMA interrupts the instruction right before the dummy read cycle,
+	// the value written is not ANDed with the address msb.
+	val := valreg
+	if !hadDma {
+		val &= uint8((baseaddr >> 8) + 1)
+	}
+
+	cpu.Write8((hi<<8)|lo, val)
+}
+
 func pageCrossed(a uint16, b uint8) bool {
 	return ((a + uint16(b)) & 0xff00) != (a & 0xff00)
 }

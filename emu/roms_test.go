@@ -124,7 +124,7 @@ func TestBlarggRoms(t *testing.T) {
 		"instr_misc/rom_singles/01-abs_x_wrap.nes",
 		"instr_misc/rom_singles/02-branch_wrap.nes",
 		"instr_misc/rom_singles/03-dummy_reads.nes",
-		// "instr_misc/rom_singles/04-dummy_reads_apu.nes", // uses unofficial 0x9C (SHY)
+		"instr_misc/rom_singles/04-dummy_reads_apu.nes",
 
 		"instr_test-v5/rom_singles/01-basics.nes",
 		"instr_test-v5/rom_singles/02-implied.nes",
@@ -132,7 +132,7 @@ func TestBlarggRoms(t *testing.T) {
 		"instr_test-v5/rom_singles/04-zero_page.nes",
 		"instr_test-v5/rom_singles/05-zp_xy.nes",
 		"instr_test-v5/rom_singles/06-absolute.nes",
-		// "instr_test-v5/rom_singles/07-abs_xy.nes",// uses unofficial 0x9C (SHY)
+		"instr_test-v5/rom_singles/07-abs_xy.nes",
 		"instr_test-v5/rom_singles/08-ind_x.nes",
 		"instr_test-v5/rom_singles/09-ind_y.nes",
 		"instr_test-v5/rom_singles/10-branches.nes",
@@ -143,7 +143,7 @@ func TestBlarggRoms(t *testing.T) {
 		"instr_test-v5/rom_singles/15-brk.nes",
 		"instr_test-v5/rom_singles/16-special.nes",
 
-		//"instr_timing/rom_singles/1-instr_timing.nes", // uses unofficial 0x8B (ANE)
+		"instr_timing/rom_singles/1-instr_timing.nes",
 		"instr_timing/rom_singles/2-branch_timing.nes",
 
 		"oam_read/oam_read.nes",
