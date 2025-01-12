@@ -15,13 +15,16 @@ var CNROM = MapperDesc{
 type cnrom struct {
 	*base
 
+	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000,readonly"`
+
 	// switchable CHRROM bank
 	PRGROM  hwio.Device
 	chrbank uint32
 }
 
 func (m *cnrom) ReadPRGROM(addr uint16) uint8 {
-	addr &= uint16(m.desc.PRGROMbanksz - 1) // limit to max PRGROM size
+	addr -= 0x8000
+	addr &= uint16(len(m.rom.PRGROM) - 1)
 	return m.rom.PRGROM[addr]
 }
 
@@ -39,7 +42,7 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 	prev := m.chrbank
 	m.chrbank = uint32(val & 0b11)
 	if prev != m.chrbank {
-		copyCHRROM(m.ppu, m.rom, m.chrbank)
+		copyCHRROM(m.PatternTables.Data, m.rom, m.chrbank)
 		modMapper.InfoZ("CHRROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prev).Uint32("new", m.chrbank).End()
 	}
 }
@@ -47,6 +50,7 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 func loadCNROM(b *base) error {
 	cnrom := &cnrom{base: b}
 	hwio.MustInitRegs(cnrom)
+	b.ppu.Bus.MapBank(0x0000, cnrom, 0)
 
 	// CPU mapping.
 	cnrom.PRGROM = hwio.Device{
@@ -60,7 +64,7 @@ func loadCNROM(b *base) error {
 
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
-	copyCHRROM(b.ppu, b.rom, 0)
+	copyCHRROM(cnrom.PatternTables.Data, b.rom, 0)
 
 	return nil
 

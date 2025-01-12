@@ -28,8 +28,6 @@ type PPU struct {
 	Scanline    int    // Current scanline being drawn
 	frameCount  uint32 // Current frame
 
-	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000,wcb"`
-
 	// $3F00-$3F1F	$0020	Palette RAM indexes
 	// $3F20-$3FFF	$00E0	Mirrors of $3F00-$3F1F
 	Palettes hwio.Mem `hwio:"offset=0x3F00,size=0x20,vsize=0x100,wcb"`
@@ -490,13 +488,6 @@ func emphasis(rgbmask byte, abgr uint32) uint32 {
 	}
 
 	return uint32(r) | uint32(g)<<8 | uint32(b)<<16 | (0xFF << 24)
-}
-
-func (p *PPU) WritePATTERNTABLES(addr uint16, n int) {
-	log.ModPPU.DebugZ("Write to PATTERNTABLES").
-		Hex8("val", p.PatternTables.Data[addr]).
-		Hex16("addr", addr).
-		End()
 }
 
 type ppureg uint16

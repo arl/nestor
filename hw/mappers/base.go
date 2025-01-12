@@ -41,12 +41,12 @@ func (b *base) load() error {
 	return b.desc.Load(b)
 }
 
-func copyCHRROM(ppu *hw.PPU, rom *ines.Rom, bank uint32) {
+func copyCHRROM(dest []byte, rom *ines.Rom, bank uint32) {
 	// Copy CHRROM bank to PPU memory.
 	// CHRROM is 8KB in size
 	start := bank * 0x2000
 	end := start + 0x2000
-	copy(ppu.PatternTables.Data, rom.CHRROM[start:end])
+	copy(dest, rom.CHRROM[start:end])
 }
 
 func (b *base) setNTMirroring(m ines.NTMirroring) {

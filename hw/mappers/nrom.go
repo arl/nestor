@@ -11,8 +11,9 @@ var NROM = MapperDesc{
 
 type nrom struct {
 	*base
-	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
-	PRGROM hwio.Device
+	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000"`
+	PRGRAM        hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
+	PRGROM        hwio.Device
 }
 
 func (m *nrom) ReadPRGROM(addr uint16) uint8 {
@@ -24,6 +25,7 @@ func (m *nrom) ReadPRGROM(addr uint16) uint8 {
 func loadNROM(b *base) error {
 	nrom := &nrom{base: b}
 	hwio.MustInitRegs(nrom)
+	b.ppu.Bus.MapBank(0x0000, nrom, 0)
 
 	// CPU mapping.
 	nrom.PRGROM = hwio.Device{
@@ -39,7 +41,7 @@ func loadNROM(b *base) error {
 
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
-	copy(b.ppu.PatternTables.Data, b.rom.CHRROM)
+	copyCHRROM(nrom.PatternTables.Data, b.rom, 0)
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.

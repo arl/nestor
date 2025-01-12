@@ -15,7 +15,8 @@ var UxROM = MapperDesc{
 type uxrom struct {
 	*base
 
-	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
+	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000"`
+	PRGRAM        hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
 
 	// switchable PRGROM bank
 	PRGROM  hwio.Device
@@ -59,6 +60,7 @@ func loadUxROM(b *base) error {
 		bankmask:        uint8(len(b.rom.PRGROM)>>14) - 1,
 	}
 	hwio.MustInitRegs(uxrom)
+	b.ppu.Bus.MapBank(0x0000, uxrom, 0)
 
 	// CPU mapping.
 	uxrom.PRGROM = hwio.Device{
@@ -72,7 +74,7 @@ func loadUxROM(b *base) error {
 
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
-	copy(b.ppu.PatternTables.Data, b.rom.CHRROM)
+	copyCHRROM(uxrom.PatternTables.Data, b.rom, 0)
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.
