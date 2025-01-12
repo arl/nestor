@@ -9,6 +9,8 @@ import (
 	"testing"
 	"unsafe"
 
+	"golang.org/x/sync/errgroup"
+
 	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/hw/hwio"
@@ -27,12 +29,13 @@ func TestNestest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nes, err := powerUp(rom)
+	flog, err := os.CreateTemp("", "nestor.nestest.*.log")
 	if err != nil {
 		t.Fatal(err)
 	}
+	println("nestest log:", flog.Name())
 
-	flog, err := os.CreateTemp("", "nestor.nestest.*.log")
+	nes, err := powerUp(rom)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,13 +108,15 @@ func TestBlarggRoms(t *testing.T) {
 		"apu_test/rom_singles/8-dmc_rates.nes",
 
 		"cpu_dummy_writes/cpu_dummy_writes_oam.nes",
-		// "cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
+		"cpu_dummy_writes/cpu_dummy_writes_ppumem.nes",
 
 		"cpu_interrupts_v2/rom_singles/1-cli_latency.nes",
-		// "cpu_interrupts_v2/rom_singles/2-nmi_and_brk.nes",
-		// "cpu_interrupts_v2/rom_singles/3-nmi_and_irq.nes",
+		"cpu_interrupts_v2/rom_singles/2-nmi_and_brk.nes",
+		"cpu_interrupts_v2/rom_singles/3-nmi_and_irq.nes",
 		"cpu_interrupts_v2/rom_singles/4-irq_and_dma.nes",
 		"cpu_interrupts_v2/rom_singles/5-branch_delays_irq.nes",
+
+		"cpu_exec_space/test_cpu_exec_space_ppuio.nes",
 
 		"cpu_reset/ram_after_reset.nes",
 		"cpu_reset/registers.nes",
@@ -145,15 +150,26 @@ func TestBlarggRoms(t *testing.T) {
 
 		"oam_stress/oam_stress.nes",
 
+		"ppu_open_bus/ppu_open_bus.nes",
+
+		// "ppu_read_buffer/test_ppu_read_buffer.nes", // fails at test #72
+
 		"sprdma_and_dmc_dma/sprdma_and_dmc_dma.nes",
 		"sprdma_and_dmc_dma/sprdma_and_dmc_dma_512.nes",
 	}
 
+	var g errgroup.Group
+	g.SetLimit(8)
+
 	for _, romName := range tests {
 		// Ensure tests run on all platforms.
 		romPath := filepath.Join(romsDir, filepath.FromSlash(romName))
-		t.Run(romName, runBlarggTestRom(romPath))
+		g.Go(func() error {
+			t.Run(romName, runBlarggTestRom(romPath))
+			return nil
+		})
 	}
+	g.Wait()
 }
 
 func runBlarggTestRom(path string) func(t *testing.T) {
@@ -357,7 +373,7 @@ func TestNametableMirroring(t *testing.T) {
 	}
 	var nts []byte
 	for _, a := range addrs {
-		nts = append(nts, nes.PPU.Bus.Read8(a, false))
+		nts = append(nts, nes.PPU.Bus.Read8(a))
 	}
 
 	if string(nts) != "AABBAABB" {
@@ -381,6 +397,33 @@ func TestBlarggPPUtests(t *testing.T) {
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
 			romPath := filepath.Join(tests.RomsPath(t), "blargg_ppu_tests_2005.09.15b", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
+func TestBlarggAPUtests(t *testing.T) {
+	const frameidx = 25
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"01.len_ctr.nes",
+		"02.len_table.nes",
+		"03.irq_flag.nes",
+		"04.clock_jitter.nes",
+		"05.len_timing_mode0.nes",
+		"06.len_timing_mode1.nes",
+		"07.irq_flag_timing.nes",
+		"08.irq_timing.nes",
+		"09.reset_timing.nes",
+		"10.len_halt_timing.nes",
+		"11.len_reload_timing.nes",
+	}
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join(tests.RomsPath(t), "blargg_apu_2005.07.30", romName)
 			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
@@ -413,7 +456,66 @@ func TestTimingVBlankNMI(t *testing.T) {
 	}
 }
 
+func TestUxROMSubmappers(t *testing.T) {
+	const frameidx = 60
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"2_test_0.nes",
+		"2_test_1.nes",
+		"2_test_2.nes",
+	}
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join("..", "tests", "mapper2", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
+func TestAxROMSubmappers(t *testing.T) {
+	const frameidx = 60
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"7_test_0.nes",
+		"7_test_1.nes",
+		"7_test_2.nes",
+	}
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join("..", "tests", "mapper7", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
+func TestCNROMSubmappers(t *testing.T) {
+	const frameidx = 60
+
+	outdir := filepath.Join("testdata", t.Name())
+	os.Mkdir(outdir, 0755)
+
+	roms := []string{
+		"3_test_0.nes",
+		"3_test_1.nes",
+		"3_test_2.nes",
+	}
+	for _, romName := range roms {
+		t.Run(romName, func(t *testing.T) {
+			romPath := filepath.Join("..", "tests", "mapper3", romName)
+			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+		})
+	}
+}
+
 func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame int64) {
+	t.Parallel()
+
 	rom, err := ines.ReadRom(romPath)
 	if err != nil {
 		t.Fatal(err)

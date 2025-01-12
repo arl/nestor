@@ -11,7 +11,7 @@ type inputStateLoader interface {
 // InputPorts handles I/O with an InputDevice (such as standard NES controller
 // for example).
 type InputPorts struct {
-	In hwio.Reg8 `hwio:"offset=0x16,rcb,wcb"`
+	In hwio.Reg8 `hwio:"offset=0x16,pcb,rcb,wcb"`
 
 	provider           inputStateLoader
 	prevStrobe, strobe bool     // to observe strobe falling edge.
@@ -64,10 +64,11 @@ func (ip *InputPorts) WriteIN(old, val uint8) {
 	}
 }
 
-func (ip *InputPorts) ReadIN(_ uint8, peek bool) uint8 {
-	if peek {
-		return ip.regvalPeek(0)
-	}
+func (ip *InputPorts) PeekIN(_ uint8) uint8 {
+	return ip.regvalPeek(0)
+}
+
+func (ip *InputPorts) ReadIN(_ uint8) uint8 {
 	if ip.strobe {
 		ip.loadstate()
 	}
@@ -75,10 +76,11 @@ func (ip *InputPorts) ReadIN(_ uint8, peek bool) uint8 {
 }
 
 // Out: $4017
-func (ip *InputPorts) ReadOUT(_ uint8, peek bool) uint8 {
-	if peek {
-		return ip.regvalPeek(1)
-	}
+func (ip *InputPorts) PeekOUT(_ uint8) uint8 {
+	return ip.regvalPeek(1)
+}
+
+func (ip *InputPorts) ReadOUT(_ uint8) uint8 {
 	if ip.strobe {
 		ip.loadstate()
 	}

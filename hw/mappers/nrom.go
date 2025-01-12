@@ -1,37 +1,45 @@
 package mappers
 
 import (
-	"nestor/hw"
 	"nestor/hw/hwio"
-	"nestor/ines"
 )
 
-var NROM = hw.MapperDesc{
+var NROM = MapperDesc{
 	Name: "NROM",
 	Load: loadNROM,
 }
 
 type nrom struct {
+	*base
 	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
-	PRGROM hwio.Mem `hwio:"offset=0x8000,vsize=0x8000,readonly"`
+	PRGROM hwio.Device
 }
 
-func loadNROM(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
-	nrom := &nrom{}
+func (m *nrom) ReadPRGROM(addr uint16) uint8 {
+	addr &= 0x7FFF                        // max PRGROM size is 32KB
+	addr &= uint16(len(m.rom.PRGROM) - 1) // PRGROM mirrors
+	return m.rom.PRGROM[addr]
+}
+
+func loadNROM(b *base) error {
+	nrom := &nrom{base: b}
 	hwio.MustInitRegs(nrom)
 
 	// CPU mapping.
+	nrom.PRGROM = hwio.Device{
+		Name:    "PRGROM",
+		Size:    0x8000,
+		ReadCb:  nrom.ReadPRGROM,
+		PeekCb:  nrom.ReadPRGROM,
+		WriteCb: nil, // no bank-switching
+	}
+	b.cpu.Bus.MapDevice(0x8000, &nrom.PRGROM)
 
-	// Dimension the PRGROM based on the length of the cartridge PRGROM.
-	// PRGROM mirrors are taken care of by hwio.Mem 'vsize'.
-	nrom.PRGROM.Data = make([]byte, len(rom.PRGROM))
-	copy(nrom.PRGROM.Data, rom.PRGROM)
-
-	cpu.Bus.MapBank(0x0000, nrom, 0)
+	b.cpu.Bus.MapBank(0x0000, nrom, 0)
 
 	// PPU mapping.
-	hw.SetNTMirroring(ppu, rom.Mirroring())
-	copy(ppu.PatternTables.Data, rom.CHRROM)
+	b.setNTMirroring(b.rom.Mirroring())
+	copy(b.ppu.PatternTables.Data, b.rom.CHRROM)
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.

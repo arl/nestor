@@ -19,7 +19,8 @@ const (
 type CPU struct {
 	Bus *hwio.Table
 
-	RAM hwio.Mem `hwio:"bank=0,offset=0x0,size=0x800,vsize=0x2000"`
+	RAM     hwio.Mem    `hwio:"bank=0,offset=0x0,size=0x800,vsize=0x2000"`
+	PPUMMap hwio.Device `hwio:"bank=0,offset=0x2000,size=0x2000,rcb,pcb,wcb"`
 
 	PPU *PPU // non-nil when there's a PPU.
 	DMA DMA
@@ -81,15 +82,16 @@ func (c *CPU) PlugInputDevice(ip *input.Provider) {
 	c.input.provider = ip
 }
 
+// Forward to PPU memory map handlers.
+func (c *CPU) ReadPPUMMAP(addr uint16) uint8       { return c.PPU.Read8(addr) }
+func (c *CPU) PeekPPUMMAP(addr uint16) uint8       { return c.PPU.Peek8(addr) }
+func (c *CPU) WritePPUMMAP(addr uint16, val uint8) { c.PPU.Write8(addr, val) }
+
 func (c *CPU) InitBus() {
 	hwio.MustInitRegs(c)
-	// CPU internal RAM, mirrored.
-	c.Bus.MapBank(0x0000, c, 0)
 
-	// Map the 8 PPU registers (bank 1) from 0x2000 to 0x3ffF.
-	for off := uint16(0x2000); off < 0x4000; off += 8 {
-		c.Bus.MapBank(off, c.PPU, 1)
-	}
+	// Map CPU internal RAM (mirrored) and memory-mapped PPU registers.
+	c.Bus.MapBank(0x0000, c, 0)
 
 	// Map PPU OAMDMA register.
 	c.DMA.InitBus(c)
@@ -111,6 +113,7 @@ func (c *CPU) InitBus() {
 	hwio.MustInitRegs(&reg4017)
 	c.Bus.MapBank(0x4017, &reg4017, 0)
 	reg4017.Read = c.input.ReadOUT
+	reg4017.Peek = c.input.PeekOUT
 	if c.APU != nil {
 		reg4017.Write = c.APU.frameCounter.WriteFRAMECOUNTER
 	}
@@ -120,13 +123,15 @@ func (c *CPU) InitBus() {
 // - read 0x4017 -> reads controller state (OUT register)
 // - write 0x4017 -> writes to APU frame counter.
 type reg4017 struct {
-	Reg   hwio.Reg8 `hwio:"offset=0,rcb=Read4017,wcb=Write4017"`
+	Reg   hwio.Reg8 `hwio:"offset=0,pcb=Peek4017,rcb=Read4017,wcb=Write4017"`
 	Write func(old, val uint8)
-	Read  func(old uint8, peek bool) uint8
+	Read  func(old uint8) uint8
+	Peek  func(old uint8) uint8
 }
 
-func (r *reg4017) Write4017(old, val uint8)            { r.Write(old, val) }
-func (r *reg4017) Read4017(old uint8, peek bool) uint8 { return r.Read(old, peek) }
+func (r *reg4017) Peek4017(old uint8) uint8 { return r.Peek(old) }
+func (r *reg4017) Read4017(old uint8) uint8 { return r.Read(old) }
+func (r *reg4017) Write4017(old, val uint8) { r.Write(old, val) }
 
 func (c *CPU) Reset(soft bool) {
 	if soft {
@@ -311,15 +316,16 @@ func (c *CPU) fetch16() uint16 {
 func (c *CPU) Read8(addr uint16) uint8 {
 	c.DMA.processPending(addr)
 	c.cycleBegin(true)
-	val := c.Bus.Read8(addr, false)
-	c.cycleEnd(true)
-	return val
+	defer c.cycleEnd(true)
+
+	return c.Bus.Read8(addr)
 }
 
 func (c *CPU) Write8(addr uint16, val uint8) {
 	c.cycleBegin(false)
+	defer c.cycleEnd(false)
+
 	c.Bus.Write8(addr, val)
-	c.cycleEnd(false)
 }
 
 func (c *CPU) Read16(addr uint16) uint16 {
@@ -438,26 +444,19 @@ func BRK(cpu *CPU) {
 }
 
 func (c *CPU) IRQ() {
-	c.Read8(c.PC) // dummy reads
-	c.Read8(c.PC)
-
 	prevpc := c.PC
+	c.Read8(c.PC) // dummy read
+	c.Read8(c.PC) // dummy read
 	c.push16(c.PC)
 
 	if c.needNmi {
 		c.needNmi = false
-		p := c.P
-		p.setFlags(Break)
-		c.push8(uint8(p))
-
+		c.push8(uint8(c.P) | Reserved)
 		c.P.setFlags(Interrupt)
 		c.PC = c.Read16(nmiVector)
 		c.dbg.Interrupt(prevpc, c.PC, true)
 	} else {
-		p := c.P
-		p.setFlags(Reserved)
-		c.push8(uint8(p))
-
+		c.push8(uint8(c.P) | Reserved)
 		c.P.setFlags(Interrupt)
 		c.PC = c.Read16(irqVector)
 		c.dbg.Interrupt(prevpc, c.PC, false)

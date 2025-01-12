@@ -1,6 +1,7 @@
 package emu
 
 import (
+	"bytes"
 	"path/filepath"
 	"testing"
 
@@ -12,23 +13,13 @@ import (
 func checkedRead8(tb testing.TB, bus *hwio.Table, addr uint16, want uint8) {
 	tb.Helper()
 
-	if v := bus.Read8(addr, false); v != want {
+	if v := bus.Read8(addr); v != want {
 		tb.Errorf("%s[0x%04X] should be 0x%02X, got 0x%02X", bus.Name, addr, want, v)
 	}
 }
 
-func firstNonZero(b []byte) int {
-	for i, v := range b {
-		if v != 0 {
-			return i
-		}
-	}
-	return -1
-}
-
 func TestMapper000(t *testing.T) {
 	// Check that mapper 000 correctly maps ROM to the hardware.
-
 	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
 	rom, err := ines.ReadRom(romPath)
 	if err != nil {
@@ -57,7 +48,7 @@ func TestMapper000(t *testing.T) {
 	/* PPU mapping */
 
 	// Check that pattern tables is mapped to CHRROM.
-	idx := firstNonZero(rom.CHRROM)
+	idx := bytes.IndexFunc(rom.CHRROM, func(r rune) bool { return r != 0 })
 	if idx == -1 {
 		panic("rom not adapted to this test")
 	}
@@ -87,17 +78,17 @@ func TestPPURegisterMapping(t *testing.T) {
 	}
 
 	nes.CPU.Bus.Write8(0x2000, 0x27)
-	if nes.PPU.PPUCTRL.Value != 0x27 {
-		t.Errorf("PPUCTRL should be 0x27, got 0x%02X", nes.PPU.PPUCTRL.Value)
+	if nes.PPU.PPUCTRL != 0x27 {
+		t.Errorf("PPUCTRL should be 0x27, got 0x%02X", nes.PPU.PPUCTRL)
 	}
 
-	nes.CPU.Bus.Write8(0x3456, 0x18)
-	if nes.PPU.PPUADDR.Value != 0x18 {
-		t.Errorf("PPUADDR should be 0x18, got 0x%02X", nes.PPU.PPUADDR.Value)
+	nes.CPU.Bus.Write8(0x3001, 0x18)
+	if nes.PPU.PPUMASK != 0x18 {
+		t.Errorf("PPUMASK should be 0x18, got 0x%02X", nes.PPU.PPUMASK)
 	}
 
-	nes.CPU.Bus.Write8(0x3FFF, 0xF5)
-	if nes.PPU.PPUDATA.Value != 0xF5 {
-		t.Errorf("PPUDATA should be 0xF5, got 0x%02X", nes.PPU.PPUDATA.Value)
+	nes.CPU.Bus.Write8(0x3F02, 0xF5) // PPUSTATUS is readonly
+	if nes.PPU.PPUSTATUS != 0x00 {
+		t.Errorf("PPUSTATUS should be 0x00, got 0x%02X", nes.PPU.PPUSTATUS)
 	}
 }

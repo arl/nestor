@@ -61,8 +61,8 @@ func MustInitRegs(data any) {
 	}
 }
 
-// InitRegs initializes the IoRegs stored as fields in a data-structure,
-// allowing easy configuration of values and callbacks.
+// InitRegs initializes the hwio.Reg's stored as fields in a data-structure,
+// allowing for easy and declarative configuration of values and callbacks.
 //
 // It parses the special "hwio" struct tag, that describes how to configure a
 // register. The struct tag can have the following comma-separated options:
@@ -71,36 +71,42 @@ func MustInitRegs(data any) {
 //	                value doesn't go through the read/write mask, so it can
 //	                be used to also initialize read-only bits. If not
 //	                specified, registers initialize to zero.
+//	                (only for Reg8).
 //
 //	rwmask=0xAABB   bitmaks specifying which bits are read-write, i.e. can
 //	                be written. It is common for registers to have read-only
-//	                bits, so this argument allows to specify which bit can
+//	                bits, so this argument allows to specify which bits can
 //	                be written through bus writes. User code can of course
 //	                still modify read-only bits by directly manipulating
-//	                IoReg.Value. If this argument is not specified, all bits
-//	                are writable.
+//	                hwio.Reg.Value. If this argument is not specified, all
+//	                bits are writable.
 //
 //	rcb=ReadFunc    read-callback to be invoked each time the register is
 //	                read. This allows to return bits whose value are computed
-//	                every time the register is accessed. See IoRead32.ReadCb
-//	                for more information. This option can be specified without
-//	                a argument, in which case the default function name is
-//	                composed by the uppercased struct field name, prefixed
-//	                by "Read" (eg: for a field called "Reg1", the default
-//	                read callback name is readREG1).
+//	                every time the register is accessed. This option can be
+//	                specified without any argument, in which case the default
+//	                function name is composed by the uppercased struct field
+//	                name, prefixed by "Read" (eg: for a field called "Reg1",
+//	                the default read callback name is readREG1).
+//	                Read-callback is optional for hwio.Device.
+//
+//	pcb=PeekFunc    peek-callback to be invoked each time the register is
+//	                peeked, this is like a read but without any side effects,
+//	                handy for implementing debugging/tracing.
+//	                Peek-callback is optional for hwio.Device.
 //
 //	wcb=WriteFunc   write-callback to be invoked each time the register is
 //	                written. This allows to perform operations every time the
-//	                register is written. See IoWrite32.WriteCb for more
-//	                information. Similar to rcb, the default argument for
-//	                this option is the uppercased struct field name, prefixed
-//	                by "Write".
+//	                register is written. Similar to rcb, the default argument
+//	                for this option is the uppercased struct field name,
+//	                prefixed by "Write".
+//	                Write-callback is optional for hwio.Device.
 //
 //	readonly        the register is read-only; any attempt to write to it will
-//	                be ignored and logged as errors.
+//	                be ignored and logged as error.
 //
 //	writeonly       the register is write-only; any attempt to read from it
-//	                will be ignored and logged as errors.
+//	                will be ignored and logged as error.
 func InitRegs(data any) error {
 	val := reflect.ValueOf(data).Elem()
 
@@ -116,7 +122,7 @@ func InitRegs(data any) error {
 		valueField.FieldByName("Name").SetString(varField.Name)
 
 		switch valueField.Interface().(type) {
-		case Manual:
+		case Device:
 			if ssize := tag.Get("size"); ssize != "" {
 				if size, err := strconv.ParseInt(ssize, 0, 30); err != nil {
 					return fmt.Errorf("invalid size: %q", ssize)
@@ -127,28 +133,56 @@ func InitRegs(data any) error {
 				}
 			}
 
-			// Use the specified rcb or use Read<FIELDNAME>
-			rcb := tag.Get("rcb")
-			if rcb == "" {
-				rcb = "Read" + strings.ToUpper(varField.Name)
-			}
-			if meth := val.Addr().MethodByName(rcb); !meth.IsValid() {
-				return fmt.Errorf("cannot find method: %q", rcb)
-			} else {
-				valueField.FieldByName("ReadCb").Set(meth)
+			if rcb := tag.Get("rcb"); rcb != "" {
+				if rcb == "true" {
+					rcb = "Read" + strings.ToUpper(varField.Name)
+				}
+				if meth := val.Addr().MethodByName(rcb); !meth.IsValid() {
+					return fmt.Errorf("cannot find method: %q", rcb)
+				} else {
+					valueField.FieldByName("ReadCb").Set(meth)
+				}
 			}
 
-			wcb := tag.Get("wcb")
-			if wcb == "" {
-				wcb = "Write" + strings.ToUpper(varField.Name)
+			if pcb := tag.Get("pcb"); pcb != "" {
+				if pcb == "true" {
+					pcb = "Peek" + strings.ToUpper(varField.Name)
+				}
+				if meth := val.Addr().MethodByName(pcb); !meth.IsValid() {
+					return fmt.Errorf("cannot find method: %q", pcb)
+				} else {
+					valueField.FieldByName("PeekCb").Set(meth)
+				}
 			}
-			if meth := val.Addr().MethodByName(wcb); !meth.IsValid() {
-				return fmt.Errorf("cannot find method: %q", wcb)
-			} else {
-				valueField.FieldByName("WriteCb").Set(meth)
+
+			if wcb := tag.Get("wcb"); wcb != "" {
+				if wcb == "true" {
+					wcb = "Write" + strings.ToUpper(varField.Name)
+				}
+				if meth := val.Addr().MethodByName(wcb); !meth.IsValid() {
+					return fmt.Errorf("cannot find method: %q", wcb)
+				} else {
+					valueField.FieldByName("WriteCb").Set(meth)
+				}
+			}
+
+			flags := RWFlags(0)
+			if ro := tag.Get("readonly"); ro != "" {
+				flags |= ReadOnlyFlag
+			}
+			if wo := tag.Get("writeonly"); wo != "" {
+				if flags&ReadOnlyFlag != 0 {
+					return fmt.Errorf("register both readonly and writeonly")
+				}
+				flags |= WriteOnlyFlag
+			}
+			if flags != 0 {
+				valueField.FieldByName("Flags").SetUint(uint64(flags))
 			}
 
 		case Mem:
+			const nbits = 8
+
 			if ssize := tag.Get("size"); ssize != "" {
 				if size, err := strconv.ParseInt(ssize, 0, 30); err != nil {
 					return fmt.Errorf("invalid size: %q", ssize)
@@ -221,6 +255,17 @@ func InitRegs(data any) error {
 				}
 			}
 
+			if pcb := tag.Get("pcb"); pcb != "" {
+				if pcb == "true" {
+					pcb = "Peek" + strings.ToUpper(varField.Name)
+				}
+				if meth := val.Addr().MethodByName(pcb); !meth.IsValid() {
+					return fmt.Errorf("cannot find method: %q", pcb)
+				} else {
+					valueField.FieldByName("PeekCb").Set(meth)
+				}
+			}
+
 			if wcb := tag.Get("wcb"); wcb != "" {
 				if wcb == "true" {
 					wcb = "Write" + strings.ToUpper(varField.Name)
@@ -232,15 +277,15 @@ func InitRegs(data any) error {
 				}
 			}
 
-			flags := RegFlags(0)
+			flags := RWFlags(0)
 			if ro := tag.Get("readonly"); ro != "" {
-				flags |= RegFlagReadOnly
+				flags |= ReadOnlyFlag
 			}
 			if wo := tag.Get("writeonly"); wo != "" {
-				if flags&RegFlagReadOnly != 0 {
+				if flags&ReadOnlyFlag != 0 {
 					return fmt.Errorf("register both readonly and writeonly")
 				}
-				flags |= RegFlagWriteOnly
+				flags |= WriteOnlyFlag
 			}
 			if flags != 0 {
 				valueField.FieldByName("Flags").SetUint(uint64(flags))

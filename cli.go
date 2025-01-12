@@ -35,7 +35,7 @@ type (
 
 	Run struct {
 		CPUProfile string     `name:"cpuprofile" help:"${cpuprofile_help}" type:"path"`
-		RomPath    string     `arg:"" name:"/path/to/rom" optional:"" help:"${rompath_help}" type:"existingfile"`
+		RomPath    string     `arg:"" name:"/path/to/rom" help:"${rompath_help}" required:"true" type:"existingfile"`
 		Log        logModMask `help:"${log_help}" placeholder:"mod0,mod1,..."`
 		Trace      *outfile   `name:"trace" help:"Write CPU trace log." placeholder:"FILE|stdout|stderr"`
 	}

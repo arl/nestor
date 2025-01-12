@@ -37,8 +37,12 @@ func (m *mem) FetchPointer(addr uint16) []uint8 {
 	return buf[:len:len]
 }
 
-func (m *mem) Read8(addr uint16, peek bool) uint8 {
-	_ = peek
+func (m *mem) Read8(addr uint16) uint8 {
+	off := uintptr(addr & m.mask)
+	return *(*uint8)(unsafe.Pointer(uintptr(m.ptr) + off))
+}
+
+func (m *mem) Peek8(addr uint16) uint8 {
 	off := uintptr(addr & m.mask)
 	return *(*uint8)(unsafe.Pointer(uintptr(m.ptr) + off))
 }
@@ -101,21 +105,4 @@ func (m *Mem) roFlag(robit MemFlags) uint8 {
 func (m *Mem) BankIO8() BankIO8 {
 	roflag := m.roFlag(MemFlag8ReadOnly)
 	return newMem(m.Data, m.WriteCb, roflag)
-}
-
-// Manual implements the BankIO8 interface for a manually managed memory area.
-// TODO: finx a better name: Area maybe?
-type Manual struct {
-	Name    string // name of the memory area (for debugging)
-	Size    int    // size of the memory area
-	ReadCb  func(addr uint16, peek bool) uint8
-	WriteCb func(addr uint16, val uint8)
-}
-
-func (m *Manual) Read8(addr uint16, peek bool) uint8 {
-	return m.ReadCb(addr, peek)
-}
-
-func (m *Manual) Write8(addr uint16, val uint8) {
-	m.WriteCb(addr, val)
 }

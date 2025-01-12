@@ -103,7 +103,7 @@ func (dma *DMA) processPending(addr uint16) {
 		// controllers will see 2 separate reads even though they would only see
 		// a single read on hardware.
 	} else if !skipInitClock {
-		cpu.Bus.Read8(addr, false)
+		cpu.Bus.Read8(addr)
 	}
 	cpu.cycleEnd(true)
 
@@ -169,7 +169,7 @@ func (dma *DMA) processPending(addr uint16) {
 				}
 				processCycle()
 				if !skipDummyReads {
-					cpu.Bus.Read8(addr, false)
+					cpu.Bus.Read8(addr)
 				}
 				cpu.cycleEnd(true)
 			}
@@ -190,7 +190,7 @@ func (dma *DMA) processPending(addr uint16) {
 				// perform DMC read).
 				processCycle()
 				if !skipDummyReads {
-					cpu.Bus.Read8(addr, false)
+					cpu.Bus.Read8(addr)
 				}
 				cpu.cycleEnd(true)
 			}
@@ -206,7 +206,7 @@ func (dma *DMA) processRead(addr uint16, isInternalReg bool) uint8 {
 		// TODO: should read openbus here
 		return 0x00
 	}
-	val := dma.cpu.Bus.Read8(addr, false)
+	val := dma.cpu.Bus.Read8(addr)
 	log.ModDMA.DebugZ("read").Hex16("addr", addr).Hex8("val", val).End()
 	return val
 }
