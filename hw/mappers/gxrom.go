@@ -14,9 +14,10 @@ var GxROM = MapperDesc{
 type gxrom struct {
 	*base
 
-	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000"`
-	PRGRAM        hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
-	PRGROM        hwio.Device
+	PRGRAM hwio.Mem    `hwio:"offset=0x6000,size=0x2000"`
+	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,wcb"`
+
+	PatternTables hwio.Mem `hwio:"bank=1,offset=0x0000,size=0x2000"`
 
 	chrbank uint32
 	prgbank uint32
@@ -52,21 +53,13 @@ func (m *gxrom) WritePRGROM(addr uint16, val uint8) {
 func loadGxROM(b *base) error {
 	gxrom := &gxrom{base: b}
 	hwio.MustInitRegs(gxrom)
-	b.ppu.Bus.MapBank(0x0000, gxrom, 0)
 
 	// CPU mapping.
-	gxrom.PRGROM = hwio.Device{
-		Name:    "PRGROM",
-		Size:    0x8000,
-		ReadCb:  gxrom.ReadPRGROM,
-		PeekCb:  gxrom.ReadPRGROM,
-		WriteCb: gxrom.WritePRGROM,
-	}
-	b.cpu.Bus.MapDevice(0x8000, &gxrom.PRGROM)
 	b.cpu.Bus.MapBank(0x0000, gxrom, 0)
 
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
+	b.ppu.Bus.MapBank(0x0000, gxrom, 1)
 	copyCHRROM(gxrom.PatternTables.Data, b.rom, 0)
 	return nil
 

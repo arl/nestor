@@ -15,11 +15,12 @@ var CNROM = MapperDesc{
 type cnrom struct {
 	*base
 
-	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000,readonly"`
+	/* CPU */
+	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,wcb"`
 
-	// switchable CHRROM bank
-	PRGROM  hwio.Device
-	chrbank uint32
+	/* PPU */
+	PatternTables hwio.Mem `hwio:"bank=1,offset=0x0000,size=0x2000,readonly"`
+	chrbank       uint32
 }
 
 func (m *cnrom) ReadPRGROM(addr uint16) uint8 {
@@ -50,20 +51,12 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 func loadCNROM(b *base) error {
 	cnrom := &cnrom{base: b}
 	hwio.MustInitRegs(cnrom)
-	b.ppu.Bus.MapBank(0x0000, cnrom, 0)
 
-	// CPU mapping.
-	cnrom.PRGROM = hwio.Device{
-		Name:    "PRGROM",
-		Size:    0x8000,
-		ReadCb:  cnrom.ReadPRGROM,
-		PeekCb:  cnrom.ReadPRGROM,
-		WriteCb: cnrom.WritePRGROM,
-	}
-	b.cpu.Bus.MapDevice(0x8000, &cnrom.PRGROM)
+	b.cpu.Bus.MapBank(0x0000, cnrom, 0)
 
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
+	b.ppu.Bus.MapBank(0x0000, cnrom, 1)
 	copyCHRROM(cnrom.PatternTables.Data, b.rom, 0)
 
 	return nil

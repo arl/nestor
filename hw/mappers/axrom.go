@@ -15,13 +15,14 @@ var AxROM = MapperDesc{
 type axrom struct {
 	*base
 
-	PatternTables hwio.Mem `hwio:"offset=0x0000,size=0x2000"`
-	PRGRAM        hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
-
-	// switchable PRGROM bank
-	PRGROM  hwio.Device
+	/* CPU */
+	PRGRAM  hwio.Mem    `hwio:"offset=0x6000,size=0x2000"`
+	PRGROM  hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,wcb"`
 	prgbank uint32
-	ntm     ines.NTMirroring
+
+	/* PPU */
+	PatternTables hwio.Mem `hwio:"bank=1,offset=0x0000,size=0x2000"`
+	ntm           ines.NTMirroring
 }
 
 func (m *axrom) ReadPRGROM(addr uint16) uint8 {
@@ -62,20 +63,12 @@ func (m *axrom) WritePRGROM(addr uint16, val uint8) {
 func loadAxROM(b *base) error {
 	axrom := &axrom{base: b}
 	hwio.MustInitRegs(axrom)
-	b.ppu.Bus.MapBank(0x0000, axrom, 0)
 
 	// CPU mapping.
-	axrom.PRGROM = hwio.Device{
-		Name:    "PRGROM",
-		Size:    0x8000,
-		ReadCb:  axrom.ReadPRGROM,
-		PeekCb:  axrom.ReadPRGROM,
-		WriteCb: axrom.WritePRGROM,
-	}
-	b.cpu.Bus.MapDevice(0x8000, &axrom.PRGROM)
+	b.cpu.Bus.MapBank(0x0000, axrom, 0)
 
 	// PPU mapping.
-	copy(axrom.PatternTables.Data, b.rom.CHRROM)
+	b.ppu.Bus.MapBank(0x0000, axrom, 1)
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.
