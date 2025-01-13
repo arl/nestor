@@ -462,6 +462,13 @@ func TestTimingVBlankNMI(t *testing.T) {
 	}
 }
 
+func TestPPUReadBuffer(t *testing.T) {
+	const frameidx = 1300
+
+	romPath := filepath.Join(tests.RomsPath(t), "ppu_read_buffer", "test_ppu_read_buffer.nes")
+	runTestRomAndCompareFrame(t, romPath, "testdata", t.Name(), frameidx)
+}
+
 func TestUxROMSubmappers(t *testing.T) {
 	const frameidx = 60
 
