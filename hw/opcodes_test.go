@@ -27,8 +27,9 @@ func TestAllOpcodesAreImplemented(t *testing.T) {
 }
 
 func TestOpcodes(t *testing.T) {
-	if !testing.Verbose() {
-		log.SetOutput(io.Discard)
+	log.SetOutput(io.Discard)
+	if testing.Short() {
+		t.Skip("skipping opcode tests in short mode")
 	}
 
 	var dontTest = [256]uint8{

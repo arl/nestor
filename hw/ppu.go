@@ -26,7 +26,7 @@ type PPU struct {
 	masterClock uint64
 	Cycle       uint32 // Current cycle/pixel in scanline
 	Scanline    int    // Current scanline being drawn
-	frameCount  uint32 // Current frame
+	FrameCount  uint32 // Current frame
 
 	// $3F00-$3F1F	$0020	Palette RAM indexes
 	// $3F20-$3FFF	$00E0	Mirrors of $3F00-$3F1F
@@ -87,7 +87,7 @@ func (p *PPU) SetFrameBuffer(framebuf []byte) {
 
 func (p *PPU) Reset() {
 	p.Scanline = -1
-	p.frameCount = 1
+	p.FrameCount = 1
 	p.Cycle = 339
 	p.writeLatch = false
 	p.vramAddr = 0
@@ -168,7 +168,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 			// to VRAM address.
 			p.busAddr = p.vramAddr.addr()
 		case 340:
-			p.frameCount++
+			p.FrameCount++
 		}
 
 	case preRender, renderMode:
@@ -921,7 +921,7 @@ func (p *PPU) setOpenBus(mask uint8, val uint8) {
 		// updated.
 		p.openBus = val
 		for i := range p.openBusDecayBuf {
-			p.openBusDecayBuf[i] = p.frameCount
+			p.openBusDecayBuf[i] = p.FrameCount
 		}
 	} else {
 		openBus := (uint16(p.openBus) << 8)
@@ -933,8 +933,8 @@ func (p *PPU) setOpenBus(mask uint8, val uint8) {
 				} else {
 					openBus &= 0xFF7F
 				}
-				p.openBusDecayBuf[i] = p.frameCount
-			} else if p.frameCount-p.openBusDecayBuf[i] > 3 {
+				p.openBusDecayBuf[i] = p.FrameCount
+			} else if p.FrameCount-p.openBusDecayBuf[i] > 3 {
 				// Decay bits to 0 after 3 frames. This is a very conservative
 				// estimate, individual bits tend to decay much faster than
 				// this.
