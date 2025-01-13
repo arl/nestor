@@ -37,7 +37,7 @@ func (m *gxrom) WritePRGROM(addr uint16, val uint8) {
 	prevchr := m.chrbank
 	m.chrbank = uint32(val & 0x3)
 	if prevchr != m.chrbank {
-		copyCHRROM(m.PatternTables.Data, m.rom, m.chrbank)
+		m.copyCHRROM(m.PatternTables.Data, m.chrbank)
 		modMapper.DebugZ("CHRROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prevchr).Uint32("new", m.chrbank).End()
 	}
 
@@ -58,7 +58,7 @@ func loadGxROM(b *base) error {
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
 	b.ppu.Bus.MapBank(0x0000, gxrom, 1)
-	copyCHRROM(gxrom.PatternTables.Data, b.rom, 0)
+	b.copyCHRROM(gxrom.PatternTables.Data, 0)
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.

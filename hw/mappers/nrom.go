@@ -3,8 +3,9 @@ package mappers
 import "nestor/hw/hwio"
 
 var NROM = MapperDesc{
-	Name: "NROM",
-	Load: loadNROM,
+	Name:         "NROM",
+	Load:         loadNROM,
+	CHRROMbanksz: 0x2000,
 }
 
 type nrom struct {
@@ -33,7 +34,7 @@ func loadNROM(b *base) error {
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
 	b.ppu.Bus.MapBank(0x0000, nrom, 1)
-	copyCHRROM(nrom.PatternTables.Data, b.rom, 0)
+	b.copyCHRROM(nrom.PatternTables.Data, 0)
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.

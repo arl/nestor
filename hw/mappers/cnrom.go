@@ -41,7 +41,7 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 	prev := m.chrbank
 	m.chrbank = uint32(val & 0b11)
 	if prev != m.chrbank {
-		copyCHRROM(m.PatternTables.Data, m.rom, m.chrbank)
+		m.copyCHRROM(m.PatternTables.Data, m.chrbank)
 		modMapper.InfoZ("CHRROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prev).Uint32("new", m.chrbank).End()
 	}
 }
@@ -55,7 +55,7 @@ func loadCNROM(b *base) error {
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
 	b.ppu.Bus.MapBank(0x0000, cnrom, 1)
-	copyCHRROM(cnrom.PatternTables.Data, b.rom, 0)
+	b.copyCHRROM(cnrom.PatternTables.Data, 0)
 
 	return nil
 

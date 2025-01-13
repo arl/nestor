@@ -65,7 +65,7 @@ func loadUxROM(b *base) error {
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
 	b.ppu.Bus.MapBank(0x0000, uxrom, 1)
-	copyCHRROM(uxrom.PatternTables.Data, b.rom, 0)
+	b.copyCHRROM(uxrom.PatternTables.Data, 0)
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.
