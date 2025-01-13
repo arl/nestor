@@ -1,8 +1,6 @@
 package mappers
 
-import (
-	"nestor/hw/hwio"
-)
+import "nestor/hw/hwio"
 
 var GxROM = MapperDesc{
 	Name:         "GxROM",
