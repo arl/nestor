@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 type Rom struct {
@@ -13,6 +14,8 @@ type Rom struct {
 	Trainer []uint8 // Trainer, 512 bytes if present, or empty.
 	PRGROM  []uint8 // PRG is PRG ROM data (size is a multiple of 16k)
 	CHRROM  []uint8 // CHR is PRG ROM data (size is a multiple of 8k)
+
+	Name string
 }
 
 func yn(b bool) string {
@@ -23,6 +26,7 @@ func yn(b bool) string {
 }
 
 func (rom *Rom) PrintInfos(w io.Writer) {
+	fmt.Fprintf(w, "%s\n", rom.Name)
 	fmt.Fprintf(w, "|iNES2.0                | % 14s |\n", yn(rom.IsNES20()))
 	if rom.IsNES20() {
 		fmt.Fprintf(w, "|Region                 | % 14s |\n", rom.Region())
@@ -56,6 +60,7 @@ func ReadRom(path string) (*Rom, error) {
 	if err != nil {
 		return nil, err
 	}
+	rom.Name = filepath.Base(path)
 	return rom, nil
 }
 
@@ -189,10 +194,11 @@ func (hdr *header) Region() Region {
 
 // Mapper returns the mapper number.
 func (hdr *header) Mapper() uint16 {
+	base := uint16(hdr.raw[7]&0xF0) | uint16(hdr.raw[6]>>4)
 	if hdr.IsNES20() {
-		return uint16(hdr.raw[8]&0x0F) | uint16(hdr.raw[7]&0xF0) | uint16(hdr.raw[6]>>4)
+		return uint16(hdr.raw[8]&0x0F) | base
 	}
-	return uint16(hdr.raw[7]&0xF0) | uint16(hdr.raw[6]>>4)
+	return base
 }
 
 // SubMapper returns the submapper number.
