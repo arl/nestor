@@ -43,9 +43,9 @@ func (b *base) load() error {
 
 func copyCHRROM(dest []byte, rom *ines.Rom, bank uint32) {
 	// Copy CHRROM bank to PPU memory.
-	// CHRROM is 8KB in size
-	start := bank * 0x2000
-	end := start + 0x2000
+	// CHRROM is 8KB in size (when present).
+	start := min(uint32(len(rom.CHRROM)-1), bank*0x2000)
+	end := min(uint32(len(rom.CHRROM)), start+0x2000)
 	copy(dest, rom.CHRROM[start:end])
 }
 
