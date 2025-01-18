@@ -119,7 +119,6 @@ pollLoop:
 		}
 
 		renderer.Present()
-		sdl.Delay(16) // max out at 60fps
 	}
 
 	gamectrls.Close()
