@@ -7,7 +7,6 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
-	"unsafe"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/veandco/go-sdl2/sdl"
@@ -16,11 +15,18 @@ import (
 	"nestor/hw/input"
 )
 
+const (
+	NTSCWidth  = 256
+	NTSCHeight = 240
+)
+
 const PrimaryMonitor = 0
+
+const DefaultScale = 2
 
 type OutputConfig struct {
 	// Dimensions of the video buffer (in pixels).
-	Width, Height int
+	Width, Height int32
 
 	// Number of video buffers to allocate. Defaults to 2.
 	NumVideoBuffers int
@@ -29,7 +35,7 @@ type OutputConfig struct {
 	Title string
 
 	// Window scale factor (defaults to 2).
-	ScaleFactor uint
+	ScaleFactor int32
 
 	// Monitor on which to display the window.
 	// 0: primary monitor, 1: secondary monitor, etc.
@@ -102,19 +108,11 @@ func NewOutput(cfg OutputConfig) *Output {
 func (out *Output) EnableVideo(enable bool) error {
 	switch {
 	case enable && !out.videoEnabled:
-		wscale := 2
-		if out.cfg.ScaleFactor != 0 {
-			wscale = int(out.cfg.ScaleFactor)
+		if out.cfg.ScaleFactor == 0 {
+			out.cfg.ScaleFactor = DefaultScale
 		}
 
-		window, err := newWindow(windowConfig{
-			title:  out.cfg.Title,
-			vsync:  !out.cfg.DisableVSync,
-			texw:   out.cfg.Width,
-			texh:   out.cfg.Height,
-			scale:  wscale,
-			monidx: out.cfg.Monitor,
-		})
+		window, err := newWindow(out.cfg)
 		if err != nil {
 			return fmt.Errorf("failed to create emulator window: %s", err)
 		}
@@ -229,9 +227,7 @@ func (out *Output) render() {
 			return
 		case frame := <-out.framech:
 			if out.videoEnabled {
-				sdl.Do(func() {
-					out.renderVideo(frame.Video)
-				})
+				sdl.Do(func() { out.window.render(frame.Video) })
 			}
 
 			// Update FPS counter in title bar.
@@ -246,16 +242,6 @@ func (out *Output) render() {
 			}
 		}
 	}
-}
-
-func (out *Output) renderVideo(video []byte) {
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-	gl.UseProgram(out.window.prog)
-	gl.BindTexture(gl.TEXTURE_2D, out.window.texture)
-	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(out.cfg.Width), int32(out.cfg.Height), gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&video[0]))
-	gl.BindVertexArray(out.window.vao)
-	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
-	out.window.GLSwap()
 }
 
 // Poll reports whether input polling is ongoing.
@@ -293,7 +279,7 @@ func (out *Output) poll() {
 }
 
 // scaleViewport scales the viewport so as to maintain nes aspect ratio.
-func scaleViewport(winw, winh int32, nesw, nesh int) {
+func scaleViewport(winw, winh, nesw, nesh int32) {
 	winRatio := float64(winw) / float64(winh)
 	nesRatio := float64(nesw) / float64(nesh)
 
@@ -328,10 +314,12 @@ func (out *Output) Screenshot() image.Image {
 	return <-imgc
 }
 
-func FramebufImage(framebuf []byte, w, h int) *image.RGBA {
-	img := image.NewRGBA(image.Rect(0, 0, w, h))
-	img.Pix = framebuf
-	return img
+func FramebufImage(framebuf []byte, w, h int32) *image.RGBA {
+	return &image.RGBA{
+		Pix:    framebuf,
+		Stride: 4 * int(w),
+		Rect:   image.Rect(0, 0, int(w), int(h)),
+	}
 }
 
 func SaveAsPNG(img image.Image, path string) error {
