@@ -1,8 +1,6 @@
 package mappers
 
-import (
-	"nestor/hw/hwio"
-)
+import "nestor/hw/hwio"
 
 var GxROM = MapperDesc{
 	Name:         "GxROM",
@@ -13,8 +11,11 @@ var GxROM = MapperDesc{
 
 type gxrom struct {
 	*base
-	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
-	PRGROM hwio.Device
+
+	PRGRAM hwio.Mem    `hwio:"offset=0x6000,size=0x2000"`
+	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,wcb"`
+
+	PatternTables hwio.Mem `hwio:"bank=1,offset=0x0000,size=0x2000"`
 
 	chrbank uint32
 	prgbank uint32
@@ -36,7 +37,7 @@ func (m *gxrom) WritePRGROM(addr uint16, val uint8) {
 	prevchr := m.chrbank
 	m.chrbank = uint32(val & 0x3)
 	if prevchr != m.chrbank {
-		copyCHRROM(m.ppu, m.rom, m.chrbank)
+		m.copyCHRROM(m.PatternTables.Data, m.chrbank)
 		modMapper.DebugZ("CHRROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prevchr).Uint32("new", m.chrbank).End()
 	}
 
@@ -52,19 +53,12 @@ func loadGxROM(b *base) error {
 	hwio.MustInitRegs(gxrom)
 
 	// CPU mapping.
-	gxrom.PRGROM = hwio.Device{
-		Name:    "PRGROM",
-		Size:    0x8000,
-		ReadCb:  gxrom.ReadPRGROM,
-		PeekCb:  gxrom.ReadPRGROM,
-		WriteCb: gxrom.WritePRGROM,
-	}
-	b.cpu.Bus.MapDevice(0x8000, &gxrom.PRGROM)
 	b.cpu.Bus.MapBank(0x0000, gxrom, 0)
 
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
-	copy(b.ppu.PatternTables.Data, b.rom.CHRROM)
+	b.ppu.Bus.MapBank(0x0000, gxrom, 1)
+	b.copyCHRROM(gxrom.PatternTables.Data, 0)
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.

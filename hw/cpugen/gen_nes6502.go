@@ -16,7 +16,7 @@ const pkgname = "hw"
 
 type opdef struct {
 	n string // name
-	m string // addressing mode
+	m string // addressing mode, if prepended with !, adressing mode is manually written in the opcode
 	f func() // if nil, opcode is manually written
 	d rwType
 }
@@ -32,7 +32,7 @@ const (
 var defs = [256]opdef{
 	0x00: {n: "BRK", d: no, m: "imp"},
 	0x01: {n: "ORA", d: rd, m: "izx", f: ORA},
-	0x02: {n: "STP", d: no, m: "imp", f: STP(0x02)},
+	0x02: {n: "STP", d: no, m: "imp", f: STP},
 	0x03: {n: "SLO", d: rw, m: "izx", f: SLO},
 	0x04: {n: "NOP", d: no, m: "zpg", f: NOP(true)},
 	0x05: {n: "ORA", d: rd, m: "zpg", f: ORA},
@@ -48,7 +48,7 @@ var defs = [256]opdef{
 	0x0F: {n: "SLO", d: rw, m: "abs", f: SLO},
 	0x10: {n: "BPL", d: no, m: "rel", f: branch(Negative, false)},
 	0x11: {n: "ORA", d: rd, m: "izy", f: ORA},
-	0x12: {n: "STP", d: no, m: "imp", f: STP(0x12)},
+	0x12: {n: "STP", d: no, m: "imp", f: STP},
 	0x13: {n: "SLO", d: rw, m: "izyd", f: SLO},
 	0x14: {n: "NOP", d: no, m: "zpx", f: NOP(true)},
 	0x15: {n: "ORA", d: rd, m: "zpx", f: ORA},
@@ -64,7 +64,7 @@ var defs = [256]opdef{
 	0x1F: {n: "SLO", d: rw, m: "abxd", f: SLO},
 	0x20: {n: "JSR", d: no, m: "abs"},
 	0x21: {n: "AND", d: rd, m: "izx", f: AND},
-	0x22: {n: "STP", d: no, m: "imp", f: STP(0x22)},
+	0x22: {n: "STP", d: no, m: "imp", f: STP},
 	0x23: {n: "RLA", d: rw, m: "izx", f: RLA},
 	0x24: {n: "BIT", d: rd, m: "zpg", f: BIT},
 	0x25: {n: "AND", d: rd, m: "zpg", f: AND},
@@ -80,7 +80,7 @@ var defs = [256]opdef{
 	0x2F: {n: "RLA", d: rw, m: "abs", f: RLA},
 	0x30: {n: "BMI", d: no, m: "rel", f: branch(Negative, true)},
 	0x31: {n: "AND", d: rd, m: "izy", f: AND},
-	0x32: {n: "STP", d: no, m: "imp", f: STP(0x32)},
+	0x32: {n: "STP", d: no, m: "imp", f: STP},
 	0x33: {n: "RLA", d: rw, m: "izyd", f: RLA},
 	0x34: {n: "NOP", d: no, m: "zpx", f: NOP(true)},
 	0x35: {n: "AND", d: rd, m: "zpx", f: AND},
@@ -96,7 +96,7 @@ var defs = [256]opdef{
 	0x3F: {n: "RLA", d: rw, m: "abxd", f: RLA},
 	0x40: {n: "RTI", d: no, m: "imp", f: RTI},
 	0x41: {n: "EOR", d: rd, m: "izx", f: EOR},
-	0x42: {n: "STP", d: no, m: "imp", f: STP(0x42)},
+	0x42: {n: "STP", d: no, m: "imp", f: STP},
 	0x43: {n: "SRE", d: rw, m: "izx", f: SRE},
 	0x44: {n: "NOP", d: no, m: "zpg", f: NOP(true)},
 	0x45: {n: "EOR", d: rd, m: "zpg", f: EOR},
@@ -112,7 +112,7 @@ var defs = [256]opdef{
 	0x4F: {n: "SRE", d: rw, m: "abs", f: SRE},
 	0x50: {n: "BVC", d: no, m: "rel", f: branch(Overflow, false)},
 	0x51: {n: "EOR", d: rd, m: "izy", f: EOR},
-	0x52: {n: "STP", d: no, m: "imp", f: STP(0x52)},
+	0x52: {n: "STP", d: no, m: "imp", f: STP},
 	0x53: {n: "SRE", d: rw, m: "izyd", f: SRE},
 	0x54: {n: "NOP", d: no, m: "zpx", f: NOP(true)},
 	0x55: {n: "EOR", d: rd, m: "zpx", f: EOR},
@@ -128,7 +128,7 @@ var defs = [256]opdef{
 	0x5F: {n: "SRE", d: rw, m: "abxd", f: SRE},
 	0x60: {n: "RTS", d: no, m: "imp", f: RTS},
 	0x61: {n: "ADC", d: rd, m: "izx", f: ADC},
-	0x62: {n: "STP", d: no, m: "imp", f: STP(0x62)},
+	0x62: {n: "STP", d: no, m: "imp", f: STP},
 	0x63: {n: "RRA", d: rw, m: "izx", f: RRA},
 	0x64: {n: "NOP", d: no, m: "zpg", f: NOP(true)},
 	0x65: {n: "ADC", d: rd, m: "zpg", f: ADC},
@@ -144,7 +144,7 @@ var defs = [256]opdef{
 	0x6F: {n: "RRA", d: rw, m: "abs", f: RRA},
 	0x70: {n: "BVS", d: no, m: "rel", f: branch(Overflow, true)},
 	0x71: {n: "ADC", d: rd, m: "izy", f: ADC},
-	0x72: {n: "STP", d: no, m: "imp", f: STP(0x72)},
+	0x72: {n: "STP", d: no, m: "imp", f: STP},
 	0x73: {n: "RRA", d: rw, m: "izyd", f: RRA},
 	0x74: {n: "NOP", d: no, m: "zpx", f: NOP(true)},
 	0x75: {n: "ADC", d: rd, m: "zpx", f: ADC},
@@ -169,15 +169,15 @@ var defs = [256]opdef{
 	0x88: {n: "DEY", d: no, m: "imp", f: dey},
 	0x89: {n: "NOP", d: rd, m: "imm", f: NOP(false)},
 	0x8A: {n: "TXA", d: no, m: "imp", f: T("X", "A")},
-	0x8B: {n: "ANE", d: rd, m: "imm", f: unstable(0x8B)},
+	0x8B: {n: "ANE", d: rd, m: "imm", f: ANE},
 	0x8C: {n: "STY", d: no, m: "abs", f: ST("Y")},
 	0x8D: {n: "STA", d: no, m: "abs", f: ST("A")},
 	0x8E: {n: "STX", d: no, m: "abs", f: ST("X")},
 	0x8F: {n: "SAX", d: no, m: "abs", f: SAX},
 	0x90: {n: "BCC", d: no, m: "rel", f: branch(Carry, false)},
 	0x91: {n: "STA", d: no, m: "izyd", f: ST("A")},
-	0x92: {n: "STP", d: no, m: "imp", f: STP(0x92)},
-	0x93: {n: "SHA", d: rd, m: "izy", f: unstable(0x93)},
+	0x92: {n: "STP", d: no, m: "imp", f: STP},
+	0x93: {n: "SHA", d: no, m: "!izy", f: SHAZ},
 	0x94: {n: "STY", d: no, m: "zpx", f: ST("Y")},
 	0x95: {n: "STA", d: no, m: "zpx", f: ST("A")},
 	0x96: {n: "STX", d: no, m: "zpy", f: ST("X")},
@@ -185,11 +185,11 @@ var defs = [256]opdef{
 	0x98: {n: "TYA", d: no, m: "imp", f: T("Y", "A")},
 	0x99: {n: "STA", d: no, m: "abyd", f: ST("A")},
 	0x9A: {n: "TXS", d: no, m: "imp", f: T("X", "SP")},
-	0x9B: {n: "TAS", d: rd, m: "abx", f: unstable(0x9B)},
-	0x9C: {n: "SHY", d: rd, m: "aby", f: unstable(0x9C)},
+	0x9B: {n: "TAS", d: no, m: "!abx", f: TAS},
+	0x9C: {n: "SHY", d: no, m: "!aby", f: SHY},
 	0x9D: {n: "STA", d: no, m: "abxd", f: ST("A")},
-	0x9E: {n: "SHX", d: rd, m: "abx", f: unstable(0x9E)},
-	0x9F: {n: "SHA", d: rd, m: "aby", f: unstable(0x9F)},
+	0x9E: {n: "SHX", d: no, m: "!abx", f: SHX},
+	0x9F: {n: "SHA", d: no, m: "!aby", f: SHA},
 	0xA0: {n: "LDY", d: rd, m: "imm", f: LD("Y")},
 	0xA1: {n: "LDA", d: rd, m: "izx", f: LD("A")},
 	0xA2: {n: "LDX", d: rd, m: "imm", f: LD("X")},
@@ -208,7 +208,7 @@ var defs = [256]opdef{
 	0xAF: {n: "LAX", d: rd, m: "abs", f: LD("A", "X")},
 	0xB0: {n: "BCS", d: no, m: "rel", f: branch(Carry, true)},
 	0xB1: {n: "LDA", d: rd, m: "izy", f: LD("A")},
-	0xB2: {n: "STP", d: no, m: "imp", f: STP(0xB2)},
+	0xB2: {n: "STP", d: no, m: "imp", f: STP},
 	0xB3: {n: "LAX", d: rd, m: "izy", f: LD("A", "X")},
 	0xB4: {n: "LDY", d: rd, m: "zpx", f: LD("Y")},
 	0xB5: {n: "LDA", d: rd, m: "zpx", f: LD("A")},
@@ -240,7 +240,7 @@ var defs = [256]opdef{
 	0xCF: {n: "DCP", d: rd, m: "abs", f: DCP},
 	0xD0: {n: "BNE", d: no, m: "rel", f: branch(Zero, false)},
 	0xD1: {n: "CMP", d: rd, m: "izy", f: cmp("A")},
-	0xD2: {n: "STP", d: no, m: "imp", f: STP(0xD2)},
+	0xD2: {n: "STP", d: no, m: "imp", f: STP},
 	0xD3: {n: "DCP", d: rd, m: "izyd", f: DCP},
 	0xD4: {n: "NOP", d: no, m: "zpx", f: NOP(true)},
 	0xD5: {n: "CMP", d: rd, m: "zpx", f: cmp("A")},
@@ -272,7 +272,7 @@ var defs = [256]opdef{
 	0xEF: {n: "ISC", d: rd, m: "abs", f: ISC},
 	0xF0: {n: "BEQ", d: no, m: "rel", f: branch(Zero, true)},
 	0xF1: {n: "SBC", d: rd, m: "izy", f: SBC},
-	0xF2: {n: "STP", d: no, m: "imp", f: STP(0xF2)},
+	0xF2: {n: "STP", d: no, m: "imp", f: STP},
 	0xF3: {n: "ISC", d: rd, m: "izyd", f: ISC},
 	0xF4: {n: "NOP", d: no, m: "zpx", f: NOP(true)},
 	0xF5: {n: "SBC", d: rd, m: "zpx", f: SBC},
@@ -457,23 +457,6 @@ func dummywrite(addr, value string) {
 // opcode generators
 //
 
-// TODO: useless opdef
-func STP(code uint8) func() {
-	return func() {
-		g.unstable = append(g.unstable, code)
-		printf(`cpu.halt()`)
-	}
-}
-
-func unstable(code uint8) func() {
-	return func() {
-		g.unstable = append(g.unstable, code)
-		printf(`log.ModCPU.ErrorZ("unsupported unstable opcode").Hex8("code", %d).End()`, code)
-		printf(`_ = val`)
-		printf(`cpu.halt()`)
-	}
-}
-
 func ADC() {
 	printf(`cpu.add(val)`)
 }
@@ -500,6 +483,13 @@ func ANC() {
 
 func AND() {
 	printf(`cpu.A &= val`)
+	clearFlags(Zero, Negative)
+	printf(`cpu.P.setNZ(cpu.A)`)
+}
+
+func ANE() {
+	printf(`const Const = 0xEE`)
+	printf(`cpu.A = val & cpu.X & (cpu.A | Const) `)
 	clearFlags(Zero, Negative)
 	printf(`cpu.P.setNZ(cpu.A)`)
 }
@@ -608,7 +598,7 @@ func LSR() {
 }
 
 func LXA() {
-	const mask = 0xff
+	const mask = 0xFF
 	printf(`val = (cpu.A | 0x%02x) & val`, mask)
 	printf(`cpu.A = val`)
 	printf(`cpu.X = val`)
@@ -738,6 +728,31 @@ func SBX() {
 		End()
 }
 
+func SHA() {
+	printf(`cpu.sh(cpu.fetch16(), cpu.Y, cpu.X & cpu.A)`)
+}
+
+func SHAZ() {
+	printf(`zero := cpu.fetch8()`)
+	printf(`var baseaddr uint16`)
+	printf(`if(zero == 0xFF) {`)
+	printf(`	lo := cpu.Read8(0xFF)`)
+	printf(`	hi := cpu.Read8(0x00)`)
+	printf(`	baseaddr = uint16(lo) | uint16(hi) << 8`)
+	printf(`} else {`)
+	printf(`	baseaddr = cpu.Read16(uint16(zero))`)
+	printf(`}`)
+	printf(`cpu.sh(baseaddr, cpu.Y, cpu.X & cpu.A)`)
+}
+
+func SHX() {
+	printf(`cpu.sh(cpu.fetch16(), cpu.Y, cpu.X)`)
+}
+
+func SHY() {
+	printf(`cpu.sh(cpu.fetch16(), cpu.X, cpu.Y)`)
+}
+
 func SLO() {
 	ASL_mem()
 	printf(`cpu.setreg(&cpu.A, cpu.A|val)`)
@@ -746,6 +761,16 @@ func SLO() {
 func SRE() {
 	LSR_mem()
 	EOR()
+}
+
+func STP() {
+	printf(`cpu.halt()`)
+}
+
+func TAS() {
+	// Same as "SHA abs, y", but also sets SP = A & X
+	SHA()
+	printf(`cpu.SP = cpu.X & cpu.A`)
 }
 
 //
@@ -819,7 +844,6 @@ func set(f cpuFlag) func() {
 func header() {
 	printf(`// Code generated by cpugen/gen_nes6502.go. DO NOT EDIT.`)
 	printf(`package %s`, pkgname)
-	printf(`import "nestor/emu/log"`)
 }
 
 func opcodes() {
@@ -829,10 +853,18 @@ func opcodes() {
 		}
 
 		// header
-		mode := addrModes[def.m]
+		m := def.m
+		genmode := true
+		if m[0] == '!' {
+			m = m[1:]
+			genmode = false
+		}
+		mode := addrModes[m]
 		printf(`// %s - %s`, def.n, mode.human)
 		printf(`func opcode%02X(cpu*CPU) {`, code)
-		mode.f()
+		if genmode {
+			mode.f()
+		}
 
 		switch {
 		case def.m == "acc":
@@ -885,6 +917,9 @@ func disasmTable() {
 	for i := 0; i < 16; i++ {
 		for j := 0; j < 16; j++ {
 			name := defs[i*16+j].m
+			if name[0] == '!' {
+				name = name[1:]
+			}
 			name = strings.ToUpper(name[:1]) + name[1:]
 			name = name[:3]
 			fmt.Fprintf(bb, "disasm%s, ", name)
@@ -910,22 +945,12 @@ func opcodeNamesTable() {
 	printf(`}`)
 }
 
-func unstableOpcodes() {
-	printf(`// list of unstable opcodes (unsupported)`)
-	printf(`var unstableOps = [256]uint8{`)
-	for _, code := range g.unstable {
-		printf(`0x%02X: 1, // %s`, code, defs[code].n)
-	}
-	printf(`}`)
-}
-
 func printf(format string, args ...any) {
 	fmt.Fprintf(g, "%s\n", fmt.Sprintf(format, args...))
 }
 
 type Generator struct {
 	io.Writer
-	unstable []uint8
 }
 
 var g Generator
@@ -946,7 +971,6 @@ func main() {
 
 	header()
 	opcodes()
-	unstableOpcodes()
 	opcodesTable()
 	disasmTable()
 	opcodeNamesTable()

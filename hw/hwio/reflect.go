@@ -141,6 +141,7 @@ func InitRegs(data any) error {
 					return fmt.Errorf("cannot find method: %q", rcb)
 				} else {
 					valueField.FieldByName("ReadCb").Set(meth)
+					valueField.FieldByName("PeekCb").Set(meth)
 				}
 			}
 

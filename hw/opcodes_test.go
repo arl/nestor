@@ -27,8 +27,9 @@ func TestAllOpcodesAreImplemented(t *testing.T) {
 }
 
 func TestOpcodes(t *testing.T) {
-	if !testing.Verbose() {
-		log.SetOutput(io.Discard)
+	log.SetOutput(io.Discard)
+	if testing.Short() {
+		t.Skip("skipping opcode tests in short mode")
 	}
 
 	var dontTest = [256]uint8{
@@ -40,14 +41,8 @@ func TestOpcodes(t *testing.T) {
 		0x52: 1, // STP
 		0x62: 1, // STP
 		0x72: 1, // STP
-		0x8B: 1, // ANE
 		0x92: 1, // STP
-		0x93: 1, // SHA
-		0x9B: 1, // TAS
-		0x9C: 1, // SHY
-		0x9E: 1, // SHX
-		0x9F: 1, // SHA
-		0xAB: 1, // LXA
+		0xAB: 1, // LXA (uses a magic constant)
 		0xB2: 1, // STP
 		0xD2: 1, // STP
 		0xF2: 1, // STP

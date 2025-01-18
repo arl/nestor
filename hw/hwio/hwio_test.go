@@ -31,11 +31,11 @@ type testTable struct {
 	// $4000-$40FF
 	DefaultDev hwio.Device `hwio:"bank=2,offset=0x0,size=0x100"`
 	// $4100-$41FF
-	DEV hwio.Device `hwio:"bank=2,offset=0x100,size=0x100,rcb,wcb"` // no peek-callback
+	DEV hwio.Device `hwio:"bank=2,offset=0x100,size=0x100,rcb,wcb"` // no peek callback (so call read)
 	// $4200-$42FF
 	RoDEV hwio.Device `hwio:"bank=2,offset=0x200,size=0x100,rcb,pcb,readonly"`
 	// $4300-$43FF
-	WoDEV hwio.Device `hwio:"bank=2,offset=0x300,size=0x100,wcb,writeonly"` // no peek-callback
+	WoDEV hwio.Device `hwio:"bank=2,offset=0x300,size=0x100,wcb,writeonly"` // no read nor peek
 
 	devval uint8
 }
@@ -148,7 +148,7 @@ func TestTableMapDevice(t *testing.T) {
 	tbl.wantPeek8(0x4000, 0x00)
 
 	tbl.wantRead8(0x4100, 0xe1)
-	tbl.wantPeek8(0x4100, 0x00)
+	tbl.wantPeek8(0x4100, 0xe1)
 	tbl.Write8(0x4120, 0x27)
 	if tbl.devval != 0x20 {
 		t.Errorf("devval = %02X, want 0x20", tbl.devval)

@@ -1,8 +1,6 @@
 package mappers
 
-import (
-	"nestor/hw/hwio"
-)
+import "nestor/hw/hwio"
 
 var UxROM = MapperDesc{
 	Name:            "UxROM",
@@ -15,14 +13,15 @@ var UxROM = MapperDesc{
 type uxrom struct {
 	*base
 
-	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
-
-	// switchable PRGROM bank
-	PRGROM  hwio.Device
-	prgbank uint32
-
+	/* CPU */
+	PRGRAM          hwio.Mem    `hwio:"offset=0x6000,size=0x2000"`
+	PRGROM          hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,wcb"`
+	prgbank         uint32
 	bankmask        uint8
 	hasBusConflicts bool
+
+	/* PPU */
+	PatternTables hwio.Mem `hwio:"bank=1,offset=0x0000,size=0x2000"`
 }
 
 func (m *uxrom) ReadPRGROM(addr uint16) uint8 {
@@ -61,18 +60,12 @@ func loadUxROM(b *base) error {
 	hwio.MustInitRegs(uxrom)
 
 	// CPU mapping.
-	uxrom.PRGROM = hwio.Device{
-		Name:    "PRGROM",
-		Size:    0x8000,
-		ReadCb:  uxrom.ReadPRGROM,
-		PeekCb:  uxrom.ReadPRGROM,
-		WriteCb: uxrom.WritePRGROM,
-	}
-	b.cpu.Bus.MapDevice(0x8000, &uxrom.PRGROM)
+	b.cpu.Bus.MapBank(0x0000, uxrom, 0)
 
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
-	copy(b.ppu.PatternTables.Data, b.rom.CHRROM)
+	b.ppu.Bus.MapBank(0x0000, uxrom, 1)
+	b.copyCHRROM(uxrom.PatternTables.Data, 0)
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.

@@ -1,13 +1,14 @@
 package emu
 
 import (
-	"bytes"
 	_ "image/png"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
-	"unsafe"
 
 	"golang.org/x/sync/errgroup"
 
@@ -124,7 +125,7 @@ func TestBlarggRoms(t *testing.T) {
 		"instr_misc/rom_singles/01-abs_x_wrap.nes",
 		"instr_misc/rom_singles/02-branch_wrap.nes",
 		"instr_misc/rom_singles/03-dummy_reads.nes",
-		// "instr_misc/rom_singles/04-dummy_reads_apu.nes", // uses unofficial 0x9C (SHY)
+		"instr_misc/rom_singles/04-dummy_reads_apu.nes",
 
 		"instr_test-v5/rom_singles/01-basics.nes",
 		"instr_test-v5/rom_singles/02-implied.nes",
@@ -132,7 +133,7 @@ func TestBlarggRoms(t *testing.T) {
 		"instr_test-v5/rom_singles/04-zero_page.nes",
 		"instr_test-v5/rom_singles/05-zp_xy.nes",
 		"instr_test-v5/rom_singles/06-absolute.nes",
-		// "instr_test-v5/rom_singles/07-abs_xy.nes",// uses unofficial 0x9C (SHY)
+		"instr_test-v5/rom_singles/07-abs_xy.nes",
 		"instr_test-v5/rom_singles/08-ind_x.nes",
 		"instr_test-v5/rom_singles/09-ind_y.nes",
 		"instr_test-v5/rom_singles/10-branches.nes",
@@ -143,7 +144,7 @@ func TestBlarggRoms(t *testing.T) {
 		"instr_test-v5/rom_singles/15-brk.nes",
 		"instr_test-v5/rom_singles/16-special.nes",
 
-		//"instr_timing/rom_singles/1-instr_timing.nes", // uses unofficial 0x8B (ANE)
+		"instr_timing/rom_singles/1-instr_timing.nes",
 		"instr_timing/rom_singles/2-branch_timing.nes",
 
 		"oam_read/oam_read.nes",
@@ -152,14 +153,12 @@ func TestBlarggRoms(t *testing.T) {
 
 		"ppu_open_bus/ppu_open_bus.nes",
 
-		// "ppu_read_buffer/test_ppu_read_buffer.nes", // fails at test #72
-
 		"sprdma_and_dmc_dma/sprdma_and_dmc_dma.nes",
 		"sprdma_and_dmc_dma/sprdma_and_dmc_dma_512.nes",
 	}
 
 	var g errgroup.Group
-	g.SetLimit(8)
+	g.SetLimit(runtime.NumCPU())
 
 	for _, romName := range tests {
 		// Ensure tests run on all platforms.
@@ -195,7 +194,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		magic := []byte{0xde, 0xb0, 0x61}
+		magic := "\xde\xb0\x61"
 		magicset := 0
 		var result uint8
 
@@ -214,9 +213,9 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			nes.RunOneFrame(vbuf)
 			out.EndFrame(vbuf)
 
-			data := nes.CPU.Bus.FetchPointer(0x6001)
+			data := readString(nes.CPU.Bus, 0x6001, 3)
 			if magicset == 0 {
-				if bytes.Equal(data[:3], magic) {
+				if data == magic {
 					magicset = 1
 				}
 				// Wait for the magic bytes to appear
@@ -224,7 +223,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			}
 
 			// Once magic bytes have been written, they must not be overwritten.
-			if !bytes.Equal(data[:3], magic) {
+			if data != magic {
 				t.Fatalf("corrupted memory")
 			}
 			result = nes.CPU.Bus.Peek8(0x6000)
@@ -248,19 +247,26 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			}
 		}
 		if result != 0x00 {
-			txt := readString(nes.CPU.Bus, 0x6004)
+			txt := readString(nes.CPU.Bus, 0x6004, -1)
 			t.Fatalf("test failed:\ncode 0x%02x\ntext %s", result, txt)
 		}
 	}
 }
 
-func readString(t *hwio.Table, addr uint16) string {
-	data := t.FetchPointer(addr)
-	i := 0
-	for data[i] != 0 {
-		i++
+func readString(t *hwio.Table, addr uint16, maxlen int) string {
+	var sb strings.Builder
+	if maxlen == -1 {
+		maxlen = math.MaxUint16
 	}
-	return unsafe.String(&data[0], i)
+	for i := 0; ; i++ {
+		val := t.Peek8(addr + uint16(i))
+		if val == 0 || i >= maxlen {
+			break
+		}
+		sb.WriteByte(val)
+	}
+
+	return sb.String()
 }
 
 func TestSprite0Hit(t *testing.T) {
@@ -454,6 +460,13 @@ func TestTimingVBlankNMI(t *testing.T) {
 			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
+}
+
+func TestPPUReadBuffer(t *testing.T) {
+	const frameidx = 1300
+
+	romPath := filepath.Join(tests.RomsPath(t), "ppu_read_buffer", "test_ppu_read_buffer.nes")
+	runTestRomAndCompareFrame(t, romPath, "testdata", t.Name(), frameidx)
 }
 
 func TestUxROMSubmappers(t *testing.T) {
