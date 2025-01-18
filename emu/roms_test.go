@@ -59,8 +59,8 @@ func TestNestest(t *testing.T) {
 
 	// Configure a headless testing output.
 	cfg := TestingOutputConfig{
-		Height: hw.OutputNTSC().Height,
-		Width:  hw.OutputNTSC().Width,
+		Height: hw.NTSCHeight,
+		Width:  hw.NTSCWidth,
 	}
 	e := Emulator{
 		NES: nes,
@@ -200,8 +200,8 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 
 		// Configure a headless testing output.
 		out := newTestingOutput(TestingOutputConfig{
-			Height: hw.OutputNTSC().Height,
-			Width:  hw.OutputNTSC().Width,
+			Height: hw.NTSCHeight,
+			Width:  hw.NTSCWidth,
 		})
 
 		// When reset is required, it needs to be pressed 100ms later, so we
@@ -541,8 +541,8 @@ func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string
 
 	out := newTestingOutput(
 		TestingOutputConfig{
-			Height:        hw.OutputNTSC().Height,
-			Width:         hw.OutputNTSC().Width,
+			Height:        hw.NTSCHeight,
+			Width:         hw.NTSCWidth,
 			SaveFrameDir:  frameDir,
 			SaveFrameFile: framePath,
 			SaveFrameNum:  frame,

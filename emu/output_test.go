@@ -13,7 +13,7 @@ import (
 
 type TestingOutputConfig struct {
 	// Framebuffer dimensions
-	Width, Height int
+	Width, Height int32
 
 	// SaveFrameNum is the frame number to save as a PNG file.
 	// The output will stop once that frame has been saved.

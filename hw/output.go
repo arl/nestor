@@ -45,13 +45,6 @@ type OutputConfig struct {
 	DisableVSync bool
 }
 
-func OutputNTSC() OutputConfig {
-	return OutputConfig{
-		Width:  256,
-		Height: 240,
-	}
-}
-
 // A Frame holds the audio/video buffers the emulator
 // should fill for a single frame.
 type Frame struct {
