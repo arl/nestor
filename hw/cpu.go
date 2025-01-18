@@ -371,7 +371,7 @@ func (c *CPU) StopDMCTransfer() {
 
 /* interrupt handling */
 
-func (c *CPU) SetIrqSource(src hwdefs.IRQSource) {
+func (c *CPU) SetIRQSource(src hwdefs.IRQSource) {
 	log.ModCPU.DebugZ("set IRQ source").
 		Stringer("src", src).
 		Stringer("prev", c.irqFlag).
@@ -381,11 +381,11 @@ func (c *CPU) SetIrqSource(src hwdefs.IRQSource) {
 	c.irqFlag |= src
 }
 
-func (c *CPU) HasIrqSource(src hwdefs.IRQSource) bool {
+func (c *CPU) HasIRQSource(src hwdefs.IRQSource) bool {
 	return (c.irqFlag & src) != 0
 }
 
-func (c *CPU) ClearIrqSource(src hwdefs.IRQSource) {
+func (c *CPU) ClearIRQSource(src hwdefs.IRQSource) {
 	log.ModCPU.DebugZ("clear IRQ source").
 		Stringer("src", src).
 		Stringer("prev", c.irqFlag).

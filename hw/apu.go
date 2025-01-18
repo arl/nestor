@@ -74,10 +74,10 @@ func (a *APU) Status() uint8 {
 		status |= 0x10
 	}
 
-	if a.cpu.HasIrqSource(hwdefs.FrameCounter) {
+	if a.cpu.HasIRQSource(hwdefs.FrameCounter) {
 		status |= 0x40
 	}
-	if a.cpu.HasIrqSource(hwdefs.DMC) {
+	if a.cpu.HasIRQSource(hwdefs.DMC) {
 		status |= 0x80
 	}
 
@@ -94,7 +94,7 @@ func (a *APU) ReadSTATUS(val uint8) uint8 {
 	status := a.Status()
 
 	// Reading $4015 clears the Frame Counter interrupt flag.
-	a.cpu.ClearIrqSource(hwdefs.FrameCounter)
+	a.cpu.ClearIRQSource(hwdefs.FrameCounter)
 
 	log.ModSound.InfoZ("read status").Uint8("status", status).End()
 	return status
@@ -108,7 +108,7 @@ func (a *APU) WriteSTATUS(old, val uint8) {
 	// Writing to $4015 clears the DMC interrupt flag. This needs to be done
 	// before setting the enabled flag for the DMC (because doing so can trigger
 	// an IRQ).
-	a.cpu.ClearIrqSource(hwdefs.DMC)
+	a.cpu.ClearIRQSource(hwdefs.DMC)
 
 	a.Square1.SetEnabled((val & 0x01) == 0x01)
 	a.Square2.SetEnabled((val & 0x02) == 0x02)

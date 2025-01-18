@@ -114,7 +114,7 @@ func (dc *DMC) WriteFLAGS(_, val uint8) {
 	dc.timer.period = period
 
 	if !dc.irqEnabled {
-		dc.CPU.ClearIrqSource(hwdefs.DMC)
+		dc.CPU.ClearIRQSource(hwdefs.DMC)
 	}
 
 	log.ModSound.InfoZ("write dmc FLAGS").
@@ -209,7 +209,7 @@ func (dc *DMC) SetReadBuffer(val uint8) {
 				// Looped sample should never set IRQ flag
 				dc.initSample()
 			} else if dc.irqEnabled {
-				dc.CPU.SetIrqSource(hwdefs.DMC)
+				dc.CPU.SetIRQSource(hwdefs.DMC)
 			}
 		}
 	}
