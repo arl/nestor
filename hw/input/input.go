@@ -82,14 +82,14 @@ func (ui *Provider) paddleState(idx int) uint8 {
 	for i, code := range preset.Buttons {
 		pressed := uint8(0)
 		switch code.Type {
-		case Keyboard:
+		case KeyboardCtrl:
 			pressed = ui.keystate[code.Scancode]
-		case ControllerButton:
+		case ButtonCtrl:
 			ctrl := Gamectrls.getByGUID(code.CtrlGUID)
 			if ctrl != nil {
 				pressed = ctrl.Button(code.CtrlButton)
 			}
-		case ControllerAxis:
+		case AxisCtrl:
 			ctrl := Gamectrls.getByGUID(code.CtrlGUID)
 			if ctrl != nil {
 				if ctrl.Axis(code.CtrlAxis) >= JoyAxisThreshold {

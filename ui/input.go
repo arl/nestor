@@ -138,7 +138,7 @@ func (dlg *controlCfgDialog) captureInput(btn input.PaddleButton) {
 				return
 			}
 
-			if code.Type == input.UnsetController {
+			if code.Type == input.ControlNotSet {
 				return
 			}
 

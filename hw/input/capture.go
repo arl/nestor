@@ -73,7 +73,7 @@ pollLoop:
 			case sdl.KeyboardEvent:
 				if e.State == sdl.PRESSED {
 					if e.Keysym.Scancode != sdl.SCANCODE_ESCAPE {
-						code.Type = Keyboard
+						code.Type = KeyboardCtrl
 						code.Scancode = e.Keysym.Scancode
 					}
 					break pollLoop
@@ -88,7 +88,7 @@ pollLoop:
 				}
 
 				if e.Type == sdl.CONTROLLERBUTTONDOWN {
-					code.Type = ControllerButton
+					code.Type = ButtonCtrl
 					code.CtrlButton = e.Button
 					code.CtrlGUID = gamectrls.GetGUID(e.Which)
 					break pollLoop
@@ -100,7 +100,7 @@ pollLoop:
 				}
 
 				if e.Value < -JoyAxisThreshold || e.Value > JoyAxisThreshold {
-					code.Type = ControllerAxis
+					code.Type = AxisCtrl
 					code.CtrlAxis = e.Axis
 					code.CtrlAxisDir = axissign(e.Value)
 					code.CtrlGUID = gamectrls.GetGUID(e.Which)
