@@ -52,8 +52,8 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 
 	// Output setup.
 	out := hw.NewOutput(hw.OutputConfig{
-		Width:           256,
-		Height:          240,
+		Width:           hw.NTSCWidth,
+		Height:          hw.NTSCHeight,
 		NumVideoBuffers: 2,
 		Title:           "Nestor",
 		ScaleFactor:     2,
