@@ -209,7 +209,7 @@ func renderText(renderer *sdl.Renderer, font *ttf.Font, lines []string, color sd
 		centeredX := (winw - texw) / 2
 		rect := &sdl.Rect{
 			X: centeredX, Y: y,
-			W: int32(texw), H: int32(texh),
+			W: texw, H: texh,
 		}
 		renderer.Copy(texture, nil, rect)
 

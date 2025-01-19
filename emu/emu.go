@@ -29,8 +29,8 @@ type Config struct {
 }
 
 type VideoConfig struct {
-	DisableVSync bool `toml:"disable_vsync"`
-	Monitor      int  `toml:"monitor"`
+	DisableVSync bool  `toml:"disable_vsync"`
+	Monitor      int32 `toml:"monitor"`
 }
 
 type Emulator struct {
@@ -58,7 +58,7 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		Title:           "Nestor",
 		ScaleFactor:     2,
 		DisableVSync:    cfg.Video.DisableVSync,
-		Monitor:         int32(cfg.Video.Monitor),
+		Monitor:         cfg.Video.Monitor,
 	})
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err
@@ -85,12 +85,9 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 }
 
 func (e *Emulator) Focus() {
-	hwout, ok := e.out.(*hw.Output)
-	if !ok {
-		log.ModEmu.WarnZ("only actual output window can be focused").End()
-		return
+	if hwout, ok := e.out.(*hw.Output); ok {
+		hwout.FocusWindow()
 	}
-	hwout.FocusWindow()
 }
 
 func (e *Emulator) Screenshot() image.Image {
