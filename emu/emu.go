@@ -69,13 +69,10 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		return nil, err
 	}
 
-	input, err := input.NewProvider(cfg.Input)
-	if err != nil {
-		return nil, fmt.Errorf("input provider: %s", err)
-	}
-	nes.CPU.PlugInputDevice(input)
+	inprov := input.NewProvider(cfg.Input)
+	nes.CPU.PlugInputDevice(inprov)
 
-	// CPU trace setup.
+	// CPU execution trace setup.
 	if cfg.TraceOut != nil {
 		nes.CPU.SetTraceOutput(cfg.TraceOut)
 	}
