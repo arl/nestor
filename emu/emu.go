@@ -43,7 +43,9 @@ type Emulator struct {
 	restart atomic.Bool
 }
 
-// Launch instantiates an emulator, setup controllers, output streams and window.
+// Launch starts the various hardware subsystems, shows the window, setups the
+// video and audio streams and plugs controllers. It doesn't start the emulation
+// loop, call Run() for that.
 func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	nes, err := powerUp(rom)
 	if err != nil {
@@ -84,7 +86,8 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	}, nil
 }
 
-func (e *Emulator) Focus() {
+// RaiseWindow raises the emulator window above others and sets the input focus.
+func (e *Emulator) RaiseWindow() {
 	if hwout, ok := e.out.(*hw.Output); ok {
 		hwout.FocusWindow()
 	}

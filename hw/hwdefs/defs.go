@@ -27,3 +27,8 @@ func (irq IRQSource) String() string {
 	}
 	return strings.Join(names, "|")
 }
+
+const (
+	SoftReset = true
+	HardReset = false
+)
