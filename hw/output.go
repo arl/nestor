@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/png"
 	"os"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -295,21 +296,22 @@ func scaleViewport(winw, winh, nesw, nesh int32) {
 }
 
 func (out *Output) Screenshot() image.Image {
-	imgc := make(chan *image.RGBA, 1)
+	var img *image.RGBA
+
 	sdl.Do(func() {
 		fbidx := out.framebufidx - 1
 		if fbidx < 1 {
 			fbidx = out.cfg.NumVideoBuffers - 1
 		}
-		imgc <- FramebufImage(out.framebuf[fbidx], out.cfg.Width, out.cfg.Height)
+		img = FramebufImage(out.framebuf[fbidx], out.cfg.Width, out.cfg.Height)
 	})
-
-	return <-imgc
+	return img
 }
 
+// FramebufImage returns an image.RGBA from a frame buffer.
 func FramebufImage(framebuf []byte, w, h int32) *image.RGBA {
 	return &image.RGBA{
-		Pix:    framebuf,
+		Pix:    slices.Clone(framebuf),
 		Stride: 4 * int(w),
 		Rect:   image.Rect(0, 0, int(w), int(h)),
 	}
