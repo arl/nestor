@@ -73,6 +73,14 @@
                         <accelerator key="t" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                     </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menu_config">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label">Configuration</property>
+                        <accelerator key="g" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>                    
+                    </child>
                   </object>
                 </child>
               </object>
