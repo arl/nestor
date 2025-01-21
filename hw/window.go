@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"unsafe"
 
+	"nestor/hw/shaders"
+
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -62,25 +64,25 @@ func _newWindow(cfg OutputConfig) (*window, error) {
 	}
 
 	// Create empty texture buffer.
-	tbuf := make([]byte, winh*winw*4)
+	texbuf := make([]byte, winh*winw*4)
 
 	var texture uint32
 	gl.GenTextures(1, &texture)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, cfg.Width, cfg.Height, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&tbuf[0]))
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, cfg.Width, cfg.Height, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&texbuf[0]))
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 
-	vert, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
+	vert, err := shaders.Compile("basic.vert", gl.VERTEX_SHADER)
 	if err != nil {
-		return nil, fmt.Errorf("vertex shader compliation: %s", err)
+		return nil, fmt.Errorf("vertex shader compilation: %s", err)
 	}
 
-	frag, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
+	frag, err := shaders.Compile("crt.frag", gl.FRAGMENT_SHADER)
 	if err != nil {
 		return nil, fmt.Errorf("fragment shader compilation: %s", err)
 	}
 
-	prog, err := linkProgram(vert, frag)
+	prog, err := shaders.LinkProgram(vert, frag)
 	if err != nil {
 		return nil, fmt.Errorf("shader program link: %s", err)
 	}
@@ -155,88 +157,4 @@ var vertices = [20]float32{
 var indices = [6]uint32{
 	0, 1, 3,
 	1, 2, 3,
-}
-
-const vertexShaderSource = `
-#version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec2 aTexCoord;
-
-out vec2 TexCoord;
-
-void main() {
-    gl_Position = vec4(aPos, 1.0);
-    TexCoord = aTexCoord;
-}
-` + "\x00"
-
-//lint:ignore U1000 keep that for now
-const fragmentShaderSource = `
-#version 330 core
-out vec4 FragColor;
-in vec2 TexCoord;
-
-uniform sampler2D ourTexture;
-
-void main() {
-    FragColor = texture(ourTexture, TexCoord);
-}
-` + "\x00"
-
-//lint:ignore U1000 keep that for now
-const crtFragmentShaderSource = `
-#version 330 core
-out vec4 FragColor;
-in vec2 TexCoord;
-
-uniform sampler2D ourTexture;
-
-void main() {
-    vec3 color = texture(ourTexture, TexCoord).rgb;
-    float scanline = sin(TexCoord.y * 1200.0) * 0.05;
-    float vignette = 0.3 + 0.7 * pow(16.0 * TexCoord.x * TexCoord.y * (1.0 - TexCoord.x) * (1.0 - TexCoord.y), 0.5);
-    color = color * vignette - scanline;
-    FragColor = vec4(color, 1.0);
-}
-` + "\x00"
-
-func compileShader(source string, shaderType uint32) (uint32, error) {
-	sh := gl.CreateShader(shaderType)
-	csrc, free := gl.Strs(source)
-	gl.ShaderSource(sh, 1, csrc, nil)
-	free()
-	gl.CompileShader(sh)
-
-	var status int32
-	if gl.GetShaderiv(sh, gl.COMPILE_STATUS, &status); status == gl.FALSE {
-		var logLength int32
-		gl.GetShaderiv(sh, gl.INFO_LOG_LENGTH, &logLength)
-
-		log := make([]byte, logLength+1)
-		gl.GetShaderInfoLog(sh, logLength, nil, &log[0])
-
-		return 0, fmt.Errorf("shader compile error: %v", string(log))
-	}
-
-	return sh, nil
-}
-
-func linkProgram(vertexShader, fragmentShader uint32) (uint32, error) {
-	prg := gl.CreateProgram()
-	gl.AttachShader(prg, vertexShader)
-	gl.AttachShader(prg, fragmentShader)
-	gl.LinkProgram(prg)
-
-	var status int32
-	if gl.GetProgramiv(prg, gl.LINK_STATUS, &status); status == gl.FALSE {
-		var logLength int32
-		var glLog [256]byte
-		gl.GetProgramInfoLog(prg, int32(len(glLog)), &logLength, &glLog[0])
-		return 0, fmt.Errorf("shader program link error: %v", string(glLog[:logLength]))
-	}
-
-	gl.DeleteShader(vertexShader)
-	gl.DeleteShader(fragmentShader)
-
-	return prg, nil
 }
