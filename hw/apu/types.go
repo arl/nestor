@@ -31,9 +31,9 @@ type apu interface {
 }
 
 type cpu interface {
-	SetIrqSource(src hwdefs.IRQSource)
-	HasIrqSource(src hwdefs.IRQSource) bool
-	ClearIrqSource(src hwdefs.IRQSource)
+	SetIRQSource(src hwdefs.IRQSource)
+	HasIRQSource(src hwdefs.IRQSource) bool
+	ClearIRQSource(src hwdefs.IRQSource)
 
 	CurrentCycle() int64
 

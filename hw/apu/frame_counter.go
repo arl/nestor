@@ -77,7 +77,7 @@ func (afc *FrameCounter) WriteFRAMECOUNTER(old, val uint8) {
 
 	afc.inhibitIRQ = (val & 0x40) == 0x40
 	if afc.inhibitIRQ {
-		afc.CPU.ClearIrqSource(hwdefs.FrameCounter)
+		afc.CPU.ClearIRQSource(hwdefs.FrameCounter)
 	}
 }
 
@@ -88,7 +88,7 @@ func (afc *FrameCounter) Run(cyclesToRun *int32) uint32 {
 	if afc.prevCycle+*cyclesToRun >= stepCycles[afc.stepMode][afc.curStep] {
 		if !afc.inhibitIRQ && afc.stepMode == 0 && afc.curStep >= 3 {
 			// Set irq on the last 3 cycles for 4-step mode
-			afc.CPU.SetIrqSource(hwdefs.FrameCounter)
+			afc.CPU.SetIRQSource(hwdefs.FrameCounter)
 		}
 
 		ftyp := frameType[afc.stepMode][afc.curStep]

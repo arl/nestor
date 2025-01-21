@@ -1,5 +1,7 @@
 package hwdefs
 
+import "strings"
+
 type IRQSource uint8
 
 const (
@@ -11,29 +13,22 @@ const (
 )
 
 var irqSrcNames = [numSources]string{
-	"external",
-	"frameCounter",
+	"ext",
+	"fcnt",
 	"dmc",
 }
 
 func (irq IRQSource) String() string {
-	if irq == 0 {
-		return ""
-	}
-
-	str := ""
-	append := func(i int) {
-		if str != "" {
-			str += "|"
-		}
-		str += irqSrcNames[i]
-	}
-
+	var names []string
 	for i := range numSources {
 		if irq&(1<<i) != 0 {
-			append(i)
+			names = append(names, irqSrcNames[i])
 		}
 	}
-
-	return str
+	return strings.Join(names, "|")
 }
+
+const (
+	SoftReset = true
+	HardReset = false
+)

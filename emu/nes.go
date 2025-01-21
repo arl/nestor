@@ -2,6 +2,7 @@ package emu
 
 import (
 	"nestor/hw"
+	"nestor/hw/hwdefs"
 	"nestor/hw/mappers"
 	"nestor/ines"
 )
@@ -34,7 +35,7 @@ func powerUp(rom *ines.Rom) (*NES, error) {
 		Rom:   rom,
 		Mixer: audioMixer,
 	}
-	nes.Reset(false)
+	nes.Reset(hwdefs.HardReset)
 	return nes, nil
 }
 

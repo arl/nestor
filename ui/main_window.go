@@ -110,7 +110,7 @@ func (mw *mainWindow) runROM(path string) {
 	}
 
 	// Select monitor based on current window.
-	mw.cfg.Video.Monitor = int(mw.monitorIdx())
+	mw.cfg.Video.Monitor = mw.monitorIdx()
 
 	emulator, err := emu.Launch(rom, mw.cfg.Config)
 	if err != nil {
@@ -127,7 +127,7 @@ func (mw *mainWindow) runROM(path string) {
 		defer mw.SetSensitive(true)
 		defer mw.wg.Done()
 
-		emulator.Focus()
+		emulator.RaiseWindow()
 		emulator.Run()
 		mw.stopEmu = func() {}
 		panel.Close()

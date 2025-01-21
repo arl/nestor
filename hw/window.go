@@ -2,6 +2,7 @@ package hw
 
 import (
 	"fmt"
+	"unsafe"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/veandco/go-sdl2/sdl"
@@ -13,33 +14,21 @@ type window struct {
 	texture uint32
 	vao     uint32
 	context sdl.GLContext
-}
-
-type windowConfig struct {
-	title      string
-	vsync      bool  // enforce vsync?
-	scale      int   // window scale factor
-	texw, texh int   // dimensions of the fullscreen texture buffer
-	monidx     int32 // monitor index
+	cfg     OutputConfig
 }
 
 // create an opengl window that renders an unique texture
 // which takes up the whole viewport.
-func newWindow(cfg windowConfig) (*window, error) {
-	type result struct {
+func newWindow(cfg OutputConfig) (*window, error) {
+	var (
 		w   *window
 		err error
-	}
-	errc := make(chan result, 1)
-	sdl.Do(func() {
-		w, err := _newWindow(cfg)
-		errc <- result{w, err}
-	})
-	res := <-errc
-	return res.w, res.err
+	)
+	sdl.Do(func() { w, err = _newWindow(cfg) })
+	return w, err
 }
 
-func _newWindow(cfg windowConfig) (*window, error) {
+func _newWindow(cfg OutputConfig) (*window, error) {
 	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
 		return nil, fmt.Errorf("failed to initialize SDL: %s", err)
 	}
@@ -48,13 +37,13 @@ func _newWindow(cfg windowConfig) (*window, error) {
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 3)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
 
-	x := sdl.WINDOWPOS_CENTERED_MASK | cfg.monidx
-	y := sdl.WINDOWPOS_CENTERED_MASK | cfg.monidx
-	winw := int32(cfg.texw * cfg.scale)
-	winh := int32(cfg.texh * cfg.scale)
+	x := sdl.WINDOWPOS_CENTERED_MASK | cfg.Monitor
+	y := sdl.WINDOWPOS_CENTERED_MASK | cfg.Monitor
+	winw := cfg.Width * cfg.ScaleFactor
+	winh := cfg.Height * cfg.ScaleFactor
 	const flags = sdl.WINDOW_OPENGL | sdl.WINDOW_SHOWN | sdl.WINDOW_RESIZABLE
 
-	w, err := sdl.CreateWindow(cfg.title, x, y, winw, winh, flags)
+	w, err := sdl.CreateWindow(cfg.Title, x, y, winw, winh, flags)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sdl window: %s", err)
 	}
@@ -68,7 +57,7 @@ func _newWindow(cfg windowConfig) (*window, error) {
 		return nil, fmt.Errorf("failed to initialize opengl: %s", err)
 	}
 
-	if !cfg.vsync {
+	if cfg.DisableVSync {
 		sdl.GLSetSwapInterval(0)
 	}
 
@@ -78,7 +67,7 @@ func _newWindow(cfg windowConfig) (*window, error) {
 	var texture uint32
 	gl.GenTextures(1, &texture)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(cfg.texw), int32(cfg.texh), 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&tbuf[0]))
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, cfg.Width, cfg.Height, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&tbuf[0]))
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 
 	vert, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
@@ -126,7 +115,18 @@ func _newWindow(cfg windowConfig) (*window, error) {
 		texture: texture,
 		vao:     VAO,
 		context: context,
+		cfg:     cfg,
 	}, nil
+}
+
+func (w *window) render(video []byte) {
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.UseProgram(w.prog)
+	gl.BindTexture(gl.TEXTURE_2D, w.texture)
+	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w.cfg.Width, w.cfg.Height, gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&video[0]))
+	gl.BindVertexArray(w.vao)
+	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
+	w.GLSwap()
 }
 
 func (w *window) Close() error {

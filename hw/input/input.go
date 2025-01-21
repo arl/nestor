@@ -1,12 +1,8 @@
 package input
 
-import (
-	"fmt"
+import "github.com/veandco/go-sdl2/sdl"
 
-	"github.com/veandco/go-sdl2/sdl"
-)
-
-// A PaddleButton is one of the button of a standard NES controller/paddle.
+// A PaddleButton identifies a button of a standard NES controller/paddle.
 type PaddleButton byte
 
 const (
@@ -23,25 +19,12 @@ const (
 )
 
 func (pd PaddleButton) String() string {
-	switch pd {
-	case PadA:
-		return "A"
-	case PadB:
-		return "B"
-	case PadSelect:
-		return "Select"
-	case PadStart:
-		return "Start"
-	case PadUp:
-		return "Up"
-	case PadDown:
-		return "Down"
-	case PadLeft:
-		return "Left"
-	case PadRight:
-		return "Right"
+	var buttonNames = [PadButtonCount]string{
+		"A", "B",
+		"Select", "Start",
+		"Up", "Down", "Left", "Right",
 	}
-	panic(fmt.Sprintf("unknown paddle button %d", pd))
+	return buttonNames[pd]
 }
 
 // PaddlePreset holds the mapping configuration of a paddle.
@@ -80,13 +63,10 @@ type Provider struct {
 	cfg Config
 }
 
-func NewProvider(cfg Config) (*Provider, error) {
-	up := &Provider{cfg: cfg}
-	sdl.Do(func() {
-		up.keystate = sdl.GetKeyboardState()
-	})
-
-	return up, nil
+func NewProvider(cfg Config) *Provider {
+	var keystate []uint8
+	sdl.Do(func() { keystate = sdl.GetKeyboardState() })
+	return &Provider{keystate: keystate, cfg: cfg}
 }
 
 func (ui *Provider) paddleState(idx int) uint8 {
@@ -102,14 +82,14 @@ func (ui *Provider) paddleState(idx int) uint8 {
 	for i, code := range preset.Buttons {
 		pressed := uint8(0)
 		switch code.Type {
-		case Keyboard:
+		case KeyboardCtrl:
 			pressed = ui.keystate[code.Scancode]
-		case ControllerButton:
+		case ButtonCtrl:
 			ctrl := Gamectrls.getByGUID(code.CtrlGUID)
 			if ctrl != nil {
 				pressed = ctrl.Button(code.CtrlButton)
 			}
-		case ControllerAxis:
+		case AxisCtrl:
 			ctrl := Gamectrls.getByGUID(code.CtrlGUID)
 			if ctrl != nil {
 				if ctrl.Axis(code.CtrlAxis) >= JoyAxisThreshold {

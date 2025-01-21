@@ -29,8 +29,8 @@ type Config struct {
 }
 
 type VideoConfig struct {
-	DisableVSync bool `toml:"disable_vsync"`
-	Monitor      int  `toml:"monitor"`
+	DisableVSync bool  `toml:"disable_vsync"`
+	Monitor      int32 `toml:"monitor"`
 }
 
 type Emulator struct {
@@ -43,7 +43,9 @@ type Emulator struct {
 	restart atomic.Bool
 }
 
-// Launch instantiates an emulator, setup controllers, output streams and window.
+// Launch starts the various hardware subsystems, shows the window, setups the
+// video and audio streams and plugs controllers. It doesn't start the emulation
+// loop, call Run() for that.
 func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	nes, err := powerUp(rom)
 	if err != nil {
@@ -52,13 +54,13 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 
 	// Output setup.
 	out := hw.NewOutput(hw.OutputConfig{
-		Width:           256,
-		Height:          240,
+		Width:           hw.NTSCWidth,
+		Height:          hw.NTSCHeight,
 		NumVideoBuffers: 2,
 		Title:           "Nestor",
 		ScaleFactor:     2,
 		DisableVSync:    cfg.Video.DisableVSync,
-		Monitor:         int32(cfg.Video.Monitor),
+		Monitor:         cfg.Video.Monitor,
 	})
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err
@@ -67,13 +69,10 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		return nil, err
 	}
 
-	input, err := input.NewProvider(cfg.Input)
-	if err != nil {
-		return nil, fmt.Errorf("input provider: %s", err)
-	}
-	nes.CPU.PlugInputDevice(input)
+	inprov := input.NewProvider(cfg.Input)
+	nes.CPU.PlugInputDevice(inprov)
 
-	// CPU trace setup.
+	// CPU execution trace setup.
 	if cfg.TraceOut != nil {
 		nes.CPU.SetTraceOutput(cfg.TraceOut)
 	}
@@ -84,13 +83,11 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	}, nil
 }
 
-func (e *Emulator) Focus() {
-	hwout, ok := e.out.(*hw.Output)
-	if !ok {
-		log.ModEmu.WarnZ("only actual output window can be focused").End()
-		return
+// RaiseWindow raises the emulator window above others and sets the input focus.
+func (e *Emulator) RaiseWindow() {
+	if hwout, ok := e.out.(*hw.Output); ok {
+		hwout.FocusWindow()
 	}
-	hwout.FocusWindow()
 }
 
 func (e *Emulator) Screenshot() image.Image {
