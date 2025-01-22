@@ -80,16 +80,15 @@ func showMainWindow() {
 		mw.runROM(path)
 	})
 
-	build[gtk.MenuItem](builder, "menu_config").Connect("activate", func(m *gtk.MenuItem) {
-		showConfigWindow(&mw.cfg)
+	onConfig := func(m *gtk.MenuItem) {
+		menu := m.GetLabel()
+		showConfig(&mw.cfg, menu)
 		if err := SaveConfig(mw.cfg); err != nil {
 			modGUI.Warnf("failed to save config: %s", err)
 		}
-	})
-
-	build[gtk.MenuItem](builder, "menu_controls").Connect("activate", func(m *gtk.MenuItem) {
-		panic("not implemented")
-	})
+	}
+	build[gtk.MenuItem](builder, "menu_input").Connect("activate", onConfig)
+	build[gtk.MenuItem](builder, "menu_video").Connect("activate", onConfig)
 }
 
 func (mw *mainWindow) Close(err error) {
