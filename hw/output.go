@@ -9,7 +9,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/veandco/go-sdl2/sdl"
 
 	"nestor/emu/log"
@@ -265,7 +264,7 @@ func (out *Output) poll() {
 				case sdl.WindowEvent:
 					if e.Event == sdl.WINDOWEVENT_RESIZED {
 						width, height := e.Data1, e.Data2
-						scaleViewport(width, height, out.cfg.Width, out.cfg.Height)
+						out.window.scaleViewport(width, height)
 					}
 				case sdl.ControllerDeviceEvent:
 					input.Gamectrls.UpdateDevices(e)
@@ -273,29 +272,6 @@ func (out *Output) poll() {
 			}
 		})
 	}
-}
-
-// scaleViewport scales the viewport so as to maintain nes aspect ratio.
-func scaleViewport(winw, winh, nesw, nesh int32) {
-	winRatio := float64(winw) / float64(winh)
-	nesRatio := float64(nesw) / float64(nesh)
-
-	var vpw, vph int32
-	if winRatio > nesRatio {
-		// Window is wider than nes screen.
-		vph = winh
-		vpw = int32(float64(winh) * nesRatio)
-	} else {
-		// Window is taller than nes screen.
-		vpw = winw
-		vph = int32(float64(winw) / nesRatio)
-	}
-
-	// Center the viewport within the window.
-	offx := (winw - vpw) / 2
-	offy := (winh - vph) / 2
-
-	gl.Viewport(offx, offy, vpw, vph)
 }
 
 func (out *Output) Screenshot() image.Image {

@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-gl/gl/v3.3-core/gl"
+	"github.com/go-gl/gl/v4.5-core/gl"
 )
 
 //go:embed *
@@ -19,10 +19,12 @@ type set[T comparable] map[T]bool
 
 func Compile(name string, shaderType uint32) (uint32, error) {
 	visited := make(set[string])
+
 	source, err := expandSource(name, visited)
 	if err != nil {
 		return 0, err
 	}
+	source = preprocessSlang(source)
 
 	sh := gl.CreateShader(shaderType)
 	csrc, free := gl.Strs(source + "\x00")
@@ -62,6 +64,21 @@ func LinkProgram(vert, frag uint32) (uint32, error) {
 	gl.DeleteShader(frag)
 
 	return prg, nil
+}
+
+func preprocessSlang(source string) string {
+	lines := strings.Split(source, "\n")
+	var processed []string
+	for _, line := range lines {
+		if strings.HasPrefix(line, "#pragma parameter") {
+			continue // Ignore pragma parameter
+		} else if strings.HasPrefix(line, "#pragma stage") {
+			// Ignore stage pragmas as shader type is already set
+			continue
+		}
+		processed = append(processed, line)
+	}
+	return strings.Join(processed, "\n")
 }
 
 func expandSource(filePath string, visited set[string]) (string, error) {

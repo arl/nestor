@@ -6,7 +6,7 @@ import (
 
 	"nestor/hw/shaders"
 
-	"github.com/go-gl/gl/v3.3-core/gl"
+	"github.com/go-gl/gl/v4.5-core/gl"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -15,6 +15,7 @@ type window struct {
 	prog    uint32
 	texture uint32
 	vao     uint32
+	ubo     uint32
 	context sdl.GLContext
 	cfg     OutputConfig
 }
@@ -35,8 +36,8 @@ func _newWindow(cfg OutputConfig) (*window, error) {
 		return nil, fmt.Errorf("failed to initialize SDL: %s", err)
 	}
 
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 3)
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 4)
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 5)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
 
 	x := sdl.WINDOWPOS_CENTERED_MASK | cfg.Monitor
@@ -125,11 +126,35 @@ func _newWindow(cfg OutputConfig) (*window, error) {
 func (w *window) render(video []byte) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.UseProgram(w.prog)
+
 	gl.BindTexture(gl.TEXTURE_2D, w.texture)
 	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w.cfg.Width, w.cfg.Height, gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&video[0]))
 	gl.BindVertexArray(w.vao)
 	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
 	w.GLSwap()
+}
+
+// scaleViewport scales the viewport so as to maintain nes aspect ratio.
+func (w *window) scaleViewport(winw, winh int32) {
+	winRatio := float64(winw) / float64(winh)
+	nesRatio := float64(w.cfg.Width) / float64(w.cfg.Height)
+
+	var vpw, vph int32
+	if winRatio > nesRatio {
+		// Window is wider than nes screen.
+		vph = winh
+		vpw = int32(float64(winh) * nesRatio)
+	} else {
+		// Window is taller than nes screen.
+		vpw = winw
+		vph = int32(float64(winw) / nesRatio)
+	}
+
+	// Center the viewport within the window.
+	offx := (winw - vpw) / 2
+	offy := (winh - vph) / 2
+
+	gl.Viewport(offx, offy, vpw, vph)
 }
 
 func (w *window) Close() error {

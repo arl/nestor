@@ -4,4 +4,9 @@
   min-width: 50px;
   min-height: 20px;
 }
+
+.bordered-box {
+    border: 1px solid #000;  /* Black border */
+    border-radius: 4px;
+    padding: 4px;
 }
