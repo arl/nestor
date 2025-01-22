@@ -1,7 +1,6 @@
 package ui
 
 import (
-	_ "embed"
 	"fmt"
 	"math"
 	"strconv"
@@ -15,21 +14,17 @@ import (
 	"nestor/hw/input"
 )
 
-//go:embed input.glade
-var inputUI string
-
 type inputConfigPage struct {
+	parent gtk.IWidget
 	cfg    *input.Config
-	curpad int // currently visible paddle
 
-	parent    gtk.IWidget
 	drawArea  *gtk.DrawingArea
 	listStore *gtk.ListStore
 	plugcheck *gtk.CheckButton
 	bboxes    [input.PadButtonCount]aabbox
 
-	devices map[string]int // allows to give each joystick a number without using the GUID
-
+	devices   map[string]int // allows to give each joystick a number without using the GUID
+	curpad    int            // currently visible paddle
 	drawScale float64
 }
 

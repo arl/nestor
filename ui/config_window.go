@@ -3,8 +3,6 @@ package ui
 import (
 	_ "embed"
 
-	"nestor/hw/input"
-
 	"github.com/gotk3/gotk3/gtk"
 )
 
@@ -15,12 +13,13 @@ type configWindow struct {
 	*gtk.Window
 }
 
-func showConfigWindow(cfg *input.Config) {
+func showConfigWindow(cfg *Config) {
 	builder := mustT(gtk.BuilderNewFromString(configUI))
 
 	win := build[gtk.Dialog](builder, "config_dialog")
 
-	buildInputConfigPage(win, cfg, builder)
+	buildInputConfigPage(win, &cfg.Input, builder)
+	buildVideoConfigPage(win, &cfg.Video, builder)
 	win.ShowAll()
 	win.Run()
 	win.Destroy()

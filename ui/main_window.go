@@ -81,7 +81,7 @@ func showMainWindow() {
 	})
 
 	build[gtk.MenuItem](builder, "menu_config").Connect("activate", func(m *gtk.MenuItem) {
-		showConfigWindow(&mw.cfg.Input)
+		showConfigWindow(&mw.cfg)
 		if err := SaveConfig(mw.cfg); err != nil {
 			modGUI.Warnf("failed to save config: %s", err)
 		}

@@ -44,6 +44,9 @@ type OutputConfig struct {
 
 	// Do not synchronize updates with vertical retrace (i.e immediate updates).
 	DisableVSync bool
+
+	// Shader name for additional video processing effects.
+	Shader string
 }
 
 // A Frame holds the audio/video buffers the emulator

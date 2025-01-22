@@ -29,8 +29,9 @@ type Config struct {
 }
 
 type VideoConfig struct {
-	DisableVSync bool  `toml:"disable_vsync"`
-	Monitor      int32 `toml:"monitor"`
+	DisableVSync bool   `toml:"disable_vsync"`
+	Monitor      int32  `toml:"monitor"`
+	Shader       string `toml:"shader"`
 }
 
 type Emulator struct {
@@ -61,6 +62,7 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		ScaleFactor:     2,
 		DisableVSync:    cfg.Video.DisableVSync,
 		Monitor:         cfg.Video.Monitor,
+		Shader:          cfg.Video.Shader,
 	})
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err

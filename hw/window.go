@@ -72,14 +72,15 @@ func _newWindow(cfg OutputConfig) (*window, error) {
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, cfg.Width, cfg.Height, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&texbuf[0]))
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 
-	vert, err := shaders.Compile("basic.vert", gl.VERTEX_SHADER)
+	vertShaderName := "basic.vert"
+	vert, err := shaders.Compile(vertShaderName, gl.VERTEX_SHADER)
 	if err != nil {
-		return nil, fmt.Errorf("vertex shader compilation: %s", err)
+		return nil, fmt.Errorf("vertex shader %q compilation: %s", vertShaderName, err)
 	}
 
-	frag, err := shaders.Compile("crt.frag", gl.FRAGMENT_SHADER)
+	frag, err := shaders.Compile(cfg.Shader, gl.FRAGMENT_SHADER)
 	if err != nil {
-		return nil, fmt.Errorf("fragment shader compilation: %s", err)
+		return nil, fmt.Errorf("fragment shader %q compilation: %s", cfg.Shader, err)
 	}
 
 	prog, err := shaders.LinkProgram(vert, frag)
