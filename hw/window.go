@@ -12,12 +12,14 @@ import (
 
 type window struct {
 	*sdl.Window
-	prog    uint32
-	texture uint32
-	vao     uint32
-	ubo     uint32
-	context sdl.GLContext
-	cfg     OutputConfig
+
+	prog     uint32
+	uniforms uniforms
+	texture  uint32
+	vao      uint32
+	ubo      uint32
+	context  sdl.GLContext
+	cfg      OutputConfig
 }
 
 // create an opengl window that renders an unique texture
@@ -69,6 +71,7 @@ func _newWindow(cfg OutputConfig) (*window, error) {
 
 	var texture uint32
 	gl.GenTextures(1, &texture)
+	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, cfg.Width, cfg.Height, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&texbuf[0]))
 	gl.GenerateMipmap(gl.TEXTURE_2D)
@@ -87,6 +90,9 @@ func _newWindow(cfg OutputConfig) (*window, error) {
 	if err != nil {
 		return nil, fmt.Errorf("shader program link: %s", err)
 	}
+
+	var uniforms uniforms
+	uniforms.getLocations(prog)
 
 	var VBO, VAO, EBO uint32
 	gl.GenVertexArrays(1, &VAO)
@@ -113,19 +119,60 @@ func _newWindow(cfg OutputConfig) (*window, error) {
 	gl.BindVertexArray(0)
 
 	return &window{
-		Window:  w,
-		prog:    prog,
-		texture: texture,
-		vao:     VAO,
-		context: context,
-		cfg:     cfg,
+		Window:   w,
+		prog:     prog,
+		uniforms: uniforms,
+		texture:  texture,
+		vao:      VAO,
+		context:  context,
+		cfg:      cfg,
 	}, nil
+}
+
+type uniforms struct {
+	// vertex+fragment
+	textureSize int32
+	inputSize   int32
+	outputSize  int32
+
+	// vertex
+	mvpMatrix int32
+
+	// fragment
+	texture int32
+}
+
+func (u *uniforms) getLocations(prog uint32) {
+	u.textureSize = gl.GetUniformLocation(prog, gl.Str("TextureSize\x00"))
+	u.inputSize = gl.GetUniformLocation(prog, gl.Str("InputSize\x00"))
+	u.outputSize = gl.GetUniformLocation(prog, gl.Str("OutputSize\x00"))
+	u.mvpMatrix = gl.GetUniformLocation(prog, gl.Str("MVPMatrix\x00"))
+	u.texture = gl.GetUniformLocation(prog, gl.Str("Texture\x00"))
+}
+
+func (w *window) updateUniforms() {
+	gl.Uniform2f(w.uniforms.textureSize, float32(w.cfg.Width), float32(w.cfg.Height))
+	gl.Uniform2f(w.uniforms.inputSize, float32(w.cfg.Width), float32(w.cfg.Height))
+
+	// TODO: use viewport width and height instead of window width and height.
+	winw, winh := w.GetSize()
+	gl.Uniform2f(w.uniforms.outputSize, float32(winw), float32(winh))
+
+	var identity = [16]float32{
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1,
+	}
+	gl.UniformMatrix4fv(w.uniforms.mvpMatrix, 1, false, &identity[0])
+	gl.Uniform1i(w.uniforms.texture, 0)
 }
 
 func (w *window) render(video []byte) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.UseProgram(w.prog)
 
+	w.updateUniforms()
 	gl.BindTexture(gl.TEXTURE_2D, w.texture)
 	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w.cfg.Width, w.cfg.Height, gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&video[0]))
 	gl.BindVertexArray(w.vao)
