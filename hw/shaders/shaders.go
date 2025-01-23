@@ -4,8 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"io"
-	"iter"
-	"maps"
+	"slices"
 	"strconv"
 
 	"github.com/go-gl/gl/v4.5-core/gl"
@@ -16,11 +15,17 @@ var dir embed.FS
 
 var shaderInfo = map[string][2]string{
 	"No shader": {"base.vert", "base.frag"},
-	"CRT Basic": {"base.vert", "basic-crt.frag"},
+	"CRT-Basic": {"base.vert", "basic-crt.frag"},
+	"CRT-Beam":  {"CRT-Beam.vert", "CRT-Beam.frag"},
 }
 
-func Names() iter.Seq[string] {
-	return maps.Keys(shaderInfo)
+func Names() []string {
+	var names []string
+	for name := range shaderInfo {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
 }
 
 func readAll(path string) ([]byte, error) {

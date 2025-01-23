@@ -69,7 +69,7 @@ var defaultConfig = Config{
 		Video: emu.VideoConfig{
 			DisableVSync: false,
 			Monitor:      0,
-			Shader:       "basic.frag",
+			Shader:       "No shader",
 		},
 		TraceOut: nil,
 	},

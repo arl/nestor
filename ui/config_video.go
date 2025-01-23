@@ -4,6 +4,7 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 
 	"nestor/emu"
+	"nestor/hw/shaders"
 )
 
 type videoConfigPage struct {
@@ -17,9 +18,12 @@ func buildVideoConfigPage(parent gtk.IWidget, cfg *emu.VideoConfig, builder *gtk
 		cfg:    cfg,
 	}
 
-	shaders := build[gtk.ComboBoxText](builder, "shaders_combo")
-	shaders.SetActiveID(cfg.Shader)
-	shaders.Connect("changed", func(combo *gtk.ComboBoxText) {
+	shaderList := build[gtk.ComboBoxText](builder, "shaders_combo")
+	for _, name := range shaders.Names() {
+		shaderList.Append(name, name)
+	}
+	shaderList.SetActiveID(cfg.Shader)
+	shaderList.Connect("changed", func(combo *gtk.ComboBoxText) {
 		cfg.Shader = combo.GetActiveID()
 	})
 
