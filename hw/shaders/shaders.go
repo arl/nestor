@@ -4,8 +4,9 @@ import (
 	"embed"
 	"fmt"
 	"io"
-	"regexp"
-	"strings"
+	"iter"
+	"maps"
+	"strconv"
 
 	"github.com/go-gl/gl/v4.5-core/gl"
 )
@@ -13,21 +14,53 @@ import (
 //go:embed *
 var dir embed.FS
 
-var includeRegex = regexp.MustCompile(`(?m)^\s*#include\s+<([^>]+)>\s*$`)
+var shaderInfo = map[string][2]string{
+	"No shader": {"base.vert", "base.frag"},
+	"CRT Basic": {"base.vert", "basic-crt.frag"},
+}
 
-type set[T comparable] map[T]bool
+func Names() iter.Seq[string] {
+	return maps.Keys(shaderInfo)
+}
 
-func Compile(name string, shaderType uint32) (uint32, error) {
-	visited := make(set[string])
+func readAll(path string) ([]byte, error) {
+	f, err := dir.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return io.ReadAll(f)
+}
 
-	source, err := expandSource(name, visited)
+type Type uint32
+
+const (
+	Vertex   Type = 0
+	Fragment Type = 1
+)
+
+func (t Type) glType() uint32 {
+	switch t {
+	case Vertex:
+		return gl.VERTEX_SHADER
+	case Fragment:
+		return gl.FRAGMENT_SHADER
+	}
+	panic("invalid shader type " + strconv.Itoa(int(t)))
+}
+
+func Compile(name string, typ Type) (uint32, error) {
+	info, ok := shaderInfo[name]
+	if !ok {
+		return 0, fmt.Errorf("shader not found: %s", name)
+	}
+
+	buf, err := readAll(info[typ])
 	if err != nil {
 		return 0, err
 	}
-	source = preprocessSlang(source)
-
-	sh := gl.CreateShader(shaderType)
-	csrc, free := gl.Strs(source + "\x00")
+	csrc, free := gl.Strs(string(buf) + "\x00")
+	sh := gl.CreateShader(typ.glType())
 	gl.ShaderSource(sh, 1, csrc, nil)
 	free()
 	gl.CompileShader(sh)
@@ -64,53 +97,4 @@ func LinkProgram(vert, frag uint32) (uint32, error) {
 	gl.DeleteShader(frag)
 
 	return prg, nil
-}
-
-func preprocessSlang(source string) string {
-	lines := strings.Split(source, "\n")
-	var processed []string
-	for _, line := range lines {
-		if strings.HasPrefix(line, "#pragma parameter") {
-			continue // Ignore pragma parameter
-		} else if strings.HasPrefix(line, "#pragma stage") {
-			// Ignore stage pragmas as shader type is already set
-			continue
-		}
-		processed = append(processed, line)
-	}
-	return strings.Join(processed, "\n")
-}
-
-func expandSource(filePath string, visited set[string]) (string, error) {
-	if visited[filePath] {
-		return "", fmt.Errorf("circular include detected for file: %s", filePath)
-	}
-	visited[filePath] = true
-
-	f, err := dir.Open(filePath)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	data, err := io.ReadAll(f)
-	if err != nil {
-		return "", err
-	}
-	src := string(data)
-
-	// Find matches for #include <filename>
-	matches := includeRegex.FindAllStringSubmatch(src, -1)
-	for _, match := range matches {
-		includeFile := match[1] // the filename inside <>
-		includeSource, err := expandSource(includeFile, visited)
-		if err != nil {
-			return "", err
-		}
-		// Replace the entire #include line with the file contents
-		oldLine := match[0] // the entire matched line
-		src = strings.Replace(src, oldLine, includeSource, 1)
-	}
-
-	return src, nil
 }
