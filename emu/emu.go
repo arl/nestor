@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"slices"
 	"sync/atomic"
 	"time"
 
 	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/hw/input"
+	"nestor/hw/shaders"
 	"nestor/ines"
 )
 
@@ -32,6 +34,17 @@ type VideoConfig struct {
 	DisableVSync bool   `toml:"disable_vsync"`
 	Monitor      int32  `toml:"monitor"`
 	Shader       string `toml:"shader"`
+}
+
+func (vcfg *VideoConfig) Init() {
+	// Ensure we have a valid shader.
+	if vcfg.Shader == "" {
+		vcfg.Shader = shaders.DefaultName
+	}
+	if !slices.Contains(shaders.Names(), vcfg.Shader) {
+		log.ModEmu.Warnf("Invalid shader name %q, fallback to %q", vcfg.Shader, shaders.DefaultName)
+		vcfg.Shader = shaders.DefaultName
+	}
 }
 
 type Emulator struct {

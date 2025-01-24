@@ -69,7 +69,7 @@ var defaultConfig = Config{
 		Video: emu.VideoConfig{
 			DisableVSync: false,
 			Monitor:      0,
-			Shader:       "No shader",
+			Shader:       "",
 		},
 		TraceOut: nil,
 	},
@@ -89,11 +89,12 @@ func LoadConfigOrDefault() Config {
 		return defaultConfig
 	}
 	cfg.Input.Init()
+	cfg.Video.Init()
 	return cfg
 }
 
 // SaveConfig into nestor config directory.
-func SaveConfig(cfg Config) error {
+func SaveConfig(cfg *Config) error {
 	buf, err := toml.Marshal(cfg)
 	if err != nil {
 		return err
