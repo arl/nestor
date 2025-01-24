@@ -4,8 +4,10 @@ import (
 	"embed"
 	"fmt"
 	"io"
+	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/go-gl/gl/v4.5-core/gl"
 )
@@ -13,17 +15,27 @@ import (
 //go:embed *
 var dir embed.FS
 
-var shaderInfo = map[string][2]string{
-	"No shader": {"base.vert", "base.frag"},
-	"CRT-Basic": {"base.vert", "basic-crt.frag"},
-	"CRT-Beam":  {"CRT-Beam.vert", "CRT-Beam.frag"},
-}
+const DefaultName = "Passthrough"
 
+// Names returns the names (without extension) of all embedded shader files.
 func Names() []string {
+	dirents, err := dir.ReadDir(".")
+	if err != nil {
+		panic(err)
+	}
+
+	files := make(map[string]bool)
+	for _, dirent := range dirents {
+		name := dirent.Name()
+		name = strings.TrimSuffix(name, filepath.Ext(name))
+		files[name] = true
+	}
+
 	var names []string
-	for name := range shaderInfo {
+	for name := range files {
 		names = append(names, name)
 	}
+
 	slices.Sort(names)
 	return names
 }
@@ -51,16 +63,21 @@ func (t Type) glType() uint32 {
 	case Fragment:
 		return gl.FRAGMENT_SHADER
 	}
-	panic("invalid shader type " + strconv.Itoa(int(t)))
+	panic("glType: invalid shader type " + strconv.Itoa(int(t)))
+}
+
+func (t Type) ext() string {
+	switch t {
+	case Vertex:
+		return ".vert"
+	case Fragment:
+		return ".frag"
+	}
+	panic("ext: invalid shader type " + strconv.Itoa(int(t)))
 }
 
 func Compile(name string, typ Type) (uint32, error) {
-	info, ok := shaderInfo[name]
-	if !ok {
-		return 0, fmt.Errorf("shader not found: %s", name)
-	}
-
-	buf, err := readAll(info[typ])
+	buf, err := readAll(name + typ.ext())
 	if err != nil {
 		return 0, err
 	}
