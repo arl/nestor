@@ -18,7 +18,6 @@ uniform vec2 InputSize;
 #define FragColor gl_FragColor
 #define Source Texture
 
-
 #define blur 0.6
 #define Scanline 0.2
 #define weightr  0.2

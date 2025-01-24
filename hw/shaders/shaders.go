@@ -26,6 +26,9 @@ func Names() []string {
 
 	files := make(map[string]bool)
 	for _, dirent := range dirents {
+		if dirent.IsDir() {
+			continue
+		}
 		name := dirent.Name()
 		name = strings.TrimSuffix(name, filepath.Ext(name))
 		files[name] = true
