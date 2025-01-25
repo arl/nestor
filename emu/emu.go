@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"slices"
 	"sync/atomic"
 	"time"
 
 	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/hw/input"
+	"nestor/hw/shaders"
 	"nestor/ines"
 )
 
@@ -29,8 +31,20 @@ type Config struct {
 }
 
 type VideoConfig struct {
-	DisableVSync bool  `toml:"disable_vsync"`
-	Monitor      int32 `toml:"monitor"`
+	DisableVSync bool   `toml:"disable_vsync"`
+	Monitor      int32  `toml:"monitor"`
+	Shader       string `toml:"shader"`
+}
+
+func (vcfg *VideoConfig) Init() {
+	// Ensure we have a valid shader.
+	if vcfg.Shader == "" {
+		vcfg.Shader = shaders.DefaultName
+	}
+	if !slices.Contains(shaders.Names(), vcfg.Shader) {
+		log.ModEmu.Warnf("Invalid shader name %q, fallback to %q", vcfg.Shader, shaders.DefaultName)
+		vcfg.Shader = shaders.DefaultName
+	}
 }
 
 type Emulator struct {
@@ -61,6 +75,7 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		ScaleFactor:     2,
 		DisableVSync:    cfg.Video.DisableVSync,
 		Monitor:         cfg.Video.Monitor,
+		Shader:          cfg.Video.Shader,
 	})
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err

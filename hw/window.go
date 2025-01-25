@@ -4,17 +4,22 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/go-gl/gl/v3.3-core/gl"
+	"nestor/hw/shaders"
+
+	"github.com/go-gl/gl/v4.5-core/gl"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
 type window struct {
 	*sdl.Window
-	prog    uint32
-	texture uint32
-	vao     uint32
-	context sdl.GLContext
-	cfg     OutputConfig
+
+	prog     uint32
+	uniforms uniforms
+	texture  uint32
+	vao      uint32
+	ubo      uint32
+	context  sdl.GLContext
+	cfg      OutputConfig
 }
 
 // create an opengl window that renders an unique texture
@@ -33,8 +38,8 @@ func _newWindow(cfg OutputConfig) (*window, error) {
 		return nil, fmt.Errorf("failed to initialize SDL: %s", err)
 	}
 
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 3)
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 4)
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 5)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
 
 	x := sdl.WINDOWPOS_CENTERED_MASK | cfg.Monitor
@@ -62,28 +67,32 @@ func _newWindow(cfg OutputConfig) (*window, error) {
 	}
 
 	// Create empty texture buffer.
-	tbuf := make([]byte, winh*winw*4)
+	texbuf := make([]byte, winh*winw*4)
 
 	var texture uint32
 	gl.GenTextures(1, &texture)
+	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, cfg.Width, cfg.Height, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&tbuf[0]))
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, cfg.Width, cfg.Height, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&texbuf[0]))
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 
-	vert, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
+	vert, err := shaders.Compile(cfg.Shader, shaders.Vertex)
 	if err != nil {
-		return nil, fmt.Errorf("vertex shader compliation: %s", err)
+		return nil, fmt.Errorf("vertex shader %q compilation: %s", cfg.Shader, err)
 	}
 
-	frag, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
+	frag, err := shaders.Compile(cfg.Shader, shaders.Fragment)
 	if err != nil {
-		return nil, fmt.Errorf("fragment shader compilation: %s", err)
+		return nil, fmt.Errorf("fragment shader %q compilation: %s", cfg.Shader, err)
 	}
 
-	prog, err := linkProgram(vert, frag)
+	prog, err := shaders.LinkProgram(vert, frag)
 	if err != nil {
 		return nil, fmt.Errorf("shader program link: %s", err)
 	}
+
+	var uniforms uniforms
+	uniforms.getLocations(prog)
 
 	var VBO, VAO, EBO uint32
 	gl.GenVertexArrays(1, &VAO)
@@ -110,23 +119,88 @@ func _newWindow(cfg OutputConfig) (*window, error) {
 	gl.BindVertexArray(0)
 
 	return &window{
-		Window:  w,
-		prog:    prog,
-		texture: texture,
-		vao:     VAO,
-		context: context,
-		cfg:     cfg,
+		Window:   w,
+		prog:     prog,
+		uniforms: uniforms,
+		texture:  texture,
+		vao:      VAO,
+		context:  context,
+		cfg:      cfg,
 	}, nil
+}
+
+type uniforms struct {
+	// vertex+fragment
+	textureSize int32
+	inputSize   int32
+	outputSize  int32
+
+	// vertex
+	mvpMatrix int32
+
+	// fragment
+	texture int32
+}
+
+func (u *uniforms) getLocations(prog uint32) {
+	u.textureSize = gl.GetUniformLocation(prog, gl.Str("TextureSize\x00"))
+	u.inputSize = gl.GetUniformLocation(prog, gl.Str("InputSize\x00"))
+	u.outputSize = gl.GetUniformLocation(prog, gl.Str("OutputSize\x00"))
+	u.mvpMatrix = gl.GetUniformLocation(prog, gl.Str("MVPMatrix\x00"))
+	u.texture = gl.GetUniformLocation(prog, gl.Str("Texture\x00"))
+}
+
+func (w *window) updateUniforms() {
+	gl.Uniform2f(w.uniforms.textureSize, float32(w.cfg.Width), float32(w.cfg.Height))
+	gl.Uniform2f(w.uniforms.inputSize, float32(w.cfg.Width), float32(w.cfg.Height))
+
+	// TODO: use viewport width and height instead of window width and height.
+	winw, winh := w.GetSize()
+	gl.Uniform2f(w.uniforms.outputSize, float32(winw), float32(winh))
+
+	var identity = [16]float32{
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1,
+	}
+	gl.UniformMatrix4fv(w.uniforms.mvpMatrix, 1, false, &identity[0])
+	gl.Uniform1i(w.uniforms.texture, 0)
 }
 
 func (w *window) render(video []byte) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.UseProgram(w.prog)
+
+	w.updateUniforms()
 	gl.BindTexture(gl.TEXTURE_2D, w.texture)
 	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w.cfg.Width, w.cfg.Height, gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&video[0]))
 	gl.BindVertexArray(w.vao)
 	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
 	w.GLSwap()
+}
+
+// scaleViewport scales the viewport so as to maintain nes aspect ratio.
+func (w *window) scaleViewport(winw, winh int32) {
+	winRatio := float64(winw) / float64(winh)
+	nesRatio := float64(w.cfg.Width) / float64(w.cfg.Height)
+
+	var vpw, vph int32
+	if winRatio > nesRatio {
+		// Window is wider than nes screen.
+		vph = winh
+		vpw = int32(float64(winh) * nesRatio)
+	} else {
+		// Window is taller than nes screen.
+		vpw = winw
+		vph = int32(float64(winw) / nesRatio)
+	}
+
+	// Center the viewport within the window.
+	offx := (winw - vpw) / 2
+	offy := (winh - vph) / 2
+
+	gl.Viewport(offx, offy, vpw, vph)
 }
 
 func (w *window) Close() error {
@@ -155,88 +229,4 @@ var vertices = [20]float32{
 var indices = [6]uint32{
 	0, 1, 3,
 	1, 2, 3,
-}
-
-const vertexShaderSource = `
-#version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec2 aTexCoord;
-
-out vec2 TexCoord;
-
-void main() {
-    gl_Position = vec4(aPos, 1.0);
-    TexCoord = aTexCoord;
-}
-` + "\x00"
-
-//lint:ignore U1000 keep that for now
-const fragmentShaderSource = `
-#version 330 core
-out vec4 FragColor;
-in vec2 TexCoord;
-
-uniform sampler2D ourTexture;
-
-void main() {
-    FragColor = texture(ourTexture, TexCoord);
-}
-` + "\x00"
-
-//lint:ignore U1000 keep that for now
-const crtFragmentShaderSource = `
-#version 330 core
-out vec4 FragColor;
-in vec2 TexCoord;
-
-uniform sampler2D ourTexture;
-
-void main() {
-    vec3 color = texture(ourTexture, TexCoord).rgb;
-    float scanline = sin(TexCoord.y * 1200.0) * 0.05;
-    float vignette = 0.3 + 0.7 * pow(16.0 * TexCoord.x * TexCoord.y * (1.0 - TexCoord.x) * (1.0 - TexCoord.y), 0.5);
-    color = color * vignette - scanline;
-    FragColor = vec4(color, 1.0);
-}
-` + "\x00"
-
-func compileShader(source string, shaderType uint32) (uint32, error) {
-	sh := gl.CreateShader(shaderType)
-	csrc, free := gl.Strs(source)
-	gl.ShaderSource(sh, 1, csrc, nil)
-	free()
-	gl.CompileShader(sh)
-
-	var status int32
-	if gl.GetShaderiv(sh, gl.COMPILE_STATUS, &status); status == gl.FALSE {
-		var logLength int32
-		gl.GetShaderiv(sh, gl.INFO_LOG_LENGTH, &logLength)
-
-		log := make([]byte, logLength+1)
-		gl.GetShaderInfoLog(sh, logLength, nil, &log[0])
-
-		return 0, fmt.Errorf("shader compile error: %v", string(log))
-	}
-
-	return sh, nil
-}
-
-func linkProgram(vertexShader, fragmentShader uint32) (uint32, error) {
-	prg := gl.CreateProgram()
-	gl.AttachShader(prg, vertexShader)
-	gl.AttachShader(prg, fragmentShader)
-	gl.LinkProgram(prg)
-
-	var status int32
-	if gl.GetProgramiv(prg, gl.LINK_STATUS, &status); status == gl.FALSE {
-		var logLength int32
-		var glLog [256]byte
-		gl.GetProgramInfoLog(prg, int32(len(glLog)), &logLength, &glLog[0])
-		return 0, fmt.Errorf("shader program link error: %v", string(glLog[:logLength]))
-	}
-
-	gl.DeleteShader(vertexShader)
-	gl.DeleteShader(fragmentShader)
-
-	return prg, nil
 }

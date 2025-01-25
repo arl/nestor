@@ -1,7 +1,6 @@
 package ui
 
 import (
-	_ "embed"
 	"fmt"
 	"math"
 	"strconv"
@@ -15,33 +14,27 @@ import (
 	"nestor/hw/input"
 )
 
-//go:embed input.glade
-var inputUI string
-
-type controlCfgDialog struct {
-	*gtk.Dialog
-
+type inputConfigPage struct {
+	parent gtk.IWidget
 	cfg    *input.Config
-	curpad int // currently visible paddle
 
 	drawArea  *gtk.DrawingArea
 	listStore *gtk.ListStore
 	plugcheck *gtk.CheckButton
 	bboxes    [input.PadButtonCount]aabbox
 
-	devices map[string]int // allows to give each joystick a number without using the GUID
-
+	devices   map[string]int // allows to give each joystick a number without using the GUID
+	curpad    int            // currently visible paddle
 	drawScale float64
 }
 
-func showControllerConfig(cfg *input.Config) {
-	builder := mustT(gtk.BuilderNewFromString(inputUI))
-	dlg := controlCfgDialog{
+func buildInputConfigPage(parent gtk.IWidget, cfg *input.Config, builder *gtk.Builder) *inputConfigPage {
+	page := &inputConfigPage{
+		parent:    parent,
 		cfg:       cfg,
 		curpad:    0,
 		drawScale: 3.6,
 		devices:   map[string]int{"": 0},
-		Dialog:    build[gtk.Dialog](builder, "input_dialog"),
 		plugcheck: build[gtk.CheckButton](builder, "plugged_chk"),
 		drawArea:  build[gtk.DrawingArea](builder, "paddle_drawing"),
 		listStore: mustT(gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING)),
@@ -51,7 +44,7 @@ func showControllerConfig(cfg *input.Config) {
 	treeView := build[gtk.TreeView](builder, "treeview")
 	presets := build[gtk.ComboBoxText](builder, "presets_combo")
 
-	treeView.SetModel(dlg.listStore)
+	treeView.SetModel(page.listStore)
 	typecell := mustT(gtk.CellRendererTextNew())
 	namecell := mustT(gtk.CellRendererTextNew())
 	devcell := mustT(gtk.CellRendererTextNew())
@@ -65,73 +58,71 @@ func showControllerConfig(cfg *input.Config) {
 	treeView.AppendColumn(namecol)
 	treeView.AppendColumn(devcol)
 
-	dlg.drawArea.Connect("draw", dlg.onDrawPaddle)
-	presets.Connect("changed", dlg.onPresetChanged)
-	dlg.drawArea.Connect("button-press-event", dlg.onClick)
-	dlg.plugcheck.Connect("toggled", func(cb *gtk.CheckButton) {
-		dlg.cfg.Paddles[dlg.curpad].Plugged = cb.GetActive()
+	page.drawArea.Connect("draw", page.onDrawPaddle)
+	presets.Connect("changed", page.onPresetChanged)
+	page.drawArea.Connect("button-press-event", page.onClick)
+	page.plugcheck.Connect("toggled", func(cb *gtk.CheckButton) {
+		page.cfg.Paddles[page.curpad].Plugged = cb.GetActive()
 	})
 	radioPad1.Connect("clicked", func() {
-		dlg.curpad = 0
-		presets.SetActive(int(cfg.Paddles[dlg.curpad].PaddlePreset))
+		page.curpad = 0
+		presets.SetActive(int(cfg.Paddles[page.curpad].PaddlePreset))
 	})
 	radioPad2.Connect("clicked", func() {
-		dlg.curpad = 1
-		presets.SetActive(int(cfg.Paddles[dlg.curpad].PaddlePreset))
+		page.curpad = 1
+		presets.SetActive(int(cfg.Paddles[page.curpad].PaddlePreset))
 	})
 
 	presets.SetActive(int(cfg.Paddles[0].PaddlePreset))
 
-	dlg.ShowAll()
-	dlg.Run()
-	dlg.Destroy()
+	return page
 }
 
-func (dlg *controlCfgDialog) onPresetChanged(presets *gtk.ComboBoxText) {
-	dlg.cfg.Paddles[dlg.curpad].PaddlePreset = uint(presets.GetActive())
-	dlg.cfg.Paddles[dlg.curpad].Preset = &dlg.cfg.Presets[dlg.cfg.Paddles[dlg.curpad].PaddlePreset]
-	dlg.updatePaddleCfg()
+func (page *inputConfigPage) onPresetChanged(presets *gtk.ComboBoxText) {
+	page.cfg.Paddles[page.curpad].PaddlePreset = uint(presets.GetActive())
+	page.cfg.Paddles[page.curpad].Preset = &page.cfg.Presets[page.cfg.Paddles[page.curpad].PaddlePreset]
+	page.updatePaddleCfg()
 }
 
-func (dlg *controlCfgDialog) updatePaddleCfg() {
-	dlg.plugcheck.SetActive(dlg.cfg.Paddles[dlg.curpad].Plugged)
-	dlg.updatePropertyList()
+func (page *inputConfigPage) updatePaddleCfg() {
+	page.plugcheck.SetActive(page.cfg.Paddles[page.curpad].Plugged)
+	page.updatePropertyList()
 }
 
-func (dlg *controlCfgDialog) updatePropertyList() {
-	dlg.listStore.Clear()
+func (page *inputConfigPage) updatePropertyList() {
+	page.listStore.Clear()
 
 	for btn := input.PadA; btn <= input.PadRight; btn++ {
-		iter := dlg.listStore.Append()
-		mapping := dlg.cfg.Paddles[dlg.curpad].Preset.Buttons[btn]
+		iter := page.listStore.Append()
+		mapping := page.cfg.Paddles[page.curpad].Preset.Buttons[btn]
 
 		typ := mapping.Type.String()
 		name := mapping.Name()
-		dev, ok := dlg.devices[mapping.CtrlGUID]
+		dev, ok := page.devices[mapping.CtrlGUID]
 		if !ok {
-			dev = len(dlg.devices)
-			dlg.devices[mapping.CtrlGUID] = dev
+			dev = len(page.devices)
+			page.devices[mapping.CtrlGUID] = dev
 		}
 		devstr := ""
 		if dev > 0 {
 			devstr = strconv.Itoa(dev)
 		}
 
-		must(dlg.listStore.Set(iter, []int{0, 1, 2}, []any{typ, name, devstr}))
+		must(page.listStore.Set(iter, []int{0, 1, 2}, []any{typ, name, devstr}))
 	}
 }
 
-func (dlg *controlCfgDialog) captureInput(btn input.PaddleButton) {
-	dlg.SetSensitive(false)
+func (page *inputConfigPage) captureInput(btn input.PaddleButton) {
+	page.parent.ToWidget().SetSensitive(false)
 
 	// The input capture window is SDL, not gtk, we to run it in a different
 	// goroutine to not block gtk event loop.
 	go func() {
-		text := fmt.Sprintf("%s (Paddle %d)", btn, dlg.curpad+1)
+		text := fmt.Sprintf("%s (Paddle %d)", btn, page.curpad+1)
 		code, err := input.Capture(text)
 
 		glib.IdleAdd(func() {
-			defer dlg.SetSensitive(true)
+			page.parent.ToWidget().SetSensitive(true)
 
 			if err != nil {
 				gtk.MessageDialogNew(nil, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, "Error: %s", err).Run()
@@ -142,27 +133,27 @@ func (dlg *controlCfgDialog) captureInput(btn input.PaddleButton) {
 				return
 			}
 
-			dlg.cfg.Paddles[dlg.curpad].Preset.Buttons[btn] = code
-			dlg.updatePropertyList()
+			page.cfg.Paddles[page.curpad].Preset.Buttons[btn] = code
+			page.updatePropertyList()
 		})
 	}()
 }
 
-func (dlg *controlCfgDialog) onClick(da *gtk.DrawingArea, event *gdk.Event) {
+func (page *inputConfigPage) onClick(da *gtk.DrawingArea, event *gdk.Event) {
 	x, y := gdk.EventButtonNewFromEvent(event).MotionVal()
-	x /= dlg.drawScale
-	y /= dlg.drawScale
+	x /= page.drawScale
+	y /= page.drawScale
 
-	for i, bbox := range dlg.bboxes {
+	for i, bbox := range page.bboxes {
 		if bbox.contains(x, y) {
-			dlg.captureInput(input.PaddleButton(i))
+			page.captureInput(input.PaddleButton(i))
 			return
 		}
 	}
 }
 
-func (dlg *controlCfgDialog) onDrawPaddle(da *gtk.DrawingArea, cr *cairo.Context) {
-	cr.Scale(dlg.drawScale, dlg.drawScale)
+func (page *inputConfigPage) onDrawPaddle(da *gtk.DrawingArea, cr *cairo.Context) {
+	cr.Scale(page.drawScale, page.drawScale)
 
 	// Paddle body.
 	cr.SetSourceRGB(0.8, 0.8, 0.8)
@@ -193,10 +184,10 @@ func (dlg *controlCfgDialog) onDrawPaddle(da *gtk.DrawingArea, cr *cairo.Context
 	cr.Arc(16, 24, 2, 0, 2*math.Pi)
 	cr.Fill()
 
-	dlg.bboxes[input.PadUp] = aabbox{13, 15, 20, 21}
-	dlg.bboxes[input.PadDown] = aabbox{13, 27, 20, 33}
-	dlg.bboxes[input.PadLeft] = aabbox{7, 21, 13, 27}
-	dlg.bboxes[input.PadRight] = aabbox{20, 21, 27, 27}
+	page.bboxes[input.PadUp] = aabbox{13, 15, 20, 21}
+	page.bboxes[input.PadDown] = aabbox{13, 27, 20, 33}
+	page.bboxes[input.PadLeft] = aabbox{7, 21, 13, 27}
+	page.bboxes[input.PadRight] = aabbox{20, 21, 27, 27}
 
 	// Central H lines.
 	cr.SetSourceRGB(0.5, 0.5, 0.5)
@@ -232,8 +223,8 @@ func (dlg *controlCfgDialog) onDrawPaddle(da *gtk.DrawingArea, cr *cairo.Context
 	roundedRect(cr, 48, 27.5, 8, 3, 1.5)
 	cr.Fill()
 
-	dlg.bboxes[input.PadSelect] = aabbox{34, 27.5, 42, 30.5}
-	dlg.bboxes[input.PadStart] = aabbox{48, 27.5, 56, 30.5}
+	page.bboxes[input.PadSelect] = aabbox{34, 27.5, 42, 30.5}
+	page.bboxes[input.PadStart] = aabbox{48, 27.5, 56, 30.5}
 
 	// B/A panels.
 	cr.SetSourceRGB(0.9, 0.9, 0.9)
@@ -242,8 +233,8 @@ func (dlg *controlCfgDialog) onDrawPaddle(da *gtk.DrawingArea, cr *cairo.Context
 	roundedRect(cr, 77, 24, 10, 10, 1.5)
 	cr.Fill()
 
-	dlg.bboxes[input.PadB] = aabbox{65, 24, 75, 34}
-	dlg.bboxes[input.PadA] = aabbox{77, 24, 87, 34}
+	page.bboxes[input.PadB] = aabbox{65, 24, 75, 34}
+	page.bboxes[input.PadA] = aabbox{77, 24, 87, 34}
 
 	// B/A buttons.
 	cr.SetSourceRGB(1, 0, 0)

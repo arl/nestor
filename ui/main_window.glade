@@ -66,11 +66,19 @@
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <child>
-                      <object class="GtkMenuItem" id="menu_controls">
+                      <object class="GtkMenuItem" id="menu_input">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label">Controls</property>
-                        <accelerator key="t" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                        <property name="label">Input</property>
+                        <accelerator key="i" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menu_video">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label">Video</property>
+                        <accelerator key="v" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                     </child>
                   </object>

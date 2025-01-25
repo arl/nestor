@@ -6,9 +6,11 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
+	"github.com/veandco/go-sdl2/sdl"
 
 	"nestor/emu"
 	"nestor/emu/log"
+	"nestor/hw/input"
 )
 
 type GeneralConfig struct {
@@ -35,6 +37,47 @@ var ConfigDir = sync.OnceValue(func() string {
 	return dir
 })
 
+var defaultConfig = Config{
+	Config: emu.Config{
+		Input: input.Config{
+			Paddles: [2]input.PaddleConfig{
+				{
+					Plugged:      true,
+					PaddlePreset: 0,
+				},
+				{
+					Plugged:      false,
+					PaddlePreset: 1,
+				},
+			},
+			Presets: [8]input.PaddlePreset{
+				{
+					Buttons: [8]input.Code{
+						// TODO: change this to QWERTY layout?
+						{Scancode: sdl.SCANCODE_W, Type: input.KeyboardCtrl},
+						{Scancode: sdl.SCANCODE_Q, Type: input.KeyboardCtrl},
+						{Scancode: sdl.SCANCODE_A, Type: input.KeyboardCtrl},
+						{Scancode: sdl.SCANCODE_S, Type: input.KeyboardCtrl},
+						{Scancode: sdl.SCANCODE_UP, Type: input.KeyboardCtrl},
+						{Scancode: sdl.SCANCODE_DOWN, Type: input.KeyboardCtrl},
+						{Scancode: sdl.SCANCODE_LEFT, Type: input.KeyboardCtrl},
+						{Scancode: sdl.SCANCODE_RIGHT, Type: input.KeyboardCtrl},
+					},
+				},
+			},
+		},
+		Video: emu.VideoConfig{
+			DisableVSync: false,
+			Monitor:      0,
+			Shader:       "",
+		},
+		TraceOut: nil,
+	},
+	General: GeneralConfig{
+		ShowSplash: true,
+	},
+}
+
 const cfgFilename = "config.toml"
 
 // LoadConfigOrDefault loads the configuration from the nestor config directory,
@@ -43,15 +86,15 @@ func LoadConfigOrDefault() Config {
 	var cfg Config
 	_, err := toml.DecodeFile(filepath.Join(ConfigDir(), cfgFilename), &cfg)
 	if err != nil {
-		// TODO: specify default config
-		return Config{}
+		return defaultConfig
 	}
 	cfg.Input.Init()
+	cfg.Video.Init()
 	return cfg
 }
 
 // SaveConfig into nestor config directory.
-func SaveConfig(cfg Config) error {
+func SaveConfig(cfg *Config) error {
 	buf, err := toml.Marshal(cfg)
 	if err != nil {
 		return err

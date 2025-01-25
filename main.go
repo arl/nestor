@@ -20,13 +20,15 @@ func main() {
 func main1() {
 	args := parseArgs(os.Args[1:])
 
+	cfg := ui.LoadConfigOrDefault()
+
 	switch args.mode {
 	case guiMode:
-		ui.RunApp()
+		ui.RunApp(&cfg)
 	case romInfosMode:
 		romInfosMain(args.RomInfos.RomPath)
 	case runMode:
-		emuMain(args.Run)
+		emuMain(args.Run, &cfg)
 	}
 }
 
@@ -40,7 +42,7 @@ func romInfosMain(romPath string) {
 }
 
 // emuMain runs the emulator directly with the given rom.
-func emuMain(args Run) {
+func emuMain(args Run, cfg *ui.Config) {
 	rom, err := ines.ReadRom(args.RomPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading ROM: %s", err)
@@ -53,7 +55,6 @@ func emuMain(args Run) {
 		defer traceout.Close()
 	}
 
-	cfg := ui.LoadConfigOrDefault()
 	cfg.TraceOut = traceout
 	nes, err := emu.Launch(rom, cfg.Config)
 	if err != nil {

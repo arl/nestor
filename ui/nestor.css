@@ -1,6 +1,12 @@
 .button-box button {
   font-size: 0.8rem;
-  padding: 2px 5px; /* Adjust padding: vertical 2px, horizontal 5px */
-  min-width: 50px; /* Set minimum width */
-  min-height: 20px; /* Set minimum height */
+  padding: 2px 5px;
+  min-width: 50px;
+  min-height: 20px;
+}
+
+.bordered-box {
+    border: 1px solid #000;  /* Black border */
+    border-radius: 4px;
+    padding: 4px;
 }

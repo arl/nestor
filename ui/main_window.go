@@ -29,16 +29,14 @@ var stylesUI string
 
 // RunApp creates and shows the main window,
 // blocking until it's closed.
-func RunApp() {
+func RunApp(cfg *Config) {
 	gtk.Init(nil)
 	css := mustT(gtk.CssProviderNew())
 	must(css.LoadFromData(stylesUI))
 	screen := mustT(gdk.ScreenGetDefault())
 	gtk.AddProviderForScreen(screen, css, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
-	cfg := LoadConfigOrDefault()
-
-	showMainWindow()
+	showMainWindow(cfg)
 	if cfg.General.ShowSplash {
 		splashScreen(360, 360)
 	}
@@ -50,17 +48,17 @@ type mainWindow struct {
 	*gtk.Window
 	rrv *recentROMsView
 	wg  sync.WaitGroup
-	cfg Config
+	cfg *Config
 
 	stopEmu func()
 }
 
-func showMainWindow() {
+func showMainWindow(cfg *Config) {
 	builder := mustT(gtk.BuilderNewFromString(mainWindowUI))
 
 	mw := &mainWindow{
 		Window:  build[gtk.Window](builder, "main_window"),
-		cfg:     LoadConfigOrDefault(),
+		cfg:     cfg,
 		stopEmu: func() {},
 	}
 
@@ -79,12 +77,16 @@ func showMainWindow() {
 		}
 		mw.runROM(path)
 	})
-	build[gtk.MenuItem](builder, "menu_controls").Connect("activate", func(m *gtk.MenuItem) {
-		showControllerConfig(&mw.cfg.Input)
+
+	onConfig := func(m *gtk.MenuItem) {
+		menu := m.GetLabel()
+		showConfig(mw.cfg, menu)
 		if err := SaveConfig(mw.cfg); err != nil {
 			modGUI.Warnf("failed to save config: %s", err)
 		}
-	})
+	}
+	build[gtk.MenuItem](builder, "menu_input").Connect("activate", onConfig)
+	build[gtk.MenuItem](builder, "menu_video").Connect("activate", onConfig)
 }
 
 func (mw *mainWindow) Close(err error) {
