@@ -13,7 +13,7 @@ Please refer to [github.com/gotk3/gotk3](https://github.com/gotk3/gotk3).
 
 ### Nestor
 
-Requires at least go1.22.
+Requires go1.24+
 
 Then you can directly download, build and install `nestor` in your $PATH with:
 
@@ -58,3 +58,23 @@ Run "nestor <command> --help" for more information on a command.
  - [x] mapper 3
  - [ ] other mappers...
  - [ ] save states
+
+
+## License
+
+Nestor is available under the GPL V3 license.  Full text here: <http://www.gnu.org/licenses/gpl-3.0.en.html>
+
+Copyright (C) 2023-2025 arl
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
