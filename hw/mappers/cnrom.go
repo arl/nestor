@@ -52,6 +52,14 @@ func loadCNROM(b *base) error {
 
 	b.cpu.Bus.MapBank(0x0000, cnrom, 0)
 
+	if b.rom.PRGRAMSize() > 0 {
+		b.cpu.Bus.MapMem(0x6000, &hwio.Mem{
+			Name:  "PRGRAM",
+			VSize: 0x2000,
+			Data:  make([]byte, b.rom.PRGRAMSize()),
+		})
+	}
+
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
 	b.ppu.Bus.MapBank(0x0000, cnrom, 1)
