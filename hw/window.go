@@ -73,6 +73,8 @@ func _newWindow(cfg OutputConfig) (*window, error) {
 	gl.GenTextures(1, &texture)
 	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, cfg.Width, cfg.Height, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&texbuf[0]))
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 
@@ -174,6 +176,8 @@ func (w *window) render(video []byte) {
 
 	w.updateUniforms()
 	gl.BindTexture(gl.TEXTURE_2D, w.texture)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w.cfg.Width, w.cfg.Height, gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&video[0]))
 	gl.BindVertexArray(w.vao)
 	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
