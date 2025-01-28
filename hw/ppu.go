@@ -434,8 +434,8 @@ func (p *PPU) renderPixel() {
 	// Perform background shifts.
 	p.bg.bgShiftlo <<= 1
 	p.bg.bgShifthi <<= 1
-	p.bg.atShiftlo = (p.bg.atShiftlo << 1) | btou8(p.bg.atLatchlo)
-	p.bg.atShifthi = (p.bg.atShifthi << 1) | btou8(p.bg.atLatchhi)
+	p.bg.atShiftlo = (p.bg.atShiftlo << 1) | b2u8(p.bg.atLatchlo)
+	p.bg.atShifthi = (p.bg.atShifthi << 1) | b2u8(p.bg.atLatchhi)
 }
 
 //lint:ignore U1000 not supporting emphasis yet so unused for now.
