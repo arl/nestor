@@ -30,11 +30,13 @@ type MapperDesc struct {
 	Load            func(*base) error
 	PRGROMbanksz    uint32
 	CHRROMbanksz    uint32
+	PRGRAMbanksz    uint32
 	HasBusConflicts func(*base) bool
 }
 
 var All = map[uint16]MapperDesc{
 	0:  NROM,
+	1:  MMC1,
 	2:  UxROM,
 	3:  CNROM,
 	7:  AxROM,
