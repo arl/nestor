@@ -27,7 +27,7 @@ type uxrom struct {
 func (m *uxrom) ReadPRGROM(addr uint16) uint8 {
 	banknum := m.prgbank
 	if addr >= 0xC000 {
-		banknum = uint32(m.rom.PRGROMSlots() - 1)
+		banknum = uint32(len(m.rom.PRGROM))/m.desc.PRGROMbanksz - 1
 	}
 	romaddr := (banknum * m.desc.PRGROMbanksz) + uint32(addr)&(m.desc.PRGROMbanksz-1)
 	return m.rom.PRGROM[romaddr]

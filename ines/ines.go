@@ -35,8 +35,8 @@ func (rom *Rom) PrintInfos(w io.Writer) {
 	if rom.IsNES20() {
 		fmt.Fprintf(w, "|Submapper              | % 14d |\n", rom.SubMapper())
 	}
-	fmt.Fprintf(w, "|PRG ROM                | % 8d x 16k |\n", rom.header.PRGROMSlots())
-	fmt.Fprintf(w, "|CHR ROM                | % 9d x 8k |\n", rom.header.CHRROMSlots())
+	fmt.Fprintf(w, "|PRG ROM                | % 8d x 16k |\n", rom.nslotsPRGROM())
+	fmt.Fprintf(w, "|CHR ROM                | % 9d x 8k |\n", rom.nslotsCHRROM())
 	if rom.IsNES20() {
 		fmt.Fprintf(w, "|PRG RAM                | % 13dk |\n", rom.header.PRGRAMSize()/1024)
 		fmt.Fprintf(w, "|PRG NVRAM              | % 13dk |\n", rom.header.PRGNVRAMSize()/1024)
@@ -129,13 +129,13 @@ func (hdr *header) decode(p []byte) error {
 	return nil
 }
 
-// PRGROMSlots returns the number of 16kB slots of PRGROM.
-func (hdr *header) PRGROMSlots() int {
+// nslotsPRGROM returns the number of 16kB slots of PRGROM.
+func (hdr *header) nslotsPRGROM() int {
 	return hdr.prgsz
 }
 
-// CHRROMSlots returns the number of 8kB slots of CHRROM.
-func (hdr *header) CHRROMSlots() int {
+// nslotsCHRROM returns the number of 8kB slots of CHRROM.
+func (hdr *header) nslotsCHRROM() int {
 	return hdr.chrsz
 }
 
