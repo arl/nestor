@@ -271,6 +271,10 @@ func (c *CPU) CurrentCycle() int64 {
 	return c.Cycles
 }
 
+func (c *CPU) MasterClock() int64 {
+	return c.masterClock
+}
+
 func (c *CPU) cycleBegin(forRead bool) {
 	if forRead {
 		c.masterClock += ntscStartClockCount - 1
