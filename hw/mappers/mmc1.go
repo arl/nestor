@@ -16,11 +16,7 @@ type mmc1 struct {
 	*base
 
 	/* CPU */
-	PRGRAM hwio.Mem    `hwio:"offset=0x6000,size=0x2000"`
-	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb=ReadPRGROM,wcb=WritePRGROM"`
-
-	// /* PPU */
-	CHRROM hwio.Device `hwio:"bank=1,offset=0x0000,size=0x2000,rcb=ReadCHRROM,wcb=WriteCHRROM"`
+	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
 
 	prevCycle int64
 
@@ -259,14 +255,30 @@ func loadMMC1(b *base) error {
 		// panic("PRGRAM not implemented")
 	}
 
+	b.cpu.Bus.MapDevice(0x8000, &hwio.Device{
+		Name:    "PRGROM",
+		Size:    0x8000,
+		Flags:   hwio.ReadWriteFlag,
+		ReadCb:  mmc1.ReadPRGROM,
+		PeekCb:  mmc1.ReadPRGROM,
+		WriteCb: mmc1.WritePRGROM,
+	})
+
+	// PPU mapping.
+	mmc1.setNTMirroring(ines.OnlyAScreen)
 	// Handle CHR RAM if CHRROM is empty.
 	if len(b.rom.CHRROM) == 0 {
 		b.rom.CHRROM = make([]byte, 0x2000) // 8 KB CHR RAM
 	}
 
-	// PPU mapping.
-	b.ppu.Bus.MapBank(0x0000, mmc1, 1)
-	mmc1.setNTMirroring(ines.OnlyAScreen)
+	b.ppu.Bus.MapDevice(0x0000, &hwio.Device{
+		Name:    "CHRROM",
+		Size:    0x2000,
+		Flags:   hwio.ReadOnlyFlag,
+		ReadCb:  mmc1.ReadCHRROM,
+		PeekCb:  mmc1.ReadCHRROM,
+		WriteCb: mmc1.WriteCHRROM,
+	})
 
 	// Mapper initialization.
 	// On powerup: bits 2,3 of $8000 are set (this ensures the $8000 is bank 0, and
