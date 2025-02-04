@@ -14,11 +14,11 @@ import (
 type mem struct {
 	ptr  unsafe.Pointer
 	mask uint16
-	wcb  func(uint16, int)
-	ro   uint8 // 0: read/write, 1: readonly, 2: silent readonly (no log)
+	wcb  func(uint16, uint8)
+	ro   MemFlags
 }
 
-func newMem(buf []byte, wcb func(uint16, int), roflag uint8) *mem {
+func newMem(buf []byte, wcb func(uint16, uint8), roflag MemFlags) *mem {
 	if len(buf)&(len(buf)-1) != 0 {
 		panic("memory buffer size is not pow2")
 	}
@@ -52,7 +52,7 @@ func (m *mem) Write8CheckRO(addr uint16, val uint8) bool {
 	if m.ro == 0 {
 		*(*uint8)(unsafe.Pointer(uintptr(m.ptr) + off)) = val
 		if m.wcb != nil {
-			m.wcb(addr, 1)
+			m.wcb(addr, val)
 		}
 		return true
 	}
@@ -60,17 +60,29 @@ func (m *mem) Write8CheckRO(addr uint16, val uint8) bool {
 }
 
 func (m *mem) Write8(addr uint16, val uint8) {
-	if !m.Write8CheckRO(addr, val) {
+	if m.wcb != nil {
+		m.wcb(addr, val)
+		return
+	}
+
+	switch m.ro {
+	case MemFlagReadWrite:
+		off := uintptr(addr & m.mask)
+		*(*uint8)(unsafe.Pointer(uintptr(m.ptr) + off)) = val
+	case MemFlag8ReadOnly:
 		log.ModHwIo.ErrorZ("Write8 to readonly memory").
 			Hex8("val", val).
 			Hex16("addr", addr).
 			End()
+	case MemFlagNoROLog:
+		return
 	}
 }
 
 type MemFlags int
 
 const (
+	MemFlagReadWrite MemFlags = 0
 	MemFlag8ReadOnly MemFlags = (1 << iota) // read-only accesses
 	MemFlagNoROLog                          // skip logging attempts to write when configured to readonly
 )
@@ -83,26 +95,13 @@ const (
 // call the BankIO8 method to create adaptors that implement memory access
 // depending on the memory bank configuration.
 type Mem struct {
-	Name    string            // name of the memory area (for debugging)
-	Data    []byte            // actual memory buffer
-	VSize   int               // virtual size of the memory (can be bigger than physical size)
-	Flags   MemFlags          // flags determining how the memory can be accessed
-	WriteCb func(uint16, int) // optional write callback (receives full address and number of bytes written)
-}
-
-func (m *Mem) roFlag(robit MemFlags) uint8 {
-	var roflag uint8
-	if m.Flags&robit != 0 {
-		if m.Flags&MemFlagNoROLog != 0 {
-			roflag = 2
-		} else {
-			roflag = 1
-		}
-	}
-	return roflag
+	Name    string              // name of the memory area (for debugging)
+	Data    []byte              // actual memory buffer
+	VSize   int                 // virtual size of the memory (can be bigger than physical size)
+	Flags   MemFlags            // flags determining how the memory can be accessed
+	WriteCb func(uint16, uint8) // optional write callback (if set, the callback is called instead of writing)
 }
 
 func (m *Mem) BankIO8() BankIO8 {
-	roflag := m.roFlag(MemFlag8ReadOnly)
-	return newMem(m.Data, m.WriteCb, roflag)
+	return newMem(m.Data, m.WriteCb, m.Flags)
 }
