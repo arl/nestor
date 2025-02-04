@@ -18,6 +18,9 @@ type mmc1 struct {
 	/* CPU */
 	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
 
+	PRGROM [0x8000]byte
+	CHRROM [0x2000]byte
+
 	prevCycle int64
 
 	serial  shiftReg // shift register
@@ -45,55 +48,6 @@ func (sr shiftReg) push(val uint8) shiftReg {
 	return sr
 }
 
-func (m *mmc1) ReadPRGROM(addr uint16) uint8 {
-	var romaddr uint32
-	switch m.prgmode {
-	case 0, 1:
-		addr &= 0x7fff
-		bank := m.prgbank & 0b1110 // ignore low bit of bank number
-		if bank >= uint32(len(m.rom.PRGROM)/0x8000) {
-			bank = uint32(len(m.rom.PRGROM)/0x8000) - 1 // fallback to last bank if out of bounds
-		}
-		romaddr = uint32(addr) + 0x8000*(bank)
-	case 2:
-		if addr >= 0xC000 {
-			addr &= 0x3fff
-			bank := m.prgbank
-			if bank >= uint32(len(m.rom.PRGROM)/0x4000) {
-				bank = uint32(len(m.rom.PRGROM)/0x4000) - 1 // fallback to last bank if out of bounds
-			}
-			romaddr = uint32(addr) + 0x4000*(bank)
-		} else {
-			addr &= 0x3fff
-			bank := uint32(0)
-			romaddr = uint32(addr) + bank*0x4000
-		}
-	case 3:
-		if addr >= 0xC000 {
-			addr &= 0x3fff
-			bank := len(m.rom.PRGROM)/0x4000 - 1
-			romaddr = uint32(addr) + uint32(bank)*0x4000
-		} else {
-			addr &= 0x3fff
-			bank := m.prgbank
-			if bank >= uint32(len(m.rom.PRGROM)/0x4000) {
-				bank = uint32(len(m.rom.PRGROM)/0x4000) - 1 // fallback to last bank if out of bounds
-			}
-			romaddr = uint32(addr) + 0x4000*(bank)
-		}
-	default:
-		panic("invalid PRG mode")
-	}
-
-	modMapper.DebugZ("read PRGROM").String("mapper", m.desc.Name).
-		Hex8("mode", m.prgmode).
-		Hex16("bank", uint16(m.prgbank)).
-		Hex16("addr", addr).
-		Hex32("romaddr", romaddr).
-		End()
-	return m.rom.PRGROM[romaddr]
-}
-
 func (m *mmc1) WritePRGROM(addr uint16, val uint8) {
 	curCycle := m.cpu.CurrentCycle()
 	// Ignore consecutive cycle writes
@@ -108,11 +62,13 @@ func (m *mmc1) WritePRGROM(addr uint16, val uint8) {
 			m.serial = 0
 			m.counter = 0
 			m.prgmode = 0b11
+			m.remap()
 		} else {
 			m.serial = m.serial.push(val)
 			m.counter++
 			if m.counter == 5 {
-				m.writeReg(addr, uint8(m.serial))
+				m.writeREG(addr, uint8(m.serial))
+				m.remap()
 				m.serial = 0
 				m.counter = 0
 			}
@@ -121,7 +77,7 @@ func (m *mmc1) WritePRGROM(addr uint16, val uint8) {
 	m.prevCycle = m.cpu.CurrentCycle()
 }
 
-func (m *mmc1) writeReg(addr uint16, val uint8) {
+func (m *mmc1) writeREG(addr uint16, val uint8) {
 	switch (addr & 0x6000) >> 13 {
 	case 0:
 		m.writeCTRL(val)
@@ -185,60 +141,57 @@ func (m *mmc1) writePRG(val uint8) {
 	}
 }
 
-func (m *mmc1) ReadCHRROM(addr uint16) uint8 {
-	romaddr := m.chrromAddr(addr)
-	modMapper.DebugZ("read CHR").String("mapper", m.desc.Name).
-		Hex8("mode", m.chrmode).
-		Hex16("bank0", uint16(m.chrbank0)).
-		Hex16("bank1", uint16(m.chrbank1)).
-		Hex16("addr", addr).
-		Hex32("romaddr", romaddr).
-		Hex16("CHRROM size", uint16(len(m.rom.CHRROM))).
-		End()
-	return m.rom.CHRROM[romaddr]
+const KB = 1 << 10
+
+// TODO: move to base with PRGROM
+
+// select what 32KB PRG ROM bank to use.
+func (m *mmc1) selectPRGPage32KB(bank int) {
+	copy(m.PRGROM[:], m.rom.PRGROM[32*KB*(bank):])
 }
 
-func (m *mmc1) WriteCHRROM(addr uint16, val uint8) {
-	romaddr := m.chrromAddr(addr)
-	modMapper.DebugZ("read CHR").String("mapper", m.desc.Name).
-		Hex8("mode", m.chrmode).
-		Hex16("bank0", uint16(m.chrbank0)).
-		Hex16("bank1", uint16(m.chrbank1)).
-		Hex16("addr", addr).
-		Hex32("romaddr", romaddr).
-		Hex16("CHRROM size", uint16(len(m.rom.CHRROM))).
-		End()
-
-	// TODO: handle disableWRAM
-	m.rom.CHRROM[romaddr] = val
+// select what 16KB PRG ROM bank to use into which PRG 16KB page.
+func (m *mmc1) selectPRGPage16KB(page uint32, bank int) {
+	if bank < 0 {
+		bank += len(m.rom.PRGROM) / (16 * KB)
+	}
+	copy(m.PRGROM[16*KB*page:], m.rom.PRGROM[16*KB*(bank):])
 }
 
-func (m *mmc1) chrromAddr(addr uint16) uint32 {
-	addr &= 0x1fff
+// select what 8KB PRG ROM bank to use.
+func (m *mmc1) selectCHRPage8KB(bank int) {
+	copy(m.CHRROM[:], m.rom.CHRROM[8*KB*(bank):])
+}
 
-	//(0: switch 8 KB at a time; 1: switch two separate 4 KB banks)
+// select what 4KB PRG ROM bank to use into which PRG 4KB page.
+func (m *mmc1) selectCHRPage4KB(page uint32, bank int) {
+	if bank < 0 {
+		bank += len(m.rom.CHRROM) / (4 * KB)
+	}
+	copy(m.CHRROM[4*KB*page:], m.rom.CHRROM[4*KB*(bank):])
+}
+
+func (m *mmc1) remap() {
+	switch m.prgmode {
+	case 0, 1:
+		// ignore low bit of bank number
+		m.selectPRGPage32KB(int(m.prgbank & 0xFE))
+	case 2:
+		m.selectPRGPage16KB(0, 0)
+		m.selectPRGPage16KB(1, int(m.prgbank))
+	case 3:
+		m.selectPRGPage16KB(0, int(m.prgbank))
+		m.selectPRGPage16KB(1, -1)
+	default:
+		panic("invalid PRG mode")
+	}
+
 	switch m.chrmode {
 	case 0:
-		nbanks := uint32(len(m.rom.CHRROM) / 0x2000)
-		bank := m.chrbank0
-		if bank >= nbanks {
-			bank = 0 // fallback to first bank if out of bounds
-		}
-		return uint32(addr) + 0x2000*(bank)
+		m.selectCHRPage8KB(int(m.chrbank0))
 	case 1:
-		nbanks := uint32(len(m.rom.CHRROM) / 0x1000)
-
-		var bank uint32
-		if addr < 0x1000 {
-			bank = m.chrbank0
-		} else {
-			bank = m.chrbank1
-			addr -= 0x1000
-		}
-		if bank >= nbanks {
-			bank = 0 // fallback to first bank if out of bounds
-		}
-		return uint32(addr) + 0x1000*(bank)
+		m.selectCHRPage4KB(0, int(m.chrbank0))
+		m.selectCHRPage4KB(1, int(m.chrbank1))
 	default:
 		panic("invalid CHR mode")
 	}
@@ -255,12 +208,11 @@ func loadMMC1(b *base) error {
 		// panic("PRGRAM not implemented")
 	}
 
-	b.cpu.Bus.MapDevice(0x8000, &hwio.Device{
+	b.cpu.Bus.MapMem(0x8000, &hwio.Mem{
 		Name:    "PRGROM",
-		Size:    0x8000,
-		Flags:   hwio.ReadWriteFlag,
-		ReadCb:  mmc1.ReadPRGROM,
-		PeekCb:  mmc1.ReadPRGROM,
+		Data:    mmc1.PRGROM[:],
+		VSize:   len(mmc1.PRGROM),
+		Flags:   hwio.MemFlagReadWrite,
 		WriteCb: mmc1.WritePRGROM,
 	})
 
@@ -271,27 +223,23 @@ func loadMMC1(b *base) error {
 		b.rom.CHRROM = make([]byte, 0x2000) // 8 KB CHR RAM
 	}
 
-	b.ppu.Bus.MapDevice(0x0000, &hwio.Device{
-		Name:    "CHRROM",
-		Size:    0x2000,
-		Flags:   hwio.ReadOnlyFlag,
-		ReadCb:  mmc1.ReadCHRROM,
-		PeekCb:  mmc1.ReadCHRROM,
-		WriteCb: mmc1.WriteCHRROM,
+	b.ppu.Bus.MapMem(0x0000, &hwio.Mem{
+		Name:  "CHRROM",
+		Data:  mmc1.CHRROM[:],
+		VSize: len(mmc1.CHRROM),
+		Flags: hwio.MemFlag8ReadOnly,
 	})
 
 	// Mapper initialization.
 	// On powerup: bits 2,3 of $8000 are set (this ensures the $8000 is bank 0, and
 	// $C000 is the last bank - needed for SEROM/SHROM/SH1ROM which do no support
 	// banking)
-	mmc1.writeReg(0x8000, 0x0C)
-	mmc1.writeReg(0xA000, 0)
-	mmc1.writeReg(0xC000, 0)
-	// TODO: WRAM Disable: enabled by default for MMC1B
-	mmc1.writeReg(0xE000, 0)
-
-	// TODO: always enabled on MMC1A
-	mmc1.disableWRAM = true
+	mmc1.writeREG(0x8000, 0x0C)
+	mmc1.writeREG(0xA000, 0)
+	mmc1.writeREG(0xC000, 0)
+	mmc1.writeREG(0xE000, 0) // TODO: WRAM Disable: enabled by default for MMC1B
+	mmc1.disableWRAM = true  // TODO: always enabled on MMC1A
+	mmc1.remap()
 	return nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.
