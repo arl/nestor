@@ -16,13 +16,11 @@ type mmc1 struct {
 	*base
 
 	/* CPU */
-	PRGRAM  hwio.Mem    `hwio:"offset=0x6000,size=0x2000"`
-	PRGROM1 hwio.Device `hwio:"offset=0x8000,size=0x4000,rcb=ReadPRGROM,wcb=WritePRGROM"`
-	PRGROM2 hwio.Device `hwio:"offset=0xC000,size=0x4000,rcb=ReadPRGROM,wcb=WritePRGROM"`
+	PRGRAM hwio.Mem    `hwio:"offset=0x6000,size=0x2000"`
+	PRGROM hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb=ReadPRGROM,wcb=WritePRGROM"`
 
 	// /* PPU */
-	CHRROM1 hwio.Device `hwio:"bank=1,offset=0x0000,size=0x1000,rcb=ReadCHRROM,wcb=WriteCHRROM"`
-	CHRROM2 hwio.Device `hwio:"bank=1,offset=0x1000,size=0x1000,rcb=ReadCHRROM,wcb=WriteCHRROM"`
+	CHRROM hwio.Device `hwio:"bank=1,offset=0x0000,size=0x2000,rcb=ReadCHRROM,wcb=WriteCHRROM"`
 
 	prevCycle int64
 
