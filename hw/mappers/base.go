@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"nestor/hw"
+	"nestor/hw/hwio"
 	"nestor/ines"
 )
 
@@ -13,14 +14,16 @@ type base struct {
 	ppu *hw.PPU
 
 	nametables [0x800]byte
+	PRGROM     [0x8000]byte
+	CHRROM     [0x2000]byte
 
 	hasBusConflicts bool
 
 	desc MapperDesc
-}
 
-func ispow2(n int) bool {
-	return n&(n-1) == 0
+	// set by base.init
+	registers hwio.Bitset
+	writeReg  func(addr uint16, value uint8) // optional
 }
 
 func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, error) {
@@ -28,17 +31,53 @@ func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, e
 		return nil, fmt.Errorf("only support PRGROM with power of 2 size, got %d", len(rom.PRGROM))
 	}
 
-	return &base{
-		desc:            desc,
-		rom:             rom,
-		cpu:             cpu,
-		ppu:             ppu,
-		hasBusConflicts: desc.HasBusConflicts != nil && desc.HasBusConflicts(&base{rom: rom}),
-	}, nil
+	b := &base{
+		desc: desc,
+		rom:  rom,
+		cpu:  cpu,
+		ppu:  ppu,
+	}
+
+	b.hasBusConflicts = desc.HasBusConflicts != nil && desc.HasBusConflicts(b)
+
+	start := uint(0x8000)
+	end := uint(0x10000)
+	if desc.RegisterStart != 0 {
+		start = uint(desc.RegisterStart)
+	}
+	if desc.RegisterEnd != 0 {
+		end = uint(desc.RegisterEnd)
+	}
+	b.registers.SetRange(uint(start), uint(end))
+	return b, nil
 }
 
-func (b *base) load() error {
-	return b.desc.Load(b)
+func (b *base) init(writeReg func(uint16, uint8)) {
+	b.writeReg = writeReg
+	b.cpu.Bus.MapMem(0x8000, &hwio.Mem{
+		Name:    "PRGROM",
+		Data:    b.PRGROM[:],
+		VSize:   0x8000,
+		Flags:   hwio.MemFlagReadWrite,
+		WriteCb: b.write,
+	})
+	b.ppu.Bus.MapMem(0x0000, &hwio.Mem{
+		Name:  "CHRROM",
+		Data:  b.CHRROM[:],
+		VSize: 0x2000,
+		Flags: hwio.MemFlag8ReadOnly,
+	})
+}
+
+func (b *base) write(addr uint16, value uint8) {
+	// is this a register write?
+	if b.registers.Test(uint(addr)) {
+		if b.writeReg != nil {
+			b.writeReg(addr, value)
+		}
+	} else {
+		fmt.Printf("$%04x no reg\n", addr)
+	}
 }
 
 func (b *base) copyCHRROM(dest []byte, bank uint32) {
@@ -47,6 +86,34 @@ func (b *base) copyCHRROM(dest []byte, bank uint32) {
 	start := min(uint32(len(b.rom.CHRROM)-1), bank*b.desc.CHRROMbanksz)
 	end := min(uint32(len(b.rom.CHRROM)), start+b.desc.CHRROMbanksz)
 	copy(dest, b.rom.CHRROM[start:end])
+}
+
+const KB = 1 << 10
+
+// select what 32KB PRG ROM bank to use.
+func (b *base) selectPRGPage32KB(bank int) {
+	copy(b.PRGROM[:], b.rom.PRGROM[32*KB*(bank):])
+}
+
+// select what 16KB PRG ROM bank to use into which PRG 16KB page.
+func (b *base) selectPRGPage16KB(page uint32, bank int) {
+	if bank < 0 {
+		bank += len(b.rom.PRGROM) / (16 * KB)
+	}
+	copy(b.PRGROM[16*KB*page:], b.rom.PRGROM[16*KB*(bank):])
+}
+
+// select what 8KB PRG ROM bank to use.
+func (b *base) selectCHRPage8KB(bank int) {
+	copy(b.CHRROM[:], b.rom.CHRROM[8*KB*(bank):])
+}
+
+// select what 4KB PRG ROM bank to use into which PRG 4KB page.
+func (b *base) selectCHRPage4KB(page uint32, bank int) {
+	if bank < 0 {
+		bank += len(b.rom.CHRROM) / (4 * KB)
+	}
+	copy(b.CHRROM[4*KB*page:], b.rom.CHRROM[4*KB*(bank):])
 }
 
 func (b *base) setNTMirroring(m ines.NTMirroring) {
@@ -82,3 +149,6 @@ func (b *base) remapNametables(nt1, nt2, nt3, nt4 []byte) {
 	b.ppu.Bus.MapMemorySlice(0x3800, 0x3BFF, nt3, false)
 	b.ppu.Bus.MapMemorySlice(0x3C00, 0x3EFF, nt4, false)
 }
+
+func ispow2(n int) bool  { return n&(n-1) == 0 }
+func u8tob(v uint8) bool { return v != 0 }

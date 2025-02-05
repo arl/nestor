@@ -19,7 +19,7 @@ func Load(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
 	if err != nil {
 		return fmt.Errorf("mapper initialization failed: %w", err)
 	}
-	if err := base.load(); err != nil {
+	if err := desc.Load(base); err != nil {
 		return fmt.Errorf("failed to load mapper %s: %w", desc.Name, err)
 	}
 	return nil
@@ -32,6 +32,9 @@ type MapperDesc struct {
 	CHRROMbanksz    uint32
 	PRGRAMbanksz    uint32
 	HasBusConflicts func(*base) bool
+
+	RegisterStart uint16 // defaults to 0x8000 if not set
+	RegisterEnd   uint16 // defaults to 0xFFFF if not set
 }
 
 var All = map[uint16]MapperDesc{

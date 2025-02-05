@@ -96,7 +96,9 @@ func TestTableMem(t *testing.T) {
 	tbl.wantRead8(0x00, 0)
 	tbl.Write8(0x00, 0x12)
 	tbl.wantRead8(0x00, 0x12)
-	tbl.wantRead8(0x800, 0x12)
+	tbl.wantRead8(0x800, 0x12)  // mirrors
+	tbl.wantRead8(0x1000, 0x12) // mirrors
+	tbl.wantRead8(0x1800, 0x12) // mirrors
 }
 
 func TestTableRegs(t *testing.T) {

@@ -18,9 +18,6 @@ type mmc1 struct {
 	/* CPU */
 	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
 
-	PRGROM [0x8000]byte
-	CHRROM [0x2000]byte
-
 	prevCycle int64
 
 	serial  shiftReg // shift register
@@ -36,7 +33,7 @@ type mmc1 struct {
 	chrbank1 uint32
 
 	// PRG reg bits
-	disableWRAM bool
+	disableWRAM bool // TODO: unused for now
 	prgbank     uint32
 }
 
@@ -141,36 +138,6 @@ func (m *mmc1) writePRG(val uint8) {
 	}
 }
 
-const KB = 1 << 10
-
-// TODO: move to base with PRGROM
-
-// select what 32KB PRG ROM bank to use.
-func (m *mmc1) selectPRGPage32KB(bank int) {
-	copy(m.PRGROM[:], m.rom.PRGROM[32*KB*(bank):])
-}
-
-// select what 16KB PRG ROM bank to use into which PRG 16KB page.
-func (m *mmc1) selectPRGPage16KB(page uint32, bank int) {
-	if bank < 0 {
-		bank += len(m.rom.PRGROM) / (16 * KB)
-	}
-	copy(m.PRGROM[16*KB*page:], m.rom.PRGROM[16*KB*(bank):])
-}
-
-// select what 8KB PRG ROM bank to use.
-func (m *mmc1) selectCHRPage8KB(bank int) {
-	copy(m.CHRROM[:], m.rom.CHRROM[8*KB*(bank):])
-}
-
-// select what 4KB PRG ROM bank to use into which PRG 4KB page.
-func (m *mmc1) selectCHRPage4KB(page uint32, bank int) {
-	if bank < 0 {
-		bank += len(m.rom.CHRROM) / (4 * KB)
-	}
-	copy(m.CHRROM[4*KB*page:], m.rom.CHRROM[4*KB*(bank):])
-}
-
 func (m *mmc1) remap() {
 	switch m.prgmode {
 	case 0, 1:
@@ -200,6 +167,7 @@ func (m *mmc1) remap() {
 func loadMMC1(b *base) error {
 	mmc1 := &mmc1{base: b}
 	hwio.MustInitRegs(mmc1)
+	b.init(mmc1.WritePRGROM)
 
 	// CPU mapping.
 	b.cpu.Bus.MapBank(0x0000, mmc1, 0)
@@ -208,27 +176,13 @@ func loadMMC1(b *base) error {
 		// panic("PRGRAM not implemented")
 	}
 
-	b.cpu.Bus.MapMem(0x8000, &hwio.Mem{
-		Name:    "PRGROM",
-		Data:    mmc1.PRGROM[:],
-		VSize:   len(mmc1.PRGROM),
-		Flags:   hwio.MemFlagReadWrite,
-		WriteCb: mmc1.WritePRGROM,
-	})
-
 	// PPU mapping.
 	mmc1.setNTMirroring(ines.OnlyAScreen)
+
 	// Handle CHR RAM if CHRROM is empty.
 	if len(b.rom.CHRROM) == 0 {
 		b.rom.CHRROM = make([]byte, 0x2000) // 8 KB CHR RAM
 	}
-
-	b.ppu.Bus.MapMem(0x0000, &hwio.Mem{
-		Name:  "CHRROM",
-		Data:  mmc1.CHRROM[:],
-		VSize: len(mmc1.CHRROM),
-		Flags: hwio.MemFlag8ReadOnly,
-	})
 
 	// Mapper initialization.
 	// On powerup: bits 2,3 of $8000 are set (this ensures the $8000 is bank 0, and
@@ -241,9 +195,4 @@ func loadMMC1(b *base) error {
 	mmc1.disableWRAM = true  // TODO: always enabled on MMC1A
 	mmc1.remap()
 	return nil
-
-	// TODO: load and map PRG-RAM if present in cartridge.
-	// TODO: load and map CHR-RAM if present in cartridge.
 }
-
-func u8tob(v uint8) bool { return v != 0 }
