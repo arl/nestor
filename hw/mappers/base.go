@@ -10,16 +10,17 @@ import (
 
 type base struct {
 	rom *ines.Rom
-	cpu *hw.CPU
-	ppu *hw.PPU
 
-	nametables [0x800]byte
-	PRGROM     [0x8000]byte
+	cpu    *hw.CPU
+	PRGRAM hwio.Mem     `hwio:"offset=0x6000,size=0x2000"`
+	PRGROM [0x8000]byte // $8000-$FFFF
+
+	ppu        *hw.PPU
 	CHRROM     [0x2000]byte
+	nametables [0x800]byte
 
+	desc            MapperDesc
 	hasBusConflicts bool
-
-	desc MapperDesc
 
 	// set by base.init
 	registers hwio.Bitset
@@ -53,6 +54,14 @@ func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, e
 }
 
 func (b *base) init(writeReg func(uint16, uint8)) {
+	// CPU mapping.
+	hwio.MustInitRegs(b)
+	b.cpu.Bus.MapBank(0x0000, b, 0)
+
+	if b.rom.PRGRAMSize() > 0 {
+		// panic("PRGRAM not implemented")
+	}
+
 	b.writeReg = writeReg
 	b.cpu.Bus.MapMem(0x8000, &hwio.Mem{
 		Name:    "PRGROM",
@@ -61,11 +70,18 @@ func (b *base) init(writeReg func(uint16, uint8)) {
 		Flags:   hwio.MemFlagReadWrite,
 		WriteCb: b.write,
 	})
+
+	// Handle CHR RAM if CHRROM is empty.
+	chrFlag := hwio.MemFlag8ReadOnly
+	if len(b.rom.CHRROM) == 0 {
+		chrFlag = hwio.MemFlagReadWrite // 8 KB CHR RAM
+	}
+
 	b.ppu.Bus.MapMem(0x0000, &hwio.Mem{
 		Name:  "CHRROM",
 		Data:  b.CHRROM[:],
 		VSize: 0x2000,
-		Flags: hwio.MemFlag8ReadOnly,
+		Flags: chrFlag,
 	})
 }
 

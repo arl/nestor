@@ -1,7 +1,6 @@
 package mappers
 
 import (
-	"nestor/hw/hwio"
 	"nestor/ines"
 )
 
@@ -14,9 +13,6 @@ var MMC1 = MapperDesc{
 
 type mmc1 struct {
 	*base
-
-	/* CPU */
-	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
 
 	prevCycle int64
 
@@ -84,8 +80,6 @@ func (m *mmc1) writeREG(addr uint16, val uint8) {
 		m.writeCHR1(val)
 	case 3:
 		m.writePRG(val)
-	default:
-		panic("invalid reg write")
 	}
 }
 
@@ -149,8 +143,6 @@ func (m *mmc1) remap() {
 	case 3:
 		m.selectPRGPage16KB(0, int(m.prgbank))
 		m.selectPRGPage16KB(1, -1)
-	default:
-		panic("invalid PRG mode")
 	}
 
 	switch m.chrmode {
@@ -159,35 +151,21 @@ func (m *mmc1) remap() {
 	case 1:
 		m.selectCHRPage4KB(0, int(m.chrbank0))
 		m.selectCHRPage4KB(1, int(m.chrbank1))
-	default:
-		panic("invalid CHR mode")
 	}
 }
 
 func loadMMC1(b *base) error {
 	mmc1 := &mmc1{base: b}
-	hwio.MustInitRegs(mmc1)
+
 	b.init(mmc1.WritePRGROM)
 
-	// CPU mapping.
-	b.cpu.Bus.MapBank(0x0000, mmc1, 0)
-
-	if b.rom.PRGRAMSize() > 0 {
-		// panic("PRGRAM not implemented")
-	}
-
 	// PPU mapping.
-	mmc1.setNTMirroring(ines.OnlyAScreen)
-
-	// Handle CHR RAM if CHRROM is empty.
-	if len(b.rom.CHRROM) == 0 {
-		b.rom.CHRROM = make([]byte, 0x2000) // 8 KB CHR RAM
-	}
+	b.setNTMirroring(ines.OnlyAScreen)
 
 	// Mapper initialization.
-	// On powerup: bits 2,3 of $8000 are set (this ensures the $8000 is bank 0, and
-	// $C000 is the last bank - needed for SEROM/SHROM/SH1ROM which do no support
-	// banking)
+	// On powerup: bits 2,3 of $8000 are set (this ensures the $8000 is bank 0,
+	// and $C000 is the last bank - needed for SEROM/SHROM/SH1ROM which do no
+	// support banking)
 	mmc1.writeREG(0x8000, 0x0C)
 	mmc1.writeREG(0xA000, 0)
 	mmc1.writeREG(0xC000, 0)
