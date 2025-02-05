@@ -143,7 +143,7 @@ func (lm logModMask) Decode(ctx *kong.DecodeContext) error {
 		if lm != 0 {
 			return fmt.Errorf("cannot combine 'no' with other log modules")
 		}
-		log.SetOutput(io.Discard)
+		log.Disable()
 		return nil
 	}
 

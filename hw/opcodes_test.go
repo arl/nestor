@@ -2,10 +2,10 @@ package hw
 
 import (
 	"fmt"
-	"io"
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"testing"
 
@@ -27,7 +27,9 @@ func TestAllOpcodesAreImplemented(t *testing.T) {
 }
 
 func TestOpcodes(t *testing.T) {
-	log.SetOutput(io.Discard)
+	defer debug.SetGCPercent(debug.SetGCPercent(400))
+
+	log.Disable()
 	if testing.Short() {
 		t.Skip("skipping opcode tests in short mode")
 	}

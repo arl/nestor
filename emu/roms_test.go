@@ -2,7 +2,6 @@ package emu
 
 import (
 	_ "image/png"
-	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -21,7 +20,7 @@ import (
 
 func TestNestest(t *testing.T) {
 	if !testing.Verbose() {
-		log.SetOutput(io.Discard)
+		log.Disable()
 	}
 
 	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
@@ -86,7 +85,7 @@ func TestBlarggRoms(t *testing.T) {
 	// Various tests from blargg's test roms. They're easily to automate since they
 	// write to a specific memory location to signal the test status.
 	if !testing.Verbose() {
-		log.SetOutput(io.Discard)
+		log.Disable()
 	}
 
 	romsDir := filepath.Join(tests.RomsPath(t))
@@ -271,7 +270,7 @@ func readString(t *hwio.Table, addr uint16, maxlen int) string {
 
 func TestSprite0Hit(t *testing.T) {
 	if !testing.Verbose() {
-		log.SetOutput(io.Discard)
+		log.Disable()
 	}
 
 	outdir := filepath.Join("testdata", t.Name())
@@ -302,7 +301,7 @@ func TestSprite0Hit(t *testing.T) {
 
 func TestSpriteOverflow(t *testing.T) {
 	if !testing.Verbose() {
-		log.SetOutput(io.Discard)
+		log.Disable()
 	}
 
 	outdir := filepath.Join("testdata", t.Name())
@@ -327,7 +326,7 @@ func TestSpriteOverflow(t *testing.T) {
 
 func TestDMCDMADuringRead(t *testing.T) {
 	if !testing.Verbose() {
-		log.SetOutput(io.Discard)
+		log.Disable()
 	}
 
 	outdir := filepath.Join("testdata", t.Name())
@@ -437,7 +436,7 @@ func TestBlarggAPUtests(t *testing.T) {
 
 func TestTimingVBlankNMI(t *testing.T) {
 	if !testing.Verbose() {
-		log.SetOutput(io.Discard)
+		log.Disable()
 	}
 
 	const frameidx = 200
