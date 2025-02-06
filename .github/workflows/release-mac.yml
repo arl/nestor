@@ -1,0 +1,57 @@
+name: Build and Release Nestor Binary
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tag pushes
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+        contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install gtk+3 sdl2 sdl2_ttf
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          #go-version-file: "go.mod"
+          go-version: 1.24.0-rc.1
+
+      - name: Build Nestor
+        run: go build -ldflags="-s -w" .
+
+      - name: Package binary
+        run: tar -czvf nestor-macos.tar.gz nestor
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nestor-macos
+          path: nestor-macos.tar.gz
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./nestor-macos.tar.gz
+          asset_name: nestor-macos.tar.gz
+          asset_content_type: application/gzip
