@@ -17,6 +17,7 @@ const (
 	guiMode      mode = iota // Start Nestor GUI
 	runMode                  // Just run a ROM
 	romInfosMode             // Show ROM infos
+	versionMode              // Show Nestor version
 )
 
 type (
@@ -24,6 +25,7 @@ type (
 		GUI      GUI      `cmd:"" help:"Run Nestor graphical user interface. The default if no commands are given." default:"1"`
 		Run      Run      `cmd:"" help:"Run ROM in emulator."`
 		RomInfos RomInfos `cmd:"" help:"Show ROM infos." name:"rom-infos"`
+		Version  Version  `cmd:"" help:"Show Nestor version."`
 
 		mode mode
 	}
@@ -43,6 +45,8 @@ type (
 	RomInfos struct {
 		RomPath string `arg:"" name:"/path/to/rom" type:"existingfile"`
 	}
+
+	Version struct{}
 )
 
 var vars = kong.Vars{
@@ -72,6 +76,8 @@ func parseArgs(args []string) CLI {
 		cfg.mode = guiMode
 	case "rom-infos </path/to/rom>":
 		cfg.mode = romInfosMode
+	case "version":
+		cfg.mode = versionMode
 	default:
 		cfg.mode = runMode
 	}
