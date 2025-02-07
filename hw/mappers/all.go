@@ -25,6 +25,12 @@ func Load(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
 	return nil
 }
 
+type ErrUnsuppportedPRGROMSize int
+
+func (e ErrUnsuppportedPRGROMSize) Error() string {
+	return fmt.Sprintf("unsupported PRGROM size: %d bytes", int(e))
+}
+
 type MapperDesc struct {
 	Name            string
 	Load            func(*base) error
