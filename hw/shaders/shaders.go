@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-gl/gl/v4.5-core/gl"
+	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
 //go:embed *
