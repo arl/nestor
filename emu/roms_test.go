@@ -294,7 +294,7 @@ func TestSprite0Hit(t *testing.T) {
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
 			romPath := filepath.Join(tests.RomsPath(t), "sprite_hit_tests_2005.10.05", romName)
-			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+			runAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
 }
@@ -319,7 +319,7 @@ func TestSpriteOverflow(t *testing.T) {
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
 			romPath := filepath.Join(tests.RomsPath(t), "sprite_overflow_tests", romName)
-			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+			runAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
 }
@@ -344,7 +344,7 @@ func TestDMCDMADuringRead(t *testing.T) {
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
 			romPath := filepath.Join(tests.RomsPath(t), "dmc_dma_during_read4", romName)
-			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+			runAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
 }
@@ -402,7 +402,7 @@ func TestBlarggPPUtests(t *testing.T) {
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
 			romPath := filepath.Join(tests.RomsPath(t), "blargg_ppu_tests_2005.09.15b", romName)
-			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+			runAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
 }
@@ -429,7 +429,7 @@ func TestBlarggAPUtests(t *testing.T) {
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
 			romPath := filepath.Join(tests.RomsPath(t), "blargg_apu_2005.07.30", romName)
-			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+			runAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
 }
@@ -456,7 +456,7 @@ func TestTimingVBlankNMI(t *testing.T) {
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
 			romPath := filepath.Join(tests.RomsPath(t), "vbl_nmi_timing", romName)
-			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+			runAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
 }
@@ -465,7 +465,7 @@ func TestPPUReadBuffer(t *testing.T) {
 	const frameidx = 1300
 
 	romPath := filepath.Join(tests.RomsPath(t), "ppu_read_buffer", "test_ppu_read_buffer.nes")
-	runTestRomAndCompareFrame(t, romPath, "testdata", t.Name(), frameidx)
+	runAndCompareFrame(t, romPath, "testdata", t.Name(), frameidx)
 }
 
 func TestUxROMSubmappers(t *testing.T) {
@@ -482,7 +482,7 @@ func TestUxROMSubmappers(t *testing.T) {
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
 			romPath := filepath.Join("..", "tests", "mapper2", romName)
-			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+			runAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
 }
@@ -501,7 +501,7 @@ func TestAxROMSubmappers(t *testing.T) {
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
 			romPath := filepath.Join("..", "tests", "mapper7", romName)
-			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+			runAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
 }
@@ -520,12 +520,12 @@ func TestCNROMSubmappers(t *testing.T) {
 	for _, romName := range roms {
 		t.Run(romName, func(t *testing.T) {
 			romPath := filepath.Join("..", "tests", "mapper3", romName)
-			runTestRomAndCompareFrame(t, romPath, outdir, romName, frameidx)
+			runAndCompareFrame(t, romPath, outdir, romName, frameidx)
 		})
 	}
 }
 
-func runTestRomAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame int64) {
+func runAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame int64) {
 	t.Parallel()
 
 	rom, err := ines.ReadRom(romPath)

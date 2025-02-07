@@ -1,6 +1,7 @@
 package emu
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"math"
@@ -86,6 +87,17 @@ func (to *TestingOutput) CompareFrame(t *testing.T) {
 		t.Fatal(err)
 	}
 	goldenPath := to.framePath(true)
-	CompareWithGolden(t, string(got), goldenPath, *updateGolden)
+	if *updateGolden {
+		writeGolden(t, goldenPath, got)
+	} else {
+		want := readGolden(t, goldenPath)
+		if !bytes.Equal(want, got) {
+			temp := tempfilename()
+			filecopy(t, temp, framePath)
+			t.Logf("current frame saved for investigation at %s", temp)
+			t.Errorf("%s: mismatch", goldenPath)
+		}
+	}
+
 	os.Remove(framePath)
 }
