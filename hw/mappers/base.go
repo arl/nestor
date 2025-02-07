@@ -112,6 +112,9 @@ const KB = 1 << 10
 
 // select what 32KB PRG ROM bank to use.
 func (b *base) selectPRGPage32KB(bank int) {
+	// TODO: what if instead of copying we were using
+	// table.MapMemorySlice. in this case we would avoid a copy, as well as
+	// define if the memory is read-only or read-write.
 	copy(b.PRGROM[:], b.rom.PRGROM[32*KB*(bank):])
 }
 
