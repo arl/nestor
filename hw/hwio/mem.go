@@ -69,7 +69,7 @@ func (m *mem) Write8(addr uint16, val uint8) {
 	case MemFlagReadWrite:
 		off := uintptr(addr & m.mask)
 		*(*uint8)(unsafe.Pointer(uintptr(m.ptr) + off)) = val
-	case MemFlag8ReadOnly:
+	case MemFlagReadOnly:
 		log.ModHwIo.ErrorZ("Write8 to readonly memory").
 			Hex8("val", val).
 			Hex16("addr", addr).
@@ -83,7 +83,7 @@ type MemFlags int
 
 const (
 	MemFlagReadWrite MemFlags = 0
-	MemFlag8ReadOnly MemFlags = (1 << iota) // read-only accesses
+	MemFlagReadOnly  MemFlags = (1 << iota) // read-only accesses
 	MemFlagNoROLog                          // skip logging attempts to write when configured to readonly
 )
 

@@ -177,7 +177,7 @@ func (t *Table) MapMemorySlice(addr, end uint16, mem []uint8, readonly bool) {
 
 	var flags MemFlags
 	if readonly {
-		flags |= MemFlag8ReadOnly
+		flags |= MemFlagReadOnly
 	}
 	t.MapMem(addr, &Mem{
 		Data:  mem,

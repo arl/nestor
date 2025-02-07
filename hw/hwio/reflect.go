@@ -210,7 +210,7 @@ func InitRegs(data any) error {
 			var flags MemFlags
 
 			if ro := tag.Get("readonly"); ro != "" {
-				flags |= MemFlag8ReadOnly
+				flags |= MemFlagReadOnly
 			}
 
 			if wcb := tag.Get("wcb"); wcb != "" {

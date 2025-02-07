@@ -76,7 +76,7 @@ func (b *base) init(writeReg func(uint16, uint8)) {
 	})
 
 	// Handle CHR RAM if CHRROM is empty.
-	chrFlag := hwio.MemFlag8ReadOnly
+	chrFlag := hwio.MemFlagReadOnly
 	if len(b.rom.CHRROM) == 0 {
 		chrFlag = hwio.MemFlagReadWrite // 8 KB CHR RAM
 	}
