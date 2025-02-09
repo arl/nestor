@@ -23,8 +23,6 @@ type base struct {
 	nametables [0x800]byte
 
 	desc MapperDesc
-	// TODO: move this in mapper implementation that needs it
-	hasBusConflicts bool
 
 	// set by base.init
 	registers hwio.Bitset
@@ -42,8 +40,6 @@ func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, e
 		cpu:  cpu,
 		ppu:  ppu,
 	}
-
-	b.hasBusConflicts = desc.HasBusConflicts != nil && desc.HasBusConflicts(b)
 
 	start := uint(0x8000)
 	end := uint(0x10000)

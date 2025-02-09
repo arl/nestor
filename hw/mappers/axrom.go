@@ -6,10 +6,9 @@ import (
 )
 
 var AxROM = MapperDesc{
-	Name:            "AxROM",
-	Load:            loadAxROM,
-	PRGROMbanksz:    0x8000,
-	HasBusConflicts: func(b *base) bool { return b.rom.SubMapper() == 2 },
+	Name:         "AxROM",
+	Load:         loadAxROM,
+	PRGROMbanksz: 0x8000,
 }
 
 type axrom struct {
@@ -23,6 +22,8 @@ type axrom struct {
 	/* PPU */
 	PatternTables hwio.Mem `hwio:"bank=1,offset=0x0000,size=0x2000"`
 	ntm           ines.NTMirroring
+
+	busConflicts bool
 }
 
 func (m *axrom) ReadPRGROM(addr uint16) uint8 {
@@ -32,7 +33,7 @@ func (m *axrom) ReadPRGROM(addr uint16) uint8 {
 }
 
 func (m *axrom) WritePRGROM(addr uint16, val uint8) {
-	if m.hasBusConflicts {
+	if m.busConflicts {
 		val &= m.ReadPRGROM(addr)
 	}
 
@@ -61,7 +62,10 @@ func (m *axrom) WritePRGROM(addr uint16, val uint8) {
 }
 
 func loadAxROM(b *base) error {
-	axrom := &axrom{base: b}
+	axrom := &axrom{
+		base:         b,
+		busConflicts: b.rom.SubMapper() == 2,
+	}
 	hwio.MustInitRegs(axrom)
 
 	// CPU mapping.

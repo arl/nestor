@@ -3,11 +3,10 @@ package mappers
 import "nestor/hw/hwio"
 
 var CNROM = MapperDesc{
-	Name:            "CNROM",
-	Load:            loadCNROM,
-	PRGROMbanksz:    0x8000,
-	CHRROMbanksz:    0x2000,
-	HasBusConflicts: func(b *base) bool { return b.rom.SubMapper() == 2 },
+	Name:         "CNROM",
+	Load:         loadCNROM,
+	PRGROMbanksz: 0x8000,
+	CHRROMbanksz: 0x2000,
 }
 
 type cnrom struct {
@@ -19,6 +18,8 @@ type cnrom struct {
 	/* PPU */
 	PatternTables hwio.Mem `hwio:"bank=1,offset=0x0000,size=0x2000,readonly"`
 	chrbank       uint32
+
+	busConflicts bool
 }
 
 func (m *cnrom) ReadPRGROM(addr uint16) uint8 {
@@ -28,7 +29,7 @@ func (m *cnrom) ReadPRGROM(addr uint16) uint8 {
 }
 
 func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
-	if m.hasBusConflicts {
+	if m.busConflicts {
 		val &= m.ReadPRGROM(addr)
 	}
 
@@ -47,7 +48,10 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 }
 
 func loadCNROM(b *base) error {
-	cnrom := &cnrom{base: b}
+	cnrom := &cnrom{
+		base:         b,
+		busConflicts: b.rom.SubMapper() == 2,
+	}
 	hwio.MustInitRegs(cnrom)
 
 	b.cpu.Bus.MapBank(0x0000, cnrom, 0)

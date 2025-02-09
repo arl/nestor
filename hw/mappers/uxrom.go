@@ -1,24 +1,23 @@
 package mappers
 
 var UxROM = MapperDesc{
-	Name:            "UxROM",
-	Load:            loadUxROM,
-	PRGROMbanksz:    0x4000,
-	CHRROMbanksz:    0x2000,
-	HasBusConflicts: func(b *base) bool { return b.rom.SubMapper() == 2 },
+	Name:         "UxROM",
+	Load:         loadUxROM,
+	PRGROMbanksz: 0x4000,
+	CHRROMbanksz: 0x2000,
 }
 
 type uxrom struct {
 	*base
 
-	prgbank         uint32
-	bankmask        uint8
-	hasBusConflicts bool
+	prgbank      uint32
+	bankmask     uint8
+	busConflicts bool
 }
 
 func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
-	if m.hasBusConflicts {
 		val &= m.cpu.Bus.Peek8(addr)
+	if m.busConflicts {
 	}
 
 	// 7  bit  0
@@ -36,9 +35,9 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 
 func loadUxROM(b *base) error {
 	uxrom := &uxrom{
-		base:            b,
-		hasBusConflicts: b.rom.SubMapper() == 2,
-		bankmask:        uint8(len(b.rom.PRGROM)>>14) - 1,
+		base:         b,
+		busConflicts: b.rom.SubMapper() == 2,
+		bankmask:     uint8(len(b.rom.PRGROM)>>14) - 1,
 	}
 	b.init(uxrom.WritePRGROM)
 
@@ -46,6 +45,5 @@ func loadUxROM(b *base) error {
 	b.selectCHRPage8KB(0)
 	b.selectPRGPage16KB(0, 0)
 	b.selectPRGPage16KB(1, -1)
-
 	return nil
 }
