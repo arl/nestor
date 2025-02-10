@@ -147,10 +147,10 @@ func (m *mmc1) remap() {
 
 	switch m.chrmode {
 	case 0:
-		m.selectCHRPage8KB(int(m.chrbank0))
+		m.selectCHRROMPage8KB(int(m.chrbank0))
 	case 1:
-		m.selectCHRPage4KB(0, int(m.chrbank0))
-		m.selectCHRPage4KB(1, int(m.chrbank1))
+		m.selectCHRROMPage4KB(0, int(m.chrbank0))
+		m.selectCHRROMPage4KB(1, int(m.chrbank1))
 	}
 }
 

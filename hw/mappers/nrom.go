@@ -10,7 +10,7 @@ func loadNROM(b *base) error {
 	b.init(nil)
 
 	b.setNTMirroring(b.rom.Mirroring())
-	b.selectCHRPage8KB(0)
+	b.selectCHRROMPage8KB(0)
 	switch len(b.rom.PRGROM) {
 	case 16 * KB:
 		b.selectPRGPage16KB(0, 0)

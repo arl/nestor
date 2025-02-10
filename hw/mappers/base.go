@@ -67,7 +67,7 @@ func (b *base) init(writeReg func(uint16, uint8)) {
 		Name:    "PRGROM",
 		Data:    b.PRGROM[:],
 		VSize:   0x8000,
-		Flags:   hwio.MemFlagReadWrite,
+		Flags:   hwio.MemFlagReadOnlyNoLog,
 		WriteCb: b.write,
 	})
 
@@ -117,6 +117,10 @@ func (b *base) selectPRGPage32KB(bank int) {
 // select what 16KB PRG ROM bank to use into which PRG 16KB page.
 func (b *base) selectPRGPage16KB(page uint32, bank int) {
 	if bank < 0 {
+		// TODO: should probably not be checked here and should not panic.
+		if len(b.rom.PRGROM)%(16*KB) != 0 {
+			panic("PRGROM not multiple of 16KB")
+		}
 		bank += len(b.rom.PRGROM) / (16 * KB)
 	}
 
@@ -132,7 +136,7 @@ func (b *base) selectPRGPage16KB(page uint32, bank int) {
 }
 
 // select what 8KB PRG ROM bank to use.
-func (b *base) selectCHRPage8KB(bank int) {
+func (b *base) selectCHRROMPage8KB(bank int) {
 	start := 0
 	end := 8 * KB
 	copy(b.CHRROM[start:end], b.rom.CHRROM[8*KB*(bank):])
@@ -145,7 +149,7 @@ func (b *base) selectCHRPage8KB(bank int) {
 }
 
 // select what 4KB PRG ROM bank to use into which PRG 4KB page.
-func (b *base) selectCHRPage4KB(page uint32, bank int) {
+func (b *base) selectCHRROMPage4KB(page uint32, bank int) {
 	if bank < 0 {
 		bank += len(b.rom.CHRROM) / (4 * KB)
 	}
