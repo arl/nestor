@@ -1,7 +1,5 @@
 package mappers
 
-import "nestor/hw/hwio"
-
 var UxROM = MapperDesc{
 	Name:            "UxROM",
 	Load:            loadUxROM,
@@ -13,29 +11,14 @@ var UxROM = MapperDesc{
 type uxrom struct {
 	*base
 
-	/* CPU */
-	PRGRAM          hwio.Mem    `hwio:"offset=0x6000,size=0x2000"`
-	PRGROM          hwio.Device `hwio:"offset=0x8000,size=0x8000,rcb,wcb"`
 	prgbank         uint32
 	bankmask        uint8
 	hasBusConflicts bool
-
-	/* PPU */
-	PatternTables hwio.Mem `hwio:"bank=1,offset=0x0000,size=0x2000"`
-}
-
-func (m *uxrom) ReadPRGROM(addr uint16) uint8 {
-	banknum := m.prgbank
-	if addr >= 0xC000 {
-		banknum = uint32(len(m.rom.PRGROM))/m.desc.PRGROMbanksz - 1
-	}
-	romaddr := (banknum * m.desc.PRGROMbanksz) + uint32(addr)&(m.desc.PRGROMbanksz-1)
-	return m.rom.PRGROM[romaddr]
 }
 
 func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	if m.hasBusConflicts {
-		val &= m.ReadPRGROM(addr)
+		val &= m.cpu.Bus.Peek8(addr)
 	}
 
 	// 7  bit  0
@@ -47,7 +30,7 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	prev := m.prgbank
 	m.prgbank = uint32(val & m.bankmask)
 	if prev != m.prgbank {
-		modMapper.DebugZ("PRGROM bank switch").String("mapper", m.desc.Name).Uint32("prev", prev).Uint32("new", m.prgbank).End()
+		m.selectPRGPage16KB(0, int(m.prgbank))
 	}
 }
 
@@ -57,17 +40,12 @@ func loadUxROM(b *base) error {
 		hasBusConflicts: b.rom.SubMapper() == 2,
 		bankmask:        uint8(len(b.rom.PRGROM)>>14) - 1,
 	}
-	hwio.MustInitRegs(uxrom)
+	b.init(uxrom.WritePRGROM)
 
-	// CPU mapping.
-	b.cpu.Bus.MapBank(0x0000, uxrom, 0)
-
-	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
-	b.ppu.Bus.MapBank(0x0000, uxrom, 1)
-	b.copyCHRROM(uxrom.PatternTables.Data, 0)
-	return nil
+	b.selectCHRPage8KB(0)
+	b.selectPRGPage16KB(0, 0)
+	b.selectPRGPage16KB(1, -1)
 
-	// TODO: load and map PRG-RAM if present in cartridge.
-	// TODO: load and map CHR-RAM if present in cartridge.
+	return nil
 }
