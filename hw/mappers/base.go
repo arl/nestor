@@ -11,15 +11,19 @@ import (
 type base struct {
 	rom *ines.Rom
 
-	cpu    *hw.CPU
-	PRGRAM hwio.Mem     `hwio:"offset=0x6000,size=0x2000"`
+	cpu *hw.CPU
+
+	// TODO: should PRGRAM this always be there?
+	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
+
 	PRGROM [0x8000]byte // $8000-$FFFF
 
 	ppu        *hw.PPU
 	CHRROM     [0x2000]byte
 	nametables [0x800]byte
 
-	desc            MapperDesc
+	desc MapperDesc
+	// TODO: move this in mapper implementation that needs it
 	hasBusConflicts bool
 
 	// set by base.init
@@ -116,12 +120,29 @@ func (b *base) selectPRGPage16KB(page uint32, bank int) {
 	if bank < 0 {
 		bank += len(b.rom.PRGROM) / (16 * KB)
 	}
-	copy(b.PRGROM[16*KB*page:], b.rom.PRGROM[16*KB*(bank):])
+
+	start := 16 * KB * page
+	end := 16 * KB * (page + 1)
+	copy(b.PRGROM[start:end], b.rom.PRGROM[16*KB*(bank):])
+
+	modMapper.DebugZ("Select 16 kB PRG page").
+		Hex16("bus.from", uint16(0x8000+start)).
+		Hex16("bus.to", uint16(-1+0x8000+end)).
+		Hex16("rom.from", uint16(16*KB*(bank))).
+		Int("bank", bank).End()
 }
 
 // select what 8KB PRG ROM bank to use.
 func (b *base) selectCHRPage8KB(bank int) {
-	copy(b.CHRROM[:], b.rom.CHRROM[8*KB*(bank):])
+	start := 0
+	end := 8 * KB
+	copy(b.CHRROM[start:end], b.rom.CHRROM[8*KB*(bank):])
+
+	modMapper.DebugZ("Select 8 kB CHR page").
+		Hex16("bus.from", uint16(start)).
+		Hex16("bus.to", uint16(-1+end)).
+		Hex16("rom.from", uint16(8*KB*(bank))).
+		Int("bank", bank).End()
 }
 
 // select what 4KB PRG ROM bank to use into which PRG 4KB page.
