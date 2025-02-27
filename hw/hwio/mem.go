@@ -11,6 +11,9 @@ import (
 // We use this structure by pointer rather than by value because it is stored as
 // BankIO interface within Table, and checking if a concrete pointer type is
 // behind the interface is faster than checking a non-pointer type.
+//
+// If wcb is set, it's called directly instead of attempting to write to the
+// memory buffer, hence the ro flag is ignored.
 type mem struct {
 	ptr  unsafe.Pointer
 	mask uint16
@@ -47,18 +50,6 @@ func (m *mem) Peek8(addr uint16) uint8 {
 	return *(*uint8)(unsafe.Pointer(uintptr(m.ptr) + off))
 }
 
-func (m *mem) Write8CheckRO(addr uint16, val uint8) bool {
-	off := uintptr(addr & m.mask)
-	if m.ro == 0 {
-		*(*uint8)(unsafe.Pointer(uintptr(m.ptr) + off)) = val
-		if m.wcb != nil {
-			m.wcb(addr, val)
-		}
-		return true
-	}
-	return m.ro == 2 // fake success if we're in silent mode
-}
-
 func (m *mem) Write8(addr uint16, val uint8) {
 	if m.wcb != nil {
 		m.wcb(addr, val)
@@ -74,7 +65,7 @@ func (m *mem) Write8(addr uint16, val uint8) {
 			Hex8("val", val).
 			Hex16("addr", addr).
 			End()
-	case MemFlagNoROLog:
+	case MemFlagReadOnlyNoLog:
 		return
 	}
 }
@@ -82,9 +73,9 @@ func (m *mem) Write8(addr uint16, val uint8) {
 type MemFlags int
 
 const (
-	MemFlagReadWrite MemFlags = 0
-	MemFlagReadOnly  MemFlags = (1 << iota) // read-only accesses
-	MemFlagNoROLog                          // skip logging attempts to write when configured to readonly
+	MemFlagReadWrite     MemFlags = 0
+	MemFlagReadOnly      MemFlags = (1 << iota) // read-only accesses
+	MemFlagReadOnlyNoLog                        // skip logging attempts to write when configured to readonly
 )
 
 // Linear memory area that can be mapped into a Table.
