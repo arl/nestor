@@ -129,22 +129,27 @@ func (b *base) selectPRGPage16KB(page uint32, bank int) {
 	copy(b.PRGROM[start:end], b.rom.PRGROM[16*KB*(bank):])
 
 	modMapper.DebugZ("Select 16 kB PRG page").
-		Hex16("bus.from", uint16(0x8000+start)).
-		Hex16("bus.to", uint16(-1+0x8000+end)).
-		Hex16("rom.from", uint16(16*KB*(bank))).
+		Hex16("bus.start", uint16(0x8000+start)).
+		Hex16("bus.end", uint16(-1+0x8000+end)).
+		Hex16("rom.start", uint16(16*KB*(bank))).
 		Int("bank", bank).End()
 }
 
 // select what 8KB PRG ROM bank to use.
 func (b *base) selectCHRROMPage8KB(bank int) {
-	start := 0
-	end := 8 * KB
-	copy(b.CHRROM[start:end], b.rom.CHRROM[8*KB*(bank):])
+	if bank < 0 {
+		bank += len(b.rom.CHRROM) / (8 * KB)
+	}
+
+	// b:bus r:rom
+	bstart, bend := 0, 8*KB
+	rstart := 8 * KB * bank
+	copy(b.CHRROM[bstart:bend], b.rom.CHRROM[rstart:])
 
 	modMapper.DebugZ("Select 8 kB CHR page").
-		Hex16("bus.from", uint16(start)).
-		Hex16("bus.to", uint16(-1+end)).
-		Hex16("rom.from", uint16(8*KB*(bank))).
+		Hex16("bus.start", uint16(bstart)).
+		Hex16("bus.end", uint16(-1+bend)).
+		Hex16("rom.start", uint16(rstart)).
 		Int("bank", bank).End()
 }
 
@@ -153,7 +158,11 @@ func (b *base) selectCHRROMPage4KB(page uint32, bank int) {
 	if bank < 0 {
 		bank += len(b.rom.CHRROM) / (4 * KB)
 	}
-	copy(b.CHRROM[4*KB*page:], b.rom.CHRROM[4*KB*(bank):])
+
+	if len(b.rom.CHRROM) != 0 {
+		romoff := min(4*KB*bank, len(b.rom.CHRROM)-1)
+		copy(b.CHRROM[4*KB*page:], b.rom.CHRROM[romoff:])
+	}
 }
 
 func (b *base) setNTMirroring(m ines.NTMirroring) {
