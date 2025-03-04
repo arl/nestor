@@ -96,14 +96,6 @@ func (b *base) write(addr uint16, value uint8) {
 	}
 }
 
-func (b *base) copyCHRROM(dest []byte, bank uint32) {
-	// Copy CHRROM bank to PPU memory.
-	// CHRROM is 8KB in size (when present).
-	start := min(uint32(len(b.rom.CHRROM)-1), bank*b.desc.CHRROMbanksz)
-	end := min(uint32(len(b.rom.CHRROM)), start+b.desc.CHRROMbanksz)
-	copy(dest, b.rom.CHRROM[start:end])
-}
-
 const KB = 1 << 10
 
 // select what 32KB PRG ROM bank to use.
@@ -133,6 +125,15 @@ func (b *base) selectPRGPage16KB(page uint32, bank int) {
 		Hex16("bus.end", uint16(-1+0x8000+end)).
 		Hex16("rom.start", uint16(16*KB*(bank))).
 		Int("bank", bank).End()
+}
+
+// TODO: remove and use selectCHRROM... instead
+func (b *base) copyCHRROM(dest []byte, bank uint32) {
+	// Copy CHRROM bank to PPU memory.
+	// CHRROM is 8KB in size (when present).
+	start := min(uint32(len(b.rom.CHRROM)-1), bank*b.desc.CHRROMbanksz)
+	end := min(uint32(len(b.rom.CHRROM)), start+b.desc.CHRROMbanksz)
+	copy(dest, b.rom.CHRROM[start:end])
 }
 
 // select what 8KB PRG ROM bank to use.
