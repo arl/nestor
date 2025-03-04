@@ -86,7 +86,7 @@ func LoadConfigOrDefault() Config {
 	var cfg Config
 	_, err := toml.DecodeFile(filepath.Join(ConfigDir(), cfgFilename), &cfg)
 	if err != nil {
-		return defaultConfig
+		cfg = defaultConfig
 	}
 	cfg.Input.Init()
 	cfg.Video.Init()
