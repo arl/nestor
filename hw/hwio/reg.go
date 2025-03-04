@@ -9,7 +9,8 @@ import (
 type RWFlags uint8
 
 const (
-	ReadOnlyFlag RWFlags = (1 << iota)
+	ReadWriteFlag RWFlags = 0
+	ReadOnlyFlag  RWFlags = (1 << iota)
 	WriteOnlyFlag
 )
 

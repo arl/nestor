@@ -434,8 +434,8 @@ func (p *PPU) renderPixel() {
 	// Perform background shifts.
 	p.bg.bgShiftlo <<= 1
 	p.bg.bgShifthi <<= 1
-	p.bg.atShiftlo = (p.bg.atShiftlo << 1) | btou8(p.bg.atLatchlo)
-	p.bg.atShifthi = (p.bg.atShifthi << 1) | btou8(p.bg.atLatchhi)
+	p.bg.atShiftlo = (p.bg.atShiftlo << 1) | b2u8(p.bg.atLatchlo)
+	p.bg.atShifthi = (p.bg.atShifthi << 1) | b2u8(p.bg.atLatchhi)
 }
 
 //lint:ignore U1000 not supporting emphasis yet so unused for now.
@@ -744,25 +744,7 @@ var nesPalette = [...]uint32{
 	0xFF78D8F8, 0xFF78F8D8, 0xFFB8F8B8, 0xFFD8F8B8, 0xFFFCFC00, 0xFFF8D8F8, 0xFF000000, 0xFF000000,
 }
 
-func (p *PPU) WritePALETTES(addr uint16, n int) {
-	memaddr := addr & 0x01F
-	val := p.Palettes.Data[memaddr]
-	p.writePalette(addr, val)
-	log.ModPPU.DebugZ("Write to PALETTES").
-		Hex8("val", val).
-		Hex16("addr", addr).
-		End()
-}
-
-func (p *PPU) readPalette(addr uint16) uint8 {
-	addr &= 0x1F
-	if addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1C {
-		addr &^= 0x10
-	}
-	return p.Palettes.Data[addr]
-}
-
-func (p *PPU) writePalette(addr uint16, val uint8) {
+func (p *PPU) WritePALETTES(addr uint16, val uint8) {
 	val &= 0x3F
 	addr &= 0x1F
 	switch addr {
@@ -781,6 +763,14 @@ func (p *PPU) writePalette(addr uint16, val uint8) {
 	default:
 		p.Palettes.Data[addr] = val
 	}
+}
+
+func (p *PPU) readPalette(addr uint16) uint8 {
+	addr &= 0x1F
+	if addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1C {
+		addr &^= 0x10
+	}
+	return p.Palettes.Data[addr]
 }
 
 // OAM

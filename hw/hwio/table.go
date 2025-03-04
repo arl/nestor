@@ -177,7 +177,7 @@ func (t *Table) MapMemorySlice(addr, end uint16, mem []uint8, readonly bool) {
 
 	var flags MemFlags
 	if readonly {
-		flags |= MemFlag8ReadOnly
+		flags |= MemFlagReadOnly
 	}
 	t.MapMem(addr, &Mem{
 		Data:  mem,
@@ -218,27 +218,11 @@ func (t *Table) Peek8(addr uint16) uint8 {
 
 func (t *Table) Write8(addr uint16, val uint8) {
 	io := t.table8.Search(addr)
-	if io == nil {
-		if t.Unmapped != nil {
-			t.Unmapped.Write8(addr, val)
-		}
-		return
+	if io != nil {
+		io.(BankIO8).Write8(addr, val)
+	} else if t.Unmapped != nil {
+		t.Unmapped.Write8(addr, val)
 	}
-	if mem, ok := io.(*mem); ok {
-		// NOTE: we use the CheckRO format so that the success codepath
-		// (that is, when the memory is read-write) is fully inlined and
-		// requires no function call.
-		ok := mem.Write8CheckRO(addr, val)
-		if !ok {
-			log.ModHwIo.ErrorZ("Write8 to read-only address").
-				String("name", t.Name).
-				Hex16("addr", addr).
-				Hex8("val", val).
-				End()
-		}
-		return
-	}
-	io.(BankIO8).Write8(addr, val)
 }
 
 func (t *Table) FetchPointer(addr uint16) []uint8 {

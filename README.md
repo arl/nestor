@@ -8,8 +8,7 @@ Nestor is a work in progress NES/Famicom emulator written in Go.
 
 ### GTK3
 
-Uses [GTK3](gtk.org), via github.com/gotk3/gotk3 Go bindings.
-Please refer to [github.com/gotk3/gotk3](https://github.com/gotk3/gotk3).
+Uses [GTK3](gtk.org), via github.com/gotk3/gotk3 Go bindings. Please refer to [github.com/gotk3/gotk3](https://github.com/gotk3/gotk3).
 
 ### Nestor
 
@@ -23,27 +22,36 @@ go install github.com/arl/nestor@latest
 
 ## Usage
 
+You can either directly run a rom file with:
+
 ```
-$ nestor --help
-Usage: nestor <command> [flags]
-
-NES emulator. github.com/arl/nestor
-
-Flags:
-  -h, --help    Show context-sensitive help.
-
-Commands:
-  gui [flags]
-    Run Nestor graphical user interface. The default if no commands are given.
-
-  run [</path/to/rom>] [flags]
-    Run ROM in emulator.
-
-  rom-infos </path/to/rom> [flags]
-    Show ROM infos.
-
-Run "nestor <command> --help" for more information on a command.
+$ nestor run /path/to/rom.nes
 ```
+
+or use the GUI:
+
+```
+$ nestor
+```
+
+Run `nestor --help` for more information.
+
+## Mappers
+
+A NES games cartridge is made up of various circuits and hardware, which varies from game to game. The configuraion and capabilities of such cartridges is commonly called their mapper. Mappers are designed to extend the system and bypass its limitations, such as by adding RAM to the cartridge or even extra sound channels.
+
+| Name  | iNES mapper | Implemented |
+|-------|------------:|:-----------:|
+| NROM  |           0 |     [x]     |
+| MMC1  |           1 |     [x]     |
+| UxROM |           2 |     [x]     |
+| CNROM |           3 |     [x]     |
+| MMC4  |           4 |     [ ]     |
+| MMC5  |           5 |     [ ]     |
+| AxROM |           7 |     [x]     |
+| GxROM |          66 |     [x]     |
+
+
 
 ## TODO
 
@@ -52,12 +60,8 @@ Run "nestor <command> --help" for more information on a command.
  - [x] Joystick / Keyboard input
  - [X] APU (audio processing unit)
  - [ ] debugger
- - [x] mapper 0
- - [ ] mapper 1
- - [x] mapper 2
- - [x] mapper 3
- - [ ] other mappers...
  - [ ] save states
+ - [ ] additional mappers
 
 
 ## License

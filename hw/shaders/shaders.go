@@ -12,7 +12,7 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
-//go:embed *
+//go:embed *.vert *.frag
 var dir embed.FS
 
 const DefaultName = "Passthrough"

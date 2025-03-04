@@ -1,24 +1,18 @@
 package hw
 
+import "unsafe"
+
 func nthbit8(val uint8, n uint8) uint8    { return (val >> n) & 1 }
 func nthbit16(val uint16, n uint8) uint16 { return (val >> n) & 1 }
 
-func u8tob(v uint8) bool {
-	return v != 0
-}
+func u8tob(v uint8) bool { return v != 0 }
 
-func btou8(b bool) uint8 {
-	if b {
-		return 1
-	}
-	return 0
-}
-func b2u16(b bool) uint16 {
-	if b {
-		return 1
-	}
-	return 0
-}
+// Avoid branches. In the SSA compiler, this compiles to
+// exactly what you would want it to.
+
+func b2u8(x bool) uint8   { return *(*uint8)(unsafe.Pointer(&x)) }
+func b2u16(x bool) uint16 { return uint16(*(*uint8)(unsafe.Pointer(&x))) }
+func b2i(x bool) int      { return int(*(*uint8)(unsafe.Pointer(&x))) }
 
 // 8-bit operations
 func GetBit8(v uint8, n uint) bool {

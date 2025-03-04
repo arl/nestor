@@ -12,8 +12,8 @@ import (
 type Rom struct {
 	header
 	Trainer []uint8 // Trainer, 512 bytes if present, or empty.
-	PRGROM  []uint8 // PRG is PRG ROM data (size is a multiple of 16k)
-	CHRROM  []uint8 // CHR is PRG ROM data (size is a multiple of 8k)
+	PRGROM  []uint8 // PRGROM data (size is a multiple of 16k)
+	CHRROM  []uint8 // CHRROM data (size is a multiple of 8k)
 
 	Name string
 }
@@ -35,14 +35,18 @@ func (rom *Rom) PrintInfos(w io.Writer) {
 	if rom.IsNES20() {
 		fmt.Fprintf(w, "|Submapper              | % 14d |\n", rom.SubMapper())
 	}
-	fmt.Fprintf(w, "|PRG ROM                | % 8d x 16k |\n", rom.header.PRGROMSlots())
-	fmt.Fprintf(w, "|CHR ROM                | % 9d x 8k |\n", rom.header.CHRROMSlots())
+	fmt.Fprintf(w, "|PRG ROM                | % 8d x 16k |\n", rom.nslotsPRGROM())
+	fmt.Fprintf(w, "|CHR ROM                | % 9d x 8k |\n", rom.nslotsCHRROM())
 	if rom.IsNES20() {
-		fmt.Fprintf(w, "|PRG RAM                | % 13dk |\n", rom.header.PRGRAMSize()/1024)
-		fmt.Fprintf(w, "|PRG NVRAM              | % 13dk |\n", rom.header.PRGNVRAMSize()/1024)
-		fmt.Fprintf(w, "|CHR RAM                | % 13dk |\n", rom.header.CHRRAMSize()/1024)
-		fmt.Fprintf(w, "|CHR NVRAM              | % 13dk |\n", rom.header.CHRNVRAMSize()/1024)
+		fmt.Fprintf(w, "|PRG RAM                | % 13dk |\n", rom.PRGRAMSize()/1024)
+		fmt.Fprintf(w, "|PRG NVRAM              | % 13dk |\n", rom.PRGNVRAMSize()/1024)
+		fmt.Fprintf(w, "|CHR RAM                | % 13dk |\n", rom.CHRRAMSize()/1024)
+		fmt.Fprintf(w, "|CHR NVRAM              | % 13dk |\n", rom.CHRNVRAMSize()/1024)
 	}
+	if rom.IsNES20() {
+		fmt.Fprintf(w, "|Bus conflicts          | % 14s |\n", yn(rom.HasBusConflicts()))
+	}
+
 	fmt.Fprintf(w, "|Nametable mirroring    | % 14s |\n", rom.Mirroring())
 	fmt.Fprintf(w, "|Alternative nametable  | % 14s |\n", yn(rom.HasAltNametables()))
 	fmt.Fprintf(w, "|Trainer                | % 14s |\n", yn(rom.HasTrainer()))
@@ -85,7 +89,7 @@ func Decode(buf []byte) (*Rom, error) {
 	}
 
 	// PRG rom data
-	prgRomSize := 0x4000 * rom.prgsz
+	prgRomSize := 0x4000 * rom.prgromsz
 	if len(buf) < off+prgRomSize {
 		return nil, fmt.Errorf("incomplete PRG section")
 	}
@@ -93,7 +97,7 @@ func Decode(buf []byte) (*Rom, error) {
 	off += prgRomSize
 
 	// CHR rom data
-	chrRomSize := 0x2000 * rom.chrsz
+	chrRomSize := 0x2000 * rom.chrromsz
 	if len(buf) < off+chrRomSize {
 		return nil, fmt.Errorf("incomplete CHR section")
 	}
@@ -106,9 +110,13 @@ func Decode(buf []byte) (*Rom, error) {
 const Magic = "NES\x1a"
 
 type header struct {
-	raw   [16]byte
-	prgsz int
-	chrsz int
+	raw        [16]byte
+	prgromsz   int
+	chrromsz   int
+	prgramsz   int
+	prgnvramsz int
+	chrramsz   int
+	chrnvramsz int
 }
 
 func (hdr *header) decode(p []byte) error {
@@ -120,55 +128,47 @@ func (hdr *header) decode(p []byte) error {
 	}
 	copy(hdr.raw[:], p[:16])
 
-	hdr.prgsz = int(hdr.raw[4])
-	hdr.chrsz = int(hdr.raw[5])
+	hdr.prgromsz = int(hdr.raw[4])
+	hdr.chrromsz = int(hdr.raw[5])
 	if hdr.IsNES20() {
-		hdr.prgsz |= int(hdr.raw[9]&0x0F) << 8
-		hdr.chrsz |= int(hdr.raw[9] & 0xF0)
+		hdr.prgromsz |= int(hdr.raw[9]&0x0F) << 8
+		hdr.chrromsz |= int(hdr.raw[9] & 0xF0)
+		hdr.prgramsz = 64 << int(hdr.raw[10]&0x0F)
+		hdr.prgnvramsz = 64 << int(hdr.raw[10]>>4)
+		hdr.chrramsz = 64 << int(hdr.raw[11]&0x0F)
+		hdr.chrnvramsz = 64 << int(hdr.raw[11]>>4)
 	}
 	return nil
 }
 
-// PRGROMSlots returns the number of 16kB slots of PRGROM.
-func (hdr *header) PRGROMSlots() int {
-	return hdr.prgsz
+// nslotsPRGROM returns the number of 16kB slots of PRGROM.
+func (hdr *header) nslotsPRGROM() int {
+	return hdr.prgromsz
 }
 
-// CHRROMSlots returns the number of 8kB slots of CHRROM.
-func (hdr *header) CHRROMSlots() int {
-	return hdr.chrsz
+// nslotsCHRROM returns the number of 8kB slots of CHRROM.
+func (hdr *header) nslotsCHRROM() int {
+	return hdr.chrromsz
 }
 
 // PRGRAMSize returns the size of the PRG-RAM (volatile).
 func (hdr *header) PRGRAMSize() int {
-	if hdr.IsNES20() {
-		return 64 << int(hdr.raw[10]&0x0F)
-	}
-	return 0
+	return hdr.prgramsz
 }
 
-// PRGNVRAMSize returns the size of the PRG-NVRAM/	EEPROM (non-volatile).
+// PRGNVRAMSize returns the size of the PRG-NVRAM/EEPROM (non-volatile). alias WRAM.
 func (hdr *header) PRGNVRAMSize() int {
-	if hdr.IsNES20() {
-		return 64 << int(hdr.raw[10]>>4)
-	}
-	return 0
+	return hdr.prgnvramsz
 }
 
-// CHRRAMSize returns the size of the CHR-RAM (volatile).
+// CHRRAMSize returns the size of the CHR-RAM (volatile). alias VRAM.
 func (hdr *header) CHRRAMSize() int {
-	if hdr.IsNES20() {
-		return 64 << int(hdr.raw[11]&0x0F)
-	}
-	return 0
+	return hdr.chrramsz
 }
 
 // CHRNVRAMSize returns the size of the CHR-NVRAM (non-volatile).
 func (hdr *header) CHRNVRAMSize() int {
-	if hdr.IsNES20() {
-		return 64 << int(hdr.raw[11]>>4)
-	}
-	return 0
+	return hdr.chrnvramsz
 }
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type=Region
@@ -219,7 +219,6 @@ func (hdr *header) IsNES20() bool {
 type NTMirroring int
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type=NTMirroring
-
 const (
 	HorzMirroring NTMirroring = 1 + iota
 	VertMirroring
@@ -235,16 +234,25 @@ func (hdr *header) Mirroring() NTMirroring {
 }
 
 // HasPersistence indicates the presence of persistent saved memory in the rom.
+// The original cartridge contained battery-backed PRG RAM ($6000-7FFF) or other
+// persistent memory.
 func (hdr *header) HasPersistence() bool {
 	return hdr.raw[6]&0x02 == 0x02
 }
 
-// HasTrainer indicates the presence of a trainer section in the rom.
+// HasTrainer indicates the presence of a 512 bytes trainer section at
+// $7000-$71FF (stored before PRG data).
 func (hdr *header) HasTrainer() bool {
 	return hdr.raw[6]&0x04 == 0x04
 }
 
-// HasAltNametables indicates a mapper-specific alternative nametable layout
+// HasAltNametables indicates the presence of a mapper-specific alternative
+// nametable layout.
 func (hdr *header) HasAltNametables() bool {
+	return hdr.raw[6]&0x08 == 0x08
+}
+
+// HasBusConflicts reports whether the board is subject to bus conflicts.
+func (hdr *header) HasBusConflicts() bool {
 	return hdr.raw[6]&0x08 == 0x08
 }
