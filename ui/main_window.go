@@ -6,17 +6,16 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/gotk3/gotk3/gdk"
-	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 
-	"nestor/emu"
 	"nestor/emu/log"
-	"nestor/ines"
 )
 
 var modGUI = log.NewModule("gui")
@@ -104,43 +103,24 @@ func (mw *mainWindow) Close(err error) {
 
 func (mw *mainWindow) runROM(path string) {
 	mw.SetSensitive(false)
+	defer mw.SetSensitive(true)
 
-	rom, err := ines.ReadRom(path)
+	// TODO: add -monitor flag to nestor and pass it monitorIdx()
+	executable, err := os.Executable()
 	if err != nil {
-		modGUI.Warnf("failed to read ROM: %s", err)
+		modGUI.Warnf("failed to get executable path: %s", err)
 		return
 	}
 
-	// Select monitor based on current window.
-	mw.cfg.Video.Monitor = mw.monitorIdx()
-
-	emulator, err := emu.Launch(rom, mw.cfg.Config)
-	if err != nil {
-		modGUI.Fatalf("failed to start emulator window: %v", err)
-		gtk.MainQuit()
+	fmt.Println("about to run", executable, "run", path)
+	cmd := exec.Command(executable, "run", path)
+	if err := cmd.Run(); err != nil {
+		modGUI.Warnf("failed to run ROM: %s", err)
+		return
 	}
-	mw.stopEmu = emulator.Stop
 
-	panel := showGamePanel(mw.Window)
-	panel.connect(emulator)
-
-	mw.wg.Add(1)
-	go func() {
-		defer mw.SetSensitive(true)
-		defer mw.wg.Done()
-
-		emulator.RaiseWindow()
-		emulator.Run()
-		mw.stopEmu = func() {}
-		panel.Close()
-
-		screenshot := emulator.Screenshot()
-		glib.IdleAdd(func() {
-			if err := mw.addRecentROM(path, screenshot); err != nil {
-				modGUI.Warnf("failed to add recent ROM: %s", err)
-			}
-		})
-	}()
+	// TODO: handle error
+	// TODO: connect game panel with bitbucket.org/avd/go-ipc@v0.6.1
 }
 
 func (mw *mainWindow) monitorIdx() int32 {
