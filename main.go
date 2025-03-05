@@ -16,10 +16,6 @@ import (
 )
 
 func main() {
-	sdl.Main(main1)
-}
-
-func main1() {
 	args := parseArgs(os.Args[1:])
 
 	cfg := ui.LoadConfigOrDefault()
@@ -38,37 +34,43 @@ func main1() {
 
 // emuMain runs the emulator directly with the given rom.
 func emuMain(args Run, cfg *ui.Config) {
-	rom, err := ines.ReadRom(args.RomPath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error reading ROM: %s", err)
-		os.Exit(1)
-	}
+	var exitcode int
+	sdl.Main(func() {
+		rom, err := ines.ReadRom(args.RomPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error reading ROM: %s", err)
+			exitcode = 1
+			return
+		}
 
-	var traceout io.WriteCloser
-	if args.Trace != nil {
-		traceout = args.Trace
-		defer traceout.Close()
-	}
+		var traceout io.WriteCloser
+		if args.Trace != nil {
+			traceout = args.Trace
+			defer traceout.Close()
+		}
 
-	cfg.TraceOut = traceout
-	nes, err := emu.Launch(rom, cfg.Config)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to start emulator: %v\n", err)
-		os.Exit(1)
-	}
+		cfg.TraceOut = traceout
+		nes, err := emu.Launch(rom, cfg.Config)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to start emulator: %v\n", err)
+			exitcode = 1
+			return
+		}
 
-	if args.CPUProfile != "" {
-		f, err := os.Create(args.CPUProfile)
-		checkf(err, "failed to create cpu profile file")
-		checkf(pprof.StartCPUProfile(f), "failed to start cpu profile")
-		defer func() {
-			pprof.StopCPUProfile()
-			f.Close()
-			fmt.Println("CPU profile written to", args.CPUProfile)
-		}()
-	}
+		if args.CPUProfile != "" {
+			f, err := os.Create(args.CPUProfile)
+			checkf(err, "failed to create cpu profile file")
+			checkf(pprof.StartCPUProfile(f), "failed to start cpu profile")
+			defer func() {
+				pprof.StopCPUProfile()
+				f.Close()
+				fmt.Println("CPU profile written to", args.CPUProfile)
+			}()
+		}
 
-	nes.Run()
+		nes.Run()
+	})
+	os.Exit(exitcode)
 }
 
 func romInfosMain(romPath string) {
