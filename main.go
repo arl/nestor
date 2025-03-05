@@ -50,6 +50,8 @@ func emuMain(args Run, cfg *ui.Config) {
 		}
 
 		cfg.TraceOut = traceout
+		cfg.Video.Monitor = args.Monitor
+
 		nes, err := emu.Launch(rom, cfg.Config)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to start emulator: %v\n", err)

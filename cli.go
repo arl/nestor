@@ -36,8 +36,10 @@ type (
 	}
 
 	Run struct {
+		RomPath string `arg:"" name:"/path/to/rom" help:"${rompath_help}" required:"true" type:"existingfile"`
+
+		Monitor    int32      `name:"monitor" help:"Monitor index to use." default:"0"`
 		CPUProfile string     `name:"cpuprofile" help:"${cpuprofile_help}" type:"path"`
-		RomPath    string     `arg:"" name:"/path/to/rom" help:"${rompath_help}" required:"true" type:"existingfile"`
 		Log        logModMask `help:"${log_help}" placeholder:"mod0,mod1,..."`
 		Trace      *outfile   `name:"trace" help:"Write CPU trace log." placeholder:"FILE|stdout|stderr"`
 	}

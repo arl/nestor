@@ -105,15 +105,17 @@ func (mw *mainWindow) runROM(path string) {
 	mw.SetSensitive(false)
 	defer mw.SetSensitive(true)
 
-	// TODO: add -monitor flag to nestor and pass it monitorIdx()
 	executable, err := os.Executable()
 	if err != nil {
 		modGUI.Warnf("failed to get executable path: %s", err)
 		return
 	}
 
-	fmt.Println("about to run", executable, "run", path)
-	cmd := exec.Command(executable, "run", path)
+	args := []string{"run", "--monitor", fmt.Sprint(mw.monitorIdx()), path}
+
+	fmt.Println("about to run", executable, args)
+
+	cmd := exec.Command(executable, args...)
 	if err := cmd.Run(); err != nil {
 		modGUI.Warnf("failed to run ROM: %s", err)
 		return
