@@ -9,16 +9,23 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/gotk3/gotk3/gdk"
+	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 
 	"nestor/emu/log"
+	"nestor/emu/rpc"
 )
 
 var modGUI = log.NewModule("gui")
+
+func init() {
+	log.EnableDebugModules(modGUI.Mask())
+}
 
 //go:embed main_window.glade
 var mainWindowUI string
@@ -49,7 +56,7 @@ type mainWindow struct {
 	wg  sync.WaitGroup
 	cfg *Config
 
-	stopEmu func()
+	stopEmu func() *image.RGBA
 }
 
 func showMainWindow(cfg *Config) {
@@ -58,7 +65,7 @@ func showMainWindow(cfg *Config) {
 	mw := &mainWindow{
 		Window:  build[gtk.Window](builder, "main_window"),
 		cfg:     cfg,
-		stopEmu: func() {},
+		stopEmu: func() *image.RGBA { return nil },
 	}
 
 	mw.Connect("destroy", func() bool { mw.Close(nil); return true })
@@ -103,7 +110,6 @@ func (mw *mainWindow) Close(err error) {
 
 func (mw *mainWindow) runROM(path string) {
 	mw.SetSensitive(false)
-	defer mw.SetSensitive(true)
 
 	executable, err := os.Executable()
 	if err != nil {
@@ -111,18 +117,46 @@ func (mw *mainWindow) runROM(path string) {
 		return
 	}
 
-	args := []string{"run", "--monitor", fmt.Sprint(mw.monitorIdx()), path}
-
-	fmt.Println("about to run", executable, args)
+	port := rpc.UnusedPort()
+	args := []string{"run",
+		"--monitor", fmt.Sprint(mw.monitorIdx()),
+		"--port", strconv.Itoa(port),
+		path}
 
 	cmd := exec.Command(executable, args...)
-	if err := cmd.Run(); err != nil {
-		modGUI.Warnf("failed to run ROM: %s", err)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Start(); err != nil {
+		modGUI.Warnf("failed to start emulator process: %s", err)
 		return
 	}
 
-	// TODO: handle error
-	// TODO: connect game panel with bitbucket.org/avd/go-ipc@v0.6.1
+	client, err := rpc.NewClient(port)
+	if err != nil {
+		modGUI.Warnf("failed to create emulator window proxy: %s", err)
+		return
+	}
+
+	mw.stopEmu = client.Stop
+
+	panel := showGamePanel(mw.Window)
+	panel.connect(client)
+
+	mw.wg.Add(1)
+	go func() {
+		defer mw.SetSensitive(true)
+		defer mw.wg.Done()
+
+		modGUI.DebugZ("waiting for emulator process to finish").End()
+		cmd.Wait()
+		modGUI.DebugZ("closing game panel").End()
+		panel.Close()
+		glib.IdleAdd(func() {
+			if err := mw.addRecentROM(path, panel.img); err != nil {
+				modGUI.Warnf("failed to add recent ROM: %s", err)
+			}
+		})
+	}()
 }
 
 func (mw *mainWindow) monitorIdx() int32 {

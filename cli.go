@@ -42,6 +42,7 @@ type (
 		CPUProfile string     `name:"cpuprofile" help:"${cpuprofile_help}" type:"path"`
 		Log        logModMask `help:"${log_help}" placeholder:"mod0,mod1,..."`
 		Trace      *outfile   `name:"trace" help:"Write CPU trace log." placeholder:"FILE|stdout|stderr"`
+		Port       int        `name:"port" hidden:"true"`
 	}
 
 	RomInfos struct {

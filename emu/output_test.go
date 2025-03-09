@@ -60,7 +60,7 @@ func (to *TestingOutput) framePath(isGolden bool) string {
 	return filepath.Join(to.cfg.SaveFrameDir, fn)
 }
 
-func (to *TestingOutput) Screenshot() image.Image {
+func (to *TestingOutput) Screenshot() *image.RGBA {
 	return hw.FramebufImage(to.framebuf, to.cfg.Width, to.cfg.Height)
 }
 

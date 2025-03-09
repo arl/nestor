@@ -2,11 +2,13 @@ package ui
 
 import (
 	_ "embed"
+	"fmt"
+	"image"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
 
-	"nestor/emu"
+	"nestor/emu/rpc"
 )
 
 //go:embed game_panel.glade
@@ -19,6 +21,8 @@ type gamePanel struct {
 	stop    *gtk.Button
 	reset   *gtk.Button
 	restart *gtk.Button
+
+	img *image.RGBA
 }
 
 func showGamePanel(parent *gtk.Window) *gamePanel {
@@ -59,13 +63,13 @@ func (gp *gamePanel) moveAndShow(parent *gtk.Window) {
 	gp.SetVisible(true)
 }
 
-func (gp *gamePanel) connect(emulator *emu.Emulator) {
-	gp.Connect("destroy", emulator.Stop)
-	gp.reset.Connect("pressed", emulator.Reset)
-	gp.restart.Connect("pressed", emulator.Restart)
+func (gp *gamePanel) connect(proxy *rpc.Client) {
+	gp.Connect("destroy", proxy.Stop)
+	gp.reset.Connect("clicked", proxy.Reset)
+	gp.restart.Connect("clicked", proxy.Restart)
 	gp.pause.Connect("toggled", func(btn *gtk.ToggleButton) {
 		paused := btn.GetActive()
-		emulator.SetPause(paused)
+		proxy.SetPause(paused)
 		if paused {
 			btn.SetLabel("Resume")
 		} else {
@@ -74,8 +78,9 @@ func (gp *gamePanel) connect(emulator *emu.Emulator) {
 		gp.reset.SetSensitive(!paused)
 		gp.restart.SetSensitive(!paused)
 	})
-	gp.stop.Connect("pressed", func() {
-		emulator.Stop()
+	gp.stop.Connect("clicked", func() {
+		fmt.Println("clicked on stop")
+		gp.img = proxy.Stop()
 		gp.Close()
 	})
 }

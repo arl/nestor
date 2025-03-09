@@ -20,7 +20,7 @@ type Output interface {
 	EndFrame(hw.Frame)
 	Poll() bool
 	Close()
-	Screenshot() image.Image
+	Screenshot() *image.RGBA
 }
 
 type Config struct {
@@ -105,7 +105,7 @@ func (e *Emulator) RaiseWindow() {
 	}
 }
 
-func (e *Emulator) Screenshot() image.Image {
+func (e *Emulator) Screenshot() *image.RGBA {
 	return e.out.Screenshot()
 }
 
@@ -137,9 +137,12 @@ func (e *Emulator) Run() {
 // the emulator loop in a concurrent-safe way.
 
 func (e *Emulator) SetPause(pause bool) { e.paused.CompareAndSwap(!pause, pause) }
-func (e *Emulator) Stop()               { e.quit.Store(true) }
 func (e *Emulator) Reset()              { e.reset.Store(true) }
 func (e *Emulator) Restart()            { e.restart.Store(true) }
+func (e *Emulator) Stop() *image.RGBA {
+	e.quit.Store(true)
+	return e.Screenshot()
+}
 
 func (e *Emulator) isPaused() bool {
 	return e.paused.Load()

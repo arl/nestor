@@ -2,15 +2,10 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"runtime/debug"
-	"runtime/pprof"
 	"slices"
 
-	"github.com/veandco/go-sdl2/sdl"
-
-	"nestor/emu"
 	"nestor/ines"
 	"nestor/ui"
 )
@@ -30,49 +25,6 @@ func main() {
 	case versionMode:
 		versionMain()
 	}
-}
-
-// emuMain runs the emulator directly with the given rom.
-func emuMain(args Run, cfg *ui.Config) {
-	var exitcode int
-	sdl.Main(func() {
-		rom, err := ines.ReadRom(args.RomPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading ROM: %s", err)
-			exitcode = 1
-			return
-		}
-
-		var traceout io.WriteCloser
-		if args.Trace != nil {
-			traceout = args.Trace
-			defer traceout.Close()
-		}
-
-		cfg.TraceOut = traceout
-		cfg.Video.Monitor = args.Monitor
-
-		nes, err := emu.Launch(rom, cfg.Config)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to start emulator: %v\n", err)
-			exitcode = 1
-			return
-		}
-
-		if args.CPUProfile != "" {
-			f, err := os.Create(args.CPUProfile)
-			checkf(err, "failed to create cpu profile file")
-			checkf(pprof.StartCPUProfile(f), "failed to start cpu profile")
-			defer func() {
-				pprof.StopCPUProfile()
-				f.Close()
-				fmt.Println("CPU profile written to", args.CPUProfile)
-			}()
-		}
-
-		nes.Run()
-	})
-	os.Exit(exitcode)
 }
 
 func romInfosMain(romPath string) {

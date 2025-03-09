@@ -274,7 +274,7 @@ func (out *Output) poll() {
 	}
 }
 
-func (out *Output) Screenshot() image.Image {
+func (out *Output) Screenshot() *image.RGBA {
 	var img *image.RGBA
 
 	sdl.Do(func() {

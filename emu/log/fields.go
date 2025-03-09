@@ -61,6 +61,9 @@ func (f *ZField) Value() string {
 	case FieldTypeHex64:
 		return fmt.Sprintf("%016x", uint(f.Integer))
 	case FieldTypeError:
+		if f.Error == nil {
+			return "<nil>"
+		}
 		return f.Error.Error()
 	case FieldTypeDuration:
 		return f.Duration.String()
