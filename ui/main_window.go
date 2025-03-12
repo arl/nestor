@@ -25,6 +25,7 @@ var modGUI = log.NewModule("gui")
 
 func init() {
 	log.EnableDebugModules(modGUI.Mask())
+	log.EnableDebugModules(log.ModEmu.Mask())
 }
 
 //go:embed main_window.glade
@@ -85,14 +86,14 @@ func showMainWindow(cfg *Config) {
 	})
 
 	onConfig := func(m *gtk.MenuItem) {
-		menu := m.GetLabel()
-		showConfig(mw.cfg, menu)
-		if err := SaveConfig(mw.cfg); err != nil {
+		showConfig(mw.cfg, m.GetLabel())
+		if err := saveConfig(mw.cfg); err != nil {
 			modGUI.Warnf("failed to save config: %s", err)
 		}
 	}
 	build[gtk.MenuItem](builder, "menu_input").Connect("activate", onConfig)
 	build[gtk.MenuItem](builder, "menu_video").Connect("activate", onConfig)
+	build[gtk.MenuItem](builder, "menu_audio").Connect("activate", onConfig)
 }
 
 func (mw *mainWindow) Close(err error) {

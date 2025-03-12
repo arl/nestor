@@ -26,6 +26,7 @@ type Output interface {
 type Config struct {
 	Input input.Config `toml:"input"`
 	Video VideoConfig  `toml:"video"`
+	Audio AudioConfig  `toml:"audio"`
 
 	TraceOut io.WriteCloser `toml:"-"`
 }
@@ -45,6 +46,10 @@ func (vcfg *VideoConfig) Init() {
 		log.ModEmu.Warnf("Invalid shader name %q, fallback to %q", vcfg.Shader, shaders.DefaultName)
 		vcfg.Shader = shaders.DefaultName
 	}
+}
+
+type AudioConfig struct {
+	DisableAudio bool `toml:"disable_audio"`
 }
 
 type Emulator struct {
@@ -80,8 +85,14 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err
 	}
-	if err := out.EnableAudio(true); err != nil {
-		return nil, err
+
+	if cfg.Audio.DisableAudio {
+		log.ModEmu.WarnZ("Audio disabled").End()
+	} else {
+		if err := out.EnableAudio(true); err != nil {
+			return nil, err
+		}
+		log.ModEmu.InfoZ("Audio enabled").End()
 	}
 
 	inprov := input.NewProvider(cfg.Input)

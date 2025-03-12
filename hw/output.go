@@ -140,7 +140,7 @@ func (out *Output) EnableAudio(enable bool) error {
 	log.ModSound.InfoZ("Enabling audio").Bool("enable", enable).End()
 	switch {
 	case enable && !out.audioEnabled:
-		if err := sdl.Init(sdl.INIT_AUDIO); err != nil {
+		if err := sdl.InitSubSystem(sdl.INIT_AUDIO); err != nil {
 			return err
 		}
 
