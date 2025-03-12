@@ -11,6 +11,7 @@ import (
 	"nestor/emu"
 	"nestor/emu/log"
 	"nestor/hw/input"
+	"nestor/hw/shaders"
 )
 
 type GeneralConfig struct {
@@ -69,7 +70,10 @@ var defaultConfig = Config{
 		Video: emu.VideoConfig{
 			DisableVSync: false,
 			Monitor:      0,
-			Shader:       "",
+			Shader:       shaders.DefaultName,
+		},
+		Audio: emu.AudioConfig{
+			DisableAudio: false,
 		},
 		TraceOut: nil,
 	},
@@ -83,18 +87,23 @@ const cfgFilename = "config.toml"
 // LoadConfigOrDefault loads the configuration from the nestor config directory,
 // or provide a default one.
 func LoadConfigOrDefault() Config {
-	var cfg Config
+	// Create a config based on the default one.
+	cfg := defaultConfig
+
+	// Load the config from the file, overwriting the default values.
 	_, err := toml.DecodeFile(filepath.Join(ConfigDir(), cfgFilename), &cfg)
 	if err != nil {
-		cfg = defaultConfig
+		log.ModEmu.Warnf("failed to load config, using default: %v", err)
 	}
-	cfg.Input.Init()
-	cfg.Video.Init()
+
+	// Apply post-load operations (fix invalid values, etc).
+	cfg.Input.PostLoad()
+	cfg.Video.Check()
 	return cfg
 }
 
-// SaveConfig into nestor config directory.
-func SaveConfig(cfg *Config) error {
+// saveConfig into nestor config directory.
+func saveConfig(cfg *Config) error {
 	buf, err := toml.Marshal(cfg)
 	if err != nil {
 		return err

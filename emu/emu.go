@@ -37,7 +37,7 @@ type VideoConfig struct {
 	Shader       string `toml:"shader"`
 }
 
-func (vcfg *VideoConfig) Init() {
+func (vcfg *VideoConfig) Check() {
 	// Ensure we have a valid shader.
 	if vcfg.Shader == "" {
 		vcfg.Shader = shaders.DefaultName
@@ -56,6 +56,7 @@ type Emulator struct {
 	NES *NES
 	out Output
 
+	// These are accessed concurrently by the emulator loop and the UI.
 	quit    atomic.Bool
 	paused  atomic.Bool
 	reset   atomic.Bool

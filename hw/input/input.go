@@ -39,7 +39,7 @@ type Config struct {
 	Presets [numPresets]PaddlePreset `toml:"presets"`
 }
 
-func (cfg *Config) Init() {
+func (cfg *Config) PostLoad() {
 	if cfg.Paddles[0].PaddlePreset >= numPresets {
 		cfg.Paddles[0].PaddlePreset = 0
 	}

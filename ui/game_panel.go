@@ -2,7 +2,6 @@ package ui
 
 import (
 	_ "embed"
-	"fmt"
 	"image"
 
 	"github.com/gotk3/gotk3/gdk"
@@ -79,7 +78,6 @@ func (gp *gamePanel) connect(proxy *rpc.Client) {
 		gp.restart.SetSensitive(!paused)
 	})
 	gp.stop.Connect("clicked", func() {
-		fmt.Println("clicked on stop")
 		gp.img = proxy.Stop()
 		gp.Close()
 	})
