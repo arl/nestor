@@ -1,5 +1,5 @@
 on: [push, pull_request]
-name: Test, Build and Publish
+name: test and build on linux
 jobs:
   tests:
     strategy:

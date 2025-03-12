@@ -1,4 +1,4 @@
-name: Build and Release Nestor Binary
+name: macos release
 
 on:
   push:
