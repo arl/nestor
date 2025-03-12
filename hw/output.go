@@ -199,7 +199,7 @@ func (out *Output) Close() {
 
 	// Flow is stopped by now, but window may still be rendering.
 	if out.window != nil {
-		out.window.SetTitle("halted")
+		sdl.Do(func() { out.window.SetTitle("halted") })
 	}
 
 	out.wg.Wait()
@@ -231,7 +231,7 @@ func (out *Output) render() {
 				out.fpscounter++
 				if out.fpsclock+1000 < sdl.GetTicks64() {
 					title := fmt.Sprintf("%s - %d FPS", out.cfg.Title, out.fpscounter)
-					out.window.SetTitle(title)
+					sdl.Do(func() { out.window.SetTitle(title) })
 					out.fpscounter = 0
 					out.fpsclock += 1000
 				}
