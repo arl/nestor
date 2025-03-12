@@ -3,13 +3,24 @@ name: Build and Release Nestor Binary
 on:
   push:
     tags:
-      - 'v*.*.*'  # Triggers on version tag pushes
+      - "v*.*.*" # Triggers on version tag pushes
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     permissions:
-        contents: write
+      contents: write
+    strategy:
+      matrix:
+        os: [macos-13, macos-15]
+        include:
+          - os: macos-13
+            arch: x86-64
+            asset_name: nestor-macos-x64.tgz
+          - os: macos-15
+            arch: arm64
+            asset_name: nestor-macos-arm64.tgz
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,13 +37,13 @@ jobs:
         run: go build -ldflags="-s -w" .
 
       - name: Package binary
-        run: tar -czvf nestor-macos.tar.gz nestor
+        run: tar -czvf ${{ matrix.asset_name }} nestor
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nestor-macos
-          path: nestor-macos.tar.gz
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
 
       - name: Create GitHub Release
         id: create_release
@@ -51,6 +62,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./nestor-macos.tar.gz
-          asset_name: nestor-macos.tar.gz
+          asset_path: ./${{ matrix.asset_name }}
+          asset_name: ${{ matrix.asset_name }}
           asset_content_type: application/gzip
