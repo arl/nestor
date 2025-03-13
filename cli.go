@@ -18,6 +18,7 @@ const (
 	runMode                  // Just run a ROM
 	romInfosMode             // Show ROM infos
 	versionMode              // Show Nestor version
+	captureMode              // Show input capture window (hidden option)
 )
 
 type (
@@ -26,6 +27,7 @@ type (
 		Run      Run      `cmd:"" help:"Run ROM in emulator."`
 		RomInfos RomInfos `cmd:"" help:"Show ROM infos." name:"rom-infos"`
 		Version  Version  `cmd:"" help:"Show Nestor version."`
+		Capture  Capture  `cmd:"" hidden:"true"`
 
 		mode mode
 	}
@@ -43,6 +45,10 @@ type (
 		Log        logModMask `help:"${log_help}" placeholder:"mod0,mod1,..."`
 		Trace      *outfile   `name:"trace" help:"Write CPU trace log." placeholder:"FILE|stdout|stderr"`
 		Port       int        `name:"port" hidden:"true"`
+	}
+
+	Capture struct {
+		Button string `name:"button" hidden:"true" required:""`
 	}
 
 	RomInfos struct {
@@ -77,6 +83,8 @@ func parseArgs(args []string) CLI {
 	switch ctx.Command() {
 	case "gui":
 		cfg.mode = guiMode
+	case "capture":
+		cfg.mode = captureMode
 	case "rom-infos </path/to/rom>":
 		cfg.mode = romInfosMode
 	case "version":

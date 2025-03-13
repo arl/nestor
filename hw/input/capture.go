@@ -2,6 +2,8 @@ package input
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -12,14 +14,27 @@ import (
 	"nestor/resource"
 )
 
-// Capture waits for a next key or joystick button press and
-// returns a MappingCodecode identifying it, or "" if the user pressed Escape.
 func Capture(padbtn string) (Code, error) {
+	out, err := exec.Command(os.Args[0], "run", "capture", "--btn", padbtn).CombinedOutput()
+	if err != nil {
+		return Code{}, fmt.Errorf("failed to capture input: %s\n%s", err, out)
+	}
+	var code Code
+	if err := code.UnmarshalText(out); err != nil {
+		return Code{}, fmt.Errorf("failed to unmarshal input: %s\n%s", err, out)
+	}
+	return code, nil
+}
+
+// StartCapture waits for a next key or joystick button press and
+// returns a MappingCode identifying it, or "" if the user pressed Escape.
+func StartCapture(padbtn string) (Code, error) {
 	var code Code
 
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_GAMECONTROLLER); err != nil {
 		return code, fmt.Errorf("failed to initialize SDL: %s", err)
 	}
+	defer sdl.Quit()
 
 	if err := ttf.Init(); err != nil {
 		return code, fmt.Errorf("failed to initialize SDL_ttf: %s", err)

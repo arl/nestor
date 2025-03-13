@@ -10,6 +10,7 @@ import (
 
 	"nestor/emu"
 	"nestor/emu/rpc"
+	"nestor/hw/input"
 	"nestor/ines"
 	"nestor/ui"
 )
@@ -66,4 +67,22 @@ func emuMain(args Run, cfg *ui.Config) {
 		emulator.Run()
 	})
 	os.Exit(exitcode)
+}
+
+func captureMain(args Capture) {
+	sdl.Main(func() {
+		code, err := input.StartCapture(args.Button)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error capturing input: %v", err)
+			os.Exit(1)
+		}
+		out, err := code.MarshalText()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "marshal text error: %v", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("%s", out)
+		os.Exit(0)
+	})
 }

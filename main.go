@@ -22,6 +22,8 @@ func main() {
 		romInfosMain(args.RomInfos.RomPath)
 	case runMode:
 		emuMain(args.Run, &cfg)
+	case captureMode:
+		captureMain(args.Capture)
 	case versionMode:
 		versionMain()
 	}
