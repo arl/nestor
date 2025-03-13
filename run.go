@@ -54,7 +54,6 @@ func emuMain(args Run, cfg *ui.Config) {
 		}
 
 		if args.Port != 0 {
-			fmt.Println("creating rpc server", args.Port)
 			server, err := rpc.NewServer(args.Port, emulator)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "RPC error: %v", err)
@@ -70,19 +69,30 @@ func emuMain(args Run, cfg *ui.Config) {
 }
 
 func captureMain(args Capture) {
-	sdl.Main(func() {
-		code, err := input.StartCapture(args.Monitor, args.Button)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error capturing input: %v", err)
-			os.Exit(1)
-		}
-		out, err := code.MarshalText()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "marshal text error: %v", err)
-			os.Exit(1)
-		}
+	var (
+		code input.Code
+		err  error
+	)
 
-		fmt.Printf("%s", out)
-		os.Exit(0)
+	sdl.Main(func() {
+		sdl.Do(func() {
+			if code, err = input.StartCapture(args.Monitor, args.Button); err != nil {
+				err = fmt.Errorf("error capturing input: %v", err)
+			}
+		})
 	})
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "marshal text error: %v", err)
+		os.Exit(1)
+	}
+
+	out, err := code.MarshalText()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "marshal text error: %v", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("%s", out)
+	os.Exit(0)
 }
