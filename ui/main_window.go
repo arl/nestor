@@ -120,7 +120,7 @@ func (mw *mainWindow) runROM(path string) {
 
 	port := rpc.UnusedPort()
 	args := []string{"run",
-		"--monitor", fmt.Sprint(mw.monitorIdx()),
+		"--monitor", fmt.Sprint(monitorIdx(mustT(mw.GetWindow()))),
 		"--port", strconv.Itoa(port),
 		path}
 
@@ -158,16 +158,6 @@ func (mw *mainWindow) runROM(path string) {
 			}
 		})
 	}()
-}
-
-func (mw *mainWindow) monitorIdx() int32 {
-	display := mustT(gdk.DisplayGetDefault())
-	gdkw := mustT(mw.GetWindow())
-	monitor := mustT(display.GetMonitorAtWindow(gdkw))
-	if monitor.IsPrimary() {
-		return 0
-	}
-	return 1
 }
 
 func (mw *mainWindow) addRecentROM(romPath string, screenshot image.Image) error {

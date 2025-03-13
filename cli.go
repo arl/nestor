@@ -48,7 +48,8 @@ type (
 	}
 
 	Capture struct {
-		Button string `name:"button" hidden:"true" required:""`
+		Button  string `name:"button" hidden:"true" required:""`
+		Monitor int32  `name:"monitor" help:"Monitor index to use." default:"0"`
 	}
 
 	RomInfos struct {

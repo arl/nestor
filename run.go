@@ -71,7 +71,7 @@ func emuMain(args Run, cfg *ui.Config) {
 
 func captureMain(args Capture) {
 	sdl.Main(func() {
-		code, err := input.StartCapture(args.Button)
+		code, err := input.StartCapture(args.Monitor, args.Button)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error capturing input: %v", err)
 			os.Exit(1)

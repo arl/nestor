@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,8 +15,8 @@ import (
 	"nestor/resource"
 )
 
-func Capture(padbtn string) (Code, error) {
-	out, err := exec.Command(os.Args[0], "run", "capture", "--btn", padbtn).CombinedOutput()
+func Capture(monitor int32, padbtn string) (Code, error) {
+	out, err := exec.Command(os.Args[0], "capture", "--button", padbtn, "--monitor", strconv.Itoa(int(monitor))).CombinedOutput()
 	if err != nil {
 		return Code{}, fmt.Errorf("failed to capture input: %s\n%s", err, out)
 	}
@@ -28,7 +29,7 @@ func Capture(padbtn string) (Code, error) {
 
 // StartCapture waits for a next key or joystick button press and
 // returns a MappingCode identifying it, or "" if the user pressed Escape.
-func StartCapture(padbtn string) (Code, error) {
+func StartCapture(monitor int32, padbtn string) (Code, error) {
 	var code Code
 
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_GAMECONTROLLER); err != nil {
@@ -44,8 +45,8 @@ func StartCapture(padbtn string) (Code, error) {
 	// Create a small rectangular win (e.g., 400x300)
 	win, err := sdl.CreateWindow(
 		"Nestor input capture",
-		sdl.WINDOWPOS_CENTERED,
-		sdl.WINDOWPOS_CENTERED,
+		sdl.WINDOWPOS_CENTERED_MASK|monitor,
+		sdl.WINDOWPOS_CENTERED_MASK|monitor,
 		400,
 		300,
 		sdl.WINDOW_SHOWN,

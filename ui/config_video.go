@@ -8,11 +8,11 @@ import (
 )
 
 type videoConfigPage struct {
-	parent gtk.IWidget
+	parent *gtk.Dialog
 	cfg    *emu.VideoConfig
 }
 
-func buildVideoConfigPage(parent gtk.IWidget, cfg *emu.VideoConfig, builder *gtk.Builder) *videoConfigPage {
+func buildVideoConfigPage(parent *gtk.Dialog, cfg *emu.VideoConfig, builder *gtk.Builder) *videoConfigPage {
 	page := &videoConfigPage{
 		parent: parent,
 		cfg:    cfg,

@@ -96,3 +96,12 @@ func isVisibleIn(child *gtk.Widget, scrolled *gtk.Widget) bool {
 		dstx+childw <= scrolledw &&
 		dsty+childh <= scrolledh
 }
+
+func monitorIdx(win *gdk.Window) int32 {
+	display := mustT(gdk.DisplayGetDefault())
+	monitor := mustT(display.GetMonitorAtWindow(win))
+	if monitor.IsPrimary() {
+		return 0
+	}
+	return 1
+}

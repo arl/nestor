@@ -8,11 +8,11 @@ import (
 )
 
 type audioConfigPage struct {
-	parent gtk.IWidget
+	parent *gtk.Dialog
 	cfg    *emu.AudioConfig
 }
 
-func buildAudioConfigPage(parent gtk.IWidget, cfg *emu.AudioConfig, builder *gtk.Builder) *audioConfigPage {
+func buildAudioConfigPage(parent *gtk.Dialog, cfg *emu.AudioConfig, builder *gtk.Builder) *audioConfigPage {
 	page := &audioConfigPage{
 		parent: parent,
 		cfg:    cfg,
