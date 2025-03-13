@@ -8,6 +8,7 @@ import (
 	"slices"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/veandco/go-sdl2/sdl"
 
@@ -16,8 +17,9 @@ import (
 )
 
 const (
-	NTSCWidth  = 256
-	NTSCHeight = 240
+	NTSCWidth                = 256
+	NTSCHeight               = 240
+	frameDelay time.Duration = (1 * time.Second / 60.0)
 )
 
 const PrimaryMonitor = 0
@@ -217,6 +219,7 @@ func (out *Output) Close() {
 func (out *Output) render() {
 	defer out.wg.Done()
 	for {
+		startTick := sdl.GetTicks64()
 		select {
 		case <-out.stop:
 			log.ModEmu.DebugZ("Stopped rendering loop").End()
@@ -235,6 +238,13 @@ func (out *Output) render() {
 					out.fpscounter = 0
 					out.fpsclock += 1000
 				}
+			}
+		}
+
+		if out.cfg.DisableVSync {
+			elapsed := sdl.GetTicks64() - startTick
+			if elapsed < uint64(frameDelay.Milliseconds()) {
+				sdl.Delay(uint32(frameDelay.Milliseconds() - int64(elapsed)))
 			}
 		}
 	}
