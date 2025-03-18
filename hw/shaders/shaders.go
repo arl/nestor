@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -31,6 +32,15 @@ func Names() []string {
 		}
 		name := dirent.Name()
 		name = strings.TrimSuffix(name, filepath.Ext(name))
+
+		if runtime.GOOS == "darwin" {
+			// XXX: for now, 2 of the shaders are not compatbile with macOS, they
+			// have various compilation errors.
+			if name == "CRT-Beam" || name == "Gizmo-CRT" {
+				continue
+			}
+		}
+
 		files[name] = true
 	}
 
