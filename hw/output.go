@@ -242,6 +242,13 @@ func (out *Output) render() {
 		}
 
 		if out.cfg.DisableVSync {
+			// If vsync is disabled, we perform a software-based sync based on
+			// time. We save the time at which we rendered each frame in the
+			// last second, so that we sleep only averaging the frame rate over
+			// a window of one second (it's smoother).
+			//
+			// Note: sdl.Delay does a much better job for that than time.Sleep,
+			// Hypothesis is because sdl.Delay doesn't affect the Go scheduler.
 			elapsed := sdl.GetTicks64() - startTick
 			if elapsed < uint64(frameDelay.Milliseconds()) {
 				sdl.Delay(uint32(frameDelay.Milliseconds() - int64(elapsed)))
