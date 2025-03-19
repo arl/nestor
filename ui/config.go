@@ -23,21 +23,6 @@ type Config struct {
 	General GeneralConfig `toml:"general"`
 }
 
-const DefaultFileMode = os.FileMode(0755)
-
-var ConfigDir = sync.OnceValue(func() string {
-	cfgdir, err := os.UserConfigDir()
-	if err != nil {
-		log.ModEmu.Fatalf("failed to get user config directory: %v", err)
-	}
-
-	dir := filepath.Join(cfgdir, "nestor")
-	if err := os.MkdirAll(dir, DefaultFileMode); err != nil {
-		log.ModEmu.Fatalf("failed to create directory %s: %v", dir, err)
-	}
-	return dir
-})
-
 var defaultConfig = Config{
 	Config: emu.Config{
 		Input: input.Config{
@@ -82,7 +67,26 @@ var defaultConfig = Config{
 	},
 }
 
+const dirMode = os.FileMode(0755)
+
+var ConfigDir = sync.OnceValue(func() string {
+	cfgdir, err := os.UserConfigDir()
+	if err != nil {
+		log.ModEmu.Fatalf("failed to get user config directory: %v", err)
+	}
+
+	dir := filepath.Join(cfgdir, "nestor")
+	if err := os.MkdirAll(dir, dirMode); err != nil {
+		log.ModEmu.Fatalf("failed to create directory %s: %v", dir, err)
+	}
+	return dir
+})
+
 const cfgFilename = "config.toml"
+
+var configPath = sync.OnceValue(func() string {
+	return filepath.Join(ConfigDir(), cfgFilename)
+})
 
 // LoadConfigOrDefault loads the configuration from the nestor config directory,
 // or provide a default one.
@@ -91,14 +95,15 @@ func LoadConfigOrDefault() Config {
 	cfg := defaultConfig
 
 	// Load the config from the file, overwriting the default values.
-	_, err := toml.DecodeFile(filepath.Join(ConfigDir(), cfgFilename), &cfg)
+	_, err := toml.DecodeFile(configPath(), &cfg)
 	if err != nil {
-		log.ModEmu.Warnf("failed to load config, using default: %v", err)
+		log.ModEmu.Warnf("Failed to load config, using default: %v", err)
 	}
 
 	// Apply post-load operations (fix invalid values, etc).
 	cfg.Input.PostLoad()
 	cfg.Video.Check()
+	log.ModEmu.Infof("Configuration loaded from %s", configPath())
 	return cfg
 }
 
@@ -109,5 +114,10 @@ func saveConfig(cfg *Config) error {
 		return err
 	}
 
-	return os.WriteFile(filepath.Join(ConfigDir(), cfgFilename), buf, 0644)
+	if err := os.WriteFile(configPath(), buf, 0644); err != nil {
+		return err
+	}
+
+	log.ModEmu.Infof("Configuration saved to %s", configPath())
+	return nil
 }
