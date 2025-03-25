@@ -23,11 +23,6 @@ import (
 
 var modGUI = log.NewModule("gui")
 
-func init() {
-	log.EnableDebugModules(modGUI.Mask())
-	log.EnableDebugModules(log.ModEmu.Mask())
-}
-
 //go:embed main_window.glade
 var mainWindowUI string
 
@@ -56,17 +51,14 @@ type mainWindow struct {
 	rrv *recentROMsView
 	wg  sync.WaitGroup
 	cfg *Config
-
-	stopEmu func() *image.RGBA
 }
 
 func showMainWindow(cfg *Config) {
 	builder := mustT(gtk.BuilderNewFromString(mainWindowUI))
 
 	mw := &mainWindow{
-		Window:  build[gtk.Window](builder, "main_window"),
-		cfg:     cfg,
-		stopEmu: func() *image.RGBA { return nil },
+		Window: build[gtk.Window](builder, "main_window"),
+		cfg:    cfg,
 	}
 
 	mw.Connect("destroy", func() bool { mw.Close(nil); return true })
@@ -101,10 +93,6 @@ func (mw *mainWindow) Close(err error) {
 		modGUI.Warnf("closing UI with error: %s", err)
 	}
 
-	if mw.stopEmu != nil {
-		mw.stopEmu()
-	}
-
 	mw.wg.Wait()
 	gtk.MainQuit()
 }
@@ -112,33 +100,14 @@ func (mw *mainWindow) Close(err error) {
 func (mw *mainWindow) runROM(path string) {
 	mw.SetSensitive(false)
 
-	executable, err := os.Executable()
-	if err != nil {
-		modGUI.Warnf("failed to get executable path: %s", err)
-		return
-	}
+	monidx := monitorIdx(mustT(mw.GetWindow()))
 
 	panel := showGamePanel(mw.Window)
-
-	port := rpc.UnusedPort()
-	args := []string{"run",
-		"--monitor", fmt.Sprint(monitorIdx(mustT(mw.GetWindow()))),
-		"--port", strconv.Itoa(port),
-		path}
-
-	cmd := exec.Command(executable, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
-		modGUI.Warnf("failed to start emulator process: %s", err)
-		panel.Close()
-		return
-	}
-
-	client, err := rpc.NewClient(port)
+	client, wait, err := driveEmulator(path, monidx)
 	if err != nil {
-		modGUI.Warnf("failed to create emulator window proxy: %s", err)
+		modGUI.WarnZ("failed to start rom").Error("err", err).End()
 		panel.Close()
+		mw.SetSensitive(true)
 		return
 	}
 
@@ -146,33 +115,37 @@ func (mw *mainWindow) runROM(path string) {
 
 	mw.wg.Add(1)
 	go func() {
-		defer mw.SetSensitive(true)
 		defer mw.wg.Done()
+		defer mw.SetSensitive(true)
+
 		modGUI.DebugZ("waiting for emulator process to finish").End()
-		cmd.Wait()
+		wait()
 
-		panel.emuStopped = true
-		modGUI.DebugZ("closing game panel").End()
-
-		panel.Close()
 		glib.IdleAdd(func() {
-			f, err := os.Open(filepath.Join(client.TempDir(), "screenshot.png"))
-			if err != nil {
-				modGUI.Warnf("failed to read screenshot: %s", err)
-				return
-			}
-			defer f.Close()
-			img, err := png.Decode(f)
-			if err != nil {
-				modGUI.Warnf("failed to decode screenshot: %s", err)
-				return
-			}
-
-			if err := mw.addRecentROM(path, img); err != nil {
-				modGUI.Warnf("failed to add recent ROM: %s", err)
-			}
+			panel.setGameStopped()
+			modGUI.DebugZ("closing game panel").End()
+			panel.Close()
+			mw.onRomStopped(path, client.TempDir())
 		})
 	}()
+}
+
+func (mw *mainWindow) onRomStopped(rompath, tmpdir string) {
+	f, err := os.Open(filepath.Join(tmpdir, "screenshot.png"))
+	if err != nil {
+		modGUI.Warnf("failed to read screenshot: %s", err)
+		return
+	}
+	defer f.Close()
+	img, err := png.Decode(f)
+	if err != nil {
+		modGUI.Warnf("failed to decode screenshot: %s", err)
+		return
+	}
+
+	if err := mw.addRecentROM(rompath, img); err != nil {
+		modGUI.Warnf("failed to add recent ROM: %s", err)
+	}
 }
 
 func (mw *mainWindow) addRecentROM(romPath string, screenshot image.Image) error {
@@ -187,4 +160,28 @@ func (mw *mainWindow) addRecentROM(romPath string, screenshot image.Image) error
 		Path:     romPath,
 		LastUsed: time.Now(),
 	})
+}
+
+type waitFunc func() error
+
+func driveEmulator(rompath string, monidx int32) (*rpc.Client, waitFunc, error) {
+	port := rpc.UnusedPort()
+	args := []string{"run",
+		"--monitor", strconv.Itoa(int(monidx)),
+		"--port", strconv.Itoa(port),
+		rompath}
+
+	cmd := exec.Command(mustT(os.Executable()), args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Start(); err != nil {
+		return nil, nil, fmt.Errorf("failed to start emulator process: %w", err)
+	}
+
+	client, err := rpc.NewClient(port)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create emulator proxy: %w", err)
+	}
+
+	return client, cmd.Wait, nil
 }

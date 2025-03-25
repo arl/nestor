@@ -2,6 +2,7 @@ package ui
 
 import (
 	_ "embed"
+	"sync"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
@@ -65,8 +66,9 @@ func (gp *gamePanel) moveAndShow(parent *gtk.Window) {
 }
 
 func (gp *gamePanel) connect(proxy *rpc.Client) {
-	gp.emuStop = proxy.Stop
-	gp.win.Connect("destroy", gp.StopEmu)
+	gp.emuStop = sync.OnceFunc(proxy.Stop)
+
+	gp.win.Connect("destroy", func() { gp.emuStop() })
 	gp.reset.Connect("clicked", proxy.Reset)
 	gp.restart.Connect("clicked", proxy.Restart)
 	gp.pause.Connect("toggled", func(btn *gtk.ToggleButton) {
@@ -81,21 +83,18 @@ func (gp *gamePanel) connect(proxy *rpc.Client) {
 		gp.restart.SetSensitive(!paused)
 	})
 	gp.stop.Connect("clicked", func() {
-		gp.StopEmu()
+		gp.emuStop()
 		gp.Close()
 	})
 
 	gp.win.SetSensitive(true)
 }
 
-func (gp *gamePanel) StopEmu() {
-	if !gp.emuStopped {
-		gp.emuStop()
-	}
-	gp.emuStopped = true
+func (gp *gamePanel) setGameStopped() {
+	gp.emuStop = func() {}
 }
 
 func (gp *gamePanel) Close() {
 	gp.win.Close()
-	gp.StopEmu()
+	gp.emuStop()
 }

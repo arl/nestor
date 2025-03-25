@@ -8,10 +8,6 @@ import (
 
 var modRPC = log.NewModule("rpc")
 
-func init() {
-	log.EnableDebugModules(modRPC.Mask())
-}
-
 func UnusedPort() int {
 	l, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
