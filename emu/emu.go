@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"path/filepath"
 	"slices"
 	"sync/atomic"
 	"time"
@@ -61,6 +62,8 @@ type Emulator struct {
 	paused  atomic.Bool
 	reset   atomic.Bool
 	restart atomic.Bool
+
+	tmpdir string
 }
 
 // Launch starts the various hardware subsystems, shows the window, setups the
@@ -109,25 +112,13 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		out: out,
 	}, nil
 }
-
-// RaiseWindow raises the emulator window above others and sets the input focus.
-func (e *Emulator) RaiseWindow() {
-	if hwout, ok := e.out.(*hw.Output); ok {
-		hwout.FocusWindow()
-	}
-}
-
-func (e *Emulator) Screenshot() *image.RGBA {
-	return e.out.Screenshot()
-}
-
 func (e *Emulator) RunOneFrame() {
 	frame := e.out.BeginFrame()
 	e.NES.RunOneFrame(frame)
 	e.out.EndFrame(frame)
 }
 
-func (e *Emulator) Run() {
+func (e *Emulator) loop() {
 	for {
 		// Handle pause.
 		if e.isPaused() {
@@ -142,8 +133,32 @@ func (e *Emulator) Run() {
 		}
 		e.handleReset()
 	}
-	log.ModEmu.InfoZ("Emulation loop exited").End()
 }
+
+// RaiseWindow raises the emulator window above others and sets the input focus.
+func (e *Emulator) RaiseWindow() {
+	if hwout, ok := e.out.(*hw.Output); ok {
+		hwout.FocusWindow()
+	}
+}
+
+func (e *Emulator) Run() {
+	e.loop()
+	log.ModEmu.InfoZ("Emulation loop exited").End()
+
+	if e.tmpdir != "" {
+		e.save()
+	}
+}
+
+func (e *Emulator) save() {
+	path := filepath.Join(e.tmpdir, "screenshot.png")
+	if err := hw.SaveAsPNG(e.out.Screenshot(), path); err != nil {
+		log.ModEmu.WarnZ("Failed to save screenshot").String("path", path).End()
+	}
+}
+
+func (e *Emulator) SetTempDir(path string) { e.tmpdir = path }
 
 // SetPause, Stop, Reset and Restart allows to control
 // the emulator loop in a concurrent-safe way.
@@ -151,9 +166,8 @@ func (e *Emulator) Run() {
 func (e *Emulator) SetPause(pause bool) { e.paused.CompareAndSwap(!pause, pause) }
 func (e *Emulator) Reset()              { e.reset.Store(true) }
 func (e *Emulator) Restart()            { e.restart.Store(true) }
-func (e *Emulator) Stop() *image.RGBA {
+func (e *Emulator) Stop() {
 	e.quit.Store(true)
-	return e.Screenshot()
 }
 
 func (e *Emulator) isPaused() bool {

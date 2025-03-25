@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"image"
 	"io"
 	"net"
 	"net/http"
@@ -13,17 +12,24 @@ type Emu interface {
 	Reset()
 	Restart()
 	SetPause(pause bool)
-	Stop() *image.RGBA
+	Stop()
+
+	SetTempDir(path string)
 }
 
-type emuProxy struct{ Emu }
+type emuProxy struct {
+	emu    Emu
+	tmpdir string
+}
 
-func (ep *emuProxy) Reset(_, _ *struct{}) error             { ep.Emu.Reset(); return nil }
-func (ep *emuProxy) Restart(_, _ *struct{}) error           { ep.Emu.Restart(); return nil }
-func (ep *emuProxy) SetPause(pause bool, _ *struct{}) error { ep.Emu.SetPause(pause); return nil }
-func (ep *emuProxy) Stop(_ *struct{}, reply *image.RGBA) error {
-	rep := ep.Emu.Stop()
-	*reply = *rep
+func (ep *emuProxy) SetTempDir(path string, _ *struct{}) error { ep.emu.SetTempDir(path); return nil }
+func (ep *emuProxy) Reset(_, _ *struct{}) error                { ep.emu.Reset(); return nil }
+func (ep *emuProxy) Restart(_, _ *struct{}) error              { ep.emu.Restart(); return nil }
+func (ep *emuProxy) SetPause(pause bool, _ *struct{}) error    { ep.emu.SetPause(pause); return nil }
+func (ep *emuProxy) Stop(_ *struct{}, _ *struct{}) error       { ep.emu.Stop(); return nil }
+
+func (ep *emuProxy) IsReady(_ *struct{}, reply *bool) error {
+	*reply = true
 	return nil
 }
 
@@ -32,7 +38,7 @@ type Server struct {
 }
 
 func NewServer(port int, emu Emu) (*Server, error) {
-	proxy := &emuProxy{Emu: emu}
+	proxy := &emuProxy{emu: emu}
 	if err := rpc.RegisterName("emu", proxy); err != nil {
 		panic("failed to register RPC server: " + err.Error())
 	}

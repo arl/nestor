@@ -2,7 +2,6 @@ package ui
 
 import (
 	_ "embed"
-	"image"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
@@ -14,20 +13,21 @@ import (
 var gamePanelUI string
 
 type gamePanel struct {
-	*gtk.Window
+	win *gtk.Window
 
 	pause   *gtk.ToggleButton
 	stop    *gtk.Button
 	reset   *gtk.Button
 	restart *gtk.Button
 
-	img *image.RGBA
+	emuStopped bool
+	emuStop    func()
 }
 
 func showGamePanel(parent *gtk.Window) *gamePanel {
 	builder := mustT(gtk.BuilderNewFromString(gamePanelUI))
 	gp := &gamePanel{
-		Window:  build[gtk.Window](builder, "game_panel_window"),
+		win:     build[gtk.Window](builder, "game_panel_window"),
 		pause:   build[gtk.ToggleButton](builder, "pause_button"),
 		stop:    build[gtk.Button](builder, "stop_button"),
 		reset:   build[gtk.Button](builder, "reset_button"),
@@ -50,7 +50,7 @@ func (gp *gamePanel) moveAndShow(parent *gtk.Window) {
 	const emuh = 240
 	const windecoh = 32 // window decoration bar height
 
-	panelw, panelh := gp.GetSize()
+	panelw, panelh := gp.win.GetSize()
 
 	// panel coordinate if it was centered on the screen
 	centerx := monx + (monw-panelw)/2
@@ -58,12 +58,15 @@ func (gp *gamePanel) moveAndShow(parent *gtk.Window) {
 
 	// move the panel to the top of the emulator window
 	centery -= emuh + windecoh + panelh/2
-	gp.Move(centerx, centery)
-	gp.SetVisible(true)
+	gp.win.Move(centerx, centery)
+	gp.win.SetVisible(true)
+	gp.win.SetSensitive(false)
+	gp.win.ShowAll()
 }
 
 func (gp *gamePanel) connect(proxy *rpc.Client) {
-	gp.Connect("destroy", proxy.Stop)
+	gp.emuStop = proxy.Stop
+	gp.win.Connect("destroy", gp.StopEmu)
 	gp.reset.Connect("clicked", proxy.Reset)
 	gp.restart.Connect("clicked", proxy.Restart)
 	gp.pause.Connect("toggled", func(btn *gtk.ToggleButton) {
@@ -78,7 +81,21 @@ func (gp *gamePanel) connect(proxy *rpc.Client) {
 		gp.restart.SetSensitive(!paused)
 	})
 	gp.stop.Connect("clicked", func() {
-		gp.img = proxy.Stop()
+		gp.StopEmu()
 		gp.Close()
 	})
+
+	gp.win.SetSensitive(true)
+}
+
+func (gp *gamePanel) StopEmu() {
+	if !gp.emuStopped {
+		gp.emuStop()
+	}
+	gp.emuStopped = true
+}
+
+func (gp *gamePanel) Close() {
+	gp.win.Close()
+	gp.StopEmu()
 }

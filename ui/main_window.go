@@ -118,6 +118,8 @@ func (mw *mainWindow) runROM(path string) {
 		return
 	}
 
+	panel := showGamePanel(mw.Window)
+
 	port := rpc.UnusedPort()
 	args := []string{"run",
 		"--monitor", fmt.Sprint(monitorIdx(mustT(mw.GetWindow()))),
@@ -129,31 +131,44 @@ func (mw *mainWindow) runROM(path string) {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
 		modGUI.Warnf("failed to start emulator process: %s", err)
+		panel.Close()
 		return
 	}
 
 	client, err := rpc.NewClient(port)
 	if err != nil {
 		modGUI.Warnf("failed to create emulator window proxy: %s", err)
+		panel.Close()
 		return
 	}
 
-	mw.stopEmu = client.Stop
-
-	panel := showGamePanel(mw.Window)
 	panel.connect(client)
 
 	mw.wg.Add(1)
 	go func() {
 		defer mw.SetSensitive(true)
 		defer mw.wg.Done()
-
 		modGUI.DebugZ("waiting for emulator process to finish").End()
 		cmd.Wait()
+
+		panel.emuStopped = true
 		modGUI.DebugZ("closing game panel").End()
+
 		panel.Close()
 		glib.IdleAdd(func() {
-			if err := mw.addRecentROM(path, panel.img); err != nil {
+			f, err := os.Open(filepath.Join(client.TempDir(), "screenshot.png"))
+			if err != nil {
+				modGUI.Warnf("failed to read screenshot: %s", err)
+				return
+			}
+			defer f.Close()
+			img, err := png.Decode(f)
+			if err != nil {
+				modGUI.Warnf("failed to decode screenshot: %s", err)
+				return
+			}
+
+			if err := mw.addRecentROM(path, img); err != nil {
 				modGUI.Warnf("failed to add recent ROM: %s", err)
 			}
 		})
