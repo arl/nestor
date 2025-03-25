@@ -8,6 +8,7 @@ import (
 	"slices"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/veandco/go-sdl2/sdl"
 
@@ -16,8 +17,9 @@ import (
 )
 
 const (
-	NTSCWidth  = 256
-	NTSCHeight = 240
+	NTSCWidth                = 256
+	NTSCHeight               = 240
+	frameDelay time.Duration = (1 * time.Second / 60.0)
 )
 
 const PrimaryMonitor = 0
@@ -140,7 +142,7 @@ func (out *Output) EnableAudio(enable bool) error {
 	log.ModSound.InfoZ("Enabling audio").Bool("enable", enable).End()
 	switch {
 	case enable && !out.audioEnabled:
-		if err := sdl.Init(sdl.INIT_AUDIO); err != nil {
+		if err := sdl.InitSubSystem(sdl.INIT_AUDIO); err != nil {
 			return err
 		}
 
@@ -199,7 +201,7 @@ func (out *Output) Close() {
 
 	// Flow is stopped by now, but window may still be rendering.
 	if out.window != nil {
-		out.window.SetTitle("halted")
+		sdl.Do(func() { out.window.SetTitle("halted") })
 	}
 
 	out.wg.Wait()
@@ -217,6 +219,7 @@ func (out *Output) Close() {
 func (out *Output) render() {
 	defer out.wg.Done()
 	for {
+		startTick := sdl.GetTicks64()
 		select {
 		case <-out.stop:
 			log.ModEmu.DebugZ("Stopped rendering loop").End()
@@ -231,10 +234,24 @@ func (out *Output) render() {
 				out.fpscounter++
 				if out.fpsclock+1000 < sdl.GetTicks64() {
 					title := fmt.Sprintf("%s - %d FPS", out.cfg.Title, out.fpscounter)
-					out.window.SetTitle(title)
+					sdl.Do(func() { out.window.SetTitle(title) })
 					out.fpscounter = 0
 					out.fpsclock += 1000
 				}
+			}
+		}
+
+		if out.cfg.DisableVSync {
+			// If vsync is disabled, we perform a software-based sync based on
+			// time. We save the time at which we rendered each frame in the
+			// last second, so that we sleep only averaging the frame rate over
+			// a window of one second (it's smoother).
+			//
+			// Note: sdl.Delay does a much better job for that than time.Sleep,
+			// Hypothesis is because sdl.Delay doesn't affect the Go scheduler.
+			elapsed := sdl.GetTicks64() - startTick
+			if elapsed < uint64(frameDelay.Milliseconds()) {
+				sdl.Delay(uint32(frameDelay.Milliseconds() - int64(elapsed)))
 			}
 		}
 	}
@@ -274,7 +291,7 @@ func (out *Output) poll() {
 	}
 }
 
-func (out *Output) Screenshot() image.Image {
+func (out *Output) Screenshot() *image.RGBA {
 	var img *image.RGBA
 
 	sdl.Do(func() {

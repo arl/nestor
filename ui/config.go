@@ -11,6 +11,7 @@ import (
 	"nestor/emu"
 	"nestor/emu/log"
 	"nestor/hw/input"
+	"nestor/hw/shaders"
 )
 
 type GeneralConfig struct {
@@ -21,21 +22,6 @@ type Config struct {
 	emu.Config
 	General GeneralConfig `toml:"general"`
 }
-
-const DefaultFileMode = os.FileMode(0755)
-
-var ConfigDir = sync.OnceValue(func() string {
-	cfgdir, err := os.UserConfigDir()
-	if err != nil {
-		log.ModEmu.Fatalf("failed to get user config directory: %v", err)
-	}
-
-	dir := filepath.Join(cfgdir, "nestor")
-	if err := os.MkdirAll(dir, DefaultFileMode); err != nil {
-		log.ModEmu.Fatalf("failed to create directory %s: %v", dir, err)
-	}
-	return dir
-})
 
 var defaultConfig = Config{
 	Config: emu.Config{
@@ -69,7 +55,10 @@ var defaultConfig = Config{
 		Video: emu.VideoConfig{
 			DisableVSync: false,
 			Monitor:      0,
-			Shader:       "",
+			Shader:       shaders.DefaultName,
+		},
+		Audio: emu.AudioConfig{
+			DisableAudio: false,
 		},
 		TraceOut: nil,
 	},
@@ -78,27 +67,57 @@ var defaultConfig = Config{
 	},
 }
 
+const dirMode = os.FileMode(0755)
+
+var ConfigDir = sync.OnceValue(func() string {
+	cfgdir, err := os.UserConfigDir()
+	if err != nil {
+		log.ModEmu.Fatalf("failed to get user config directory: %v", err)
+	}
+
+	dir := filepath.Join(cfgdir, "nestor")
+	if err := os.MkdirAll(dir, dirMode); err != nil {
+		log.ModEmu.Fatalf("failed to create directory %s: %v", dir, err)
+	}
+	return dir
+})
+
 const cfgFilename = "config.toml"
+
+var configPath = sync.OnceValue(func() string {
+	return filepath.Join(ConfigDir(), cfgFilename)
+})
 
 // LoadConfigOrDefault loads the configuration from the nestor config directory,
 // or provide a default one.
 func LoadConfigOrDefault() Config {
-	var cfg Config
-	_, err := toml.DecodeFile(filepath.Join(ConfigDir(), cfgFilename), &cfg)
+	// Create a config based on the default one.
+	cfg := defaultConfig
+
+	// Load the config from the file, overwriting the default values.
+	_, err := toml.DecodeFile(configPath(), &cfg)
 	if err != nil {
-		cfg = defaultConfig
+		log.ModEmu.Warnf("Failed to load config, using default: %v", err)
 	}
-	cfg.Input.Init()
-	cfg.Video.Init()
+
+	// Apply post-load operations (fix invalid values, etc).
+	cfg.Input.PostLoad()
+	cfg.Video.Check()
+	log.ModEmu.Infof("Configuration loaded from %s", configPath())
 	return cfg
 }
 
-// SaveConfig into nestor config directory.
-func SaveConfig(cfg *Config) error {
+// saveConfig into nestor config directory.
+func saveConfig(cfg *Config) error {
 	buf, err := toml.Marshal(cfg)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(filepath.Join(ConfigDir(), cfgFilename), buf, 0644)
+	if err := os.WriteFile(configPath(), buf, 0644); err != nil {
+		return err
+	}
+
+	log.ModEmu.Infof("Configuration saved to %s", configPath())
+	return nil
 }

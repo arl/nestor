@@ -15,7 +15,7 @@ import (
 )
 
 type inputConfigPage struct {
-	parent gtk.IWidget
+	parent *gtk.Dialog
 	cfg    *input.Config
 
 	drawArea  *gtk.DrawingArea
@@ -28,7 +28,7 @@ type inputConfigPage struct {
 	drawScale float64
 }
 
-func buildInputConfigPage(parent gtk.IWidget, cfg *input.Config, builder *gtk.Builder) *inputConfigPage {
+func buildInputConfigPage(parent *gtk.Dialog, cfg *input.Config, builder *gtk.Builder) *inputConfigPage {
 	page := &inputConfigPage{
 		parent:    parent,
 		cfg:       cfg,
@@ -115,28 +115,24 @@ func (page *inputConfigPage) updatePropertyList() {
 func (page *inputConfigPage) captureInput(btn input.PaddleButton) {
 	page.parent.ToWidget().SetSensitive(false)
 
-	// The input capture window is SDL, not gtk, we to run it in a different
-	// goroutine to not block gtk event loop.
-	go func() {
+	glib.IdleAdd(func() {
 		text := fmt.Sprintf("%s (Paddle %d)", btn, page.curpad+1)
-		code, err := input.Capture(text)
+		code, err := input.Capture(monitorIdx(mustT(page.parent.Window.GetWindow())), text)
 
-		glib.IdleAdd(func() {
-			page.parent.ToWidget().SetSensitive(true)
+		page.parent.ToWidget().SetSensitive(true)
 
-			if err != nil {
-				gtk.MessageDialogNew(nil, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, "Error: %s", err).Run()
-				return
-			}
+		if err != nil {
+			gtk.MessageDialogNew(nil, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, "Error: %s", err).Run()
+			return
+		}
 
-			if code.Type == input.ControlNotSet {
-				return
-			}
+		if code.Type == input.ControlNotSet {
+			return
+		}
 
-			page.cfg.Paddles[page.curpad].Preset.Buttons[btn] = code
-			page.updatePropertyList()
-		})
-	}()
+		page.cfg.Paddles[page.curpad].Preset.Buttons[btn] = code
+		page.updatePropertyList()
+	})
 }
 
 func (page *inputConfigPage) onClick(da *gtk.DrawingArea, event *gdk.Event) {

@@ -81,6 +81,14 @@
                         <accelerator key="v" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                     </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menu_audio">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label">Audio</property>
+                        <accelerator key="a" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>

@@ -21,6 +21,7 @@ func showConfig(cfg *Config, page string) {
 
 	buildInputConfigPage(win, &cfg.Input, builder)
 	buildVideoConfigPage(win, &cfg.Video, builder)
+	buildAudioConfigPage(win, &cfg.Audio, builder)
 
 	stack.SetVisibleChildName(page)
 	win.ShowAll()

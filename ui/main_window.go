@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
@@ -14,9 +17,8 @@ import (
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 
-	"nestor/emu"
 	"nestor/emu/log"
-	"nestor/ines"
+	"nestor/emu/rpc"
 )
 
 var modGUI = log.NewModule("gui")
@@ -49,17 +51,14 @@ type mainWindow struct {
 	rrv *recentROMsView
 	wg  sync.WaitGroup
 	cfg *Config
-
-	stopEmu func()
 }
 
 func showMainWindow(cfg *Config) {
 	builder := mustT(gtk.BuilderNewFromString(mainWindowUI))
 
 	mw := &mainWindow{
-		Window:  build[gtk.Window](builder, "main_window"),
-		cfg:     cfg,
-		stopEmu: func() {},
+		Window: build[gtk.Window](builder, "main_window"),
+		cfg:    cfg,
 	}
 
 	mw.Connect("destroy", func() bool { mw.Close(nil); return true })
@@ -79,23 +78,19 @@ func showMainWindow(cfg *Config) {
 	})
 
 	onConfig := func(m *gtk.MenuItem) {
-		menu := m.GetLabel()
-		showConfig(mw.cfg, menu)
-		if err := SaveConfig(mw.cfg); err != nil {
+		showConfig(mw.cfg, m.GetLabel())
+		if err := saveConfig(mw.cfg); err != nil {
 			modGUI.Warnf("failed to save config: %s", err)
 		}
 	}
 	build[gtk.MenuItem](builder, "menu_input").Connect("activate", onConfig)
 	build[gtk.MenuItem](builder, "menu_video").Connect("activate", onConfig)
+	build[gtk.MenuItem](builder, "menu_audio").Connect("activate", onConfig)
 }
 
 func (mw *mainWindow) Close(err error) {
 	if err != nil {
 		modGUI.Warnf("closing UI with error: %s", err)
-	}
-
-	if mw.stopEmu != nil {
-		mw.stopEmu()
 	}
 
 	mw.wg.Wait()
@@ -105,52 +100,52 @@ func (mw *mainWindow) Close(err error) {
 func (mw *mainWindow) runROM(path string) {
 	mw.SetSensitive(false)
 
-	rom, err := ines.ReadRom(path)
+	monidx := monitorIdx(mustT(mw.GetWindow()))
+
+	panel := showGamePanel(mw.Window)
+	client, wait, err := driveEmulator(path, monidx)
 	if err != nil {
-		modGUI.Warnf("failed to read ROM: %s", err)
+		modGUI.WarnZ("failed to start rom").Error("err", err).End()
+		panel.Close()
+		mw.SetSensitive(true)
 		return
 	}
 
-	// Select monitor based on current window.
-	mw.cfg.Video.Monitor = mw.monitorIdx()
-
-	emulator, err := emu.Launch(rom, mw.cfg.Config)
-	if err != nil {
-		modGUI.Fatalf("failed to start emulator window: %v", err)
-		gtk.MainQuit()
-	}
-	mw.stopEmu = emulator.Stop
-
-	panel := showGamePanel(mw.Window)
-	panel.connect(emulator)
+	panel.connect(client)
 
 	mw.wg.Add(1)
 	go func() {
-		defer mw.SetSensitive(true)
 		defer mw.wg.Done()
+		defer mw.SetSensitive(true)
 
-		emulator.RaiseWindow()
-		emulator.Run()
-		mw.stopEmu = func() {}
-		panel.Close()
+		modGUI.DebugZ("waiting for emulator process to finish").End()
+		wait()
 
-		screenshot := emulator.Screenshot()
 		glib.IdleAdd(func() {
-			if err := mw.addRecentROM(path, screenshot); err != nil {
-				modGUI.Warnf("failed to add recent ROM: %s", err)
-			}
+			panel.setGameStopped()
+			modGUI.DebugZ("closing game panel").End()
+			panel.Close()
+			mw.onRomStopped(path, client.TempDir())
 		})
 	}()
 }
 
-func (mw *mainWindow) monitorIdx() int32 {
-	display := mustT(gdk.DisplayGetDefault())
-	gdkw := mustT(mw.GetWindow())
-	monitor := mustT(display.GetMonitorAtWindow(gdkw))
-	if monitor.IsPrimary() {
-		return 0
+func (mw *mainWindow) onRomStopped(rompath, tmpdir string) {
+	f, err := os.Open(filepath.Join(tmpdir, "screenshot.png"))
+	if err != nil {
+		modGUI.Warnf("failed to read screenshot: %s", err)
+		return
 	}
-	return 1
+	defer f.Close()
+	img, err := png.Decode(f)
+	if err != nil {
+		modGUI.Warnf("failed to decode screenshot: %s", err)
+		return
+	}
+
+	if err := mw.addRecentROM(rompath, img); err != nil {
+		modGUI.Warnf("failed to add recent ROM: %s", err)
+	}
 }
 
 func (mw *mainWindow) addRecentROM(romPath string, screenshot image.Image) error {
@@ -165,4 +160,28 @@ func (mw *mainWindow) addRecentROM(romPath string, screenshot image.Image) error
 		Path:     romPath,
 		LastUsed: time.Now(),
 	})
+}
+
+type waitFunc func() error
+
+func driveEmulator(rompath string, monidx int32) (*rpc.Client, waitFunc, error) {
+	port := rpc.UnusedPort()
+	args := []string{"run",
+		"--monitor", strconv.Itoa(int(monidx)),
+		"--port", strconv.Itoa(port),
+		rompath}
+
+	cmd := exec.Command(mustT(os.Executable()), args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Start(); err != nil {
+		return nil, nil, fmt.Errorf("failed to start emulator process: %w", err)
+	}
+
+	client, err := rpc.NewClient(port)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create emulator proxy: %w", err)
+	}
+
+	return client, cmd.Wait, nil
 }

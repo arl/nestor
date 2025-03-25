@@ -20,7 +20,7 @@ const recentROMextension = ".nrr"
 
 var RecentROMsDir = sync.OnceValue(func() string {
 	dir := filepath.Join(ConfigDir(), "recent-roms")
-	if err := os.MkdirAll(dir, DefaultFileMode); err != nil {
+	if err := os.MkdirAll(dir, dirMode); err != nil {
 		modGUI.Fatalf("failed to create directory %s: %v", dir, err)
 	}
 
