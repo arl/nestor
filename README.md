@@ -1,16 +1,95 @@
-<img src="./ui/logo.png" width="256">
+<p align="center">
+ <img src="./ui/logo.png" width="384" align="center">
+</p>
+
 
 # Nestor - NES emulator
 
-Nestor is a work in progress NES/Famicom emulator written in Go.
+Nestor is a NES/Famicom emulator written in Go.
 
-## Build from source
 
-### GTK3
+- [Nestor - NES emulator](#nestor---nes-emulator)
+  - [Features](#features)
+    - [Implemented mappers](#implemented-mappers)
+  - [Installation](#installation)
+    - [MacOS - build from source](#macos---build-from-source)
+    - [MacOS - install binary release](#macos---install-binary-release)
+    - [Linux - build from source](#linux---build-from-source)
+      - [Install dependencies](#install-dependencies)
+      - [Build](#build)
+  - [Usage](#usage)
+  - [License](#license)
 
-Uses [GTK3](gtk.org), via github.com/gotk3/gotk3 Go bindings. Please refer to [github.com/gotk3/gotk3](https://github.com/gotk3/gotk3).
 
-### Nestor
+## Features
+
+ - [x] Cycle accurate CPU
+ - [x] NTSC only (for now)
+ - [x] Joystick/Joypad support
+ - [x] APU Audio
+ - [x] CRT Shader effects
+ - [ ] Debugger
+ - [ ] Save state
+ - [ ] Frame run-ahead
+ - [ ] MMC4 + MMC5
+ - [ ] Additional mappers
+
+### Implemented mappers
+
+A NES games cartridge is made up of various circuits and hardware, which varies from game to game. The configuraion and capabilities of such cartridges is commonly called their mapper. Mappers are designed to extend the system and bypass its limitations, such as by adding RAM to the cartridge or even extra sound channels.
+
+| Name  | iNES mapper | Implemented |
+|-------|------------:|:-----------:|
+| NROM  |           0 |     [x]     |
+| MMC1  |           1 |     [x]     |
+| UxROM |           2 |     [x]     |
+| CNROM |           3 |     [x]     |
+| MMC4  |           4 |     [ ]     |
+| MMC5  |           5 |     [ ]     |
+| AxROM |           7 |     [x]     |
+| GxROM |          66 |     [x]     |
+
+
+
+## Installation
+
+### MacOS - build from source
+
+```
+brew install go gtk+3 sdl2 sdl2_ttf
+```
+
+Then clone the repository and run:
+
+```
+go build
+```
+
+### MacOS - install binary release
+
+Install the dependencies
+```
+brew install gtk+3 sdl2 sdl2_ttf
+```
+
+Download the latest binary release for your Mac architecture.
+
+
+### Linux - build from source
+
+#### Install dependencies
+
+ - debian-based (e.g Ubuntu, Mint)
+
+**todo**
+
+ - other distributions
+
+   - Refer to [github.com/gotk3/gotk3](https://github.com/gotk3/gotk3).
+
+   - SDL: Todo
+
+#### Build
 
 Requires go1.24+
 
@@ -36,32 +115,6 @@ $ nestor
 
 Run `nestor --help` for more information.
 
-## Mappers
-
-A NES games cartridge is made up of various circuits and hardware, which varies from game to game. The configuraion and capabilities of such cartridges is commonly called their mapper. Mappers are designed to extend the system and bypass its limitations, such as by adding RAM to the cartridge or even extra sound channels.
-
-| Name  | iNES mapper | Implemented |
-|-------|------------:|:-----------:|
-| NROM  |           0 |     [x]     |
-| MMC1  |           1 |     [x]     |
-| UxROM |           2 |     [x]     |
-| CNROM |           3 |     [x]     |
-| MMC4  |           4 |     [ ]     |
-| MMC5  |           5 |     [ ]     |
-| AxROM |           7 |     [x]     |
-| GxROM |          66 |     [x]     |
-
-
-
-## TODO
-
- - [x] CPU (6502)
- - [x] PPU (pixel processing unit)
- - [x] Joystick / Keyboard input
- - [X] APU (audio processing unit)
- - [ ] debugger
- - [ ] save states
- - [ ] additional mappers
 
 
 ## License
