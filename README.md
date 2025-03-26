@@ -12,12 +12,13 @@ Nestor is a NES/Famicom emulator written in Go.
   - [Features](#features)
     - [Implemented mappers](#implemented-mappers)
   - [Installation](#installation)
+    - [MacOS - homebrew](#macos---homebrew)
     - [MacOS - build from source](#macos---build-from-source)
-    - [MacOS - install binary release](#macos---install-binary-release)
     - [Linux - build from source](#linux---build-from-source)
       - [Install dependencies](#install-dependencies)
       - [Build](#build)
   - [Usage](#usage)
+  - [Thanks](#thanks)
   - [License](#license)
 
 
@@ -53,26 +54,26 @@ A NES games cartridge is made up of various circuits and hardware, which varies 
 
 ## Installation
 
+### MacOS - homebrew
+
+```
+brew tap arl/arl
+brew install nestor
+```
+
+
 ### MacOS - build from source
+
+Install the dependencies with homebrew:
 
 ```
 brew install go gtk+3 sdl2 sdl2_ttf
 ```
 
-Then clone the repository and run:
-
+Clone this repository and build it from source with go1.24+:
 ```
 go build
 ```
-
-### MacOS - install binary release
-
-Install the dependencies
-```
-brew install gtk+3 sdl2 sdl2_ttf
-```
-
-Download the latest binary release for your Mac architecture.
 
 
 ### Linux - build from source
@@ -83,16 +84,16 @@ Download the latest binary release for your Mac architecture.
 
 ```
 sudo apt-get update &&
-sudo apt-get install
-  gcc
-  pkg-config
-  libsdl2-dev
-  libgtk-3-dev
-  libglib2.0-dev
-  libgdk-pixbuf-2.0-dev
-  libsdl2-image-dev
-  libsdl2-mixer-dev
-  libsdl2-ttf-dev
+sudo apt-get install \
+  gcc \
+  pkg-config \
+  libsdl2-dev \
+  libgtk-3-dev \
+  libglib2.0-dev \
+  libgdk-pixbuf-2.0-dev \
+  libsdl2-image-dev \
+  libsdl2-mixer-dev \
+  libsdl2-ttf-dev \
   libsdl2-gfx-dev
 ```
 
@@ -128,6 +129,13 @@ $ nestor
 Run `nestor --help` for more information.
 
 
+## Thanks
+
+Many thanks to:
+ - @genbs for the help on macos x!
+ - @tommyblue for the paddle!
+ - @rasky for [ndsemu](https://github.com/rasky/ndsemu) codebase!
+ - [NesDev Wifi](https://www.nesdev.org/wiki/Nesdev_Wiki) for the great documentation and community!
 
 ## License
 
