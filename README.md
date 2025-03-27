@@ -45,8 +45,8 @@ A NES games cartridge is made up of various circuits and hardware, which varies 
 | MMC1  |           1 |     [x]     |
 | UxROM |           2 |     [x]     |
 | CNROM |           3 |     [x]     |
-| MMC4  |           4 |     [ ]     |
-| MMC5  |           5 |     [ ]     |
+| MMC3  |           4 |     [ ]     |
+| MMC5  |          10 |     [ ]     |
 | AxROM |           7 |     [x]     |
 | GxROM |          66 |     [x]     |
 
