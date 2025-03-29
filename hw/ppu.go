@@ -6,6 +6,7 @@ import (
 
 	"nestor/emu/log"
 	"nestor/hw/hwio"
+	"nestor/hw/snapshot"
 )
 
 const (
@@ -941,4 +942,129 @@ func (p *PPU) setOpenBus(mask uint8, val uint8) {
 func (p *PPU) applyOpenBus(mask uint8, val uint8) uint8 {
 	p.setOpenBus(^mask, val)
 	return val | (p.openBus & mask)
+}
+
+func (p *PPU) State() *snapshot.PPU {
+	state := &snapshot.PPU{
+		OpenBus:         p.openBus,
+		OpenBusDecayBuf: p.openBusDecayBuf,
+
+		OAMMem:     p.oamMem,
+		BusAddr:    p.busAddr,
+		OAMAddr:    p.oamAddr,
+		VRAMAddr:   uint16(p.vramAddr),
+		VRAMTemp:   uint16(p.vramTmp),
+		WriteLatch: p.writeLatch,
+		PPUDataBuf: p.ppudataBuf,
+
+		PPUBgRegs: snapshot.PPUBgRegs{
+			AddrLatch: p.bg.addrLatch,
+			Finex:     p.bg.finex,
+			NT:        p.bg.nt,
+			AT:        p.bg.at,
+			BgLo:      p.bg.bglo,
+			BgHi:      p.bg.bghi,
+			BgShiftLo: p.bg.bgShiftlo,
+			BgShiftHi: p.bg.bgShifthi,
+			ATShiftLo: p.bg.atShiftlo,
+			ATShiftHi: p.bg.atShifthi,
+			ATLatchLo: p.bg.atLatchlo,
+			ATLatchHi: p.bg.atLatchhi,
+		},
+
+		PPUCTRL:   uint8(p.PPUCTRL),
+		PPUMASK:   uint8(p.PPUMASK),
+		PPUSTATUS: uint8(p.PPUSTATUS),
+
+		MasterClock: p.masterClock,
+		Cycle:       p.Cycle,
+		Scanline:    p.Scanline,
+		FrameCount:  p.FrameCount,
+
+		OddFrame:      p.oddFrame,
+		PreventVBlank: p.preventVblank,
+	}
+
+	for i := range p.oam {
+		state.OAM[i].ID = p.oam[i].id
+		state.OAM[i].X = p.oam[i].x
+		state.OAM[i].Y = p.oam[i].y
+		state.OAM[i].Tile = p.oam[i].tile
+		state.OAM[i].Attr = p.oam[i].attr
+		state.OAM[i].DataL = p.oam[i].dataL
+		state.OAM[i].DataH = p.oam[i].dataH
+	}
+
+	for i := range p.oam2 {
+		state.OAM2[i].ID = p.oam2[i].id
+		state.OAM2[i].X = p.oam2[i].x
+		state.OAM2[i].Y = p.oam2[i].y
+		state.OAM2[i].Tile = p.oam2[i].tile
+		state.OAM2[i].Attr = p.oam2[i].attr
+		state.OAM2[i].DataL = p.oam2[i].dataL
+		state.OAM2[i].DataH = p.oam2[i].dataH
+	}
+	copy(state.Palette[:], p.Palettes.Data[:])
+
+	return state
+}
+
+func (p *PPU) SetState(state *snapshot.PPU) {
+	copy(p.Palettes.Data, state.Palette[:])
+	p.oamMem = state.OAMMem
+
+	p.openBus = state.OpenBus
+	p.openBusDecayBuf = state.OpenBusDecayBuf
+
+	p.busAddr = state.BusAddr
+	p.oamAddr = state.OAMAddr
+	p.vramAddr = loopy(state.VRAMAddr)
+	p.vramTmp = loopy(state.VRAMTemp)
+	p.writeLatch = state.WriteLatch
+	p.ppudataBuf = state.PPUDataBuf
+
+	p.bg.addrLatch = state.PPUBgRegs.AddrLatch
+	p.bg.finex = state.PPUBgRegs.Finex
+	p.bg.nt = state.PPUBgRegs.NT
+	p.bg.at = state.PPUBgRegs.AT
+	p.bg.bglo = state.PPUBgRegs.BgLo
+	p.bg.bghi = state.PPUBgRegs.BgHi
+	p.bg.bgShiftlo = state.PPUBgRegs.BgShiftLo
+	p.bg.bgShifthi = state.PPUBgRegs.BgShiftHi
+	p.bg.atShiftlo = state.PPUBgRegs.ATShiftLo
+	p.bg.atShifthi = state.PPUBgRegs.ATShiftHi
+	p.bg.atLatchlo = state.PPUBgRegs.ATLatchLo
+	p.bg.atLatchhi = state.PPUBgRegs.ATLatchHi
+
+	p.PPUCTRL = ppuctrl(state.PPUCTRL)
+	p.PPUMASK = ppumask(state.PPUMASK)
+	p.PPUSTATUS = ppustatus(state.PPUSTATUS)
+
+	p.masterClock = state.MasterClock
+	p.Cycle = state.Cycle
+	p.Scanline = state.Scanline
+	p.FrameCount = state.FrameCount
+
+	p.oddFrame = state.OddFrame
+	p.preventVblank = state.PreventVBlank
+
+	for i := range state.OAM {
+		p.oam[i].id = state.OAM[i].ID
+		p.oam[i].x = state.OAM[i].X
+		p.oam[i].y = state.OAM[i].Y
+		p.oam[i].tile = state.OAM[i].Tile
+		p.oam[i].attr = state.OAM[i].Attr
+		p.oam[i].dataL = state.OAM[i].DataL
+		p.oam[i].dataH = state.OAM[i].DataH
+	}
+
+	for i := range state.OAM2 {
+		p.oam2[i].id = state.OAM2[i].ID
+		p.oam2[i].x = state.OAM2[i].X
+		p.oam2[i].y = state.OAM2[i].Y
+		p.oam2[i].tile = state.OAM2[i].Tile
+		p.oam2[i].attr = state.OAM2[i].Attr
+		p.oam2[i].dataL = state.OAM2[i].DataL
+		p.oam2[i].dataH = state.OAM2[i].DataH
+	}
 }

@@ -112,6 +112,7 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 		out: out,
 	}, nil
 }
+
 func (e *Emulator) RunOneFrame() {
 	frame := e.out.BeginFrame()
 	e.NES.RunOneFrame(frame)
@@ -152,6 +153,15 @@ func (e *Emulator) Run() {
 }
 
 func (e *Emulator) save() {
+	// Save state
+	state, err := e.NES.SaveSnapshot()
+	if err != nil {
+		log.ModEmu.WarnZ("Failed to save state").Error("err", err).End()
+		return
+	}
+
+	fmt.Printf("save state: %d bytes\n", len(state))
+
 	path := filepath.Join(e.tmpdir, "screenshot.png")
 	if err := hw.SaveAsPNG(e.out.Screenshot(), path); err != nil {
 		log.ModEmu.WarnZ("Failed to save screenshot").String("path", path).End()

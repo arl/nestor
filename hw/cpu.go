@@ -7,6 +7,7 @@ import (
 	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
 	"nestor/hw/input"
+	"nestor/hw/snapshot"
 )
 
 // Locations reserved for vector pointers.
@@ -658,4 +659,42 @@ func (cpu *CPU) izy(dummyread bool) uint16 {
 		_ = cpu.Read8(operand - off) // dummy read.
 	}
 	return operand
+}
+
+func (cpu *CPU) State() *snapshot.CPU {
+	return &snapshot.CPU{
+		PC:          cpu.PC,
+		SP:          cpu.SP,
+		P:           uint8(cpu.P),
+		A:           cpu.A,
+		X:           cpu.X,
+		Y:           cpu.Y,
+		Cycles:      cpu.Cycles,
+		MasterClock: cpu.masterClock,
+		IRQFlag:     uint8(cpu.irqFlag),
+		NMIFlag:     cpu.nmiFlag,
+		PrevNMIFlag: cpu.prevNmiFlag,
+		NeedNMI:     cpu.needNmi,
+		PrevNeedNMI: cpu.prevNeedNmi,
+		RunIRQ:      cpu.runIRQ,
+		PrevRunIRQ:  cpu.prevRunIRQ,
+	}
+}
+
+func (cpu *CPU) SetState(state *snapshot.CPU) {
+	cpu.PC = state.PC
+	cpu.SP = state.SP
+	cpu.P = P(state.P)
+	cpu.A = state.A
+	cpu.X = state.X
+	cpu.Y = state.Y
+	cpu.Cycles = state.Cycles
+	cpu.masterClock = state.MasterClock
+	cpu.nmiFlag = state.NMIFlag
+	cpu.irqFlag = hwdefs.IRQSource(state.IRQFlag)
+	cpu.prevNeedNmi = state.PrevNeedNMI
+	cpu.prevNmiFlag = state.PrevNMIFlag
+	cpu.needNmi = state.NeedNMI
+	cpu.runIRQ = state.RunIRQ
+	cpu.prevRunIRQ = state.PrevRunIRQ
 }
