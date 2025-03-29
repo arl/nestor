@@ -3,6 +3,7 @@ package hw
 import (
 	"nestor/emu/log"
 	"nestor/hw/hwio"
+	"nestor/hw/snapshot"
 )
 
 // DMA handles DMA transfer of OAM (sprite attributes) to the PPU and DMC (audio
@@ -209,4 +210,22 @@ func (dma *DMA) processRead(addr uint16, isInternalReg bool) uint8 {
 	val := dma.cpu.Bus.Read8(addr)
 	log.ModDMA.DebugZ("read").Hex16("addr", addr).Hex8("val", val).End()
 	return val
+}
+
+func (dma *DMA) State() *snapshot.DMA {
+	return &snapshot.DMA{
+		DMCRunning: dma.dmcRunning,
+		AbortDMC:   dma.abortDMC,
+		OAMRunning: dma.oamRunning,
+		DummyCycle: dma.dummy,
+		NeedHalt:   dma.needHalt,
+	}
+}
+
+func (dma *DMA) SetState(state *snapshot.DMA) {
+	dma.dmcRunning = state.DMCRunning
+	dma.abortDMC = state.AbortDMC
+	dma.oamRunning = state.OAMRunning
+	dma.dummy = state.DummyCycle
+	dma.needHalt = state.NeedHalt
 }
