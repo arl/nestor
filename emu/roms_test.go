@@ -81,9 +81,9 @@ func TestNestest(t *testing.T) {
 	}
 }
 
+// Various tests from blargg's test roms. They're easy to automate since
+// they write to a specific memory location to signal the test status.
 func TestBlarggRoms(t *testing.T) {
-	// Various tests from blargg's test roms. They're easily to automate since they
-	// write to a specific memory location to signal the test status.
 	if !testing.Verbose() {
 		log.Disable()
 	}
@@ -269,10 +269,6 @@ func readString(t *hwio.Table, addr uint16, maxlen int) string {
 }
 
 func TestSprite0Hit(t *testing.T) {
-	if !testing.Verbose() {
-		log.Disable()
-	}
-
 	outdir := filepath.Join("testdata", t.Name())
 	os.Mkdir(outdir, 0755)
 
@@ -300,10 +296,6 @@ func TestSprite0Hit(t *testing.T) {
 }
 
 func TestSpriteOverflow(t *testing.T) {
-	if !testing.Verbose() {
-		log.Disable()
-	}
-
 	outdir := filepath.Join("testdata", t.Name())
 	os.Mkdir(outdir, 0755)
 
@@ -325,10 +317,6 @@ func TestSpriteOverflow(t *testing.T) {
 }
 
 func TestDMCDMADuringRead(t *testing.T) {
-	if !testing.Verbose() {
-		log.Disable()
-	}
-
 	outdir := filepath.Join("testdata", t.Name())
 	os.Mkdir(outdir, 0755)
 
@@ -527,6 +515,10 @@ func TestCNROMSubmappers(t *testing.T) {
 
 func runAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame int64) {
 	t.Parallel()
+
+	if !testing.Verbose() {
+		log.Disable()
+	}
 
 	rom, err := ines.ReadRom(romPath)
 	if err != nil {
