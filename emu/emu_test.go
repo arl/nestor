@@ -4,6 +4,7 @@ import (
 	"flag"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"nestor/emu/log"
 	"nestor/hw"
@@ -46,11 +47,19 @@ func BenchmarkCPUSpeed(b *testing.B) {
 	e := loadEmulator(b, *romPath)
 	frame := e.out.BeginFrame()
 
+	const nframes = 300
+
+	nloops := 0
+	start := time.Now()
+
 	for b.Loop() {
-		for range 300 {
+		for range nframes {
 			e.NES.RunOneFrame(frame)
 		}
+		nloops++
 	}
+	fps := float64(nframes*nloops) / time.Since(start).Seconds()
+	b.ReportMetric(fps, "frames/s")
 }
 
 func BenchmarkSaveState(b *testing.B) {
