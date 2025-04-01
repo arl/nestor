@@ -20,6 +20,11 @@ jobs:
           go-version-file: "go.mod"
           stable: false
 
+      - name: go generate check
+        run: >-
+          go generate ./...
+          git diff --name-only --exit-code
+
       - name: Dependencies
         run: >-
           sudo apt-get update &&
