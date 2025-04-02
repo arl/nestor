@@ -678,6 +678,7 @@ func (cpu *CPU) State() *snapshot.CPU {
 		PrevNeedNMI: cpu.prevNeedNmi,
 		RunIRQ:      cpu.runIRQ,
 		PrevRunIRQ:  cpu.prevRunIRQ,
+		// TODO: add halted bool?
 	}
 }
 
@@ -697,4 +698,5 @@ func (cpu *CPU) SetState(state *snapshot.CPU) {
 	cpu.needNmi = state.NeedNMI
 	cpu.runIRQ = state.RunIRQ
 	cpu.prevRunIRQ = state.PrevRunIRQ
+	// TODO: add halted bool?
 }

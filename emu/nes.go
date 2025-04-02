@@ -2,10 +2,10 @@ package emu
 
 import (
 	"bytes"
-	"io"
 
 	"github.com/tinylib/msgp/msgp"
 
+	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/hw/hwdefs"
 	"nestor/hw/mappers"
@@ -56,6 +56,24 @@ func (nes *NES) RunOneFrame(frame hw.Frame) {
 	nes.PPU.SetFrameBuffer(frame.Video)
 	nes.CPU.Run(29781)
 	nes.APU.EndFrame()
+
+	// before := cmp.Diff(nes.PPU, nil, cmp.AllowUnexported(hw.PPU{}))
+
+	buf, err := nes.SaveSnapshot()
+	if err != nil {
+		log.ModEmu.FatalZ("failed to save snapshot").Error("err", err).End()
+		return
+	}
+
+	if err := nes.LoadSnapshot(buf); err != nil {
+		log.ModEmu.FatalZ("failed to load snapshot").Error("err", err).End()
+		return
+	}
+	// _ = buf
+
+	// after := cmp.Diff(nes.PPU, nil, cmp.AllowUnexported(hw.PPU{}))
+	// os.WriteFile(fmt.Sprintf("before.%d", nes.PPU.FrameCount), []byte(before), 0644)
+	// os.WriteFile(fmt.Sprintf("after.%d", nes.PPU.FrameCount), []byte(after), 0644)
 }
 
 const SaveStateVersion = 1
@@ -70,6 +88,7 @@ func (nes *NES) SaveSnapshot() ([]byte, error) {
 		RAM:     nes.CPU.RAM.Data,
 		DMA:     nes.CPU.DMA.State(),
 		PPU:     nes.PPU.State(),
+		// APU:     nes.APU.State(),
 	}
 	if err := state.EncodeMsg(mw); err != nil {
 		return nil, err
@@ -90,5 +109,6 @@ func (nes *NES) LoadSnapshot(buf []byte) error {
 	nes.CPU.RAM.Data = state.RAM
 	nes.CPU.DMA.SetState(state.DMA)
 	nes.PPU.SetState(state.PPU)
+	// nes.APU.SetState(state.APU)
 	return nil
 }
