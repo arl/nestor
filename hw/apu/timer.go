@@ -1,5 +1,7 @@
 package apu
 
+import "nestor/hw/snapshot"
+
 // timer is a divider driven by the ~1.79 MHz clock and is used by all APU
 // channels.
 type timer struct {
@@ -43,4 +45,10 @@ func (t *timer) run(targetCycle uint32) bool {
 
 func (t *timer) endFrame() {
 	t.prevCycle = 0
+}
+
+func (t *timer) saveState(state *snapshot.APUTimer) {
+	state.Timer = t.timer
+	state.Period = t.period
+	state.LastOutput = t.lastOutput
 }

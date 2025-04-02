@@ -3,6 +3,7 @@ package apu
 import (
 	"nestor/emu/log"
 	"nestor/hw/hwio"
+	"nestor/hw/snapshot"
 )
 
 // The TriangleChannel contains the following: Timer, 32-step sequencer, Length
@@ -164,4 +165,14 @@ func (tc *TriangleChannel) Status() bool {
 
 func (tc *TriangleChannel) Output() uint8 {
 	return uint8(tc.timer.lastOutput)
+}
+
+func (tc *TriangleChannel) SaveState(state *snapshot.APUTriangle) {
+	tc.lenCounter.saveState(&state.LengthCounter)
+	tc.timer.saveState(&state.Timer)
+	state.LinearCounter = tc.linearCounter
+	state.LinearCounterReload = tc.linearCounterReload
+	state.LinearReload = tc.linearReload
+	state.LinearCtrl = tc.linearCtrl
+	state.Pos = tc.pos
 }

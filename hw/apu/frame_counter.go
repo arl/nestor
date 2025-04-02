@@ -3,6 +3,7 @@ package apu
 import (
 	"nestor/emu/log"
 	"nestor/hw/hwdefs"
+	"nestor/hw/snapshot"
 )
 
 var stepCycles = [2][6]int32{
@@ -163,4 +164,14 @@ func (afc *FrameCounter) NeedToRun(cyclesToRun uint32) bool {
 	return afc.newval >= 0 ||
 		afc.blockTick > 0 ||
 		(afc.prevCycle+int32(cyclesToRun) >= stepCycles[afc.stepMode][afc.curStep]-1)
+}
+
+func (afc *FrameCounter) SaveState(state *snapshot.APUFrameCounter) {
+	state.PrevCycle = afc.prevCycle
+	state.CurStep = afc.curStep
+	state.StepMode = afc.stepMode
+	state.InhibitIRQ = afc.inhibitIRQ
+	state.BlockTick = afc.blockTick
+	state.WriteDelayCounter = afc.writeDelayCounter
+	state.NewVal = afc.newval
 }

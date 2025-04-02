@@ -3,6 +3,7 @@ package apu
 import (
 	"nestor/emu/log"
 	"nestor/hw/hwio"
+	"nestor/hw/snapshot"
 )
 
 // There are two square channels beginning at registers $4000 and $4004. Each
@@ -241,4 +242,19 @@ func (sc *SquareChannel) Status() bool {
 
 func (sc *SquareChannel) Output() uint8 {
 	return uint8(sc.timer.lastOutput)
+}
+
+func (sc *SquareChannel) SaveState(state *snapshot.APUSquare) {
+	state.SweepTargetPeriod = sc.sweepTargetPeriod
+	state.RealPeriod = sc.realPeriod
+	sc.timer.saveState(&state.Timer)
+	sc.envelope.saveState(&state.Envelope)
+	state.SweepEnabled = sc.sweepEnabled
+	state.SweepPeriod = sc.sweepPeriod
+	state.SweepNegate = sc.sweepNegate
+	state.SweepShift = sc.sweepShift
+	state.SweepDivider = sc.sweepDivider
+	state.ReloadSweep = sc.reloadSweep
+	state.Duty = sc.duty
+	state.DutyPos = sc.dutyPos
 }

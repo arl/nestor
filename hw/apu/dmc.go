@@ -4,6 +4,7 @@ import (
 	"nestor/emu/log"
 	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
+	"nestor/hw/snapshot"
 )
 
 // The DMC (Delta Modulation Channel) can output samples composed of 1-bit
@@ -336,4 +337,23 @@ func (dc *DMC) NeedToRun() bool {
 
 func (dc *DMC) Output() uint8 {
 	return uint8(dc.timer.lastOutput)
+}
+
+func (dc *DMC) SaveState(state *snapshot.APUDMC) {
+	dc.timer.saveState(&state.Timer)
+	state.SampleAddr = dc.sampleAddr
+	state.SampleLen = dc.sampleLen
+	state.CurrentAddr = dc.curaddr
+	state.Remaining = dc.remaining
+	state.OutputLevel = dc.outlvl
+	state.ReadBuf = dc.readbuf
+	state.BitsLeft = dc.bitsLeft
+	state.StartDelay = dc.startDelay
+	state.DisableDelay = dc.disableDelay
+	state.IRQEnabled = dc.irqEnabled
+	state.Loop = dc.loop
+	state.BufEmpty = dc.bufEmpty
+	state.ShiftReg = dc.shiftReg
+	state.Silence = dc.silence
+	state.NeedToRun = dc.needToRun
 }

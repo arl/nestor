@@ -1,5 +1,7 @@
 package apu
 
+import "nestor/hw/snapshot"
+
 // envelope is an envelope generator which can generate a constant volume or a
 // saw envelope with optional looping.
 type envelope struct {
@@ -58,4 +60,13 @@ func (env *envelope) tick() {
 			}
 		}
 	}
+}
+
+func (env *envelope) saveState(state *snapshot.APUEnveloppe) {
+	env.lenCounter.saveState(&state.LengthCounter)
+	state.ConstVolume = env.constVolume
+	state.Vol = env.vol
+	state.Start = env.start
+	state.Divider = env.divider
+	state.Counter = env.counter
 }

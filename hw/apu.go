@@ -5,6 +5,7 @@ import (
 	"nestor/hw/apu"
 	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
+	"nestor/hw/snapshot"
 )
 
 type APU struct {
@@ -235,4 +236,29 @@ func (a *APU) needToRun(curCycle uint32) bool {
 
 	cyclesToRun := curCycle - a.prevCycle
 	return a.frameCounter.NeedToRun(cyclesToRun) || a.DMC.IRQPending(cyclesToRun)
+}
+
+func (a *APU) State() *snapshot.APU {
+	var state snapshot.APU
+	a.Square1.SaveState(&state.Square1)
+	a.Square2.SaveState(&state.Square2)
+	a.Triangle.SaveState(&state.Triangle)
+	a.Noise.SaveState(&state.Noise)
+	a.DMC.SaveState(&state.DMC)
+	a.frameCounter.SaveState(&state.FrameCounter)
+	return &state
+}
+
+func (a *APU) SetState(state *snapshot.APU) {
+	a.Square1.SetState(&state.Square1)
+	a.Square2.SetState(&state.Square2)
+	a.Triangle.SetState(&state.Triangle)
+	a.Noise.SetState(&state.Noise)
+	a.DMC.SetState(&state.DMC)
+	a.frameCounter.SetState(&state.FrameCounter)
+
+	// Reset the cycle counters to ensure that the APU is in sync with the CPU.
+	// This is important for accurate emulation of the DMC channel.
+	a.prevCycle = 0
+	a.curCycle = 0
 }

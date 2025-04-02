@@ -3,6 +3,7 @@ package apu
 import (
 	"nestor/emu/log"
 	"nestor/hw/hwio"
+	"nestor/hw/snapshot"
 )
 
 // NoiseChannel generates pseudo-random 1-bit noise at 16 different frequencies.
@@ -129,4 +130,11 @@ func (nc *NoiseChannel) Reset(soft bool) {
 	nc.timer.period = noisePeriodLUT[0] - 1
 	nc.shiftReg = 1
 	nc.mode = false
+}
+
+func (nc *NoiseChannel) SaveState(state *snapshot.APUNoise) {
+	nc.env.saveState(&state.Envelope)
+	nc.timer.saveState(&state.Timer)
+	state.ShitftRegister = nc.shiftReg
+	state.Mode = nc.mode
 }

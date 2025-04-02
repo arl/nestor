@@ -1,5 +1,7 @@
 package apu
 
+import "nestor/hw/snapshot"
+
 // The length counter allows automatic duration control. Counting can be halted
 // and the counter can be disabled by clearing the appropriate bit in the status
 // register, which immediately sets the counter to 0 and keeps it there.
@@ -91,4 +93,13 @@ func (lc *lengthCounter) setEnabled(enabled bool) {
 
 func (lc *lengthCounter) isEnabled() bool {
 	return lc.enabled
+}
+
+func (lc *lengthCounter) saveState(state *snapshot.APULengthCounter) {
+	state.Enabled = lc.enabled
+	state.Halt = lc.halt
+	state.NewHalt = lc.newHalt
+	state.Counter = lc.counter
+	state.PrevVal = lc.prevVal
+	state.ReloadVal = lc.reloadVal
 }

@@ -8,6 +8,7 @@ type NES struct {
 	RAM     [0x800]uint8
 	DMA     *DMA
 	PPU     *PPU
+	APU     *APU
 }
 
 type CPU struct {
@@ -96,4 +97,103 @@ type PPUBgRegs struct {
 	ATShiftHi uint8
 	ATLatchLo bool
 	ATLatchHi bool
+}
+
+type APU struct {
+	Square1      APUSquare
+	Square2      APUSquare
+	Triangle     APUTriangle
+	Noise        APUNoise
+	DMC          APUDMC
+	FrameCounter APUFrameCounter
+}
+
+type APUTimer struct {
+	Timer      uint16
+	Period     uint16
+	LastOutput int8
+}
+
+type APUEnveloppe struct {
+	LengthCounter APULengthCounter
+	ConstVolume   bool
+	Vol           uint8
+	Start         bool
+	Divider       int8
+	Counter       uint8
+}
+
+type APULengthCounter struct {
+	Enabled   bool
+	Halt      bool
+	NewHalt   bool
+	Counter   uint8
+	PrevVal   uint8
+	ReloadVal uint8
+}
+
+type APUSquare struct {
+	SweepTargetPeriod uint32
+	RealPeriod        uint16
+	Timer             APUTimer
+	Envelope          APUEnveloppe
+	SweepEnabled      bool
+	SweepPeriod       uint8
+	SweepNegate       bool
+	SweepShift        uint8
+	SweepDivider      uint8
+
+	ReloadSweep bool
+	Duty        uint8
+	DutyPos     uint8
+}
+
+type APUTriangle struct {
+	LengthCounter       APULengthCounter
+	Timer               APUTimer
+	LinearCounter       uint8
+	LinearCounterReload uint8
+	LinearReload        bool
+	LinearCtrl          bool
+	Pos                 uint8
+}
+
+type APUNoise struct {
+	Envelope       APUEnveloppe
+	Timer          APUTimer
+	ShitftRegister uint16
+	Mode           bool
+}
+
+type APUDMC struct {
+	Timer APUTimer
+
+	SampleAddr  uint16
+	SampleLen   uint16
+	CurrentAddr uint16
+	Remaining   uint16
+
+	OutputLevel  uint8
+	ReadBuf      uint8
+	BitsLeft     uint8
+	StartDelay   uint8
+	DisableDelay uint8
+
+	IRQEnabled bool
+	Loop       bool
+	BufEmpty   bool
+	ShiftReg   uint8
+	Silence    bool
+	NeedToRun  bool
+}
+
+type APUFrameCounter struct {
+	PrevCycle  int32
+	CurStep    uint32
+	StepMode   uint32
+	InhibitIRQ bool
+
+	BlockTick         uint8
+	WriteDelayCounter int8
+	NewVal            int16
 }

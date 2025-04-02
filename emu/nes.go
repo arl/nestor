@@ -2,10 +2,10 @@ package emu
 
 import (
 	"bytes"
-	"io"
 
 	"github.com/tinylib/msgp/msgp"
 
+	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/hw/hwdefs"
 	"nestor/hw/mappers"
@@ -56,6 +56,17 @@ func (nes *NES) RunOneFrame(frame hw.Frame) {
 	nes.PPU.SetFrameBuffer(frame.Video)
 	nes.CPU.Run(29781)
 	nes.APU.EndFrame()
+
+	buf, err := nes.SaveSnapshot()
+	if err != nil {
+		log.ModEmu.FatalZ("failed to save snapshot").Error("err", err).End()
+		return
+	}
+
+	if err := nes.LoadSnapshot(buf); err != nil {
+		log.ModEmu.FatalZ("failed to load snapshot").Error("err", err).End()
+		return
+	}
 }
 
 const SaveStateVersion = 1
@@ -69,6 +80,7 @@ func (nes *NES) SaveSnapshot() ([]byte, error) {
 		CPU:     nes.CPU.State(),
 		DMA:     nes.CPU.DMA.State(),
 		PPU:     nes.PPU.State(),
+		APU:     nes.APU.State(),
 	}
 	copy(state.RAM[:], nes.CPU.RAM.Data)
 
@@ -92,5 +104,6 @@ func (nes *NES) LoadSnapshot(buf []byte) error {
 	nes.CPU.SetState(state.CPU)
 	nes.CPU.DMA.SetState(state.DMA)
 	nes.PPU.SetState(state.PPU)
+	nes.APU.SetState(state.APU)
 	return nil
 }
