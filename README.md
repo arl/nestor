@@ -2,10 +2,16 @@
  <img src="./ui/logo.png" width="384" align="center">
 </p>
 
-
 # Nestor - NES emulator
 
 Nestor is a NES/Famicom emulator written in Go.
+
+![adventures of rad gravity](https://github.com/user-attachments/assets/014025c9-6c7e-4f68-b351-3557c345a12e)
+![battletoads](https://github.com/user-attachments/assets/d7a03db0-fcf7-4e8f-a8f7-23ec0d01fae7)
+![castevania](https://github.com/user-attachments/assets/8b283d1f-9eca-49da-849f-d4c9c91f98cd)
+![prince of persia](https://github.com/user-attachments/assets/cdb49c3e-4ac4-4dd9-94fe-ac4d91af4aff)
+![tsuppari oozumou](https://github.com/user-attachments/assets/534e5d32-7bf0-48a1-9b3e-bb580f651585)
+![contra](https://github.com/user-attachments/assets/a59fbc21-4938-441d-81d7-1dabda65c929)
 
 
 - [Nestor - NES emulator](#nestor---nes-emulator)
