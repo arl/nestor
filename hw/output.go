@@ -13,6 +13,7 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 
 	"nestor/emu/log"
+	"nestor/hw/apu"
 	"nestor/hw/input"
 )
 
@@ -134,10 +135,6 @@ func (out *Output) FocusWindow() {
 	}
 }
 
-// Global for now
-var audioDeviceID sdl.AudioDeviceID
-var audioSpec sdl.AudioSpec
-
 func (out *Output) EnableAudio(enable bool) error {
 	log.ModSound.InfoZ("Enabling audio").Bool("enable", enable).End()
 	switch {
@@ -147,11 +144,11 @@ func (out *Output) EnableAudio(enable bool) error {
 		}
 
 		desired := sdl.AudioSpec{
-			Freq:     maxSampleRate,
-			Format:   AudioFormat,
-			Channels: AudioChannels,
+			Freq:     apu.MaxSampleRate,
+			Format:   apu.AudioFormat,
+			Channels: apu.AudioChannels,
 			Silence:  0,
-			Samples:  AudioBufferSize,
+			Samples:  apu.AudioBufferSize,
 			Callback: nil,
 		}
 
@@ -161,15 +158,15 @@ func (out *Output) EnableAudio(enable bool) error {
 			return err
 		}
 
-		audioDeviceID = deviceID
-		audioSpec = obtained
+		apu.AudioDeviceID = deviceID
+		apu.AudioSpec = obtained
 
 		sdl.PauseAudioDevice(deviceID, false)
 		return nil
 
 	case !enable && out.audioEnabled:
-		if audioDeviceID != 0 {
-			sdl.CloseAudioDevice(audioDeviceID)
+		if apu.AudioDeviceID != 0 {
+			sdl.CloseAudioDevice(apu.AudioDeviceID)
 		}
 		sdl.QuitSubSystem(sdl.INIT_AUDIO)
 	}

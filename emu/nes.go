@@ -7,6 +7,7 @@ import (
 
 	"nestor/emu/log"
 	"nestor/hw"
+	"nestor/hw/apu"
 	"nestor/hw/hwdefs"
 	"nestor/hw/mappers"
 	"nestor/hw/snapshot"
@@ -16,16 +17,16 @@ import (
 type NES struct {
 	CPU   *hw.CPU
 	PPU   *hw.PPU
-	APU   *hw.APU
+	APU   *apu.APU
 	Rom   *ines.Rom
-	Mixer *hw.AudioMixer
+	Mixer *apu.AudioMixer
 }
 
 func powerUp(rom *ines.Rom) (*NES, error) {
-	audioMixer := hw.NewAudioMixer()
+	audioMixer := apu.NewAudioMixer()
 	ppu := hw.NewPPU()
 	cpu := hw.NewCPU(ppu)
-	apu := hw.NewAPU(cpu, audioMixer)
+	apu := apu.NewAPU(cpu, audioMixer)
 
 	cpu.APU = apu
 	cpu.InitBus()

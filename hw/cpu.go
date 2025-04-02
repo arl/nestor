@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"nestor/emu/log"
+	"nestor/hw/apu"
 	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
 	"nestor/hw/input"
@@ -25,7 +26,7 @@ type CPU struct {
 
 	PPU *PPU // non-nil when there's a PPU.
 	DMA DMA
-	APU *APU
+	APU *apu.APU
 
 	// Non-nil when execution tracing is enabled.
 	tracer *tracer
@@ -116,7 +117,7 @@ func (c *CPU) InitBus() {
 	reg4017.Read = c.input.ReadOUT
 	reg4017.Peek = c.input.PeekOUT
 	if c.APU != nil {
-		reg4017.Write = c.APU.frameCounter.WriteFRAMECOUNTER
+		reg4017.Write = c.APU.WriteFrameCounterReg
 	}
 }
 
@@ -283,7 +284,7 @@ func (c *CPU) cycleBegin(forRead bool) {
 	if c.PPU != nil {
 		c.PPU.Run(uint64(c.masterClock - ppuOffset))
 	}
-	if c.APU != nil && c.APU.enabled {
+	if c.APU != nil && c.APU.Enabled() {
 		c.APU.Tick()
 	}
 }

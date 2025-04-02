@@ -1,4 +1,4 @@
-package hw
+package apu
 
 import (
 	"slices"
@@ -8,13 +8,12 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 
 	"nestor/emu/log"
-	"nestor/hw/apu"
 )
 
 const numChannels = 5 // Square1, Square2, Triangle, Noise, DMC
 
-const maxSampleRate = 96000
-const maxSamplesPerFrame = maxSampleRate / 60 * 4 * 2 //x4 to allow CPU overclocking up to 10x, x2 for panning stereo
+const MaxSampleRate = 96000
+const maxSamplesPerFrame = MaxSampleRate / 60 * 4 * 2 //x4 to allow CPU overclocking up to 10x, x2 for panning stereo
 
 const CycleLength = 10000
 const BitsPerSample = 16
@@ -51,7 +50,7 @@ func NewAudioMixer() *AudioMixer {
 	am := &AudioMixer{
 		bufleft:    blip.NewBuffer(maxSamplesPerFrame),
 		bufright:   blip.NewBuffer(maxSamplesPerFrame),
-		sampleRate: maxSampleRate,
+		sampleRate: MaxSampleRate,
 	}
 
 	return am
@@ -102,7 +101,7 @@ func (am *AudioMixer) PlayAudioBuffer(time uint32) {
 	copy(cpy, buf)
 
 	// play the buffer
-	if err := sdl.QueueAudio(audioDeviceID, cpy); err != nil {
+	if err := sdl.QueueAudio(AudioDeviceID, cpy); err != nil {
 		log.ModSound.DebugZ("failed to queue audio buffer").Error("err", err).End()
 	}
 
@@ -139,7 +138,7 @@ func (am *AudioMixer) updateRates(forceUpdate bool) {
 	am.hasPanning = hasPanning
 }
 
-func (am *AudioMixer) channelOutput(ch apu.Channel, right bool) float64 {
+func (am *AudioMixer) channelOutput(ch Channel, right bool) float64 {
 	if right {
 		return float64(am.curOutput[ch]) * am.volumes[ch] * am.panning[ch]
 	}
@@ -147,10 +146,10 @@ func (am *AudioMixer) channelOutput(ch apu.Channel, right bool) float64 {
 }
 
 func (am *AudioMixer) outputVolume(isRight bool) int16 {
-	squareOutput := am.channelOutput(apu.Square1, isRight) + am.channelOutput(apu.Square2, isRight)
-	tndOutput := am.channelOutput(apu.DPCM, isRight) +
-		2.7516713261*am.channelOutput(apu.Triangle, isRight) +
-		1.8493587125*am.channelOutput(apu.Noise, isRight)
+	squareOutput := am.channelOutput(Square1, isRight) + am.channelOutput(Square2, isRight)
+	tndOutput := am.channelOutput(DPCM, isRight) +
+		2.7516713261*am.channelOutput(Triangle, isRight) +
+		1.8493587125*am.channelOutput(Noise, isRight)
 
 	squareVolume := uint16(((95.88 * 5000.0) / (8128.0/squareOutput + 100.0)))
 	tndVolume := uint16(((159.79 * 5000.0) / (22638.0/tndOutput + 100.0)))
@@ -158,7 +157,7 @@ func (am *AudioMixer) outputVolume(isRight bool) int16 {
 	return int16(squareVolume + tndVolume)
 }
 
-func (am *AudioMixer) AddDelta(ch apu.Channel, time uint32, delta int16) {
+func (am *AudioMixer) AddDelta(ch Channel, time uint32, delta int16) {
 	if delta != 0 {
 		am.timestamps = append(am.timestamps, time)
 		am.chanoutput[ch][time] += delta

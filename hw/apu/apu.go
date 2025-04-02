@@ -1,24 +1,29 @@
-package hw
+package apu
 
 import (
+	"github.com/veandco/go-sdl2/sdl"
+
 	"nestor/emu/log"
-	"nestor/hw/apu"
 	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
 	"nestor/hw/snapshot"
 )
 
+// Global for now
+var AudioDeviceID sdl.AudioDeviceID
+var AudioSpec sdl.AudioSpec
+
 type APU struct {
-	cpu   *CPU
+	cpu   cpu
 	mixer *AudioMixer
 
-	Square1  apu.SquareChannel
-	Square2  apu.SquareChannel
-	Triangle apu.TriangleChannel
-	Noise    apu.NoiseChannel
-	DMC      apu.DMC
+	Square1  SquareChannel
+	Square2  SquareChannel
+	Triangle TriangleChannel
+	Noise    NoiseChannel
+	DMC      DMC
 
-	frameCounter apu.FrameCounter
+	frameCounter FrameCounter
 
 	prevCycle  uint32
 	curCycle   uint32
@@ -31,17 +36,17 @@ type APU struct {
 	DAC2   hwio.Reg8 `hwio:"offset=0x1A,rcb,readonly"` // current instant DAC value of DPCM channel (same as value written to $4011)
 }
 
-func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
+func NewAPU(cpu cpu, mixer *AudioMixer) *APU {
 	a := &APU{
 		enabled: true,
 		cpu:     cpu,
 		mixer:   mixer,
 	}
-	a.Noise = apu.NewNoiseChannel(a, mixer)
-	a.Square1 = apu.NewSquareChannel(a, mixer, apu.Square1, true)
-	a.Square2 = apu.NewSquareChannel(a, mixer, apu.Square2, false)
-	a.Triangle = apu.NewTriangleChannel(a, mixer)
-	a.DMC = apu.NewDMC(a, cpu, mixer)
+	a.Noise = NewNoiseChannel(a, mixer)
+	a.Square1 = NewSquareChannel(a, mixer, Square1, true)
+	a.Square2 = NewSquareChannel(a, mixer, Square2, false)
+	a.Triangle = NewTriangleChannel(a, mixer)
+	a.DMC = NewDMC(a, cpu, mixer)
 
 	a.frameCounter.Init(a, cpu)
 
@@ -54,6 +59,10 @@ func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
 	hwio.MustInitRegs(&a.DMC)
 
 	return a
+}
+
+func (a *APU) WriteFrameCounterReg(old, val uint8) {
+	a.frameCounter.WriteFRAMECOUNTER(old, val)
 }
 
 func (a *APU) Status() uint8 {
@@ -133,14 +142,14 @@ func (a *APU) ReadDAC2(val uint8) uint8 {
 	return a.DMC.Output()
 }
 
-func (a *APU) FrameCounterTick(ftyp apu.FrameType) {
+func (a *APU) FrameCounterTick(ftyp FrameType) {
 	// Quarter & half frame clock envelope & linear counter
 	a.Square1.TickEnvelope()
 	a.Square2.TickEnvelope()
 	a.Triangle.TickLinearCounter()
 	a.Noise.TickEnvelope()
 
-	if ftyp == apu.HalfFrame {
+	if ftyp == HalfFrame {
 		// Half frames clock length counter & sweep
 		a.Square1.TickLengthCounter()
 		a.Square2.TickLengthCounter()
@@ -216,13 +225,9 @@ func (a *APU) Run() {
 	}
 }
 
-func (a *APU) SetNeedToRun() {
-	a.needToRun_ = true
-}
-
-func (a *APU) setEnabled(enabled bool) {
-	a.enabled = enabled
-}
+func (a *APU) Enabled() bool           { return a.enabled }
+func (a *APU) setEnabled(enabled bool) { a.enabled = enabled }
+func (a *APU) SetNeedToRun()           { a.needToRun_ = true }
 
 func (a *APU) needToRun(curCycle uint32) bool {
 	if a.DMC.NeedToRun() || a.needToRun_ {
@@ -250,12 +255,12 @@ func (a *APU) State() *snapshot.APU {
 }
 
 func (a *APU) SetState(state *snapshot.APU) {
-	a.Square1.SetState(&state.Square1)
-	a.Square2.SetState(&state.Square2)
-	a.Triangle.SetState(&state.Triangle)
-	a.Noise.SetState(&state.Noise)
-	a.DMC.SetState(&state.DMC)
-	a.frameCounter.SetState(&state.FrameCounter)
+	a.Square1.SaveState(&state.Square1)
+	a.Square2.SaveState(&state.Square2)
+	a.Triangle.SaveState(&state.Triangle)
+	a.Noise.SaveState(&state.Noise)
+	a.DMC.SaveState(&state.DMC)
+	a.frameCounter.SaveState(&state.FrameCounter)
 
 	// Reset the cycle counters to ensure that the APU is in sync with the CPU.
 	// This is important for accurate emulation of the DMC channel.
