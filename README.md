@@ -6,12 +6,10 @@
 
 Nestor is a NES/Famicom emulator written in Go.
 
-![adventures of rad gravity](https://github.com/user-attachments/assets/014025c9-6c7e-4f68-b351-3557c345a12e)
-![battletoads](https://github.com/user-attachments/assets/d7a03db0-fcf7-4e8f-a8f7-23ec0d01fae7)
-![castevania](https://github.com/user-attachments/assets/8b283d1f-9eca-49da-849f-d4c9c91f98cd)
-![prince of persia](https://github.com/user-attachments/assets/cdb49c3e-4ac4-4dd9-94fe-ac4d91af4aff)
-![tsuppari oozumou](https://github.com/user-attachments/assets/534e5d32-7bf0-48a1-9b3e-bb580f651585)
-![contra](https://github.com/user-attachments/assets/a59fbc21-4938-441d-81d7-1dabda65c929)
+
+| ![adventures of rad gravity](https://github.com/user-attachments/assets/014025c9-6c7e-4f68-b351-3557c345a12e) | ![battletoads](https://github.com/user-attachments/assets/d7a03db0-fcf7-4e8f-a8f7-23ec0d01fae7) | ![tsuppari oozumou](https://github.com/user-attachments/assets/534e5d32-7bf0-48a1-9b3e-bb580f651585) |
+|----|----|----|
+| ![castevania](https://github.com/user-attachments/assets/8b283d1f-9eca-49da-849f-d4c9c91f98cd) | ![prince of persia](https://github.com/user-attachments/assets/cdb49c3e-4ac4-4dd9-94fe-ac4d91af4aff) | ![contra](https://github.com/user-attachments/assets/a59fbc21-4938-441d-81d7-1dabda65c929) |
 
 
 - [Nestor - NES emulator](#nestor---nes-emulator)
@@ -24,22 +22,26 @@ Nestor is a NES/Famicom emulator written in Go.
       - [Install dependencies](#install-dependencies)
       - [Build](#build)
   - [Usage](#usage)
+  - [UI Screenshots](#ui-screenshots)
   - [Thanks](#thanks)
   - [License](#license)
 
 
+
 ## Features
 
+All these features are planned, but not all of them are implemented yet.
+
  - [x] Cycle accurate CPU
- - [x] NTSC only (for now)
+ - [X] PPU (Picture Processing Unit)
+ - [x] NTSC
+ - [ ] PAL
  - [x] Joystick/Joypad support
- - [x] APU Audio
+ - [x] APU (Audio Processing Unit)
  - [x] CRT Shader effects
  - [ ] Debugger
  - [ ] Save state
  - [ ] Frame run-ahead
- - [ ] MMC4 + MMC5
- - [ ] Additional mappers
 
 ### Implemented mappers
 
@@ -55,7 +57,6 @@ A NES games cartridge is made up of various circuits and hardware, which varies 
 | MMC5  |          10 |     [ ]     |
 | AxROM |           7 |     [x]     |
 | GxROM |          66 |     [x]     |
-
 
 
 ## Installation
@@ -126,7 +127,7 @@ You can either directly run a rom file with:
 $ nestor run /path/to/rom.nes
 ```
 
-or use the GUI:
+or use the Graphical User Interface (GUI) mode:
 
 ```
 $ nestor
@@ -134,6 +135,21 @@ $ nestor
 
 Run `nestor --help` for more information.
 
+## UI Screenshots
+
+| ![mainwindow rom selection](https://github.com/user-attachments/assets/2515bce2-a926-40f0-9213-2505d87f102b) | 
+|:--:| 
+| *Main window / Rom selection* |
+
+
+| ![emuwindow gamepanel](https://github.com/user-attachments/assets/5b4b7e7a-b8af-4f81-83c1-2df4f1814591) | 
+|:--:| 
+| *Emulator window with accompanying in-game controls window* |
+
+
+| ![input config ui](https://github.com/user-attachments/assets/4add9e06-1eff-4bb0-82f0-c4e2f6583e59) | 
+|:--:| 
+| *Input configuration page* |
 
 ## Thanks
 
