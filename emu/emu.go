@@ -128,7 +128,7 @@ func (e *Emulator) loop() {
 		} else {
 			e.RunOneFrame()
 		}
-		if e.shouldStop() {
+		if !e.out.Poll() || e.shouldStop() {
 			e.out.Close()
 			break
 		}
@@ -185,7 +185,7 @@ func (e *Emulator) isPaused() bool {
 }
 
 func (e *Emulator) shouldStop() bool {
-	return e.quit.Load() || !e.out.Poll() || e.NES.CPU.IsHalted()
+	return e.quit.Load() || e.NES.CPU.IsHalted()
 }
 
 func (e *Emulator) handleReset() {
