@@ -23,8 +23,8 @@ import (
 //	+---------+        |\             |\             |\          +---------+
 //	|Envelope |------->| >----------->| >----------->| >-------->|   DAC   |
 //	+---------+        |/             |/             |/          +---------+
-type SquareChannel struct {
-	apu      apu
+type squareChannel struct {
+	apu      *APU
 	envelope envelope
 	timer    timer
 
@@ -48,8 +48,8 @@ type SquareChannel struct {
 	Length hwio.Reg8 `hwio:"offset=0x03,wcb"`
 }
 
-func NewSquareChannel(apu apu, mixer mixer, channel Channel, isChannel1 bool) SquareChannel {
-	return SquareChannel{
+func newSquareChannel(apu *APU, mixer *Mixer, channel Channel, isChannel1 bool) squareChannel {
+	return squareChannel{
 		isChannel1: isChannel1,
 		apu:        apu,
 		envelope: envelope{
@@ -60,12 +60,12 @@ func NewSquareChannel(apu apu, mixer mixer, channel Channel, isChannel1 bool) Sq
 		},
 		timer: timer{
 			Channel: channel,
-			Mixer:   mixer,
+			mixer:   mixer,
 		},
 	}
 }
 
-func (sc *SquareChannel) WriteDUTY(_, val uint8) {
+func (sc *squareChannel) WriteDUTY(_, val uint8) {
 	sc.apu.Run()
 
 	sc.envelope.init(val)
@@ -77,7 +77,7 @@ func (sc *SquareChannel) WriteDUTY(_, val uint8) {
 		End()
 }
 
-func (sc *SquareChannel) WriteSWEEP(_, val uint8) {
+func (sc *squareChannel) WriteSWEEP(_, val uint8) {
 	sc.apu.Run()
 	sc.initSweep(val)
 
@@ -86,7 +86,7 @@ func (sc *SquareChannel) WriteSWEEP(_, val uint8) {
 		End()
 }
 
-func (sc *SquareChannel) WriteTIMER(_, val uint8) {
+func (sc *squareChannel) WriteTIMER(_, val uint8) {
 	sc.apu.Run()
 	period := (sc.realPeriod & 0x0700) | uint16(val)
 	sc.setPeriod(period)
@@ -97,7 +97,7 @@ func (sc *SquareChannel) WriteTIMER(_, val uint8) {
 		End()
 }
 
-func (sc *SquareChannel) WriteLENGTH(_, val uint8) {
+func (sc *squareChannel) WriteLENGTH(_, val uint8) {
 	sc.apu.Run()
 
 	envlen := val >> 3
@@ -118,13 +118,13 @@ func (sc *SquareChannel) WriteLENGTH(_, val uint8) {
 		End()
 }
 
-func (sc *SquareChannel) isMuted() bool {
+func (sc *squareChannel) isMuted() bool {
 	// A period of t < 8, either set explicitly or via a sweep period update,
 	// silences the corresponding pulse channel.
 	return sc.realPeriod < 8 || (!sc.sweepNegate && sc.sweepTargetPeriod > 0x7FF)
 }
 
-func (sc *SquareChannel) initSweep(regValue uint8) {
+func (sc *squareChannel) initSweep(regValue uint8) {
 	sc.sweepEnabled = (regValue & 0x80) == 0x80
 	sc.sweepNegate = (regValue & 0x08) == 0x08
 
@@ -138,7 +138,7 @@ func (sc *SquareChannel) initSweep(regValue uint8) {
 	sc.reloadSweep = true
 }
 
-func (sc *SquareChannel) updateTargetPeriod() {
+func (sc *squareChannel) updateTargetPeriod() {
 	shiftResult := (sc.realPeriod >> sc.sweepShift)
 	if sc.sweepNegate {
 		sc.sweepTargetPeriod = uint32(sc.realPeriod - shiftResult)
@@ -152,7 +152,7 @@ func (sc *SquareChannel) updateTargetPeriod() {
 	}
 }
 
-func (sc *SquareChannel) setPeriod(newPeriod uint16) {
+func (sc *squareChannel) setPeriod(newPeriod uint16) {
 	sc.realPeriod = newPeriod
 	sc.timer.period = (sc.realPeriod * 2) + 1
 	sc.updateTargetPeriod()
@@ -166,7 +166,7 @@ var squareDuty = [4][8]uint8{
 	{1, 1, 1, 1, 1, 1, 0, 0},
 }
 
-func (sc *SquareChannel) updateOutput() {
+func (sc *squareChannel) updateOutput() {
 	if sc.isMuted() {
 		sc.timer.addOutput(0)
 	} else {
@@ -175,14 +175,14 @@ func (sc *SquareChannel) updateOutput() {
 	}
 }
 
-func (sc *SquareChannel) Run(targetCycle uint32) {
+func (sc *squareChannel) run(targetCycle uint32) {
 	for sc.timer.run(targetCycle) {
 		sc.dutyPos = (sc.dutyPos - 1) & 0x07
 		sc.updateOutput()
 	}
 }
 
-func (sc *SquareChannel) Reset(soft bool) {
+func (sc *squareChannel) reset(soft bool) {
 	sc.envelope.reset(soft)
 	sc.timer.reset(soft)
 
@@ -201,7 +201,7 @@ func (sc *SquareChannel) Reset(soft bool) {
 	sc.updateTargetPeriod()
 }
 
-func (sc *SquareChannel) TickSweep() {
+func (sc *squareChannel) tickSweep() {
 	sc.sweepDivider--
 	if sc.sweepDivider == 0 {
 		if sc.sweepShift > 0 && sc.sweepEnabled && sc.realPeriod >= 8 && sc.sweepTargetPeriod <= 0x7FF {
@@ -216,35 +216,35 @@ func (sc *SquareChannel) TickSweep() {
 	}
 }
 
-func (sc *SquareChannel) TickEnvelope() {
+func (sc *squareChannel) tickEnvelope() {
 	sc.envelope.tick()
 }
 
-func (sc *SquareChannel) TickLengthCounter() {
+func (sc *squareChannel) tickLengthCounter() {
 	sc.envelope.lenCounter.tick()
 }
 
-func (sc *SquareChannel) ReloadLengthCounter() {
+func (sc *squareChannel) reloadLengthCounter() {
 	sc.envelope.lenCounter.reload()
 }
 
-func (sc *SquareChannel) EndFrame() {
+func (sc *squareChannel) endFrame() {
 	sc.timer.endFrame()
 }
 
-func (sc *SquareChannel) SetEnabled(enabled bool) {
+func (sc *squareChannel) setEnabled(enabled bool) {
 	sc.envelope.lenCounter.setEnabled(enabled)
 }
 
-func (sc *SquareChannel) Status() bool {
+func (sc *squareChannel) status() bool {
 	return sc.envelope.lenCounter.status()
 }
 
-func (sc *SquareChannel) Output() uint8 {
+func (sc *squareChannel) output() uint8 {
 	return uint8(sc.timer.lastOutput)
 }
 
-func (sc *SquareChannel) SaveState(state *snapshot.APUSquare) {
+func (sc *squareChannel) saveState(state *snapshot.APUSquare) {
 	state.SweepTargetPeriod = sc.sweepTargetPeriod
 	state.RealPeriod = sc.realPeriod
 	sc.timer.saveState(&state.Timer)

@@ -6,13 +6,13 @@ import (
 	"nestor/hw/snapshot"
 )
 
-// NoiseChannel generates pseudo-random 1-bit noise at 16 different frequencies.
+// noiseChannel generates pseudo-random 1-bit noise at 16 different frequencies.
 //
 //	      Timer --> Shift Register   Length Counter
 //	                    |                |
 //	                    v                v
 //	Envelope -------> Gate ----------> Gate --> (to mixer)
-type NoiseChannel struct {
+type noiseChannel struct {
 	Volume hwio.Reg8 `hwio:"offset=0x0C,wcb"`
 	Unused hwio.Reg8 `hwio:"offset=0x0D,wcb"`
 	Period hwio.Reg8 `hwio:"offset=0x0E,wcb"`
@@ -22,11 +22,11 @@ type NoiseChannel struct {
 	mode     bool // mode flag.
 	timer    timer
 	env      envelope
-	apu      apu
+	apu      *APU
 }
 
-func NewNoiseChannel(apu apu, mixer mixer) NoiseChannel {
-	return NoiseChannel{
+func newNoiseChannel(apu *APU, mixer *Mixer) noiseChannel {
+	return noiseChannel{
 		apu: apu,
 		env: envelope{
 			lenCounter: lengthCounter{
@@ -36,24 +36,24 @@ func NewNoiseChannel(apu apu, mixer mixer) NoiseChannel {
 		},
 		timer: timer{
 			Channel: Noise,
-			Mixer:   mixer,
+			mixer:   mixer,
 		},
 	}
 }
 
-func (nc *NoiseChannel) WriteVOLUME(old, val uint8) {
+func (nc *noiseChannel) WriteVOLUME(old, val uint8) {
 	log.ModSound.InfoZ("write noise volume").Uint8("val", val).End()
 	nc.apu.Run()
 	nc.env.init(val)
 }
 
-func (nc *NoiseChannel) WriteUNUSED(_, _ uint8) {
+func (nc *noiseChannel) WriteUNUSED(_, _ uint8) {
 	nc.apu.Run()
 }
 
 var noisePeriodLUT = [16]uint16{4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068}
 
-func (nc *NoiseChannel) WritePERIOD(old, val uint8) {
+func (nc *noiseChannel) WritePERIOD(old, val uint8) {
 	log.ModSound.InfoZ("write noise period").Uint8("val", val).End()
 
 	nc.apu.Run()
@@ -61,14 +61,14 @@ func (nc *NoiseChannel) WritePERIOD(old, val uint8) {
 	nc.mode = val&0x80 != 0
 }
 
-func (nc *NoiseChannel) WriteLENGTH(old, val uint8) {
+func (nc *noiseChannel) WriteLENGTH(old, val uint8) {
 	log.ModSound.InfoZ("write noise length").Uint8("val", val).End()
 	nc.apu.Run()
 	nc.env.lenCounter.load(val >> 3)
 	nc.env.restart()
 }
 
-func (nc *NoiseChannel) Run(targetCycle uint32) {
+func (nc *noiseChannel) run(targetCycle uint32) {
 	for nc.timer.run(targetCycle) {
 		// Feedback is calculated as the exclusive-OR of bit 0 and one other
 		// bit: bit 6 if Mode flag is set, otherwise bit 1.
@@ -89,41 +89,41 @@ func (nc *NoiseChannel) Run(targetCycle uint32) {
 	}
 }
 
-func (nc *NoiseChannel) Output() uint8 {
+func (nc *noiseChannel) output() uint8 {
 	return uint8(nc.timer.lastOutput)
 }
 
-func (nc *NoiseChannel) isMuted() bool {
+func (nc *noiseChannel) isMuted() bool {
 	// The mixer receives the current envelope volume except when bit 0 of the
 	// shift register is set, or the length counter is zero.
 	return (nc.shiftReg & 0x01) == 0x01
 }
 
-func (nc *NoiseChannel) TickEnvelope() {
+func (nc *noiseChannel) tickEnvelope() {
 	nc.env.tick()
 }
 
-func (nc *NoiseChannel) TickLengthCounter() {
+func (nc *noiseChannel) tickLengthCounter() {
 	nc.env.lenCounter.tick()
 }
 
-func (nc *NoiseChannel) ReloadLengthCounter() {
+func (nc *noiseChannel) reloadLengthCounter() {
 	nc.env.lenCounter.reload()
 }
 
-func (nc *NoiseChannel) EndFrame() {
+func (nc *noiseChannel) endFrame() {
 	nc.timer.endFrame()
 }
 
-func (nc *NoiseChannel) SetEnabled(enabled bool) {
+func (nc *noiseChannel) setEnabled(enabled bool) {
 	nc.env.lenCounter.setEnabled(enabled)
 }
 
-func (nc *NoiseChannel) Status() bool {
+func (nc *noiseChannel) status() bool {
 	return nc.env.lenCounter.status()
 }
 
-func (nc *NoiseChannel) Reset(soft bool) {
+func (nc *noiseChannel) reset(soft bool) {
 	nc.env.reset(soft)
 	nc.timer.reset(soft)
 
@@ -132,7 +132,7 @@ func (nc *NoiseChannel) Reset(soft bool) {
 	nc.mode = false
 }
 
-func (nc *NoiseChannel) SaveState(state *snapshot.APUNoise) {
+func (nc *noiseChannel) saveState(state *snapshot.APUNoise) {
 	nc.env.saveState(&state.Envelope)
 	nc.timer.saveState(&state.Timer)
 	state.ShitftRegister = nc.shiftReg

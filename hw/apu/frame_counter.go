@@ -16,8 +16,8 @@ var frameType = [2][6]FrameType{
 	{QuarterFrame, HalfFrame, QuarterFrame, NoFrame, HalfFrame, NoFrame},
 }
 
-type FrameCounter struct {
-	APU apu
+type frameCounter struct {
+	apu *APU
 	CPU cpu
 
 	stepCycles        [2][6]int32
@@ -30,12 +30,12 @@ type FrameCounter struct {
 	writeDelayCounter int8
 }
 
-func (afc *FrameCounter) Init(apu apu, cpu cpu) {
-	afc.APU = apu
+func (afc *frameCounter) init(apu *APU, cpu cpu) {
+	afc.apu = apu
 	afc.CPU = cpu
 }
 
-func (afc *FrameCounter) Reset(soft bool) {
+func (afc *frameCounter) reset(soft bool) {
 	afc.prevCycle = 0
 
 	// After reset: APU mode in $4017 was unchanged, so we need to keep
@@ -60,9 +60,9 @@ func (afc *FrameCounter) Reset(soft bool) {
 	afc.blockTick = 0
 }
 
-func (afc *FrameCounter) WriteFRAMECOUNTER(old, val uint8) {
+func (afc *frameCounter) WriteFRAMECOUNTER(old, val uint8) {
 	log.ModSound.InfoZ("write framecounter").Uint8("val", val).End()
-	afc.APU.Run()
+	afc.apu.Run()
 	afc.newval = int16(val)
 
 	// Reset sequence after $4017 is written to
@@ -83,7 +83,7 @@ func (afc *FrameCounter) WriteFRAMECOUNTER(old, val uint8) {
 }
 
 // TODO: use return value instead of pointer?
-func (afc *FrameCounter) Run(cyclesToRun *int32) uint32 {
+func (afc *frameCounter) run(cyclesToRun *int32) uint32 {
 	var cyclesRan int32
 
 	if afc.prevCycle+*cyclesToRun >= stepCycles[afc.stepMode][afc.curStep] {
@@ -94,7 +94,7 @@ func (afc *FrameCounter) Run(cyclesToRun *int32) uint32 {
 
 		ftyp := frameType[afc.stepMode][afc.curStep]
 		if ftyp != NoFrame && afc.blockTick == 0 {
-			afc.APU.FrameCounterTick(ftyp)
+			afc.apu.FrameCounterTick(ftyp)
 
 			// Do not allow writes to 4017 to clock the frame counter for the
 			// next cycle (i.e this odd cycle + the following even cycle)
@@ -143,7 +143,7 @@ func (afc *FrameCounter) Run(cyclesToRun *int32) uint32 {
 				// Writing to $4017 with bit 7 set will immediately generate
 				// a clock for both the quarter frame and the half frame
 				// units, regardless of what the sequencer is doing.
-				afc.APU.FrameCounterTick(HalfFrame)
+				afc.apu.FrameCounterTick(HalfFrame)
 				afc.blockTick = 2
 			}
 		}
@@ -156,7 +156,7 @@ func (afc *FrameCounter) Run(cyclesToRun *int32) uint32 {
 	return uint32(cyclesRan)
 }
 
-func (afc *FrameCounter) NeedToRun(cyclesToRun uint32) bool {
+func (afc *frameCounter) needToRun(cyclesToRun uint32) bool {
 	// Run APU when:
 	// - A new value is pending
 	// - The "blockTick" process is running
@@ -166,7 +166,7 @@ func (afc *FrameCounter) NeedToRun(cyclesToRun uint32) bool {
 		(afc.prevCycle+int32(cyclesToRun) >= stepCycles[afc.stepMode][afc.curStep]-1)
 }
 
-func (afc *FrameCounter) SaveState(state *snapshot.APUFrameCounter) {
+func (afc *frameCounter) saveState(state *snapshot.APUFrameCounter) {
 	state.PrevCycle = afc.prevCycle
 	state.CurStep = afc.curStep
 	state.StepMode = afc.stepMode

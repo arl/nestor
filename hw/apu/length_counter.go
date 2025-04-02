@@ -6,7 +6,7 @@ import "nestor/hw/snapshot"
 // and the counter can be disabled by clearing the appropriate bit in the status
 // register, which immediately sets the counter to 0 and keeps it there.
 type lengthCounter struct {
-	apu apu
+	apu *APU
 
 	channel Channel
 	newHalt bool

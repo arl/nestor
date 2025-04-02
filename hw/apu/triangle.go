@@ -6,7 +6,7 @@ import (
 	"nestor/hw/snapshot"
 )
 
-// The TriangleChannel contains the following: Timer, 32-step sequencer, Length
+// The triangleChannel contains the following: Timer, 32-step sequencer, Length
 // Counter, Linear Counter, 4-bit DAC.
 //
 //	+---------+    +---------+
@@ -17,8 +17,8 @@ import (
 //	+---------+        |\             |\         +---------+    +---------+
 //	|  Timer  |------->| >----------->| >------->|Sequencer|--->|   DAC   |
 //	+---------+        |/             |/         +---------+    +---------+
-type TriangleChannel struct {
-	apu        apu
+type triangleChannel struct {
+	apu        *APU
 	lenCounter lengthCounter
 	timer      timer
 
@@ -35,8 +35,8 @@ type TriangleChannel struct {
 	Length hwio.Reg8 `hwio:"offset=0x0B,wcb"`
 }
 
-func NewTriangleChannel(apu apu, mixer mixer) TriangleChannel {
-	return TriangleChannel{
+func newTriangleChannel(apu *APU, mixer *Mixer) triangleChannel {
+	return triangleChannel{
 		apu: apu,
 		lenCounter: lengthCounter{
 			channel: Triangle,
@@ -44,7 +44,7 @@ func NewTriangleChannel(apu apu, mixer mixer) TriangleChannel {
 		},
 		timer: timer{
 			Channel: Triangle,
-			Mixer:   mixer,
+			mixer:   mixer,
 		},
 	}
 }
@@ -56,7 +56,7 @@ var triangleSequence = [32]int8{
 	8, 9, 10, 11, 12, 13, 14, 15,
 }
 
-func (tc *TriangleChannel) Run(targetCycle uint32) {
+func (tc *triangleChannel) run(targetCycle uint32) {
 	for tc.timer.run(targetCycle) {
 		// The sequencer is clocked by the timer as long as both the linear
 		// counter and the length counter are nonzero.
@@ -73,7 +73,7 @@ func (tc *TriangleChannel) Run(targetCycle uint32) {
 	}
 }
 
-func (tc *TriangleChannel) Reset(soft bool) {
+func (tc *triangleChannel) reset(soft bool) {
 	tc.timer.reset(soft)
 	tc.lenCounter.reset(soft)
 
@@ -84,7 +84,7 @@ func (tc *TriangleChannel) Reset(soft bool) {
 	tc.pos = 0
 }
 
-func (tc *TriangleChannel) WriteLINEAR(_, val uint8) {
+func (tc *triangleChannel) WriteLINEAR(_, val uint8) {
 	tc.apu.Run()
 	tc.linearCtrl = (val & 0x80) == 0x80
 	tc.linearCounterReload = val & 0x7F
@@ -98,11 +98,11 @@ func (tc *TriangleChannel) WriteLINEAR(_, val uint8) {
 		End()
 }
 
-func (tc *TriangleChannel) WriteUNUSED(_, _ uint8) {
+func (tc *triangleChannel) WriteUNUSED(_, _ uint8) {
 	tc.apu.Run()
 }
 
-func (tc *TriangleChannel) WriteTIMER(_, val uint8) {
+func (tc *triangleChannel) WriteTIMER(_, val uint8) {
 	tc.apu.Run()
 
 	period := (tc.timer.period & 0xFF00) | uint16(val)
@@ -114,7 +114,7 @@ func (tc *TriangleChannel) WriteTIMER(_, val uint8) {
 		End()
 }
 
-func (tc *TriangleChannel) WriteLENGTH(_, val uint8) {
+func (tc *triangleChannel) WriteLENGTH(_, val uint8) {
 	tc.apu.Run()
 
 	tc.lenCounter.load(val >> 3)
@@ -131,7 +131,7 @@ func (tc *TriangleChannel) WriteLENGTH(_, val uint8) {
 		End()
 }
 
-func (tc *TriangleChannel) TickLinearCounter() {
+func (tc *triangleChannel) tickLinearCounter() {
 	if tc.linearReload {
 		tc.linearCounter = tc.linearCounterReload
 	} else if tc.linearCounter > 0 {
@@ -143,31 +143,31 @@ func (tc *TriangleChannel) TickLinearCounter() {
 	}
 }
 
-func (tc *TriangleChannel) TickLengthCounter() {
+func (tc *triangleChannel) tickLengthCounter() {
 	tc.lenCounter.tick()
 }
 
-func (tc *TriangleChannel) ReloadLengthCounter() {
+func (tc *triangleChannel) teloadLengthCounter() {
 	tc.lenCounter.reload()
 }
 
-func (tc *TriangleChannel) EndFrame() {
+func (tc *triangleChannel) endFrame() {
 	tc.timer.endFrame()
 }
 
-func (tc *TriangleChannel) SetEnabled(enabled bool) {
+func (tc *triangleChannel) setEnabled(enabled bool) {
 	tc.lenCounter.setEnabled(enabled)
 }
 
-func (tc *TriangleChannel) Status() bool {
+func (tc *triangleChannel) status() bool {
 	return tc.lenCounter.status()
 }
 
-func (tc *TriangleChannel) Output() uint8 {
+func (tc *triangleChannel) output() uint8 {
 	return uint8(tc.timer.lastOutput)
 }
 
-func (tc *TriangleChannel) SaveState(state *snapshot.APUTriangle) {
+func (tc *triangleChannel) saveState(state *snapshot.APUTriangle) {
 	tc.lenCounter.saveState(&state.LengthCounter)
 	tc.timer.saveState(&state.Timer)
 	state.LinearCounter = tc.linearCounter

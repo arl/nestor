@@ -15,8 +15,8 @@ const numChannels = 5 // Square1, Square2, Triangle, Noise, DMC
 const MaxSampleRate = 96000
 const maxSamplesPerFrame = MaxSampleRate / 60 * 4 * 2 //x4 to allow CPU overclocking up to 10x, x2 for panning stereo
 
-const CycleLength = 10000
-const BitsPerSample = 16
+const cycleLength = 10000
+const bitsPerSample = 16
 
 const (
 	AudioFormat     = sdl.AUDIO_S16LSB
@@ -24,7 +24,7 @@ const (
 	AudioBufferSize = 4096 // TODO: adjust based on latency.
 )
 
-type AudioMixer struct {
+type Mixer struct {
 	outbuf   [maxSamplesPerFrame]int16
 	bufleft  *blip.Buffer
 	bufright *blip.Buffer
@@ -39,15 +39,15 @@ type AudioMixer struct {
 	panning [numChannels]float64
 
 	timestamps []uint32
-	chanoutput [numChannels][CycleLength]int16
+	chanoutput [numChannels][cycleLength]int16
 	curOutput  [numChannels]int16
 
 	clockRate  uint32
 	sampleRate uint32
 }
 
-func NewAudioMixer() *AudioMixer {
-	am := &AudioMixer{
+func NewMixer() *Mixer {
+	am := &Mixer{
 		bufleft:    blip.NewBuffer(maxSamplesPerFrame),
 		bufright:   blip.NewBuffer(maxSamplesPerFrame),
 		sampleRate: MaxSampleRate,
@@ -56,7 +56,7 @@ func NewAudioMixer() *AudioMixer {
 	return am
 }
 
-func (am *AudioMixer) Reset() {
+func (am *Mixer) Reset() {
 	am.nsamples = 0
 
 	am.prevOutleft = 0
@@ -75,7 +75,7 @@ func (am *AudioMixer) Reset() {
 	am.updateRates(true)
 }
 
-func (am *AudioMixer) PlayAudioBuffer(time uint32) {
+func (am *Mixer) playAudioBuffer(time uint32) {
 	am.EndFrame(time)
 
 	out := am.outbuf[am.nsamples*2:]
@@ -111,7 +111,7 @@ func (am *AudioMixer) PlayAudioBuffer(time uint32) {
 
 const ntscClockRate uint32 = 1789773
 
-func (am *AudioMixer) updateRates(forceUpdate bool) {
+func (am *Mixer) updateRates(forceUpdate bool) {
 	clockRate := ntscClockRate
 	if forceUpdate || am.clockRate != clockRate {
 		am.clockRate = clockRate
@@ -138,14 +138,14 @@ func (am *AudioMixer) updateRates(forceUpdate bool) {
 	am.hasPanning = hasPanning
 }
 
-func (am *AudioMixer) channelOutput(ch Channel, right bool) float64 {
+func (am *Mixer) channelOutput(ch Channel, right bool) float64 {
 	if right {
 		return float64(am.curOutput[ch]) * am.volumes[ch] * am.panning[ch]
 	}
 	return float64(am.curOutput[ch]) * am.volumes[ch] * (2.0 - am.panning[ch])
 }
 
-func (am *AudioMixer) outputVolume(isRight bool) int16 {
+func (am *Mixer) outputVolume(isRight bool) int16 {
 	squareOutput := am.channelOutput(Square1, isRight) + am.channelOutput(Square2, isRight)
 	tndOutput := am.channelOutput(DPCM, isRight) +
 		2.7516713261*am.channelOutput(Triangle, isRight) +
@@ -157,14 +157,14 @@ func (am *AudioMixer) outputVolume(isRight bool) int16 {
 	return int16(squareVolume + tndVolume)
 }
 
-func (am *AudioMixer) AddDelta(ch Channel, time uint32, delta int16) {
+func (am *Mixer) addDelta(ch Channel, time uint32, delta int16) {
 	if delta != 0 {
 		am.timestamps = append(am.timestamps, time)
 		am.chanoutput[ch][time] += delta
 	}
 }
 
-func (am *AudioMixer) EndFrame(time uint32) {
+func (am *Mixer) EndFrame(time uint32) {
 	// Remove duplicates.
 	slices.Sort(am.timestamps)
 	am.timestamps = slices.Compact(am.timestamps)

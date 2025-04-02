@@ -19,14 +19,14 @@ type NES struct {
 	PPU   *hw.PPU
 	APU   *apu.APU
 	Rom   *ines.Rom
-	Mixer *apu.AudioMixer
+	Mixer *apu.Mixer
 }
 
 func powerUp(rom *ines.Rom) (*NES, error) {
-	audioMixer := apu.NewAudioMixer()
+	audioMixer := apu.NewMixer()
 	ppu := hw.NewPPU()
 	cpu := hw.NewCPU(ppu)
-	apu := apu.NewAPU(cpu, audioMixer)
+	apu := apu.New(cpu, audioMixer)
 
 	cpu.APU = apu
 	cpu.InitBus()
