@@ -7,6 +7,1691 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
+func (z *APU) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Square1":
+			err = z.Square1.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "Square1")
+				return
+			}
+		case "Square2":
+			err = z.Square2.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "Square2")
+				return
+			}
+		case "Triangle":
+			err = z.Triangle.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "Triangle")
+				return
+			}
+		case "Noise":
+			err = z.Noise.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "Noise")
+				return
+			}
+		case "DMC":
+			err = z.DMC.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "DMC")
+				return
+			}
+		case "FrameCounter":
+			err = z.FrameCounter.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "FrameCounter")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *APU) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 6
+	// write "Square1"
+	err = en.Append(0x86, 0xa7, 0x53, 0x71, 0x75, 0x61, 0x72, 0x65, 0x31)
+	if err != nil {
+		return
+	}
+	err = z.Square1.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "Square1")
+		return
+	}
+	// write "Square2"
+	err = en.Append(0xa7, 0x53, 0x71, 0x75, 0x61, 0x72, 0x65, 0x32)
+	if err != nil {
+		return
+	}
+	err = z.Square2.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "Square2")
+		return
+	}
+	// write "Triangle"
+	err = en.Append(0xa8, 0x54, 0x72, 0x69, 0x61, 0x6e, 0x67, 0x6c, 0x65)
+	if err != nil {
+		return
+	}
+	err = z.Triangle.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "Triangle")
+		return
+	}
+	// write "Noise"
+	err = en.Append(0xa5, 0x4e, 0x6f, 0x69, 0x73, 0x65)
+	if err != nil {
+		return
+	}
+	err = z.Noise.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "Noise")
+		return
+	}
+	// write "DMC"
+	err = en.Append(0xa3, 0x44, 0x4d, 0x43)
+	if err != nil {
+		return
+	}
+	err = z.DMC.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "DMC")
+		return
+	}
+	// write "FrameCounter"
+	err = en.Append(0xac, 0x46, 0x72, 0x61, 0x6d, 0x65, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = z.FrameCounter.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "FrameCounter")
+		return
+	}
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *APU) Msgsize() (s int) {
+	s = 1 + 8 + z.Square1.Msgsize() + 8 + z.Square2.Msgsize() + 9 + z.Triangle.Msgsize() + 6 + z.Noise.Msgsize() + 4 + z.DMC.Msgsize() + 13 + z.FrameCounter.Msgsize()
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *APUDMC) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Timer":
+			var zb0002 uint32
+			zb0002, err = dc.ReadMapHeader()
+			if err != nil {
+				err = msgp.WrapError(err, "Timer")
+				return
+			}
+			for zb0002 > 0 {
+				zb0002--
+				field, err = dc.ReadMapKeyPtr()
+				if err != nil {
+					err = msgp.WrapError(err, "Timer")
+					return
+				}
+				switch msgp.UnsafeString(field) {
+				case "Timer":
+					z.Timer.Timer, err = dc.ReadUint16()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer", "Timer")
+						return
+					}
+				case "Period":
+					z.Timer.Period, err = dc.ReadUint16()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer", "Period")
+						return
+					}
+				case "LastOutput":
+					z.Timer.LastOutput, err = dc.ReadInt8()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer", "LastOutput")
+						return
+					}
+				default:
+					err = dc.Skip()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer")
+						return
+					}
+				}
+			}
+		case "SampleAddr":
+			z.SampleAddr, err = dc.ReadUint16()
+			if err != nil {
+				err = msgp.WrapError(err, "SampleAddr")
+				return
+			}
+		case "SampleLen":
+			z.SampleLen, err = dc.ReadUint16()
+			if err != nil {
+				err = msgp.WrapError(err, "SampleLen")
+				return
+			}
+		case "CurrentAddr":
+			z.CurrentAddr, err = dc.ReadUint16()
+			if err != nil {
+				err = msgp.WrapError(err, "CurrentAddr")
+				return
+			}
+		case "Remaining":
+			z.Remaining, err = dc.ReadUint16()
+			if err != nil {
+				err = msgp.WrapError(err, "Remaining")
+				return
+			}
+		case "OutputLevel":
+			z.OutputLevel, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "OutputLevel")
+				return
+			}
+		case "ReadBuf":
+			z.ReadBuf, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "ReadBuf")
+				return
+			}
+		case "BitsLeft":
+			z.BitsLeft, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "BitsLeft")
+				return
+			}
+		case "StartDelay":
+			z.StartDelay, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "StartDelay")
+				return
+			}
+		case "DisableDelay":
+			z.DisableDelay, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "DisableDelay")
+				return
+			}
+		case "IRQEnabled":
+			z.IRQEnabled, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "IRQEnabled")
+				return
+			}
+		case "Loop":
+			z.Loop, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "Loop")
+				return
+			}
+		case "BufEmpty":
+			z.BufEmpty, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "BufEmpty")
+				return
+			}
+		case "ShiftReg":
+			z.ShiftReg, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "ShiftReg")
+				return
+			}
+		case "Silence":
+			z.Silence, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "Silence")
+				return
+			}
+		case "NeedToRun":
+			z.NeedToRun, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "NeedToRun")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *APUDMC) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 16
+	// write "Timer"
+	err = en.Append(0xde, 0x0, 0x10, 0xa5, 0x54, 0x69, 0x6d, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	// map header, size 3
+	// write "Timer"
+	err = en.Append(0x83, 0xa5, 0x54, 0x69, 0x6d, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.Timer.Timer)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer", "Timer")
+		return
+	}
+	// write "Period"
+	err = en.Append(0xa6, 0x50, 0x65, 0x72, 0x69, 0x6f, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.Timer.Period)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer", "Period")
+		return
+	}
+	// write "LastOutput"
+	err = en.Append(0xaa, 0x4c, 0x61, 0x73, 0x74, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt8(z.Timer.LastOutput)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer", "LastOutput")
+		return
+	}
+	// write "SampleAddr"
+	err = en.Append(0xaa, 0x53, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x41, 0x64, 0x64, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.SampleAddr)
+	if err != nil {
+		err = msgp.WrapError(err, "SampleAddr")
+		return
+	}
+	// write "SampleLen"
+	err = en.Append(0xa9, 0x53, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x4c, 0x65, 0x6e)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.SampleLen)
+	if err != nil {
+		err = msgp.WrapError(err, "SampleLen")
+		return
+	}
+	// write "CurrentAddr"
+	err = en.Append(0xab, 0x43, 0x75, 0x72, 0x72, 0x65, 0x6e, 0x74, 0x41, 0x64, 0x64, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.CurrentAddr)
+	if err != nil {
+		err = msgp.WrapError(err, "CurrentAddr")
+		return
+	}
+	// write "Remaining"
+	err = en.Append(0xa9, 0x52, 0x65, 0x6d, 0x61, 0x69, 0x6e, 0x69, 0x6e, 0x67)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.Remaining)
+	if err != nil {
+		err = msgp.WrapError(err, "Remaining")
+		return
+	}
+	// write "OutputLevel"
+	err = en.Append(0xab, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x4c, 0x65, 0x76, 0x65, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.OutputLevel)
+	if err != nil {
+		err = msgp.WrapError(err, "OutputLevel")
+		return
+	}
+	// write "ReadBuf"
+	err = en.Append(0xa7, 0x52, 0x65, 0x61, 0x64, 0x42, 0x75, 0x66)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.ReadBuf)
+	if err != nil {
+		err = msgp.WrapError(err, "ReadBuf")
+		return
+	}
+	// write "BitsLeft"
+	err = en.Append(0xa8, 0x42, 0x69, 0x74, 0x73, 0x4c, 0x65, 0x66, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.BitsLeft)
+	if err != nil {
+		err = msgp.WrapError(err, "BitsLeft")
+		return
+	}
+	// write "StartDelay"
+	err = en.Append(0xaa, 0x53, 0x74, 0x61, 0x72, 0x74, 0x44, 0x65, 0x6c, 0x61, 0x79)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.StartDelay)
+	if err != nil {
+		err = msgp.WrapError(err, "StartDelay")
+		return
+	}
+	// write "DisableDelay"
+	err = en.Append(0xac, 0x44, 0x69, 0x73, 0x61, 0x62, 0x6c, 0x65, 0x44, 0x65, 0x6c, 0x61, 0x79)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.DisableDelay)
+	if err != nil {
+		err = msgp.WrapError(err, "DisableDelay")
+		return
+	}
+	// write "IRQEnabled"
+	err = en.Append(0xaa, 0x49, 0x52, 0x51, 0x45, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.IRQEnabled)
+	if err != nil {
+		err = msgp.WrapError(err, "IRQEnabled")
+		return
+	}
+	// write "Loop"
+	err = en.Append(0xa4, 0x4c, 0x6f, 0x6f, 0x70)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.Loop)
+	if err != nil {
+		err = msgp.WrapError(err, "Loop")
+		return
+	}
+	// write "BufEmpty"
+	err = en.Append(0xa8, 0x42, 0x75, 0x66, 0x45, 0x6d, 0x70, 0x74, 0x79)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.BufEmpty)
+	if err != nil {
+		err = msgp.WrapError(err, "BufEmpty")
+		return
+	}
+	// write "ShiftReg"
+	err = en.Append(0xa8, 0x53, 0x68, 0x69, 0x66, 0x74, 0x52, 0x65, 0x67)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.ShiftReg)
+	if err != nil {
+		err = msgp.WrapError(err, "ShiftReg")
+		return
+	}
+	// write "Silence"
+	err = en.Append(0xa7, 0x53, 0x69, 0x6c, 0x65, 0x6e, 0x63, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.Silence)
+	if err != nil {
+		err = msgp.WrapError(err, "Silence")
+		return
+	}
+	// write "NeedToRun"
+	err = en.Append(0xa9, 0x4e, 0x65, 0x65, 0x64, 0x54, 0x6f, 0x52, 0x75, 0x6e)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.NeedToRun)
+	if err != nil {
+		err = msgp.WrapError(err, "NeedToRun")
+		return
+	}
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *APUDMC) Msgsize() (s int) {
+	s = 3 + 6 + 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size + 11 + msgp.Uint16Size + 10 + msgp.Uint16Size + 12 + msgp.Uint16Size + 10 + msgp.Uint16Size + 12 + msgp.Uint8Size + 8 + msgp.Uint8Size + 9 + msgp.Uint8Size + 11 + msgp.Uint8Size + 13 + msgp.Uint8Size + 11 + msgp.BoolSize + 5 + msgp.BoolSize + 9 + msgp.BoolSize + 9 + msgp.Uint8Size + 8 + msgp.BoolSize + 10 + msgp.BoolSize
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *APUEnveloppe) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "LengthCounter":
+			err = z.LengthCounter.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "LengthCounter")
+				return
+			}
+		case "ConstVolume":
+			z.ConstVolume, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "ConstVolume")
+				return
+			}
+		case "Vol":
+			z.Vol, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "Vol")
+				return
+			}
+		case "Start":
+			z.Start, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "Start")
+				return
+			}
+		case "Divider":
+			z.Divider, err = dc.ReadInt8()
+			if err != nil {
+				err = msgp.WrapError(err, "Divider")
+				return
+			}
+		case "Counter":
+			z.Counter, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "Counter")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *APUEnveloppe) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 6
+	// write "LengthCounter"
+	err = en.Append(0x86, 0xad, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = z.LengthCounter.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "LengthCounter")
+		return
+	}
+	// write "ConstVolume"
+	err = en.Append(0xab, 0x43, 0x6f, 0x6e, 0x73, 0x74, 0x56, 0x6f, 0x6c, 0x75, 0x6d, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.ConstVolume)
+	if err != nil {
+		err = msgp.WrapError(err, "ConstVolume")
+		return
+	}
+	// write "Vol"
+	err = en.Append(0xa3, 0x56, 0x6f, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.Vol)
+	if err != nil {
+		err = msgp.WrapError(err, "Vol")
+		return
+	}
+	// write "Start"
+	err = en.Append(0xa5, 0x53, 0x74, 0x61, 0x72, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.Start)
+	if err != nil {
+		err = msgp.WrapError(err, "Start")
+		return
+	}
+	// write "Divider"
+	err = en.Append(0xa7, 0x44, 0x69, 0x76, 0x69, 0x64, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt8(z.Divider)
+	if err != nil {
+		err = msgp.WrapError(err, "Divider")
+		return
+	}
+	// write "Counter"
+	err = en.Append(0xa7, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.Counter)
+	if err != nil {
+		err = msgp.WrapError(err, "Counter")
+		return
+	}
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *APUEnveloppe) Msgsize() (s int) {
+	s = 1 + 14 + z.LengthCounter.Msgsize() + 12 + msgp.BoolSize + 4 + msgp.Uint8Size + 6 + msgp.BoolSize + 8 + msgp.Int8Size + 8 + msgp.Uint8Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *APUFrameCounter) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "PrevCycle":
+			z.PrevCycle, err = dc.ReadInt32()
+			if err != nil {
+				err = msgp.WrapError(err, "PrevCycle")
+				return
+			}
+		case "CurStep":
+			z.CurStep, err = dc.ReadUint32()
+			if err != nil {
+				err = msgp.WrapError(err, "CurStep")
+				return
+			}
+		case "StepMode":
+			z.StepMode, err = dc.ReadUint32()
+			if err != nil {
+				err = msgp.WrapError(err, "StepMode")
+				return
+			}
+		case "InhibitIRQ":
+			z.InhibitIRQ, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "InhibitIRQ")
+				return
+			}
+		case "BlockTick":
+			z.BlockTick, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "BlockTick")
+				return
+			}
+		case "WriteDelayCounter":
+			z.WriteDelayCounter, err = dc.ReadInt8()
+			if err != nil {
+				err = msgp.WrapError(err, "WriteDelayCounter")
+				return
+			}
+		case "NewVal":
+			z.NewVal, err = dc.ReadInt16()
+			if err != nil {
+				err = msgp.WrapError(err, "NewVal")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *APUFrameCounter) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 7
+	// write "PrevCycle"
+	err = en.Append(0x87, 0xa9, 0x50, 0x72, 0x65, 0x76, 0x43, 0x79, 0x63, 0x6c, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt32(z.PrevCycle)
+	if err != nil {
+		err = msgp.WrapError(err, "PrevCycle")
+		return
+	}
+	// write "CurStep"
+	err = en.Append(0xa7, 0x43, 0x75, 0x72, 0x53, 0x74, 0x65, 0x70)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint32(z.CurStep)
+	if err != nil {
+		err = msgp.WrapError(err, "CurStep")
+		return
+	}
+	// write "StepMode"
+	err = en.Append(0xa8, 0x53, 0x74, 0x65, 0x70, 0x4d, 0x6f, 0x64, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint32(z.StepMode)
+	if err != nil {
+		err = msgp.WrapError(err, "StepMode")
+		return
+	}
+	// write "InhibitIRQ"
+	err = en.Append(0xaa, 0x49, 0x6e, 0x68, 0x69, 0x62, 0x69, 0x74, 0x49, 0x52, 0x51)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.InhibitIRQ)
+	if err != nil {
+		err = msgp.WrapError(err, "InhibitIRQ")
+		return
+	}
+	// write "BlockTick"
+	err = en.Append(0xa9, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x54, 0x69, 0x63, 0x6b)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.BlockTick)
+	if err != nil {
+		err = msgp.WrapError(err, "BlockTick")
+		return
+	}
+	// write "WriteDelayCounter"
+	err = en.Append(0xb1, 0x57, 0x72, 0x69, 0x74, 0x65, 0x44, 0x65, 0x6c, 0x61, 0x79, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt8(z.WriteDelayCounter)
+	if err != nil {
+		err = msgp.WrapError(err, "WriteDelayCounter")
+		return
+	}
+	// write "NewVal"
+	err = en.Append(0xa6, 0x4e, 0x65, 0x77, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt16(z.NewVal)
+	if err != nil {
+		err = msgp.WrapError(err, "NewVal")
+		return
+	}
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *APUFrameCounter) Msgsize() (s int) {
+	s = 1 + 10 + msgp.Int32Size + 8 + msgp.Uint32Size + 9 + msgp.Uint32Size + 11 + msgp.BoolSize + 10 + msgp.Uint8Size + 18 + msgp.Int8Size + 7 + msgp.Int16Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *APULengthCounter) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Enabled":
+			z.Enabled, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "Enabled")
+				return
+			}
+		case "Halt":
+			z.Halt, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "Halt")
+				return
+			}
+		case "NewHalt":
+			z.NewHalt, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "NewHalt")
+				return
+			}
+		case "Counter":
+			z.Counter, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "Counter")
+				return
+			}
+		case "PrevVal":
+			z.PrevVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "PrevVal")
+				return
+			}
+		case "ReloadVal":
+			z.ReloadVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "ReloadVal")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *APULengthCounter) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 6
+	// write "Enabled"
+	err = en.Append(0x86, 0xa7, 0x45, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.Enabled)
+	if err != nil {
+		err = msgp.WrapError(err, "Enabled")
+		return
+	}
+	// write "Halt"
+	err = en.Append(0xa4, 0x48, 0x61, 0x6c, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.Halt)
+	if err != nil {
+		err = msgp.WrapError(err, "Halt")
+		return
+	}
+	// write "NewHalt"
+	err = en.Append(0xa7, 0x4e, 0x65, 0x77, 0x48, 0x61, 0x6c, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.NewHalt)
+	if err != nil {
+		err = msgp.WrapError(err, "NewHalt")
+		return
+	}
+	// write "Counter"
+	err = en.Append(0xa7, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.Counter)
+	if err != nil {
+		err = msgp.WrapError(err, "Counter")
+		return
+	}
+	// write "PrevVal"
+	err = en.Append(0xa7, 0x50, 0x72, 0x65, 0x76, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.PrevVal)
+	if err != nil {
+		err = msgp.WrapError(err, "PrevVal")
+		return
+	}
+	// write "ReloadVal"
+	err = en.Append(0xa9, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.ReloadVal)
+	if err != nil {
+		err = msgp.WrapError(err, "ReloadVal")
+		return
+	}
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *APULengthCounter) Msgsize() (s int) {
+	s = 1 + 8 + msgp.BoolSize + 5 + msgp.BoolSize + 8 + msgp.BoolSize + 8 + msgp.Uint8Size + 8 + msgp.Uint8Size + 10 + msgp.Uint8Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *APUNoise) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Envelope":
+			err = z.Envelope.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "Envelope")
+				return
+			}
+		case "Timer":
+			var zb0002 uint32
+			zb0002, err = dc.ReadMapHeader()
+			if err != nil {
+				err = msgp.WrapError(err, "Timer")
+				return
+			}
+			for zb0002 > 0 {
+				zb0002--
+				field, err = dc.ReadMapKeyPtr()
+				if err != nil {
+					err = msgp.WrapError(err, "Timer")
+					return
+				}
+				switch msgp.UnsafeString(field) {
+				case "Timer":
+					z.Timer.Timer, err = dc.ReadUint16()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer", "Timer")
+						return
+					}
+				case "Period":
+					z.Timer.Period, err = dc.ReadUint16()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer", "Period")
+						return
+					}
+				case "LastOutput":
+					z.Timer.LastOutput, err = dc.ReadInt8()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer", "LastOutput")
+						return
+					}
+				default:
+					err = dc.Skip()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer")
+						return
+					}
+				}
+			}
+		case "ShitftRegister":
+			z.ShitftRegister, err = dc.ReadUint16()
+			if err != nil {
+				err = msgp.WrapError(err, "ShitftRegister")
+				return
+			}
+		case "Mode":
+			z.Mode, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "Mode")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *APUNoise) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 4
+	// write "Envelope"
+	err = en.Append(0x84, 0xa8, 0x45, 0x6e, 0x76, 0x65, 0x6c, 0x6f, 0x70, 0x65)
+	if err != nil {
+		return
+	}
+	err = z.Envelope.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "Envelope")
+		return
+	}
+	// write "Timer"
+	err = en.Append(0xa5, 0x54, 0x69, 0x6d, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	// map header, size 3
+	// write "Timer"
+	err = en.Append(0x83, 0xa5, 0x54, 0x69, 0x6d, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.Timer.Timer)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer", "Timer")
+		return
+	}
+	// write "Period"
+	err = en.Append(0xa6, 0x50, 0x65, 0x72, 0x69, 0x6f, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.Timer.Period)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer", "Period")
+		return
+	}
+	// write "LastOutput"
+	err = en.Append(0xaa, 0x4c, 0x61, 0x73, 0x74, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt8(z.Timer.LastOutput)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer", "LastOutput")
+		return
+	}
+	// write "ShitftRegister"
+	err = en.Append(0xae, 0x53, 0x68, 0x69, 0x74, 0x66, 0x74, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.ShitftRegister)
+	if err != nil {
+		err = msgp.WrapError(err, "ShitftRegister")
+		return
+	}
+	// write "Mode"
+	err = en.Append(0xa4, 0x4d, 0x6f, 0x64, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.Mode)
+	if err != nil {
+		err = msgp.WrapError(err, "Mode")
+		return
+	}
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *APUNoise) Msgsize() (s int) {
+	s = 1 + 9 + z.Envelope.Msgsize() + 6 + 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size + 15 + msgp.Uint16Size + 5 + msgp.BoolSize
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *APUSquare) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "SweepTargetPeriod":
+			z.SweepTargetPeriod, err = dc.ReadUint32()
+			if err != nil {
+				err = msgp.WrapError(err, "SweepTargetPeriod")
+				return
+			}
+		case "RealPeriod":
+			z.RealPeriod, err = dc.ReadUint16()
+			if err != nil {
+				err = msgp.WrapError(err, "RealPeriod")
+				return
+			}
+		case "Timer":
+			var zb0002 uint32
+			zb0002, err = dc.ReadMapHeader()
+			if err != nil {
+				err = msgp.WrapError(err, "Timer")
+				return
+			}
+			for zb0002 > 0 {
+				zb0002--
+				field, err = dc.ReadMapKeyPtr()
+				if err != nil {
+					err = msgp.WrapError(err, "Timer")
+					return
+				}
+				switch msgp.UnsafeString(field) {
+				case "Timer":
+					z.Timer.Timer, err = dc.ReadUint16()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer", "Timer")
+						return
+					}
+				case "Period":
+					z.Timer.Period, err = dc.ReadUint16()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer", "Period")
+						return
+					}
+				case "LastOutput":
+					z.Timer.LastOutput, err = dc.ReadInt8()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer", "LastOutput")
+						return
+					}
+				default:
+					err = dc.Skip()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer")
+						return
+					}
+				}
+			}
+		case "Envelope":
+			err = z.Envelope.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "Envelope")
+				return
+			}
+		case "SweepEnabled":
+			z.SweepEnabled, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "SweepEnabled")
+				return
+			}
+		case "SweepPeriod":
+			z.SweepPeriod, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "SweepPeriod")
+				return
+			}
+		case "SweepNegate":
+			z.SweepNegate, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "SweepNegate")
+				return
+			}
+		case "SweepShift":
+			z.SweepShift, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "SweepShift")
+				return
+			}
+		case "SweepDivider":
+			z.SweepDivider, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "SweepDivider")
+				return
+			}
+		case "ReloadSweep":
+			z.ReloadSweep, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "ReloadSweep")
+				return
+			}
+		case "Duty":
+			z.Duty, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "Duty")
+				return
+			}
+		case "DutyPos":
+			z.DutyPos, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "DutyPos")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *APUSquare) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 12
+	// write "SweepTargetPeriod"
+	err = en.Append(0x8c, 0xb1, 0x53, 0x77, 0x65, 0x65, 0x70, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74, 0x50, 0x65, 0x72, 0x69, 0x6f, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint32(z.SweepTargetPeriod)
+	if err != nil {
+		err = msgp.WrapError(err, "SweepTargetPeriod")
+		return
+	}
+	// write "RealPeriod"
+	err = en.Append(0xaa, 0x52, 0x65, 0x61, 0x6c, 0x50, 0x65, 0x72, 0x69, 0x6f, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.RealPeriod)
+	if err != nil {
+		err = msgp.WrapError(err, "RealPeriod")
+		return
+	}
+	// write "Timer"
+	err = en.Append(0xa5, 0x54, 0x69, 0x6d, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	// map header, size 3
+	// write "Timer"
+	err = en.Append(0x83, 0xa5, 0x54, 0x69, 0x6d, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.Timer.Timer)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer", "Timer")
+		return
+	}
+	// write "Period"
+	err = en.Append(0xa6, 0x50, 0x65, 0x72, 0x69, 0x6f, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.Timer.Period)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer", "Period")
+		return
+	}
+	// write "LastOutput"
+	err = en.Append(0xaa, 0x4c, 0x61, 0x73, 0x74, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt8(z.Timer.LastOutput)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer", "LastOutput")
+		return
+	}
+	// write "Envelope"
+	err = en.Append(0xa8, 0x45, 0x6e, 0x76, 0x65, 0x6c, 0x6f, 0x70, 0x65)
+	if err != nil {
+		return
+	}
+	err = z.Envelope.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "Envelope")
+		return
+	}
+	// write "SweepEnabled"
+	err = en.Append(0xac, 0x53, 0x77, 0x65, 0x65, 0x70, 0x45, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.SweepEnabled)
+	if err != nil {
+		err = msgp.WrapError(err, "SweepEnabled")
+		return
+	}
+	// write "SweepPeriod"
+	err = en.Append(0xab, 0x53, 0x77, 0x65, 0x65, 0x70, 0x50, 0x65, 0x72, 0x69, 0x6f, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.SweepPeriod)
+	if err != nil {
+		err = msgp.WrapError(err, "SweepPeriod")
+		return
+	}
+	// write "SweepNegate"
+	err = en.Append(0xab, 0x53, 0x77, 0x65, 0x65, 0x70, 0x4e, 0x65, 0x67, 0x61, 0x74, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.SweepNegate)
+	if err != nil {
+		err = msgp.WrapError(err, "SweepNegate")
+		return
+	}
+	// write "SweepShift"
+	err = en.Append(0xaa, 0x53, 0x77, 0x65, 0x65, 0x70, 0x53, 0x68, 0x69, 0x66, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.SweepShift)
+	if err != nil {
+		err = msgp.WrapError(err, "SweepShift")
+		return
+	}
+	// write "SweepDivider"
+	err = en.Append(0xac, 0x53, 0x77, 0x65, 0x65, 0x70, 0x44, 0x69, 0x76, 0x69, 0x64, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.SweepDivider)
+	if err != nil {
+		err = msgp.WrapError(err, "SweepDivider")
+		return
+	}
+	// write "ReloadSweep"
+	err = en.Append(0xab, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x53, 0x77, 0x65, 0x65, 0x70)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.ReloadSweep)
+	if err != nil {
+		err = msgp.WrapError(err, "ReloadSweep")
+		return
+	}
+	// write "Duty"
+	err = en.Append(0xa4, 0x44, 0x75, 0x74, 0x79)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.Duty)
+	if err != nil {
+		err = msgp.WrapError(err, "Duty")
+		return
+	}
+	// write "DutyPos"
+	err = en.Append(0xa7, 0x44, 0x75, 0x74, 0x79, 0x50, 0x6f, 0x73)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.DutyPos)
+	if err != nil {
+		err = msgp.WrapError(err, "DutyPos")
+		return
+	}
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *APUSquare) Msgsize() (s int) {
+	s = 1 + 18 + msgp.Uint32Size + 11 + msgp.Uint16Size + 6 + 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size + 9 + z.Envelope.Msgsize() + 13 + msgp.BoolSize + 12 + msgp.Uint8Size + 12 + msgp.BoolSize + 11 + msgp.Uint8Size + 13 + msgp.Uint8Size + 12 + msgp.BoolSize + 5 + msgp.Uint8Size + 8 + msgp.Uint8Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *APUTimer) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Timer":
+			z.Timer, err = dc.ReadUint16()
+			if err != nil {
+				err = msgp.WrapError(err, "Timer")
+				return
+			}
+		case "Period":
+			z.Period, err = dc.ReadUint16()
+			if err != nil {
+				err = msgp.WrapError(err, "Period")
+				return
+			}
+		case "LastOutput":
+			z.LastOutput, err = dc.ReadInt8()
+			if err != nil {
+				err = msgp.WrapError(err, "LastOutput")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z APUTimer) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 3
+	// write "Timer"
+	err = en.Append(0x83, 0xa5, 0x54, 0x69, 0x6d, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.Timer)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer")
+		return
+	}
+	// write "Period"
+	err = en.Append(0xa6, 0x50, 0x65, 0x72, 0x69, 0x6f, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.Period)
+	if err != nil {
+		err = msgp.WrapError(err, "Period")
+		return
+	}
+	// write "LastOutput"
+	err = en.Append(0xaa, 0x4c, 0x61, 0x73, 0x74, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt8(z.LastOutput)
+	if err != nil {
+		err = msgp.WrapError(err, "LastOutput")
+		return
+	}
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z APUTimer) Msgsize() (s int) {
+	s = 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *APUTriangle) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "LengthCounter":
+			err = z.LengthCounter.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "LengthCounter")
+				return
+			}
+		case "Timer":
+			var zb0002 uint32
+			zb0002, err = dc.ReadMapHeader()
+			if err != nil {
+				err = msgp.WrapError(err, "Timer")
+				return
+			}
+			for zb0002 > 0 {
+				zb0002--
+				field, err = dc.ReadMapKeyPtr()
+				if err != nil {
+					err = msgp.WrapError(err, "Timer")
+					return
+				}
+				switch msgp.UnsafeString(field) {
+				case "Timer":
+					z.Timer.Timer, err = dc.ReadUint16()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer", "Timer")
+						return
+					}
+				case "Period":
+					z.Timer.Period, err = dc.ReadUint16()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer", "Period")
+						return
+					}
+				case "LastOutput":
+					z.Timer.LastOutput, err = dc.ReadInt8()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer", "LastOutput")
+						return
+					}
+				default:
+					err = dc.Skip()
+					if err != nil {
+						err = msgp.WrapError(err, "Timer")
+						return
+					}
+				}
+			}
+		case "LinearCounter":
+			z.LinearCounter, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "LinearCounter")
+				return
+			}
+		case "LinearCounterReload":
+			z.LinearCounterReload, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "LinearCounterReload")
+				return
+			}
+		case "LinearReload":
+			z.LinearReload, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "LinearReload")
+				return
+			}
+		case "LinearCtrl":
+			z.LinearCtrl, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "LinearCtrl")
+				return
+			}
+		case "Pos":
+			z.Pos, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "Pos")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *APUTriangle) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 7
+	// write "LengthCounter"
+	err = en.Append(0x87, 0xad, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = z.LengthCounter.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "LengthCounter")
+		return
+	}
+	// write "Timer"
+	err = en.Append(0xa5, 0x54, 0x69, 0x6d, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	// map header, size 3
+	// write "Timer"
+	err = en.Append(0x83, 0xa5, 0x54, 0x69, 0x6d, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.Timer.Timer)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer", "Timer")
+		return
+	}
+	// write "Period"
+	err = en.Append(0xa6, 0x50, 0x65, 0x72, 0x69, 0x6f, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.Timer.Period)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer", "Period")
+		return
+	}
+	// write "LastOutput"
+	err = en.Append(0xaa, 0x4c, 0x61, 0x73, 0x74, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt8(z.Timer.LastOutput)
+	if err != nil {
+		err = msgp.WrapError(err, "Timer", "LastOutput")
+		return
+	}
+	// write "LinearCounter"
+	err = en.Append(0xad, 0x4c, 0x69, 0x6e, 0x65, 0x61, 0x72, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.LinearCounter)
+	if err != nil {
+		err = msgp.WrapError(err, "LinearCounter")
+		return
+	}
+	// write "LinearCounterReload"
+	err = en.Append(0xb3, 0x4c, 0x69, 0x6e, 0x65, 0x61, 0x72, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x65, 0x72, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.LinearCounterReload)
+	if err != nil {
+		err = msgp.WrapError(err, "LinearCounterReload")
+		return
+	}
+	// write "LinearReload"
+	err = en.Append(0xac, 0x4c, 0x69, 0x6e, 0x65, 0x61, 0x72, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.LinearReload)
+	if err != nil {
+		err = msgp.WrapError(err, "LinearReload")
+		return
+	}
+	// write "LinearCtrl"
+	err = en.Append(0xaa, 0x4c, 0x69, 0x6e, 0x65, 0x61, 0x72, 0x43, 0x74, 0x72, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.LinearCtrl)
+	if err != nil {
+		err = msgp.WrapError(err, "LinearCtrl")
+		return
+	}
+	// write "Pos"
+	err = en.Append(0xa3, 0x50, 0x6f, 0x73)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.Pos)
+	if err != nil {
+		err = msgp.WrapError(err, "Pos")
+		return
+	}
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *APUTriangle) Msgsize() (s int) {
+	s = 1 + 14 + z.LengthCounter.Msgsize() + 6 + 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size + 14 + msgp.Uint8Size + 20 + msgp.Uint8Size + 13 + msgp.BoolSize + 11 + msgp.BoolSize + 4 + msgp.Uint8Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *CPU) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -492,6 +2177,24 @@ func (z *NES) DecodeMsg(dc *msgp.Reader) (err error) {
 					return
 				}
 			}
+		case "APU":
+			if dc.IsNil() {
+				err = dc.ReadNil()
+				if err != nil {
+					err = msgp.WrapError(err, "APU")
+					return
+				}
+				z.APU = nil
+			} else {
+				if z.APU == nil {
+					z.APU = new(APU)
+				}
+				err = z.APU.DecodeMsg(dc)
+				if err != nil {
+					err = msgp.WrapError(err, "APU")
+					return
+				}
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -505,9 +2208,9 @@ func (z *NES) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *NES) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 5
+	// map header, size 6
 	// write "Version"
-	err = en.Append(0x85, 0xa7, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e)
+	err = en.Append(0x86, 0xa7, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e)
 	if err != nil {
 		return
 	}
@@ -577,6 +2280,23 @@ func (z *NES) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
+	// write "APU"
+	err = en.Append(0xa3, 0x41, 0x50, 0x55)
+	if err != nil {
+		return
+	}
+	if z.APU == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.APU.EncodeMsg(en)
+		if err != nil {
+			err = msgp.WrapError(err, "APU")
+			return
+		}
+	}
 	return
 }
 
@@ -599,6 +2319,12 @@ func (z *NES) Msgsize() (s int) {
 		s += msgp.NilSize
 	} else {
 		s += z.PPU.Msgsize()
+	}
+	s += 4
+	if z.APU == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.APU.Msgsize()
 	}
 	return
 }
