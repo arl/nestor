@@ -25,11 +25,16 @@ type Output interface {
 }
 
 type Config struct {
-	Input input.Config `toml:"input"`
-	Video VideoConfig  `toml:"video"`
-	Audio AudioConfig  `toml:"audio"`
+	Input     input.Config    `toml:"input"`
+	Video     VideoConfig     `toml:"video"`
+	Audio     AudioConfig     `toml:"audio"`
+	Emulation EmulationConfig `toml:"emulation"`
 
 	TraceOut io.WriteCloser `toml:"-"`
+}
+
+type EmulationConfig struct {
+	RunAheadFrames int `toml:"run_ahead_frames"`
 }
 
 type VideoConfig struct {
@@ -56,6 +61,7 @@ type AudioConfig struct {
 type Emulator struct {
 	NES *NES
 	out Output
+	cfg EmulationConfig
 
 	// These are accessed concurrently by the emulator loop and the UI.
 	quit    atomic.Bool
@@ -110,13 +116,51 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	return &Emulator{
 		NES: nes,
 		out: out,
+		cfg: cfg.Emulation,
 	}, nil
 }
 
 func (e *Emulator) RunOneFrame() {
+	if e.cfg.RunAheadFrames > 0 {
+		e.RunFrameWithRunAhead()
+	} else {
+		frame := e.out.BeginFrame()
+		e.NES.RunOneFrame(frame)
+		e.out.EndFrame(frame)
+	}
+}
+
+func (e *Emulator) RunFrameWithRunAhead() {
+	frames := e.cfg.RunAheadFrames
+
+	// Run a single frame, make a snapshot, but do not render video nor play
+	// audio out of it.
+	e.NES.isRunAheadFrame = true
+	e.NES.CPU.Run(29781)
+	e.NES.APU.EndFrame()
+
+	buf, err := e.NES.SaveSnapshot()
+	if err != nil {
+		log.ModEmu.PanicZ("failed run-ahead frame snapshot").Error("err", err).End()
+	}
+
+	for frames > 1 {
+		e.NES.CPU.Run(29781)
+		e.NES.APU.EndFrame()
+		frames--
+	}
+	e.NES.isRunAheadFrame = false
+
+	// Run one frame normally.
 	frame := e.out.BeginFrame()
 	e.NES.RunOneFrame(frame)
 	e.out.EndFrame(frame)
+
+	e.NES.isRunAheadFrame = true
+	if err := e.NES.LoadSnapshot(buf); err != nil {
+		log.ModEmu.PanicZ("failed to load snapshot").Error("err", err).End()
+	}
+	e.NES.isRunAheadFrame = false
 }
 
 func (e *Emulator) loop() {

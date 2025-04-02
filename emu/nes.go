@@ -5,7 +5,6 @@ import (
 
 	"github.com/tinylib/msgp/msgp"
 
-	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/hw/apu"
 	"nestor/hw/hwdefs"
@@ -20,30 +19,26 @@ type NES struct {
 	APU   *apu.APU
 	Rom   *ines.Rom
 	Mixer *apu.Mixer
+
+	isRunAheadFrame bool
 }
 
 func powerUp(rom *ines.Rom) (*NES, error) {
-	audioMixer := apu.NewMixer()
-	ppu := hw.NewPPU()
-	cpu := hw.NewCPU(ppu)
-	apu := apu.New(cpu, audioMixer)
+	var nes NES
+	nes.Mixer = apu.NewMixer(&nes)
+	nes.PPU = hw.NewPPU()
+	nes.CPU = hw.NewCPU(nes.PPU)
+	nes.APU = apu.New(nes.CPU, nes.Mixer)
 
-	cpu.APU = apu
-	cpu.InitBus()
+	nes.CPU.APU = nes.APU
+	nes.CPU.InitBus()
 
-	if err := mappers.Load(rom, cpu, ppu); err != nil {
+	if err := mappers.Load(rom, nes.CPU, nes.PPU); err != nil {
 		return nil, err
 	}
 
-	nes := &NES{
-		CPU:   cpu,
-		PPU:   ppu,
-		APU:   apu,
-		Rom:   rom,
-		Mixer: audioMixer,
-	}
 	nes.Reset(hwdefs.HardReset)
-	return nes, nil
+	return &nes, nil
 }
 
 func (nes *NES) Reset(soft bool) {
@@ -57,17 +52,10 @@ func (nes *NES) RunOneFrame(frame hw.Frame) {
 	nes.PPU.SetFrameBuffer(frame.Video)
 	nes.CPU.Run(29781)
 	nes.APU.EndFrame()
+}
 
-	buf, err := nes.SaveSnapshot()
-	if err != nil {
-		log.ModEmu.FatalZ("failed to save snapshot").Error("err", err).End()
-		return
-	}
-
-	if err := nes.LoadSnapshot(buf); err != nil {
-		log.ModEmu.FatalZ("failed to load snapshot").Error("err", err).End()
-		return
-	}
+func (nes *NES) IsRunAheadFrame() bool {
+	return nes.isRunAheadFrame
 }
 
 const SaveStateVersion = 1

@@ -44,13 +44,20 @@ type Mixer struct {
 
 	clockRate  uint32
 	sampleRate uint32
+
+	console console
 }
 
-func NewMixer() *Mixer {
+type console interface {
+	IsRunAheadFrame() bool
+}
+
+func NewMixer(c console) *Mixer {
 	am := &Mixer{
 		bufleft:    blip.NewBuffer(maxSamplesPerFrame),
 		bufright:   blip.NewBuffer(maxSamplesPerFrame),
 		sampleRate: MaxSampleRate,
+		console:    c,
 	}
 
 	return am
@@ -94,15 +101,16 @@ func (am *Mixer) playAudioBuffer(time uint32) {
 
 	// TODO: apply stereo filters
 
-	// Actuall play this with SDL2
-	// copy the buffer
-	buf := unsafe.Slice((*byte)(unsafe.Pointer(&out[0])), sampleCount*2*2)
-	cpy := make([]byte, len(buf))
-	copy(cpy, buf)
+	if !am.console.IsRunAheadFrame() {
+		// Actuall play this with SDL2
+		// copy the buffer
+		buf := unsafe.Slice((*byte)(unsafe.Pointer(&out[0])), sampleCount*2*2)
+		cpy := make([]byte, len(buf))
+		copy(cpy, buf)
 
-	// play the buffer
-	if err := sdl.QueueAudio(AudioDeviceID, cpy); err != nil {
-		log.ModSound.DebugZ("failed to queue audio buffer").Error("err", err).End()
+		if err := sdl.QueueAudio(AudioDeviceID, cpy); err != nil {
+			log.ModSound.DebugZ("failed to queue audio buffer").Error("err", err).End()
+		}
 	}
 
 	am.nsamples = 0
