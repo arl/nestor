@@ -10,7 +10,7 @@ import (
 	"nestor/emu/log"
 )
 
-const numChannels = 5 // Square1, Square2, Triangle, Noise, DMC
+const NumChannels = 5 // Square1, Square2, Triangle, Noise, DMC
 
 const MaxSampleRate = 96000
 const maxSamplesPerFrame = MaxSampleRate / 60 * 4 * 2 //x4 to allow CPU overclocking up to 10x, x2 for panning stereo
@@ -35,12 +35,12 @@ type Mixer struct {
 	nsamples   int
 	hasPanning bool
 
-	volumes [numChannels]float64
-	panning [numChannels]float64
+	volumes [NumChannels]float64
+	panning [NumChannels]float64
 
 	timestamps []uint32
-	chanoutput [numChannels][cycleLength]int16
-	curOutput  [numChannels]int16
+	chanoutput [NumChannels][cycleLength]int16
+	curOutput  [NumChannels]int16
 
 	clockRate  uint32
 	sampleRate uint32
@@ -65,7 +65,7 @@ func (am *Mixer) Reset() {
 	am.bufright.Clear()
 	am.timestamps = am.timestamps[:0]
 
-	for i := range numChannels {
+	for i := range NumChannels {
 		am.volumes[i] = 1.0
 		am.panning[i] = 0
 	}
@@ -124,7 +124,7 @@ func (am *Mixer) updateRates(forceUpdate bool) {
 	// TODO: handle panning
 
 	hasPanning := false
-	for i := range numChannels {
+	for i := range NumChannels {
 		am.volumes[i] = 0.8
 		am.panning[i] = 1.0
 		if am.panning[i] != 1.0 {
@@ -170,7 +170,7 @@ func (am *Mixer) EndFrame(time uint32) {
 	am.timestamps = slices.Compact(am.timestamps)
 
 	for _, stamp := range am.timestamps {
-		for j := range numChannels {
+		for j := range NumChannels {
 			am.curOutput[j] += am.chanoutput[j][stamp]
 		}
 
