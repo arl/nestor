@@ -138,3 +138,10 @@ func (nc *noiseChannel) saveState(state *snapshot.APUNoise) {
 	state.ShitftRegister = nc.shiftReg
 	state.Mode = nc.mode
 }
+
+func (nc *noiseChannel) setState(state *snapshot.APUNoise) {
+	nc.env.setState(&state.Envelope)
+	nc.timer.setState(&state.Timer)
+	nc.shiftReg = state.ShitftRegister
+	nc.mode = state.Mode
+}

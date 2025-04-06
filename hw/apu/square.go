@@ -258,3 +258,18 @@ func (sc *squareChannel) saveState(state *snapshot.APUSquare) {
 	state.Duty = sc.duty
 	state.DutyPos = sc.dutyPos
 }
+
+func (sc *squareChannel) setState(state *snapshot.APUSquare) {
+	sc.sweepTargetPeriod = state.SweepTargetPeriod
+	sc.realPeriod = state.RealPeriod
+	sc.timer.setState(&state.Timer)
+	sc.envelope.setState(&state.Envelope)
+	sc.sweepEnabled = state.SweepEnabled
+	sc.sweepPeriod = state.SweepPeriod
+	sc.sweepNegate = state.SweepNegate
+	sc.sweepShift = state.SweepShift
+	sc.sweepDivider = state.SweepDivider
+	sc.reloadSweep = state.ReloadSweep
+	sc.duty = state.Duty
+	sc.dutyPos = state.DutyPos
+}

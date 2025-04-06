@@ -103,3 +103,12 @@ func (lc *lengthCounter) saveState(state *snapshot.APULengthCounter) {
 	state.PrevVal = lc.prevVal
 	state.ReloadVal = lc.reloadVal
 }
+
+func (lc *lengthCounter) setState(state *snapshot.APULengthCounter) {
+	lc.enabled = state.Enabled
+	lc.halt = state.Halt
+	lc.newHalt = state.NewHalt
+	lc.counter = state.Counter
+	lc.prevVal = state.PrevVal
+	lc.reloadVal = state.ReloadVal
+}

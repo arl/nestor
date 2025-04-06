@@ -255,15 +255,15 @@ func (a *APU) State() *snapshot.APU {
 }
 
 func (a *APU) SetState(state *snapshot.APU) {
-	a.Square1.saveState(&state.Square1)
-	a.Square2.saveState(&state.Square2)
-	a.Triangle.saveState(&state.Triangle)
-	a.Noise.saveState(&state.Noise)
-	a.DMC.saveState(&state.DMC)
-	a.frameCounter.saveState(&state.FrameCounter)
-
 	// Reset the cycle counters to ensure that the APU is in sync with the CPU.
 	// This is important for accurate emulation of the DMC channel.
 	a.prevCycle = 0
 	a.curCycle = 0
+
+	a.Square1.setState(&state.Square1)
+	a.Square2.setState(&state.Square2)
+	a.Triangle.setState(&state.Triangle)
+	a.Noise.setState(&state.Noise)
+	a.DMC.setState(&state.DMC)
+	a.frameCounter.setState(&state.FrameCounter)
 }

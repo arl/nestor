@@ -176,3 +176,13 @@ func (tc *triangleChannel) saveState(state *snapshot.APUTriangle) {
 	state.LinearCtrl = tc.linearCtrl
 	state.Pos = tc.pos
 }
+
+func (tc *triangleChannel) setState(state *snapshot.APUTriangle) {
+	tc.lenCounter.setState(&state.LengthCounter)
+	tc.timer.setState(&state.Timer)
+	tc.linearCounter = state.LinearCounter
+	tc.linearCounterReload = state.LinearCounterReload
+	tc.linearReload = state.LinearReload
+	tc.linearCtrl = state.LinearCtrl
+	tc.pos = state.Pos
+}

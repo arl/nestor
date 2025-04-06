@@ -52,3 +52,9 @@ func (t *timer) saveState(state *snapshot.APUTimer) {
 	state.Period = t.period
 	state.LastOutput = t.lastOutput
 }
+
+func (t *timer) setState(state *snapshot.APUTimer) {
+	t.timer = state.Timer
+	t.period = state.Period
+	t.lastOutput = state.LastOutput
+}

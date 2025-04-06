@@ -357,3 +357,22 @@ func (dc *DMC) saveState(state *snapshot.APUDMC) {
 	state.Silence = dc.silence
 	state.NeedToRun = dc.needToRun
 }
+
+func (dc *DMC) setState(state *snapshot.APUDMC) {
+	dc.timer.setState(&state.Timer)
+	dc.sampleAddr = state.SampleAddr
+	dc.sampleLen = state.SampleLen
+	dc.curaddr = state.CurrentAddr
+	dc.remaining = state.Remaining
+	dc.outlvl = state.OutputLevel
+	dc.readbuf = state.ReadBuf
+	dc.bitsLeft = state.BitsLeft
+	dc.startDelay = state.StartDelay
+	dc.disableDelay = state.DisableDelay
+	dc.irqEnabled = state.IRQEnabled
+	dc.loop = state.Loop
+	dc.bufEmpty = state.BufEmpty
+	dc.shiftReg = state.ShiftReg
+	dc.silence = state.Silence
+	dc.needToRun = state.NeedToRun
+}

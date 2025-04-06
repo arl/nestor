@@ -175,3 +175,13 @@ func (afc *frameCounter) saveState(state *snapshot.APUFrameCounter) {
 	state.WriteDelayCounter = afc.writeDelayCounter
 	state.NewVal = afc.newval
 }
+
+func (afc *frameCounter) setState(state *snapshot.APUFrameCounter) {
+	afc.prevCycle = state.PrevCycle
+	afc.curStep = state.CurStep
+	afc.stepMode = state.StepMode
+	afc.inhibitIRQ = state.InhibitIRQ
+	afc.blockTick = state.BlockTick
+	afc.writeDelayCounter = state.WriteDelayCounter
+	afc.newval = state.NewVal
+}

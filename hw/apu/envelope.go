@@ -70,3 +70,12 @@ func (env *envelope) saveState(state *snapshot.APUEnveloppe) {
 	state.Divider = env.divider
 	state.Counter = env.counter
 }
+
+func (env *envelope) setState(state *snapshot.APUEnveloppe) {
+	env.lenCounter.setState(&state.LengthCounter)
+	env.constVolume = state.ConstVolume
+	env.vol = state.Vol
+	env.start = state.Start
+	env.divider = state.Divider
+	env.counter = state.Counter
+}
