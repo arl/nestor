@@ -1,5 +1,7 @@
 package snapshot
 
+import "nestor/hw/hwdefs"
+
 //go:generate go tool msgp -tests=false -marshal=false
 
 type NES struct {
@@ -9,6 +11,7 @@ type NES struct {
 	DMA     *DMA
 	PPU     *PPU
 	APU     *APU
+	Mixer   *APUMixer
 }
 
 type CPU struct {
@@ -196,4 +199,12 @@ type APUFrameCounter struct {
 	BlockTick         uint8
 	WriteDelayCounter int8
 	NewVal            int16
+}
+
+type APUMixer struct {
+	ClockRate           uint32
+	SampleRate          uint32
+	CurrentOutput       [hwdefs.NumAudioChannels]int16
+	PreviousOutputLeft  int16
+	PreviousOutputRight int16
 }
