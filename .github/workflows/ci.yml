@@ -22,7 +22,7 @@ jobs:
 
       - name: go generate check
         run: >-
-          go generate ./...
+          go generate ./... &&
           git diff --name-only --exit-code
 
       - name: Dependencies
