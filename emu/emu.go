@@ -83,14 +83,14 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 
 	// Output setup.
 	out := hw.NewOutput(hw.OutputConfig{
-		Width:           hw.NTSCWidth,
-		Height:          hw.NTSCHeight,
-		NumVideoBuffers: 2,
-		Title:           "Nestor",
-		ScaleFactor:     2,
-		DisableVSync:    cfg.Video.DisableVSync,
-		Monitor:         cfg.Video.Monitor,
-		Shader:          cfg.Video.Shader,
+		Width:          hw.NTSCWidth,
+		Height:         hw.NTSCHeight,
+		NumBackBuffers: 2,
+		Title:          "Nestor",
+		ScaleFactor:    2,
+		DisableVSync:   cfg.Video.DisableVSync,
+		Monitor:        cfg.Video.Monitor,
+		Shader:         cfg.Video.Shader,
 	})
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err

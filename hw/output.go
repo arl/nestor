@@ -32,7 +32,7 @@ type OutputConfig struct {
 	Width, Height int32
 
 	// Number of video buffers to allocate. Defaults to 2.
-	NumVideoBuffers int
+	NumBackBuffers int
 
 	// Window title.
 	Title string
@@ -80,16 +80,16 @@ type Output struct {
 }
 
 func NewOutput(cfg OutputConfig) *Output {
-	if cfg.NumVideoBuffers == 0 {
-		cfg.NumVideoBuffers = 2
+	if cfg.NumBackBuffers == 0 {
+		cfg.NumBackBuffers = 2
 	}
 
-	vb := make([][]byte, cfg.NumVideoBuffers)
-	for i := range vb {
-		vb[i] = make([]byte, cfg.Width*cfg.Height*4)
+	videobuf := make([][]byte, cfg.NumBackBuffers)
+	for i := range videobuf {
+		videobuf[i] = make([]byte, cfg.Width*cfg.Height*4)
 	}
 	out := &Output{
-		framebuf: vb,
+		framebuf: videobuf,
 		cfg:      cfg,
 		framech:  make(chan Frame),
 		stop:     make(chan struct{}),
@@ -176,7 +176,7 @@ func (out *Output) EnableAudio(enable bool) error {
 
 func (out *Output) BeginFrame() Frame {
 	out.framebufidx++
-	if out.framebufidx == out.cfg.NumVideoBuffers {
+	if out.framebufidx == out.cfg.NumBackBuffers {
 		out.framebufidx = 0
 	}
 
@@ -294,7 +294,7 @@ func (out *Output) Screenshot() *image.RGBA {
 	sdl.Do(func() {
 		fbidx := out.framebufidx - 1
 		if fbidx < 1 {
-			fbidx = out.cfg.NumVideoBuffers - 1
+			fbidx = out.cfg.NumBackBuffers - 1
 		}
 		img = FramebufImage(out.framebuf[fbidx], out.cfg.Width, out.cfg.Height)
 	})
