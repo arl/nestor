@@ -60,6 +60,9 @@ var defaultConfig = Config{
 		Audio: emu.AudioConfig{
 			DisableAudio: false,
 		},
+		Emulation: emu.EmulationConfig{
+			RunAheadFrames: 0,
+		},
 		TraceOut: nil,
 	},
 	General: GeneralConfig{

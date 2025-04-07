@@ -86,6 +86,7 @@ func showMainWindow(cfg *Config) {
 	build[gtk.MenuItem](builder, "menu_input").Connect("activate", onConfig)
 	build[gtk.MenuItem](builder, "menu_video").Connect("activate", onConfig)
 	build[gtk.MenuItem](builder, "menu_audio").Connect("activate", onConfig)
+	build[gtk.MenuItem](builder, "menu_emulation").Connect("activate", onConfig)
 }
 
 func (mw *mainWindow) Close(err error) {
