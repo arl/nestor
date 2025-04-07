@@ -82,6 +82,7 @@ func (nes *NES) SaveSnapshot() ([]byte, error) {
 		DMA:     nes.CPU.DMA.State(),
 		PPU:     nes.PPU.State(),
 		APU:     nes.APU.State(),
+		Mixer:   nes.Mixer.State(),
 	}
 	copy(state.RAM[:], nes.CPU.RAM.Data)
 
@@ -106,5 +107,6 @@ func (nes *NES) LoadSnapshot(buf []byte) error {
 	nes.CPU.DMA.SetState(state.DMA)
 	nes.PPU.SetState(state.PPU)
 	nes.APU.SetState(state.APU)
+	nes.Mixer.SetState(state.Mixer)
 	return nil
 }

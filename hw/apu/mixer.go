@@ -8,9 +8,9 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 
 	"nestor/emu/log"
+	"nestor/hw/hwdefs"
+	"nestor/hw/snapshot"
 )
-
-const NumChannels = 5 // Square1, Square2, Triangle, Noise, DMC
 
 const MaxSampleRate = 96000
 const maxSamplesPerFrame = MaxSampleRate / 60 * 4 * 2 //x4 to allow CPU overclocking up to 10x, x2 for panning stereo
@@ -35,12 +35,12 @@ type Mixer struct {
 	nsamples   int
 	hasPanning bool
 
-	volumes [NumChannels]float64
-	panning [NumChannels]float64
+	volumes [hwdefs.NumAudioChannels]float64
+	panning [hwdefs.NumAudioChannels]float64
 
 	timestamps []uint32
-	chanoutput [NumChannels][cycleLength]int16
-	curOutput  [NumChannels]int16
+	chanoutput [hwdefs.NumAudioChannels][cycleLength]int16
+	curOutput  [hwdefs.NumAudioChannels]int16
 
 	clockRate  uint32
 	sampleRate uint32
@@ -65,7 +65,7 @@ func (am *Mixer) Reset() {
 	am.bufright.Clear()
 	am.timestamps = am.timestamps[:0]
 
-	for i := range NumChannels {
+	for i := range hwdefs.NumAudioChannels {
 		am.volumes[i] = 1.0
 		am.panning[i] = 0
 	}
@@ -124,7 +124,7 @@ func (am *Mixer) updateRates(forceUpdate bool) {
 	// TODO: handle panning
 
 	hasPanning := false
-	for i := range NumChannels {
+	for i := range hwdefs.NumAudioChannels {
 		am.volumes[i] = 0.8
 		am.panning[i] = 1.0
 		if am.panning[i] != 1.0 {
@@ -170,7 +170,7 @@ func (am *Mixer) EndFrame(time uint32) {
 	am.timestamps = slices.Compact(am.timestamps)
 
 	for _, stamp := range am.timestamps {
-		for j := range NumChannels {
+		for j := range hwdefs.NumAudioChannels {
 			am.curOutput[j] += am.chanoutput[j][stamp]
 		}
 
@@ -194,5 +194,34 @@ func (am *Mixer) EndFrame(time uint32) {
 	am.timestamps = am.timestamps[:0]
 	for i := range am.chanoutput {
 		clear(am.chanoutput[i][:])
+	}
+}
+
+func (am *Mixer) State() *snapshot.APUMixer {
+	var state snapshot.APUMixer
+	state.ClockRate = am.clockRate
+	state.SampleRate = am.sampleRate
+
+	state.PreviousOutputLeft = am.prevOutleft
+	state.PreviousOutputRight = am.prevOutright
+	for i := range hwdefs.NumAudioChannels {
+		state.CurrentOutput[i] = am.curOutput[i]
+	}
+
+	return &state
+}
+
+func (am *Mixer) SetState(state *snapshot.APUMixer) {
+	am.clockRate = state.ClockRate
+	am.sampleRate = state.SampleRate
+
+	am.Reset()
+	am.updateRates(true)
+
+	am.prevOutleft = state.PreviousOutputLeft
+	am.prevOutright = state.PreviousOutputRight
+
+	for i := range hwdefs.NumAudioChannels {
+		am.curOutput[i] = state.CurrentOutput[i]
 	}
 }
