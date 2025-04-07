@@ -164,7 +164,7 @@ func (e *Emulator) RunFrameWithRunAhead() {
 }
 
 func (e *Emulator) loop() {
-	for {
+	for e.out.Poll() {
 		// Handle pause.
 		if e.isPaused() {
 			// Don't burn cpu while paused.
@@ -172,12 +172,13 @@ func (e *Emulator) loop() {
 		} else {
 			e.RunOneFrame()
 		}
-		if !e.out.Poll() || e.shouldStop() {
-			e.out.Close()
+		if e.shouldStop() {
 			break
 		}
 		e.handleReset()
 	}
+
+	e.out.Close()
 }
 
 // RaiseWindow raises the emulator window above others and sets the input focus.
