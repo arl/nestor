@@ -2,20 +2,18 @@ package apu
 
 import (
 	"slices"
-	"unsafe"
 
 	"github.com/arl/blip"
 	"github.com/veandco/go-sdl2/sdl"
 
-	"nestor/emu/log"
 	"nestor/hw/hwdefs"
 	"nestor/hw/snapshot"
 )
 
 const MaxSampleRate = 96000
-const maxSamplesPerFrame = MaxSampleRate / 60 * 4 * 2 //x4 to allow CPU overclocking up to 10x, x2 for panning stereo
+const MaxSamplesPerFrame = MaxSampleRate / 60 * 2 * 4 //x2 for panning stereo
 
-const cycleLength = 10000
+const cycleLength = 40000
 const bitsPerSample = 16
 
 const (
@@ -24,8 +22,12 @@ const (
 	AudioBufferSize = 4096 // TODO: adjust based on latency.
 )
 
+type AudioBuffer struct {
+	Samples []int16
+}
+
 type Mixer struct {
-	outbuf   [maxSamplesPerFrame]int16
+	outbuf   [MaxSamplesPerFrame]int16
 	bufleft  *blip.Buffer
 	bufright *blip.Buffer
 
@@ -54,8 +56,8 @@ type console interface {
 
 func NewMixer(c console) *Mixer {
 	am := &Mixer{
-		bufleft:    blip.NewBuffer(maxSamplesPerFrame),
-		bufright:   blip.NewBuffer(maxSamplesPerFrame),
+		bufleft:    blip.NewBuffer(MaxSamplesPerFrame),
+		bufright:   blip.NewBuffer(MaxSamplesPerFrame),
 		sampleRate: MaxSampleRate,
 		console:    c,
 	}
@@ -82,14 +84,14 @@ func (am *Mixer) Reset() {
 	am.updateRates(true)
 }
 
-func (am *Mixer) playAudioBuffer(time uint32) {
+func (am *Mixer) playAudioBuffer(time uint32, buf *AudioBuffer) {
 	am.EndFrame(time)
 
 	out := am.outbuf[am.nsamples*2:]
-	sampleCount := am.bufleft.ReadSamples(out, maxSamplesPerFrame, blip.Stereo)
+	sampleCount := am.bufleft.ReadSamples(out, MaxSamplesPerFrame, blip.Stereo)
 
 	if am.hasPanning {
-		am.bufright.ReadSamples(out[1:], maxSamplesPerFrame, blip.Stereo)
+		am.bufright.ReadSamples(out[1:], MaxSamplesPerFrame, blip.Stereo)
 	} else {
 		// When no panning, just copy the left channel to the right one.
 		for i := 0; i < sampleCount*2; i += 2 {
@@ -102,15 +104,10 @@ func (am *Mixer) playAudioBuffer(time uint32) {
 	// TODO: apply stereo filters
 
 	if !am.console.IsRunAheadFrame() {
-		// Actuall play this with SDL2
-		// copy the buffer
-		buf := unsafe.Slice((*byte)(unsafe.Pointer(&out[0])), sampleCount*2*2)
-		cpy := make([]byte, len(buf))
-		copy(cpy, buf)
-
-		if err := sdl.QueueAudio(AudioDeviceID, cpy); err != nil {
-			log.ModSound.DebugZ("failed to queue audio buffer").Error("err", err).End()
+		if buf == nil {
+			panic("playAudioBuffer: buf is nil")
 		}
+		copy(buf.Samples, out[:sampleCount*2])
 	}
 
 	am.nsamples = 0
