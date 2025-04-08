@@ -59,7 +59,12 @@ func (b *base) init(writeReg func(uint16, uint8)) {
 	b.cpu.Bus.MapBank(0x0000, b, 0)
 
 	if b.rom.PRGRAMSize() > 0 {
-		// panic("PRGRAM not implemented")
+		panic("PRGRAM not implemented")
+		// 	b.cpu.Bus.MapMem(0x6000, &hwio.Mem{
+		// 		Name:  "PRGRAM",
+		// 		VSize: 0x2000,
+		// 		Data:  make([]byte, b.rom.PRGRAMSize()),
+		// 	})
 	}
 
 	b.writeReg = writeReg
@@ -123,15 +128,6 @@ func (b *base) selectPRGPage16KB(page uint32, bank int) {
 		Hex16("bus.end", uint16(-1+0x8000+end)).
 		Hex16("rom.start", uint16(16*KB*(bank))).
 		Int("bank", bank).End()
-}
-
-// TODO: remove and use selectCHRROM... instead
-func (b *base) copyCHRROM(dest []byte, bank uint32) {
-	// Copy CHRROM bank to PPU memory.
-	// CHRROM is 8KB in size (when present).
-	start := min(uint32(len(b.rom.CHRROM)-1), bank*b.desc.CHRROMbanksz)
-	end := min(uint32(len(b.rom.CHRROM)), start+b.desc.CHRROMbanksz)
-	copy(dest, b.rom.CHRROM[start:end])
 }
 
 // select what 8KB PRG ROM bank to use.
