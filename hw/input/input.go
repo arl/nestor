@@ -1,6 +1,8 @@
 package input
 
-import "github.com/veandco/go-sdl2/sdl"
+import (
+	"github.com/veandco/go-sdl2/sdl"
+)
 
 // A PaddleButton identifies a button of a standard NES controller/paddle.
 type PaddleButton byte
@@ -85,13 +87,11 @@ func (ui *Provider) paddleState(idx int) uint8 {
 		case KeyboardCtrl:
 			pressed = ui.keystate[code.Scancode]
 		case ButtonCtrl:
-			ctrl := Gamectrls.getByGUID(code.CtrlGUID)
-			if ctrl != nil {
+			if ctrl := Gamectrls.getByGUID(code.CtrlGUID); ctrl != nil {
 				pressed = ctrl.Button(code.CtrlButton)
 			}
 		case AxisCtrl:
-			ctrl := Gamectrls.getByGUID(code.CtrlGUID)
-			if ctrl != nil {
+			if ctrl := Gamectrls.getByGUID(code.CtrlGUID); ctrl != nil {
 				if ctrl.Axis(code.CtrlAxis) >= JoyAxisThreshold {
 					pressed = 1
 				}
