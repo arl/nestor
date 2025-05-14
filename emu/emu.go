@@ -18,7 +18,7 @@ import (
 
 type Output interface {
 	BeginFrame() hw.Frame
-	EndFrame(hw.Frame)
+	EndFrame(*hw.Frame)
 	Poll() bool
 	Close()
 	Screenshot() *image.RGBA
@@ -85,7 +85,7 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	out := hw.NewOutput(hw.OutputConfig{
 		Width:          hw.NTSCWidth,
 		Height:         hw.NTSCHeight,
-		NumBackBuffers: 2,
+		NumBackBuffers: 4,
 		Title:          "Nestor",
 		ScaleFactor:    2,
 		DisableVSync:   cfg.Video.DisableVSync,
@@ -125,8 +125,8 @@ func (e *Emulator) RunOneFrame() {
 		e.RunFrameWithRunAhead()
 	} else {
 		frame := e.out.BeginFrame()
-		e.NES.RunOneFrame(frame)
-		e.out.EndFrame(frame)
+		e.NES.RunOneFrame(&frame)
+		e.out.EndFrame(&frame)
 	}
 }
 
@@ -137,7 +137,7 @@ func (e *Emulator) RunFrameWithRunAhead() {
 	// audio out of it.
 	e.NES.isRunAheadFrame = true
 	e.NES.CPU.Run(29781)
-	e.NES.APU.EndFrame()
+	e.NES.APU.EndFrame(nil)
 
 	buf, err := e.NES.SaveSnapshot()
 	if err != nil {
@@ -146,15 +146,15 @@ func (e *Emulator) RunFrameWithRunAhead() {
 
 	for frames > 1 {
 		e.NES.CPU.Run(29781)
-		e.NES.APU.EndFrame()
+		e.NES.APU.EndFrame(nil)
 		frames--
 	}
 	e.NES.isRunAheadFrame = false
 
 	// Run one frame normally.
 	frame := e.out.BeginFrame()
-	e.NES.RunOneFrame(frame)
-	e.out.EndFrame(frame)
+	e.NES.RunOneFrame(&frame)
+	e.out.EndFrame(&frame)
 
 	e.NES.isRunAheadFrame = true
 	if err := e.NES.LoadSnapshot(buf); err != nil {

@@ -64,7 +64,7 @@ func (to *TestingOutput) Screenshot() *image.RGBA {
 	return hw.FramebufImage(to.framebuf, to.cfg.Width, to.cfg.Height)
 }
 
-func (to *TestingOutput) EndFrame(_ hw.Frame) {
+func (to *TestingOutput) EndFrame(_ *hw.Frame) {
 	if to.framecounter == int(to.cfg.SaveFrameNum) {
 		if err := hw.SaveAsPNG(to.Screenshot(), to.framePath(false)); err != nil {
 			panic("failed to save frame: " + err.Error())

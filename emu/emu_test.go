@@ -54,7 +54,7 @@ func BenchmarkCPUSpeed(b *testing.B) {
 
 	for b.Loop() {
 		for range nframes {
-			e.NES.RunOneFrame(frame)
+			e.NES.RunOneFrame(&frame)
 		}
 		nloops++
 	}
@@ -67,7 +67,7 @@ func BenchmarkSaveState(b *testing.B) {
 	e := loadEmulator(b, romPath)
 
 	frame := e.out.BeginFrame()
-	e.NES.RunOneFrame(frame)
+	e.NES.RunOneFrame(&frame)
 
 	b.ResetTimer()
 	for b.Loop() {
