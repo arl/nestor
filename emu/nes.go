@@ -51,7 +51,7 @@ func (nes *NES) Reset(soft bool) {
 func (nes *NES) RunOneFrame(frame hw.Frame) {
 	nes.PPU.SetFrameBuffer(frame.Video)
 	nes.CPU.Run(29781)
-	nes.APU.EndFrame(&frame.Audio)
+	nes.APU.EndFrame()
 }
 
 func (nes *NES) IsRunAheadFrame() bool {

@@ -137,7 +137,7 @@ func (e *Emulator) RunFrameWithRunAhead() {
 	// audio out of it.
 	e.NES.isRunAheadFrame = true
 	e.NES.CPU.Run(29781)
-	e.NES.APU.EndFrame(nil)
+	e.NES.APU.EndFrame()
 
 	buf, err := e.NES.SaveSnapshot()
 	if err != nil {
@@ -146,7 +146,7 @@ func (e *Emulator) RunFrameWithRunAhead() {
 
 	for frames > 1 {
 		e.NES.CPU.Run(29781)
-		e.NES.APU.EndFrame(nil)
+		e.NES.APU.EndFrame()
 		frames--
 	}
 	e.NES.isRunAheadFrame = false
