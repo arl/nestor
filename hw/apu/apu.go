@@ -1,17 +1,11 @@
 package apu
 
 import (
-	"github.com/veandco/go-sdl2/sdl"
-
 	"nestor/emu/log"
 	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
 	"nestor/hw/snapshot"
 )
-
-// Global for now
-var AudioDeviceID sdl.AudioDeviceID
-var AudioSpec sdl.AudioSpec
 
 type APU struct {
 	cpu   cpu
@@ -177,13 +171,13 @@ func (a *APU) Reset(soft bool) {
 func (a *APU) Tick() {
 	a.curCycle++
 	if a.curCycle == cycleLength-1 {
-		a.EndFrame()
+		a.EndFrame(nil)
 	} else if a.needToRun(a.curCycle) {
 		a.Run()
 	}
 }
 
-func (a *APU) EndFrame() {
+func (a *APU) EndFrame(buf *AudioBuffer) {
 	a.DMC.processClock()
 	a.Run()
 	a.Square1.endFrame()
@@ -192,7 +186,7 @@ func (a *APU) EndFrame() {
 	a.Noise.endFrame()
 	a.DMC.endFrame()
 
-	a.mixer.playAudioBuffer(a.curCycle)
+	a.mixer.playAudioBuffer(a.curCycle, buf)
 
 	a.curCycle = 0
 	a.prevCycle = 0

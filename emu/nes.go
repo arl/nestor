@@ -48,10 +48,10 @@ func (nes *NES) Reset(soft bool) {
 	nes.Mixer.Reset()
 }
 
-func (nes *NES) RunOneFrame(frame hw.Frame) {
+func (nes *NES) RunOneFrame(frame *hw.Frame) {
 	nes.PPU.SetFrameBuffer(frame.Video)
 	nes.CPU.Run(29781)
-	nes.APU.EndFrame()
+	nes.APU.EndFrame(&frame.Audio)
 }
 
 func (nes *NES) IsRunAheadFrame() bool {

@@ -208,9 +208,9 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 		framesBeforeReset := -1 // not requested
 
 		for {
-			vbuf := out.BeginFrame()
-			nes.RunOneFrame(vbuf)
-			out.EndFrame(vbuf)
+			fbuf := out.BeginFrame()
+			nes.RunOneFrame(&fbuf)
+			out.EndFrame(&fbuf)
 
 			data := readString(nes.CPU.Bus, 0x6001, 3)
 			if magicset == 0 {

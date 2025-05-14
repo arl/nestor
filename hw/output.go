@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unsafe"
 
 	"github.com/veandco/go-sdl2/sdl"
 
@@ -51,18 +52,11 @@ type OutputConfig struct {
 	Shader string
 }
 
-// A Frame holds the audio/video buffers the emulator
-// should fill for a single frame.
-type Frame struct {
-	Video []byte
-	_     []byte // TODO: Audio
-}
-
 type Output struct {
 	framebufidx  int
 	framebuf     [][]byte
 	framecounter int
-	framech      chan Frame
+	framech      chan *Frame
 
 	fpscounter int
 	fpsclock   uint64
@@ -71,6 +65,8 @@ type Output struct {
 	window       *window
 
 	audioEnabled bool
+	audiodev     sdl.AudioDeviceID
+	audiobuf     [][]int16
 
 	quit atomic.Bool
 	stop chan struct{}
@@ -81,17 +77,23 @@ type Output struct {
 
 func NewOutput(cfg OutputConfig) *Output {
 	if cfg.NumBackBuffers == 0 {
-		cfg.NumBackBuffers = 2
+		cfg.NumBackBuffers = 4
 	}
 
 	videobuf := make([][]byte, cfg.NumBackBuffers)
 	for i := range videobuf {
 		videobuf[i] = make([]byte, cfg.Width*cfg.Height*4)
 	}
+	audiobuf := make([][]int16, cfg.NumBackBuffers)
+	for i := range audiobuf {
+		audiobuf[i] = make([]int16, apu.MaxSamplesPerFrame)
+	}
+
 	out := &Output{
 		framebuf: videobuf,
+		audiobuf: audiobuf,
 		cfg:      cfg,
-		framech:  make(chan Frame),
+		framech:  make(chan *Frame),
 		stop:     make(chan struct{}),
 	}
 
@@ -152,26 +154,30 @@ func (out *Output) EnableAudio(enable bool) error {
 			Callback: nil,
 		}
 
-		var obtained sdl.AudioSpec
-		deviceID, err := sdl.OpenAudioDevice("", false, &desired, &obtained, 0)
+		dev, err := sdl.OpenAudioDevice("", false, &desired, nil, 0)
 		if err != nil {
 			return err
 		}
 
-		apu.AudioDeviceID = deviceID
-		apu.AudioSpec = obtained
-
-		sdl.PauseAudioDevice(deviceID, false)
-		return nil
+		out.audiodev = dev
+		sdl.PauseAudioDevice(out.audiodev, false)
 
 	case !enable && out.audioEnabled:
-		if apu.AudioDeviceID != 0 {
-			sdl.CloseAudioDevice(apu.AudioDeviceID)
+		if out.audiodev != 0 {
+			sdl.CloseAudioDevice(out.audiodev)
 		}
 		sdl.QuitSubSystem(sdl.INIT_AUDIO)
 	}
 
 	return nil
+}
+
+// A Frame holds the audio/video buffers the emulator
+// should fill for a single frame.
+type Frame struct {
+	Video []byte
+	Audio apu.AudioBuffer
+	idx   int
 }
 
 func (out *Output) BeginFrame() Frame {
@@ -180,12 +186,18 @@ func (out *Output) BeginFrame() Frame {
 		out.framebufidx = 0
 	}
 
+	vbuf := out.framebuf[out.framebufidx]
+
+
+	abuf := out.audiobuf[out.framebufidx]
 	return Frame{
-		Video: out.framebuf[out.framebufidx],
+		Video: vbuf,
+		Audio: apu.AudioBuffer{Samples: abuf[:apu.MaxSamplesPerFrame]},
+		idx:   out.framebufidx,
 	}
 }
 
-func (out *Output) EndFrame(frame Frame) {
+func (out *Output) EndFrame(frame *Frame) {
 	out.framecounter++
 	out.framech <- frame
 }
@@ -236,19 +248,26 @@ func (out *Output) render() {
 					out.fpsclock += 1000
 				}
 			}
-		}
+			pbuf := unsafe.Slice((*byte)(unsafe.Pointer(&frame.Audio.Samples[0])), len(frame.Audio.Samples)*2)
+			fmt.Println(len(pbuf))
+			// sdl.Do(func() {
+			if err := sdl.QueueAudio(out.audiodev, pbuf); err != nil {
+				log.ModSound.DebugZ("failed to queue audio buffer").Error("err", err).End()
+			}
+			// })
 
-		if out.cfg.DisableVSync {
-			// If vsync is disabled, we perform a software-based sync based on
-			// time. We save the time at which we rendered each frame in the
-			// last second, so that we sleep only averaging the frame rate over
-			// a window of one second (it's smoother).
-			//
-			// Note: sdl.Delay does a much better job for that than time.Sleep,
-			// Hypothesis is because sdl.Delay doesn't affect the Go scheduler.
-			elapsed := sdl.GetTicks64() - startTick
-			if elapsed < uint64(frameDelay.Milliseconds()) {
-				sdl.Delay(uint32(frameDelay.Milliseconds() - int64(elapsed)))
+			if out.cfg.DisableVSync {
+				// If vsync is disabled, we perform a software-based sync based on
+				// time. We save the time at which we rendered each frame in the
+				// last second, so that we sleep only averaging the frame rate over
+				// a window of one second (it's smoother).
+				//
+				// Note: sdl.Delay does a much better job for that than time.Sleep,
+				// Hypothesis is because sdl.Delay doesn't affect the Go scheduler.
+				elapsed := sdl.GetTicks64() - startTick
+				if elapsed < uint64(frameDelay.Milliseconds()) {
+					sdl.Delay(uint32(frameDelay.Milliseconds() - int64(elapsed)))
+				}
 			}
 		}
 	}
