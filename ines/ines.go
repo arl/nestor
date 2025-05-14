@@ -93,7 +93,7 @@ func Decode(buf []byte) (*Rom, error) {
 	if len(buf) < off+prgRomSize {
 		return nil, fmt.Errorf("incomplete PRG section")
 	}
-	rom.PRGROM = buf[off : off+prgRomSize]
+	rom.PRGROM = buf[off : off+prgRomSize : off+prgRomSize]
 	off += prgRomSize
 
 	// CHR rom data
@@ -101,7 +101,7 @@ func Decode(buf []byte) (*Rom, error) {
 	if len(buf) < off+chrRomSize {
 		return nil, fmt.Errorf("incomplete CHR section")
 	}
-	rom.CHRROM = buf[off : off+chrRomSize]
+	rom.CHRROM = buf[off : off+chrRomSize : off+chrRomSize]
 	off += chrRomSize
 
 	return rom, nil
