@@ -38,8 +38,8 @@ func (rom *Rom) PrintInfos(w io.Writer) {
 	fmt.Fprintf(w, "|PRG ROM                | % 8d x 16k |\n", rom.nslotsPRGROM())
 	fmt.Fprintf(w, "|CHR ROM                | % 9d x 8k |\n", rom.nslotsCHRROM())
 	if rom.IsNES20() {
-		fmt.Fprintf(w, "|PRG RAM                | % 13dk |\n", rom.PRGRAMSize()/1024)
-		fmt.Fprintf(w, "|PRG NVRAM              | % 13dk |\n", rom.PRGNVRAMSize()/1024)
+		fmt.Fprintf(w, "|PRG RAM                | % 13dk |\n", rom.PRGRAMSize())
+		fmt.Fprintf(w, "|PRG NVRAM              | % 13dk |\n", rom.PRGNVRAMSize())
 		fmt.Fprintf(w, "|CHR RAM                | % 13dk |\n", rom.CHRRAMSize()/1024)
 		fmt.Fprintf(w, "|CHR NVRAM              | % 13dk |\n", rom.CHRNVRAMSize()/1024)
 	}
@@ -133,8 +133,14 @@ func (hdr *header) decode(p []byte) error {
 	if hdr.IsNES20() {
 		hdr.prgromsz |= int(hdr.raw[9]&0x0F) << 8
 		hdr.chrromsz |= int(hdr.raw[9] & 0xF0)
-		hdr.prgramsz = 64 << int(hdr.raw[10]&0x0F)
-		hdr.prgnvramsz = 64 << int(hdr.raw[10]>>4)
+		// uint8_t value = Byte10 & 0x0F;
+		// return value == 0 ? 0 : 128 * (uint32_t)std::pow(2, value - 1);
+		if val := int(hdr.raw[10] & 0x0F); val != 0 {
+			hdr.prgramsz = 128 * (1 << (val - 1))
+		}
+		if val := int(hdr.raw[10]&0xF0) >> 4; val != 0 {
+			hdr.prgnvramsz = 128 * (1 << (val - 1))
+		}
 		hdr.chrramsz = 64 << int(hdr.raw[11]&0x0F)
 		hdr.chrnvramsz = 64 << int(hdr.raw[11]>>4)
 	}
@@ -156,7 +162,7 @@ func (hdr *header) PRGRAMSize() int {
 	return hdr.prgramsz
 }
 
-// PRGNVRAMSize returns the size of the PRG-NVRAM/EEPROM (non-volatile). alias WRAM.
+// PRGNVRAMSize returns the size of the PRG-NVRAM/EEPROM (non-volatile). alias WRAM .
 func (hdr *header) PRGNVRAMSize() int {
 	return hdr.prgnvramsz
 }
