@@ -101,12 +101,27 @@ func (b *base) write(addr uint16, value uint8) {
 
 const KB = 1 << 10
 
+func mirrorcopy(dst, src []byte) int {
+	n, m := len(dst), len(src)
+	if m == 0 || n == 0 {
+		return 0
+	}
+	// Hot path: same size
+	if m == n {
+		return copy(dst, src)
+	}
+	copy(dst, src)
+
+	// double-filled region each iteration
+	for size := m; size < n; size <<= 1 {
+		copy(dst[size:], dst[:size])
+	}
+	return n
+}
+
 // select what 32KB PRG ROM bank to use.
 func (b *base) selectPRGPage32KB(bank int) {
-	// TODO: what if instead of copying we were using
-	// table.MapMemorySlice. in this case we would avoid a copy, as well as
-	// define if the memory is read-only or read-write.
-	copy(b.PRGROM[:], b.rom.PRGROM[32*KB*(bank):])
+	mirrorcopy(b.PRGROM[:], b.rom.PRGROM[32*KB*(bank):])
 }
 
 // select what 16KB PRG ROM bank to use into which PRG 16KB page.
