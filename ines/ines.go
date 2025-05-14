@@ -34,17 +34,16 @@ func (rom *Rom) PrintInfos(w io.Writer) {
 	fmt.Fprintf(w, "|Mapper                 | % 14d |\n", rom.Mapper())
 	if rom.IsNES20() {
 		fmt.Fprintf(w, "|Submapper              | % 14d |\n", rom.SubMapper())
+		fmt.Fprintf(w, "|Bus conflicts          | % 14s |\n", yn(rom.HasBusConflicts()))
 	}
 	fmt.Fprintf(w, "|PRG ROM                | % 8d x 16k |\n", rom.nslotsPRGROM())
 	fmt.Fprintf(w, "|CHR ROM                | % 9d x 8k |\n", rom.nslotsCHRROM())
+
 	if rom.IsNES20() {
 		fmt.Fprintf(w, "|PRG RAM                | % 13dk |\n", rom.PRGRAMSize()/1024)
 		fmt.Fprintf(w, "|PRG NVRAM              | % 13dk |\n", rom.PRGNVRAMSize()/1024)
 		fmt.Fprintf(w, "|CHR RAM                | % 13dk |\n", rom.CHRRAMSize()/1024)
 		fmt.Fprintf(w, "|CHR NVRAM              | % 13dk |\n", rom.CHRNVRAMSize()/1024)
-	}
-	if rom.IsNES20() {
-		fmt.Fprintf(w, "|Bus conflicts          | % 14s |\n", yn(rom.HasBusConflicts()))
 	}
 
 	fmt.Fprintf(w, "|Nametable mirroring    | % 14s |\n", rom.Mirroring())
@@ -133,8 +132,13 @@ func (hdr *header) decode(p []byte) error {
 	if hdr.IsNES20() {
 		hdr.prgromsz |= int(hdr.raw[9]&0x0F) << 8
 		hdr.chrromsz |= int(hdr.raw[9] & 0xF0)
-		hdr.prgramsz = 64 << int(hdr.raw[10]&0x0F)
-		hdr.prgnvramsz = 64 << int(hdr.raw[10]>>4)
+		// uint8_t value = Byte10 & 0x0F;
+		if val := int(hdr.raw[10] & 0x0F); val != 0 {
+			hdr.prgramsz = 128 * (1 << (val - 1))
+		}
+		if val := int(hdr.raw[10]&0xF0) >> 4; val != 0 {
+			hdr.prgnvramsz = 128 * (1 << (val - 1))
+		}
 		hdr.chrramsz = 64 << int(hdr.raw[11]&0x0F)
 		hdr.chrnvramsz = 64 << int(hdr.raw[11]>>4)
 	}
@@ -152,21 +156,25 @@ func (hdr *header) nslotsCHRROM() int {
 }
 
 // PRGRAMSize returns the size of the PRG-RAM (volatile).
+// Alias: Work RAM
 func (hdr *header) PRGRAMSize() int {
 	return hdr.prgramsz
 }
 
-// PRGNVRAMSize returns the size of the PRG-NVRAM/EEPROM (non-volatile). alias WRAM.
+// PRGNVRAMSize returns the size of the PRG-NVRAM/EEPROM (non-volatile).
+// Alias: Save RAM
 func (hdr *header) PRGNVRAMSize() int {
 	return hdr.prgnvramsz
 }
 
 // CHRRAMSize returns the size of the CHR-RAM (volatile). alias VRAM.
+// Alias: VRAM or Video RAM
 func (hdr *header) CHRRAMSize() int {
 	return hdr.chrramsz
 }
 
 // CHRNVRAMSize returns the size of the CHR-NVRAM (non-volatile).
+// Alias: Save VRAM
 func (hdr *header) CHRNVRAMSize() int {
 	return hdr.chrnvramsz
 }

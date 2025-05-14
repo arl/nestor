@@ -59,12 +59,12 @@ func (b *base) init(writeReg func(uint16, uint8)) {
 	b.cpu.Bus.MapBank(0x0000, b, 0)
 
 	if b.rom.PRGRAMSize() > 0 {
-		panic("PRGRAM not implemented")
-		// 	b.cpu.Bus.MapMem(0x6000, &hwio.Mem{
-		// 		Name:  "PRGRAM",
-		// 		VSize: 0x2000,
-		// 		Data:  make([]byte, b.rom.PRGRAMSize()),
-		// 	})
+		panic(fmt.Sprintf("PRGRAM not implemented, rom has $%XB", b.rom.PRGRAMSize()))
+		// b.cpu.Bus.MapMem(0x6000, &hwio.Mem{
+		// 	Name:  "PRGRAM",
+		// 	VSize: 0x2000,
+		// 	Data:  make([]byte, b.rom.PRGRAMSize()),
+		// })
 	}
 
 	b.writeReg = writeReg
