@@ -19,13 +19,17 @@ import (
 )
 
 const (
-	NTSCWidth                = 256
-	NTSCHeight               = 240
-	frameDelay time.Duration = (1 * time.Second / 60.0)
+	NTSCWidth                     = 256
+	NTSCHeight                    = 240
+	FramesPerSecond               = 60
+	frameDelay      time.Duration = (1 * time.Second / FramesPerSecond)
+
+	// NTSC NES master clock = 21.477272 MHz ÷ 12 ≈ 1 789 772.727 Hz
+	NTSCAudioFreq = 1789773 // rounded to integer Hz
 )
 
+const AudioChannels = 2 // stereo
 const PrimaryMonitor = 0
-
 const DefaultScale = 2
 
 type OutputConfig struct {
@@ -84,9 +88,15 @@ func NewOutput(cfg OutputConfig) *Output {
 	for i := range videobuf {
 		videobuf[i] = make([]byte, cfg.Width*cfg.Height*4)
 	}
+	// audiobuf := make([][]int16, cfg.NumBackBuffers)
+	// for i := range audiobuf {
+	// 	audiobuf[i] = make([]int16, apu.MaxSamplesPerFrame)
+	// }
+
 	audiobuf := make([][]int16, cfg.NumBackBuffers)
+	samplesPerFrame := NTSCAudioFreq/FramesPerSecond + 1 // round up
 	for i := range audiobuf {
-		audiobuf[i] = make([]int16, apu.MaxSamplesPerFrame)
+		audiobuf[i] = make([]int16, samplesPerFrame*AudioChannels)
 	}
 
 	out := &Output{
@@ -186,16 +196,53 @@ func (out *Output) BeginFrame() Frame {
 		out.framebufidx = 0
 	}
 
+	// 1) Video buffer unchanged
 	vbuf := out.framebuf[out.framebufidx]
 
+	// 2) Figure out how many APU samples this frame:
+	//    ns0 = total samples up to frame N, ns1 = up to N+1 → diff = samples this frame
+	fc := out.framecounter % FramesPerSecond
+	ns0 := (NTSCAudioFreq * fc) / FramesPerSecond
+	ns1 := (NTSCAudioFreq * (fc + 1)) / FramesPerSecond
+	mono := ns1 - ns0             // mono samples per frame
+	total := mono * AudioChannels // interleaved stereo samples
 
+	// 3) Slice your pre-allocated buffer to exactly that many samples
+	abuf := out.audiobuf[out.framebufidx]
+	audioSlice := abuf[:total]
+
+	return Frame{
+		Video: vbuf,
+		Audio: apu.AudioBuffer{Samples: audioSlice},
+		idx:   out.framebufidx,
+	}
+}
+
+/*
+func (out *Output) BeginFrame() Frame {
+	out.framebufidx++
+	if out.framebufidx == out.cfg.NumBackBuffers {
+		out.framebufidx = 0
+	}
+
+	vbuf := out.framebuf[out.framebufidx]
+*/
+/*
+	TODO:
+	Actually if we were creating an audio buffer based on the audio frequency, we wouldn't need to use
+	pass by pointer for the Frame objects since the audio buffer would be sized so that it contains exactly
+	the number of samples needed for the frame.
+
+	This is probably a good idea if we want to sync the whole emulation based on the audio frequency.
+*/
+/*
 	abuf := out.audiobuf[out.framebufidx]
 	return Frame{
 		Video: vbuf,
 		Audio: apu.AudioBuffer{Samples: abuf[:apu.MaxSamplesPerFrame]},
 		idx:   out.framebufidx,
 	}
-}
+}*/
 
 func (out *Output) EndFrame(frame *Frame) {
 	out.framecounter++
@@ -234,43 +281,50 @@ func (out *Output) render() {
 			log.ModEmu.DebugZ("Stopped rendering loop").End()
 			return
 		case frame := <-out.framech:
-			if out.videoEnabled {
-				sdl.Do(func() { out.window.render(frame.Video) })
-			}
-
-			// Update FPS counter in title bar.
-			if out.videoEnabled {
-				out.fpscounter++
-				if out.fpsclock+1000 < sdl.GetTicks64() {
-					title := fmt.Sprintf("%s - %d FPS", out.cfg.Title, out.fpscounter)
-					sdl.Do(func() { out.window.SetTitle(title) })
-					out.fpscounter = 0
-					out.fpsclock += 1000
+			sdl.Do(func() {
+				if out.videoEnabled {
+					out.window.render(frame.Video)
 				}
-			}
-			pbuf := unsafe.Slice((*byte)(unsafe.Pointer(&frame.Audio.Samples[0])), len(frame.Audio.Samples)*2)
-			fmt.Println(len(pbuf))
-			// sdl.Do(func() {
-			if err := sdl.QueueAudio(out.audiodev, pbuf); err != nil {
-				log.ModSound.DebugZ("failed to queue audio buffer").Error("err", err).End()
-			}
-			// })
 
-			if out.cfg.DisableVSync {
-				// If vsync is disabled, we perform a software-based sync based on
-				// time. We save the time at which we rendered each frame in the
-				// last second, so that we sleep only averaging the frame rate over
-				// a window of one second (it's smoother).
-				//
-				// Note: sdl.Delay does a much better job for that than time.Sleep,
-				// Hypothesis is because sdl.Delay doesn't affect the Go scheduler.
-				elapsed := sdl.GetTicks64() - startTick
-				if elapsed < uint64(frameDelay.Milliseconds()) {
-					sdl.Delay(uint32(frameDelay.Milliseconds() - int64(elapsed)))
+				// Update FPS counter in title bar.
+				if out.videoEnabled {
+					out.fpscounter++
+					if out.fpsclock+1000 < sdl.GetTicks64() {
+						title := fmt.Sprintf("%s - %d FPS", out.cfg.Title, out.fpscounter)
+						out.window.SetTitle(title)
+						out.fpscounter = 0
+						out.fpsclock += 1000
+					}
 				}
-			}
+				out.renderAudio(frame.Audio)
+
+				if out.cfg.DisableVSync {
+					// If vsync is disabled, we perform a software-based sync based on
+					// time. We save the time at which we rendered each frame in the
+					// last second, so that we sleep only averaging the frame rate over
+					// a window of one second (it's smoother).
+					//
+					// Note: sdl.Delay does a much better job for that than time.Sleep,
+					// Hypothesis is because sdl.Delay doesn't affect the Go scheduler.
+					elapsed := sdl.GetTicks64() - startTick
+					if elapsed < uint64(frameDelay.Milliseconds()) {
+						sdl.Delay(uint32(frameDelay.Milliseconds() - int64(elapsed)))
+					}
+				}
+			})
 		}
 	}
+}
+
+func (out *Output) renderAudio(audio apu.AudioBuffer) {
+	buf := (*[100000]uint8)(unsafe.Pointer(&audio.Samples[0]))
+	sdl.QueueAudio(out.audiodev, (*buf)[:len(audio.Samples)*2])
+
+	// pbuf := unsafe.Slice((*byte)(unsafe.Pointer(&frame.Audio.Samples[0])), len(frame.Audio.Samples)*2)
+	// fmt.Println(len(pbuf))
+	// if err := sdl.QueueAudio(out.audiodev, pbuf); err != nil {
+	// 	log.ModSound.DebugZ("failed to queue audio buffer").Error("err", err).End()
+	// }
 }
 
 // Poll reports whether input polling is ongoing.
