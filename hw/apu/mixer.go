@@ -11,7 +11,7 @@ import (
 )
 
 const MaxSampleRate = 96000
-const MaxSamplesPerFrame = MaxSampleRate / 60 * 4 * 2 //x4 to allow CPU overclocking up to 10x, x2 for panning stereo
+const maxSamplesPerFrame = MaxSampleRate / 60 * 2
 
 const cycleLength = 30000
 const bitsPerSample = 16
@@ -19,7 +19,7 @@ const bitsPerSample = 16
 const (
 	AudioFormat     = sdl.AUDIO_S16LSB
 	AudioChannels   = 2
-	AudioBufferSize = 4096 // TODO: adjust based on latency.
+	AudioBufferSize = 1024
 )
 
 type AudioBuffer struct {
@@ -27,7 +27,7 @@ type AudioBuffer struct {
 }
 
 type Mixer struct {
-	outbuf   [MaxSamplesPerFrame]int16
+	outbuf   [maxSamplesPerFrame]int16
 	bufleft  *blip.Buffer
 	bufright *blip.Buffer
 
@@ -56,8 +56,8 @@ type console interface {
 
 func NewMixer(c console) *Mixer {
 	am := &Mixer{
-		bufleft:    blip.NewBuffer(MaxSamplesPerFrame),
-		bufright:   blip.NewBuffer(MaxSamplesPerFrame),
+		bufleft:    blip.NewBuffer(maxSamplesPerFrame),
+		bufright:   blip.NewBuffer(maxSamplesPerFrame),
 		sampleRate: MaxSampleRate,
 		console:    c,
 	}
@@ -88,10 +88,10 @@ func (am *Mixer) playAudioBuffer(time uint32, buf *AudioBuffer) {
 	am.EndFrame(time)
 
 	out := am.outbuf[am.nsamples*2:]
-	sampleCount := am.bufleft.ReadSamples(out, MaxSamplesPerFrame, blip.Stereo)
+	sampleCount := am.bufleft.ReadSamples(out, maxSamplesPerFrame, blip.Stereo)
 
 	if am.hasPanning {
-		am.bufright.ReadSamples(out[1:], MaxSamplesPerFrame, blip.Stereo)
+		am.bufright.ReadSamples(out[1:], maxSamplesPerFrame, blip.Stereo)
 	} else {
 		// When no panning, just copy the left channel to the right one.
 		for i := 0; i < sampleCount*2; i += 2 {
@@ -103,9 +103,8 @@ func (am *Mixer) playAudioBuffer(time uint32, buf *AudioBuffer) {
 
 	// TODO: apply stereo filters
 
-	if !am.console.IsRunAheadFrame() {
-		// Actuall play this with SDL2
-		// copy the buffer
+	if !am.console.IsRunAheadFrame() && buf != nil {
+		// Copy samples in audio buffer of current frame.
 		n := copy(buf.Samples, out[:sampleCount*2])
 		buf.Samples = buf.Samples[:n]
 	}
