@@ -63,7 +63,9 @@ func _newWindow(cfg OutputConfig) (*window, error) {
 	}
 
 	if cfg.DisableVSync {
-		sdl.GLSetSwapInterval(0)
+		sdl.GLSetSwapInterval(0) // immediate
+	} else {
+		sdl.GLSetSwapInterval(1) // vsync
 	}
 
 	// Create empty texture buffer.
