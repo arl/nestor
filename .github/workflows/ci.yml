@@ -21,7 +21,7 @@ jobs:
           stable: false
 
       - name: go generate check
-        run: >-
+        run: |
           go generate ./...
           git diff --name-only --exit-code
 
