@@ -41,7 +41,7 @@ All these features are planned, but not all of them are implemented yet.
  - [x] CRT Shader effects
  - [ ] Debugger
  - [ ] Save state
- - [ ] Frame run-ahead
+ - [x] Frame run-ahead
 
 ### Implemented mappers
 
