@@ -37,19 +37,12 @@ const (
 
 const (
 	// Maximum clockRate/sampleRate ratio. For a given sampleRate,
-	// lockRate must not be greater than sampleRate*MaxRatio.
+	// clockRate must not be greater than sampleRate*MaxRatio.
 	MaxRatio = 1 << 20
 
 	// Maximum number of samples that can be generated from one time frame.
 	MaxFrame = 4000
 )
-
-// Unsigned is a constraint that permits any unsigned integer type.
-// If future releases of Go add new predeclared unsigned integer types,
-// this constraint will be modified to include them.
-type unsigned interface {
-	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
-}
 
 func clamp[T ~int | ~int32 | ~int64](n T) T {
 	if T(int16(n)) != n {
@@ -136,7 +129,7 @@ func (b *Buffer) ClocksNeeded(nsamples int) int {
 // output samples. Also begins new time frame at clockDuration, so that clock
 // time 0 in the new time frame specifies the same clock as clockDuration in the
 // old time frame specified. Deltas can have been added slightly past
-// clockDuration (up to however many clocks there are in two output samples).
+// clockDuration (up to how many clocks there are in two output samples).
 func (b *Buffer) EndFrame(clockDuration int) {
 	off := uint64(clockDuration)*b.factor + b.offset
 	b.avail += int(off >> timeBits)
@@ -175,26 +168,34 @@ func (b *Buffer) ReadSamples(out []int16, count int, stereo bool) int {
 		count = b.avail
 	}
 
-	if count != 0 {
-		step := 2
-		if !stereo {
-			step = 1
-		}
-
-		sum := b.integrator
-		for idx := range b.samples[:count] {
-			// Eliminate fraction
-			s := sum >> deltaBits
-			sum += int(b.samples[idx])
-			out[idx*step] = int16(clamp(s))
-
-			// High-pass filter
-			sum -= s << (deltaBits - bassShift)
-		}
-		b.integrator = sum
-		b.removeSamples(count)
+	step := 2
+	if !stereo {
+		step = 1
 	}
 
+	// Cap the number of samples as ceil(len(out)/step). Ceil takes care of odd
+	// number of samples in stereo mode.
+	if maxout := (len(out) + step - 1) / step; count > maxout {
+		count = maxout
+	}
+
+	if count == 0 {
+		return 0
+	}
+
+	sum := b.integrator
+	for idx := range b.samples[:count] {
+		// Eliminate fraction
+		s := sum >> deltaBits
+		sum += int(b.samples[idx])
+
+		out[idx*step] = int16(clamp(s))
+
+		// High-pass filter
+		sum -= s << (deltaBits - bassShift)
+	}
+	b.integrator = sum
+	b.removeSamples(count)
 	return count
 }
 

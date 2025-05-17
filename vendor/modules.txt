@@ -5,7 +5,7 @@ github.com/BurntSushi/toml/internal
 # github.com/alecthomas/kong v1.9.0
 ## explicit; go 1.20
 github.com/alecthomas/kong
-# github.com/arl/blip v0.2.1
+# github.com/arl/blip v0.2.2
 ## explicit; go 1.22
 github.com/arl/blip
 # github.com/go-faster/errors v0.6.1
