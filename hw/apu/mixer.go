@@ -10,16 +10,21 @@ import (
 	"nestor/hw/snapshot"
 )
 
-const MaxSampleRate = 96000
 const maxSamplesPerFrame = MaxSampleRate / 60 * 2
+const MaxSampleRate = 96_000
 
-const cycleLength = 30000
+const ntscClockRate uint32 = 1_789_773
+
+// cycleLength defines a fixed buffer size (30_000) just above the NES CPU
+// cycles per video frame (~1.789773 MHz/60 ≈ 29 830) to safely timestamp
+// per-cycle audio events within one frame.
+const cycleLength = 30_000
 const bitsPerSample = 16
 
 const (
 	AudioFormat     = sdl.AUDIO_S16LSB
-	AudioChannels   = 2
 	AudioBufferSize = 1024
+	AudioChannels   = 2    // stereo
 )
 
 type AudioBuffer struct {
@@ -112,8 +117,6 @@ func (am *Mixer) playAudioBuffer(time uint32, buf *AudioBuffer) {
 	am.nsamples = 0
 	am.updateRates(false)
 }
-
-const ntscClockRate uint32 = 1789773
 
 func (am *Mixer) updateRates(forceUpdate bool) {
 	clockRate := ntscClockRate

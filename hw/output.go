@@ -25,11 +25,13 @@ const (
 	FramesPerSecond = 60
 	AudioSampleRate = apu.MaxSampleRate // 96_000 kHz
 
+	// How many audio samples per frame, per channel.
+	samplesPerFrame = apu.AudioChannels * AudioSampleRate / FramesPerSecond
+
 	// Used to enforce frame rate without video nor audio.
 	frameDelay time.Duration = time.Second / FramesPerSecond
 )
 
-const AudioChannels = 2 // stereo
 const PrimaryMonitor = 0
 const DefaultScale = 2
 
@@ -37,7 +39,7 @@ type OutputConfig struct {
 	// Dimensions of the video buffer (in pixels).
 	Width, Height int32
 
-	// Number of video buffers to allocate. Defaults to 2.
+	// Number of video and audio buffers to allocate. Defaults to 2.
 	NumBackBuffers int
 
 	// Window title.
@@ -82,7 +84,7 @@ type Output struct {
 
 func NewOutput(cfg OutputConfig) *Output {
 	if cfg.NumBackBuffers == 0 {
-		cfg.NumBackBuffers = 4
+		cfg.NumBackBuffers = 2
 	}
 
 	videobuf := make([][]byte, cfg.NumBackBuffers)
@@ -91,11 +93,8 @@ func NewOutput(cfg OutputConfig) *Output {
 	}
 
 	audiobuf := make([][]int16, cfg.NumBackBuffers)
-
-	// How many audio samples per frame, per channel.
-	const samplesPerFrame = AudioSampleRate / FramesPerSecond
 	for i := range audiobuf {
-		audiobuf[i] = make([]int16, samplesPerFrame*AudioChannels)
+		audiobuf[i] = make([]int16, samplesPerFrame)
 	}
 
 	out := &Output{
@@ -200,7 +199,7 @@ func (out *Output) BeginFrame() Frame {
 	fidx := out.framecounter % FramesPerSecond
 	ns0 := (AudioSampleRate * fidx) / FramesPerSecond
 	ns1 := (AudioSampleRate * (fidx + 1)) / FramesPerSecond
-	total := (ns1 - ns0) * AudioChannels // interleaved stereo samples
+	total := (ns1 - ns0) * apu.AudioChannels // interleaved stereo samples
 
 	abuf := out.audiobuf[out.framebufidx]
 	audioSlice := abuf[:total]
