@@ -94,28 +94,24 @@ func (am *Mixer) Reset() {
 func (am *Mixer) playAudioBuffer(time uint32, buf *AudioBuffer) {
 	am.EndFrame(time)
 
-	if !am.console.IsRunAheadFrame() {
-		out := buf.Samples[am.nsamples*2:]
-		sampleCount := am.bufleft.ReadSamples(out, maxSamplesPerFrame, blip.Stereo)
+	if am.console.IsRunAheadFrame() {
+		// Discard the audio samples we produced during run-ahead frame.
+		am.bufleft.Clear()
+		am.bufright.Clear()
+	} else {
+		sampleCount := am.bufleft.ReadSamples(buf.Samples, maxSamplesPerFrame, blip.Stereo)
 		if am.hasPanning {
-			am.bufright.ReadSamples(out[1:], maxSamplesPerFrame, blip.Stereo)
+			am.bufright.ReadSamples(buf.Samples[1:], maxSamplesPerFrame, blip.Stereo)
 		} else {
 			// When no panning, just copy the left channel to the right one.
 			for i := 0; i < sampleCount*2; i += 2 {
-				out[i+1] = out[i]
+				buf.Samples[i+1] = buf.Samples[i]
 			}
 		}
 		am.nsamples += sampleCount
 
 		// TODO: apply stereo filters
 		buf.Samples = buf.Samples[:sampleCount*2]
-
-		// Copy samples in audio buffer of current frame.
-		n := copy(buf.Samples, out[:sampleCount*2])
-		buf.Samples = buf.Samples[:n]
-	} else {
-		am.bufleft.Clear()
-		am.bufright.Clear()
 	}
 
 	am.nsamples = 0
