@@ -171,7 +171,7 @@ func (a *APU) Reset(soft bool) {
 func (a *APU) Tick() {
 	a.curCycle++
 	if a.curCycle == cycleLength-1 {
-		a.EndFrame(nil)
+		panic("should never happen")
 	} else if a.needToRun(a.curCycle) {
 		a.Run()
 	}
