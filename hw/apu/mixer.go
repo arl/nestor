@@ -1,7 +1,6 @@
 package apu
 
 import (
-	"bytes"
 	"slices"
 
 	"github.com/arl/blip"
@@ -35,6 +34,7 @@ type Mixer struct {
 	// outbuf can probably be removed and replaced
 	// with the audio buffer passed to EndFrame.
 	// outbuf [maxSamplesPerFrame]int16
+
 	bufleft  *blip.Buffer
 	bufright *blip.Buffer
 
@@ -91,12 +91,10 @@ func (am *Mixer) Reset() {
 	am.updateRates(true)
 }
 
-var tmpbuf bytes.Buffer
-
 func (am *Mixer) playAudioBuffer(time uint32, buf *AudioBuffer) {
 	am.EndFrame(time)
 
-	if buf != nil {
+	if !am.console.IsRunAheadFrame() {
 		out := buf.Samples[am.nsamples*2:]
 		sampleCount := am.bufleft.ReadSamples(out, maxSamplesPerFrame, blip.Stereo)
 		if am.hasPanning {
@@ -116,16 +114,8 @@ func (am *Mixer) playAudioBuffer(time uint32, buf *AudioBuffer) {
 		n := copy(buf.Samples, out[:sampleCount*2])
 		buf.Samples = buf.Samples[:n]
 	} else {
-		// a nil audio means we don't care about the audio samples.
-		//
-		// TODO: verifiy this doesn't allocated nothing on the heap. But even
-		// so, we should be able to avoid crating audio samples we don't care if
-		// the first place.
-		tmpbuf := make([]int16, maxSamplesPerFrame*2)
-		am.bufleft.ReadSamples(tmpbuf, maxSamplesPerFrame, blip.Stereo)
-		if am.hasPanning {
-			am.bufleft.ReadSamples(tmpbuf[1:], maxSamplesPerFrame, blip.Stereo)
-		}
+		am.bufleft.Clear()
+		am.bufright.Clear()
 	}
 
 	am.nsamples = 0
