@@ -81,7 +81,7 @@ func NewPPU() *PPU {
 	return p
 }
 
-func (p *PPU) SetFrameBuffer(framebuf []byte) {
+func (p *PPU) BeginFrame(framebuf []byte) {
 	// We're using a RGBA8 framebuffer.
 	p.framebuf = unsafe.Slice((*uint32)(unsafe.Pointer(&framebuf[0])), len(framebuf)/4)
 }
