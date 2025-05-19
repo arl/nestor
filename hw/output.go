@@ -24,6 +24,7 @@ const (
 
 	FramesPerSecond = 60
 	AudioSampleRate = apu.MaxSampleRate // 96_000 kHz
+	AudioBufferSize = 1024              // TODO: adjust based on latency.
 
 	// How many audio samples per frame, per channel.
 	samplesPerFrame = apu.AudioChannels * AudioSampleRate / FramesPerSecond
@@ -156,7 +157,7 @@ func (out *Output) EnableAudio(enable bool) error {
 			Freq: AudioSampleRate,
 			// 			Format:   apu.AudioFormat,
 			Channels: apu.AudioChannels,
-			Samples:  apu.AudioBufferSize, // typically 4096
+			Samples:  AudioBufferSize,
 		}
 
 		dev, err := sdl.OpenAudioDevice("", false, &desired, nil, 0)

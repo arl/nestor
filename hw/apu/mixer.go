@@ -21,9 +21,8 @@ const cycleLength = 32768
 const _ uint32 = (cycleLength - (ntscClockRate / 60))
 
 const (
-	AudioFormat     = sdl.AUDIO_S16LSB
-	AudioBufferSize = 1024
-	AudioChannels   = 2    // stereo
+	AudioFormat   = sdl.AUDIO_S16LSB
+	AudioChannels = 2 // stereo
 )
 
 type AudioBuffer struct {
