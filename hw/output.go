@@ -27,7 +27,7 @@ const (
 	AudioBufferSize = 1024              // TODO: adjust based on latency.
 
 	// How many audio samples per frame, per channel.
-	samplesPerFrame = apu.AudioChannels * AudioSampleRate / FramesPerSecond
+	SamplesPerFrame = apu.AudioChannels * AudioSampleRate / FramesPerSecond
 
 	// Used to enforce frame rate without video nor audio.
 	frameDelay time.Duration = time.Second / FramesPerSecond
@@ -95,7 +95,7 @@ func NewOutput(cfg OutputConfig) *Output {
 
 	audiobuf := make([][]int16, cfg.NumBackBuffers)
 	for i := range audiobuf {
-		audiobuf[i] = make([]int16, samplesPerFrame)
+		audiobuf[i] = make([]int16, SamplesPerFrame)
 	}
 
 	out := &Output{
