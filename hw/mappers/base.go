@@ -126,6 +126,9 @@ func (b *base) selectPRGPage32KB(bank int) {
 
 // select what 16KB PRG ROM bank to use into which PRG 16KB page.
 func (b *base) selectPRGPage16KB(page uint32, bank int) {
+	if len(b.rom.PRGROM) == 0 {
+		return
+	}
 	if bank < 0 {
 		// TODO: should probably not be checked here and should not panic.
 		if len(b.rom.PRGROM)%(16*KB) != 0 {
@@ -134,45 +137,51 @@ func (b *base) selectPRGPage16KB(page uint32, bank int) {
 		bank += len(b.rom.PRGROM) / (16 * KB)
 	}
 
-	start := 16 * KB * page
-	end := 16 * KB * (page + 1)
-	copy(b.PRGROM[start:end], b.rom.PRGROM[16*KB*(bank):])
+	offbus := 16 * KB * page
+	endbus := 16 * KB * (page + 1)
+	offrom := 16 * KB * (bank)
+	copy(b.PRGROM[offbus:endbus], b.rom.PRGROM[offrom:])
 
 	modMapper.DebugZ("Select 16 kB PRG page").
-		Hex16("bus.start", uint16(0x8000+start)).
-		Hex16("bus.end", uint16(-1+0x8000+end)).
+		Hex16("bus.start", uint16(0x8000+offbus)).
+		Hex16("bus.end", uint16(-1+0x8000+endbus)).
 		Hex16("rom.start", uint16(16*KB*(bank))).
 		Int("bank", bank).End()
 }
 
 // select what 8KB PRG ROM bank to use.
 func (b *base) selectCHRROMPage8KB(bank int) {
+	if len(b.rom.CHRROM) == 0 {
+		return
+	}
 	if bank < 0 {
 		bank += len(b.rom.CHRROM) / (8 * KB)
 	}
 
-	// b:bus r:rom
-	bstart, bend := 0, 8*KB
-	rstart := 8 * KB * bank
-	copy(b.CHRROM[bstart:bend], b.rom.CHRROM[rstart:])
+	offbus, endbus := 0, 8*KB
+	offrom := 8 * KB * bank
+	copy(b.CHRROM[offbus:endbus], b.rom.CHRROM[offrom:])
 
 	modMapper.DebugZ("Select 8 kB CHR page").
-		Hex16("bus.start", uint16(bstart)).
-		Hex16("bus.end", uint16(-1+bend)).
-		Hex16("rom.start", uint16(rstart)).
+		Hex16("bus.start", uint16(offbus)).
+		Hex16("bus.end", uint16(-1+endbus)).
+		Hex16("rom.start", uint16(offrom)).
 		Int("bank", bank).End()
 }
 
 // select what 4KB PRG ROM bank to use into which PRG 4KB page.
 func (b *base) selectCHRROMPage4KB(page uint32, bank int) {
+	if len(b.rom.CHRROM) == 0 {
+		return
+	}
 	if bank < 0 {
 		bank += len(b.rom.CHRROM) / (4 * KB)
 	}
 
-	if len(b.rom.CHRROM) != 0 {
-		romoff := min(4*KB*bank, len(b.rom.CHRROM)-1)
-		copy(b.CHRROM[4*KB*page:], b.rom.CHRROM[romoff:])
-	}
+	offbus := 4 * KB * page
+	endbus := 4 * KB * (page + 1)
+	offrom := min(4*KB*bank, len(b.rom.CHRROM)-1)
+	copy(b.CHRROM[offbus:endbus], b.rom.CHRROM[offrom:])
 }
 
 func (b *base) setNTMirroring(m ines.NTMirroring) {
