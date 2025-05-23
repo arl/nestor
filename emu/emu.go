@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"os"
 	"path/filepath"
 	"slices"
 	"sync/atomic"
@@ -205,11 +206,24 @@ func (e *Emulator) save() {
 		return
 	}
 
-	fmt.Printf("save state: %d bytes\n", len(state))
+	// TODO: state not saved for now
+	_ = state
 
 	path := filepath.Join(e.tmpdir, "screenshot.png")
+
 	if err := hw.SaveAsPNG(e.out.Screenshot(), path); err != nil {
-		log.ModEmu.WarnZ("Failed to save screenshot").String("path", path).End()
+		log.ModEmu.WarnZ("Error while saving screenshot").String("path", path).End()
+	} else {
+		log.ModEmu.DebugZ("Saved screenshot").String("path", path).End()
+	}
+
+	if saveram := e.NES.Mapper.BatteryPackedRAM(); saveram != nil {
+		path = filepath.Join(e.tmpdir, "battery.sav")
+		if err := os.WriteFile(path, saveram, 0644); err != nil {
+			log.ModEmu.WarnZ("Error while saving save ram").String("path", path).End()
+		} else {
+			log.ModEmu.DebugZ("Saved save ram").String("path", path).End()
+		}
 	}
 }
 
@@ -221,9 +235,7 @@ func (e *Emulator) SetTempDir(path string) { e.tmpdir = path }
 func (e *Emulator) SetPause(pause bool) { e.paused.CompareAndSwap(!pause, pause) }
 func (e *Emulator) Reset()              { e.reset.Store(true) }
 func (e *Emulator) Restart()            { e.restart.Store(true) }
-func (e *Emulator) Stop() {
-	e.quit.Store(true)
-}
+func (e *Emulator) Stop()               { e.quit.Store(true) }
 
 func (e *Emulator) isPaused() bool {
 	return e.paused.Load()

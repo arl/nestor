@@ -30,7 +30,7 @@ func main() {
 }
 
 func romInfosMain(romPath string) {
-	rom, err := ines.ReadRom(romPath)
+	rom, err := ines.ReadROM(romPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading ROM: %s", err)
 		os.Exit(1)

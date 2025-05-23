@@ -19,9 +19,9 @@ import (
 func emuMain(args Run, cfg *ui.Config) {
 	var exitcode int
 	sdl.Main(func() {
-		rom, err := ines.ReadRom(args.RomPath)
+		rom, err := ines.ReadROM(args.RomPath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading ROM: %s", err)
+			fmt.Fprintf(os.Stderr, "failed to read rom: %s", err)
 			exitcode = 1
 			return
 		}
@@ -41,6 +41,28 @@ func emuMain(args Run, cfg *ui.Config) {
 			exitcode = 1
 			return
 		}
+
+		if args.SaveFile != "" {
+			saveram, err := os.ReadFile(args.SaveFile)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to read save file: %v", err)
+				exitcode = 1
+				return
+			}
+			if err := emulator.NES.Mapper.SetBatteryPackedRAM(saveram); err != nil {
+				fmt.Fprintf(os.Stderr, "failed to set save RAM: %v", err)
+				exitcode = 1
+				return
+			}
+		}
+
+		tmpdir, err := os.MkdirTemp("", "nestor.out.*")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to create nestor out temp directory: %v", err)
+			exitcode = 1
+			return
+		}
+		emulator.SetTempDir(tmpdir)
 
 		if args.CPUProfile != "" {
 			f, err := os.Create(args.CPUProfile)

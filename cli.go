@@ -40,7 +40,8 @@ type (
 	}
 
 	Run struct {
-		RomPath string `arg:"" name:"/path/to/rom" help:"${rompath_help}" required:"true" type:"existingfile"`
+		RomPath  string `arg:"" name:"/path/to/rom" help:"${rompath_help}" required:"true" type:"existingfile"`
+		SaveFile string `name:"savefile" help:"Read save file." type:"existingfile"`
 
 		Monitor    int32    `name:"monitor" help:"Monitor index to use." default:"0"`
 		CPUProfile string   `name:"cpuprofile" help:"${cpuprofile_help}" type:"path"`
@@ -91,8 +92,10 @@ func parseArgs(args []string) CLI {
 		cfg.mode = romInfosMode
 	case "version":
 		cfg.mode = versionMode
-	default:
+	case "run </path/to/rom>":
 		cfg.mode = runMode
+	default:
+		panic("unknown command")
 	}
 	return cfg
 }
