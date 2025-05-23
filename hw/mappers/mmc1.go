@@ -169,6 +169,16 @@ func (m *mmc1) remap() {
 		m.cpu.Bus.MapMemorySlice(0x6000, 0x7FFF, ram, readonly)
 
 	case totalram == 0x2000:
+
+		// TODO: test persistency
+
+		m.cpu.Bus.Unmap(0x6000, 0x7FFF)
+		ram := m.PRGNVRAM
+		if m.rom.PRGRAMSize() == 0x2000 {
+			ram = m.PRGRAM
+		}
+		m.cpu.Bus.MapMemorySlice(0x6000, 0x7FFF, ram, readonly)
+
 	case totalram == 0:
 		// Do not map any RAM
 
