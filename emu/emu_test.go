@@ -18,7 +18,7 @@ func loadEmulator(b *testing.B, romPath string) *Emulator {
 	log.Disable()
 	b.ReportAllocs()
 
-	rom, err := ines.ReadRom(romPath)
+	rom, err := ines.ReadROM(romPath)
 	if err != nil {
 		b.Fatal(err)
 	}

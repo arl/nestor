@@ -24,7 +24,7 @@ func TestNestest(t *testing.T) {
 	}
 
 	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
-	rom, err := ines.ReadRom(romPath)
+	rom, err := ines.ReadROM(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 	// data at $6000+ is valid, as opposed to some other NES program, $DE $B0
 	// $G1 is written to $6001-$6003.
 	return func(t *testing.T) {
-		rom, err := ines.ReadRom(path)
+		rom, err := ines.ReadROM(path)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -339,7 +339,7 @@ func TestDMCDMADuringRead(t *testing.T) {
 
 func TestNametableMirroring(t *testing.T) {
 	romPath := filepath.Join(tests.RomsPath(t), "other", "snow.nes")
-	rom, err := ines.ReadRom(romPath)
+	rom, err := ines.ReadROM(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -520,7 +520,7 @@ func runAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame
 		log.Disable()
 	}
 
-	rom, err := ines.ReadRom(romPath)
+	rom, err := ines.ReadROM(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}

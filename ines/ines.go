@@ -49,11 +49,11 @@ func (rom *Rom) PrintInfos(w io.Writer) {
 	fmt.Fprintf(w, "|Nametable mirroring    | % 14s |\n", rom.Mirroring())
 	fmt.Fprintf(w, "|Alternative nametable  | % 14s |\n", yn(rom.HasAltNametables()))
 	fmt.Fprintf(w, "|Trainer                | % 14s |\n", yn(rom.HasTrainer()))
-	fmt.Fprintf(w, "|Persistent             | % 14s |\n", yn(rom.HasPersistence()))
+	fmt.Fprintf(w, "|Battery                | % 14s |\n", yn(rom.HasBattery()))
 }
 
-// ReadRom loads a rom from an iNES file.
-func ReadRom(path string) (*Rom, error) {
+// ReadROM loads a rom from an iNES file.
+func ReadROM(path string) (*Rom, error) {
 	buf, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -241,10 +241,10 @@ func (hdr *header) Mirroring() NTMirroring {
 	return HorzMirroring
 }
 
-// HasPersistence indicates the presence of persistent saved memory in the rom.
-// The original cartridge contained battery-backed PRG RAM ($6000-7FFF) or other
+// HasBattery indicates the presence of persistent saved memory in the rom. The
+// original cartridge contained battery-backed PRG RAM ($6000-7FFF) or other
 // persistent memory.
-func (hdr *header) HasPersistence() bool {
+func (hdr *header) HasBattery() bool {
 	return hdr.raw[6]&0x02 == 0x02
 }
 
