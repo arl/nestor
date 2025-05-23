@@ -209,7 +209,7 @@ func (m *mmc1) remap() {
 	}
 }
 
-func loadMMC1(b *base) error {
+func loadMMC1(b *base) (Mapper, error) {
 	mmc1 := &mmc1{base: b}
 
 	b.init(mmc1.WritePRGROM)
@@ -228,5 +228,5 @@ func loadMMC1(b *base) error {
 	mmc1.disableWRAM = true  // TODO: always enabled on MMC1A
 	mmc1.lastchr = 0xA000
 	mmc1.remap()
-	return nil
+	return mmc1, nil
 }

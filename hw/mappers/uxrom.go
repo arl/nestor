@@ -39,7 +39,7 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	m.selectPRGPage16KB(0, int(m.prgbank))
 }
 
-func loadUxROM(b *base) error {
+func loadUxROM(b *base) (Mapper, error) {
 	uxrom := &uxrom{
 		base:         b,
 		busConflicts: b.rom.SubMapper() == 2,
@@ -51,5 +51,6 @@ func loadUxROM(b *base) error {
 	b.selectCHRROMPage8KB(0)
 	b.selectPRGPage16KB(0, 0)
 	b.selectPRGPage16KB(1, -1)
-	return nil
+
+	return uxrom, nil
 }

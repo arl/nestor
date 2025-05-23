@@ -91,6 +91,26 @@ func (b *base) init(writeReg func(uint16, uint8)) {
 	})
 }
 
+func (b *base) BatteryPackedRAM() []byte {
+	if b.rom.HasBattery() {
+		return b.PRGNVRAM
+	}
+	return nil
+}
+
+func (b *base) SetBatteryPackedRAM(data []byte) error {
+	if !b.rom.HasBattery() {
+		modMapper.WarnZ("rom doesn't support battery packed RAM").End()
+		return nil
+	}
+
+	if len(data) != len(b.PRGNVRAM) {
+		return fmt.Errorf("invalid battery packed RAM size: %d", len(data))
+	}
+	copy(b.PRGNVRAM, data)
+	return nil
+}
+
 func (b *base) write(addr uint16, value uint8) {
 	// is this a register write?
 	if b.registers.Test(uint(addr)) {

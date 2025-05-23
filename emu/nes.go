@@ -2,6 +2,7 @@ package emu
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/tinylib/msgp/msgp"
 
@@ -14,11 +15,12 @@ import (
 )
 
 type NES struct {
-	CPU   *hw.CPU
-	PPU   *hw.PPU
-	APU   *apu.APU
-	Rom   *ines.Rom
-	Mixer *apu.Mixer
+	CPU    *hw.CPU
+	PPU    *hw.PPU
+	APU    *apu.APU
+	Rom    *ines.Rom
+	Mixer  *apu.Mixer
+	Mapper mappers.Mapper
 
 	isRunAheadFrame bool
 }
@@ -33,10 +35,12 @@ func powerUp(rom *ines.Rom) (*NES, error) {
 	nes.CPU.APU = nes.APU
 	nes.CPU.InitBus()
 
-	if err := mappers.Load(rom, nes.CPU, nes.PPU); err != nil {
-		return nil, err
+	mapper, err := mappers.Load(rom, nes.CPU, nes.PPU)
+	if err != nil {
+		return nil, fmt.Errorf("error loading rom: %w", err)
 	}
 
+	nes.Mapper = mapper
 	nes.Reset(hwdefs.HardReset)
 	return &nes, nil
 }

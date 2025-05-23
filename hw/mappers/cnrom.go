@@ -41,7 +41,7 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 	}
 }
 
-func loadCNROM(b *base) error {
+func loadCNROM(b *base) (Mapper, error) {
 	cnrom := &cnrom{
 		base:         b,
 		busConflicts: b.rom.SubMapper() == 2,
@@ -53,7 +53,7 @@ func loadCNROM(b *base) error {
 	b.selectCHRROMPage8KB(0)
 	b.selectPRGPage32KB(0)
 
-	return nil
+	return cnrom, nil
 
 	// TODO: load and map CHR-RAM if present in cartridge.
 }

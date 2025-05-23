@@ -34,14 +34,14 @@ func (m *gxrom) WritePRGROM(addr uint16, val uint8) {
 	}
 }
 
-func loadGxROM(b *base) error {
+func loadGxROM(b *base) (Mapper, error) {
 	gxrom := &gxrom{base: b}
 	b.init(gxrom.WritePRGROM)
 
 	b.setNTMirroring(b.rom.Mirroring())
 	b.selectCHRROMPage8KB(0)
 	b.selectPRGPage32KB(0)
-	return nil
+	return gxrom, nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.
 	// TODO: load and map CHR-RAM if present in cartridge.

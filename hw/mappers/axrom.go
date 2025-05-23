@@ -49,7 +49,7 @@ func (m *axrom) WritePRGROM(addr uint16, val uint8) {
 	}
 }
 
-func loadAxROM(b *base) error {
+func loadAxROM(b *base) (Mapper, error) {
 	axrom := &axrom{
 		base:         b,
 		busConflicts: b.rom.SubMapper() == 2,
@@ -58,7 +58,7 @@ func loadAxROM(b *base) error {
 
 	b.selectCHRROMPage8KB(0)
 	b.selectPRGPage32KB(0)
-	return nil
+	return axrom, nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.
 	// TODO: load and map CHR-RAM if present in cartridge.
