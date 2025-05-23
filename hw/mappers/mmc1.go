@@ -27,6 +27,7 @@ type mmc1 struct {
 	// CHR reg 0 bits
 	chrbank0 uint32
 	chrbank1 uint32
+	lastchr  uint16
 
 	// PRG reg bits
 	disableWRAM bool // TODO: unused for now
@@ -76,8 +77,10 @@ func (m *mmc1) writeREG(addr uint16, val uint8) {
 		m.writeCTRL(val)
 	case 1:
 		m.writeCHR0(val)
+		m.lastchr = addr
 	case 2:
 		m.writeCHR1(val)
+		m.lastchr = addr
 	case 3:
 		m.writePRG(val)
 	}
@@ -110,13 +113,15 @@ func (m *mmc1) writeCTRL(val uint8) {
 }
 
 func (m *mmc1) writeCHR0(val uint8) {
-	modMapper.DebugZ("Write CHR0 reg").String("mapper", m.desc.Name).Uint8("val", val).End()
-	m.chrbank0 = uint32(val & 0b11111) // TODO: Adjust mask if CHRROM is larger
+	bank := val & 0b11111
+	m.chrbank0 = uint32(bank) // TODO: Adjust mask if CHRROM is larger
+	modMapper.DebugZ("Write CHR0 reg").Hex8("val", val).Hex8("bank", bank).End()
 }
 
 func (m *mmc1) writeCHR1(val uint8) {
-	modMapper.DebugZ("Write CHR1 reg").String("mapper", m.desc.Name).Uint8("val", val).End()
-	m.chrbank1 = uint32(val & 0b11111) // TODO: Adjust mask if CHRROM is larger
+	bank := val & 0b11111
+	m.chrbank1 = uint32(bank) // TODO: Adjust mask if CHRROM is larger
+	modMapper.DebugZ("Write CHR1 reg").Hex8("val", val).Hex8("bank", bank).End()
 }
 
 func (m *mmc1) writePRG(val uint8) {
@@ -133,6 +138,44 @@ func (m *mmc1) writePRG(val uint8) {
 }
 
 func (m *mmc1) remap() {
+	extrareg := m.chrbank0
+	if m.lastchr == 0xC000 && m.chrmode != 0 {
+		extrareg = m.chrbank1
+	}
+
+	const _forceWramOn = false // TODO: read from ROM header
+
+	readonly := false
+	if m.disableWRAM && !_forceWramOn {
+		// no access
+		readonly = true
+	}
+
+	totalram := m.rom.PRGRAMSize() + m.rom.PRGNVRAMSize()
+	switch {
+	case totalram > 0x4000:
+		// SXROM with 32kB of save+work ram
+		panic("MMC1 with 32kB of save+work ram not implemented")
+
+	case totalram > 0x2000:
+
+		// TODO: test persistency
+		// SOROM, half of the 16kb ram is battery backed
+		ram := m.PRGNVRAM
+		if ((extrareg >> 3) & 0x01) != 0 {
+			ram = m.PRGRAM
+		}
+		m.cpu.Bus.Unmap(0x6000, 0x7FFF)
+		m.cpu.Bus.MapMemorySlice(0x6000, 0x7FFF, ram, readonly)
+
+	case totalram == 0x2000:
+	case totalram == 0:
+		// Do not map any RAM
+
+	default:
+		panic("not supported")
+	}
+
 	switch m.prgmode {
 	case 0, 1:
 		// ignore low bit of bank number
@@ -173,6 +216,7 @@ func loadMMC1(b *base) error {
 	mmc1.writeREG(0xC000, 0)
 	mmc1.writeREG(0xE000, 0) // TODO: WRAM Disable: enabled by default for MMC1B
 	mmc1.disableWRAM = true  // TODO: always enabled on MMC1A
+	mmc1.lastchr = 0xA000
 	mmc1.remap()
 	return nil
 }
