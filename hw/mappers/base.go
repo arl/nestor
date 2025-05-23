@@ -13,10 +13,9 @@ type base struct {
 
 	cpu *hw.CPU
 
-	// TODO: should PRGRAM this always be there?
-	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
-
-	PRGROM [0x8000]byte // $8000-$FFFF
+	PRGROM   [0x8000]byte // $8000-$FFFF
+	PRGRAM   []byte
+	PRGNVRAM []byte
 
 	ppu        *hw.PPU
 	CHRROM     [0x2000]byte
@@ -35,10 +34,12 @@ func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, e
 	}
 
 	b := &base{
-		desc: desc,
-		rom:  rom,
-		cpu:  cpu,
-		ppu:  ppu,
+		desc:     desc,
+		rom:      rom,
+		cpu:      cpu,
+		ppu:      ppu,
+		PRGRAM:   make([]byte, rom.PRGRAMSize()),
+		PRGNVRAM: make([]byte, rom.PRGNVRAMSize()),
 	}
 
 	start := uint(0x8000)
@@ -59,12 +60,12 @@ func (b *base) init(writeReg func(uint16, uint8)) {
 	b.cpu.Bus.MapBank(0x0000, b, 0)
 
 	if b.rom.PRGRAMSize() > 0 {
-		panic(fmt.Sprintf("PRGRAM not implemented, rom has $%XB", b.rom.PRGRAMSize()))
-		// b.cpu.Bus.MapMem(0x6000, &hwio.Mem{
-		// 	Name:  "PRGRAM",
-		// 	VSize: 0x2000,
-		// 	Data:  make([]byte, b.rom.PRGRAMSize()),
-		// })
+		// panic(fmt.Sprintf("PRGRAM not implemented, rom has $%XB", b.rom.PRGRAMSize()))
+		b.cpu.Bus.MapMem(0x6000, &hwio.Mem{
+			Name:  "PRGRAM",
+			VSize: 0x2000,
+			Data:  make([]byte, b.rom.PRGRAMSize()),
+		})
 	}
 
 	b.writeReg = writeReg
