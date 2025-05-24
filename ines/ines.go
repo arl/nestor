@@ -39,8 +39,8 @@ func (rom *Rom) PrintInfos(w io.Writer) {
 	fmt.Fprintf(w, "|PRG ROM                | % 8d x 16k |\n", rom.nslotsPRGROM())
 	fmt.Fprintf(w, "|CHR ROM                | % 9d x 8k |\n", rom.nslotsCHRROM())
 
+	fmt.Fprintf(w, "|PRG RAM                | % 13dk |\n", rom.PRGRAMSize()/1024)
 	if rom.IsNES20() {
-		fmt.Fprintf(w, "|PRG RAM                | % 13dk |\n", rom.PRGRAMSize()/1024)
 		fmt.Fprintf(w, "|PRG NVRAM              | % 13dk |\n", rom.PRGNVRAMSize()/1024)
 		fmt.Fprintf(w, "|CHR RAM                | % 13dk |\n", rom.CHRRAMSize()/1024)
 		fmt.Fprintf(w, "|CHR NVRAM              | % 13dk |\n", rom.CHRNVRAMSize()/1024)
@@ -132,7 +132,6 @@ func (hdr *header) decode(p []byte) error {
 	if hdr.IsNES20() {
 		hdr.prgromsz |= int(hdr.raw[9]&0x0F) << 8
 		hdr.chrromsz |= int(hdr.raw[9] & 0xF0)
-		// uint8_t value = Byte10 & 0x0F;
 		if val := int(hdr.raw[10] & 0x0F); val != 0 {
 			hdr.prgramsz = 128 * (1 << (val - 1))
 		}
@@ -141,6 +140,8 @@ func (hdr *header) decode(p []byte) error {
 		}
 		hdr.chrramsz = 64 << int(hdr.raw[11]&0x0F)
 		hdr.chrnvramsz = 64 << int(hdr.raw[11]>>4)
+	} else {
+		hdr.prgramsz = 8 * 1024
 	}
 	return nil
 }
