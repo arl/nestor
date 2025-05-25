@@ -42,15 +42,15 @@ func emuMain(args Run, cfg *ui.Config) {
 			return
 		}
 
-		if args.SaveFile != "" {
-			saveram, err := os.ReadFile(args.SaveFile)
+		if args.RAMFile != "" {
+			saveram, err := os.ReadFile(args.RAMFile)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to read save file: %v", err)
+				fmt.Fprintf(os.Stderr, "failed to load 'save ram' file: %v", err)
 				exitcode = 1
 				return
 			}
 			if err := emulator.NES.Mapper.SetBatteryPackedRAM(saveram); err != nil {
-				fmt.Fprintf(os.Stderr, "failed to set save RAM: %v", err)
+				fmt.Fprintf(os.Stderr, "failed to assign 'save ram' to ROM: %v", err)
 				exitcode = 1
 				return
 			}
