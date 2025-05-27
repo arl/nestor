@@ -17,6 +17,7 @@ import (
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 
+	"nestor/cli"
 	"nestor/emu/log"
 	"nestor/emu/rpc"
 )
@@ -98,13 +99,19 @@ func (mw *mainWindow) Close(err error) {
 	gtk.MainQuit()
 }
 
-func (mw *mainWindow) runROM(path string) {
+func (mw *mainWindow) runROM(rompath string) {
 	mw.SetSensitive(false)
-
-	monidx := monitorIdx(mustT(mw.GetWindow()))
-
 	panel := showGamePanel(mw.Window)
-	client, wait, err := driveEmulator(path, monidx)
+
+	ramfile, found := getSaveRAMPath(rompath)
+	if !found {
+		ramfile = ""
+	}
+	client, wait, err := driveEmulator(cli.Run{
+		RomPath: rompath,
+		RAMFile: ramfile,
+		Monitor: monitorIdx(mustT(mw.GetWindow())),
+	})
 	if err != nil {
 		modGUI.WarnZ("failed to start rom").Error("err", err).End()
 		panel.Close()
@@ -126,12 +133,13 @@ func (mw *mainWindow) runROM(path string) {
 			panel.setGameStopped()
 			modGUI.DebugZ("closing game panel").End()
 			panel.Close()
-			mw.onRomStopped(path, client.TempDir())
+			mw.onRomStopped(rompath, client.TempDir())
 		})
 	}()
 }
 
 func (mw *mainWindow) onRomStopped(rompath, tmpdir string) {
+	// Save screenshot for recent rom.
 	f, err := os.Open(filepath.Join(tmpdir, "screenshot.png"))
 	if err != nil {
 		modGUI.Warnf("failed to read screenshot: %s", err)
@@ -146,6 +154,21 @@ func (mw *mainWindow) onRomStopped(rompath, tmpdir string) {
 
 	if err := mw.addRecentROM(rompath, img); err != nil {
 		modGUI.Warnf("failed to add recent ROM: %s", err)
+	}
+
+	// Copy the save ram file, if any.
+	ram, err := os.ReadFile(filepath.Join(tmpdir, "battery.sav"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			// not an error, there simply is no saveram file.
+		} else {
+			modGUI.Warnf("failed to load 'save ram' file: %s", err)
+		}
+	} else {
+		saveramPath, _ := getSaveRAMPath(rompath)
+		if err := os.WriteFile(saveramPath, ram, 0644); err != nil {
+			modGUI.Warnf("failed to save 'save ram' file: %s", err)
+		}
 	}
 }
 
@@ -165,14 +188,18 @@ func (mw *mainWindow) addRecentROM(romPath string, screenshot image.Image) error
 
 type waitFunc func() error
 
-func driveEmulator(rompath string, monidx int32) (*rpc.Client, waitFunc, error) {
+func driveEmulator(args cli.Run) (*rpc.Client, waitFunc, error) {
 	port := rpc.UnusedPort()
-	args := []string{"run",
-		"--monitor", strconv.Itoa(int(monidx)),
+	procArgs := []string{"run",
+		"--monitor", strconv.Itoa(int(args.Monitor)),
 		"--port", strconv.Itoa(port),
-		rompath}
+		args.RomPath}
 
-	cmd := exec.Command(mustT(os.Executable()), args...)
+	if args.RAMFile != "" {
+		procArgs = append(procArgs, "--ramfile", args.RAMFile)
+	}
+
+	cmd := exec.Command(mustT(os.Executable()), procArgs...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
