@@ -8,6 +8,7 @@ import (
 
 	"github.com/veandco/go-sdl2/sdl"
 
+	"nestor/cli"
 	"nestor/emu"
 	"nestor/emu/rpc"
 	"nestor/hw/input"
@@ -16,7 +17,7 @@ import (
 )
 
 // emuMain runs the emulator directly with the given rom.
-func emuMain(args Run, cfg *ui.Config) {
+func emuMain(args cli.Run, cfg *ui.Config) {
 	var exitcode int
 	sdl.Main(func() {
 		rom, err := ines.ReadROM(args.RomPath)
@@ -90,7 +91,7 @@ func emuMain(args Run, cfg *ui.Config) {
 	os.Exit(exitcode)
 }
 
-func captureMain(args Capture) {
+func captureMain(args cli.Capture) {
 	var (
 		code input.Code
 		err  error

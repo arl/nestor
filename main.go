@@ -6,25 +6,27 @@ import (
 	"runtime/debug"
 	"slices"
 
+	"nestor/cli"
 	"nestor/ines"
 	"nestor/ui"
 )
 
 func main() {
-	args := parseArgs(os.Args[1:])
+	args, err := cli.ParseCmdLineArgs(os.Args[1:])
+	checkf(err, "failed to parse command line")
 
 	cfg := ui.LoadConfigOrDefault()
 
-	switch args.mode {
-	case guiMode:
+	switch args.Mode {
+	case cli.GUIMode:
 		ui.RunApp(&cfg)
-	case romInfosMode:
+	case cli.ROMInfosMode:
 		romInfosMain(args.RomInfos.RomPath)
-	case runMode:
+	case cli.RunMode:
 		emuMain(args.Run, &cfg)
-	case captureMode:
+	case cli.CaptureMode:
 		captureMain(args.Capture)
-	case versionMode:
+	case cli.VersionMode:
 		versionMain()
 	}
 }
@@ -63,4 +65,17 @@ func versionMain() {
 		rev = rev[:7]
 	}
 	fmt.Printf("%s - %s\n", rev, time)
+}
+
+func checkf(err error, format string, args ...any) {
+	if err == nil {
+		return
+	}
+	fatalf(format+".\n"+err.Error(), args...)
+}
+
+func fatalf(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, "fatal error:")
+	fmt.Fprintf(os.Stderr, "\n\t%s\n", fmt.Sprintf(format, args...))
+	os.Exit(1)
 }
