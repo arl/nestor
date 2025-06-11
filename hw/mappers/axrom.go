@@ -5,9 +5,10 @@ import (
 )
 
 var AxROM = MapperDesc{
-	Name:         "AxROM",
-	Load:         loadAxROM,
-	PRGROMbanksz: 0x8000,
+	Name:        "AxROM",
+	Load:        loadAxROM,
+	PRGBankSize: 0x8000,
+	CHRBankSize: 0x2000,
 }
 
 type axrom struct {
@@ -16,6 +17,21 @@ type axrom struct {
 	ntm          ines.NTMirroring
 	prgbank      uint32
 	busConflicts bool
+}
+
+func loadAxROM(b *base) (Mapper, error) {
+	axrom := &axrom{
+		base:         b,
+		busConflicts: b.rom.SubMapper() == 2,
+	}
+	b.init(axrom.WritePRGROM)
+
+	b.selectCHRROMPage8KB(0)
+	b.selectPRGPage32KB(0)
+	return axrom, nil
+
+	// TODO: load and map PRG-RAM if present in cartridge.
+	// TODO: load and map CHR-RAM if present in cartridge.
 }
 
 func (m *axrom) WritePRGROM(addr uint16, val uint8) {
@@ -47,19 +63,4 @@ func (m *axrom) WritePRGROM(addr uint16, val uint8) {
 		m.setNTMirroring(m.ntm)
 		modMapper.DebugZ("select NT mirroring").String("mapper", m.desc.Name).Stringer("prev", prevntm).Stringer("new", m.ntm).End()
 	}
-}
-
-func loadAxROM(b *base) (Mapper, error) {
-	axrom := &axrom{
-		base:         b,
-		busConflicts: b.rom.SubMapper() == 2,
-	}
-	b.init(axrom.WritePRGROM)
-
-	b.selectCHRROMPage8KB(0)
-	b.selectPRGPage32KB(0)
-	return axrom, nil
-
-	// TODO: load and map PRG-RAM if present in cartridge.
-	// TODO: load and map CHR-RAM if present in cartridge.
 }

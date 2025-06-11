@@ -5,10 +5,10 @@ import (
 )
 
 var MMC1 = MapperDesc{
-	Name: "MMC1",
-	Load: loadMMC1,
-	// PRGROMbanksz: 0x8000,
-	// PRGRAMbanksz: 0x2000,
+	Name:        "MMC1",
+	Load:        loadMMC1,
+	PRGBankSize: 0x4000,
+	CHRBankSize: 0x1000,
 }
 
 type mmc1 struct {
@@ -32,6 +32,28 @@ type mmc1 struct {
 	// PRG reg bits
 	disableWRAM bool // TODO: unused for now
 	prgbank     uint32
+}
+
+func loadMMC1(b *base) (Mapper, error) {
+	mmc1 := &mmc1{base: b}
+
+	b.init(mmc1.WritePRGROM)
+
+	// PPU mapping.
+	b.setNTMirroring(ines.OnlyAScreen)
+
+	// Mapper initialization.
+	// On powerup: bits 2,3 of $8000 are set (this ensures the $8000 is bank 0,
+	// and $C000 is the last bank - needed for SEROM/SHROM/SH1ROM which do no
+	// support banking)
+	mmc1.writeREG(0x8000, 0x0C)
+	mmc1.writeREG(0xA000, 0)
+	mmc1.writeREG(0xC000, 0)
+	mmc1.writeREG(0xE000, 0) // TODO: WRAM Disable: enabled by default for MMC1B
+	mmc1.disableWRAM = true  // TODO: always enabled on MMC1A
+	mmc1.lastchr = 0xA000
+	mmc1.remap()
+	return mmc1, nil
 }
 
 type shiftReg uint8
@@ -207,26 +229,4 @@ func (m *mmc1) remap() {
 		m.selectCHRROMPage4KB(0, int(m.chrbank0))
 		m.selectCHRROMPage4KB(1, int(m.chrbank1))
 	}
-}
-
-func loadMMC1(b *base) (Mapper, error) {
-	mmc1 := &mmc1{base: b}
-
-	b.init(mmc1.WritePRGROM)
-
-	// PPU mapping.
-	b.setNTMirroring(ines.OnlyAScreen)
-
-	// Mapper initialization.
-	// On powerup: bits 2,3 of $8000 are set (this ensures the $8000 is bank 0,
-	// and $C000 is the last bank - needed for SEROM/SHROM/SH1ROM which do no
-	// support banking)
-	mmc1.writeREG(0x8000, 0x0C)
-	mmc1.writeREG(0xA000, 0)
-	mmc1.writeREG(0xC000, 0)
-	mmc1.writeREG(0xE000, 0) // TODO: WRAM Disable: enabled by default for MMC1B
-	mmc1.disableWRAM = true  // TODO: always enabled on MMC1A
-	mmc1.lastchr = 0xA000
-	mmc1.remap()
-	return mmc1, nil
 }

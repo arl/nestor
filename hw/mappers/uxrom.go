@@ -1,10 +1,10 @@
 package mappers
 
 var UxROM = MapperDesc{
-	Name:         "UxROM",
-	Load:         loadUxROM,
-	PRGROMbanksz: 0x4000,
-	CHRROMbanksz: 0x2000,
+	Name:        "UxROM",
+	Load:        loadUxROM,
+	PRGBankSize: 0x4000,
+	CHRBankSize: 0x2000,
 }
 
 type uxrom struct {
@@ -13,6 +13,22 @@ type uxrom struct {
 	prgbank      uint32
 	bankmask     uint8
 	busConflicts bool
+}
+
+func loadUxROM(b *base) (Mapper, error) {
+	uxrom := &uxrom{
+		base:         b,
+		busConflicts: b.rom.SubMapper() == 2,
+		bankmask:     uint8(len(b.rom.PRGROM)>>14) - 1,
+	}
+	b.init(uxrom.WritePRGROM)
+
+	b.setNTMirroring(b.rom.Mirroring())
+	b.selectCHRROMPage8KB(0)
+	b.selectPRGPage16KB(0, 0)
+	b.selectPRGPage16KB(1, -1)
+
+	return uxrom, nil
 }
 
 func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
@@ -37,20 +53,4 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	//            (UNROM uses bits 2-0; UOROM uses bits 3-0)
 	m.prgbank = uint32(val & m.bankmask)
 	m.selectPRGPage16KB(0, int(m.prgbank))
-}
-
-func loadUxROM(b *base) (Mapper, error) {
-	uxrom := &uxrom{
-		base:         b,
-		busConflicts: b.rom.SubMapper() == 2,
-		bankmask:     uint8(len(b.rom.PRGROM)>>14) - 1,
-	}
-	b.init(uxrom.WritePRGROM)
-
-	b.setNTMirroring(b.rom.Mirroring())
-	b.selectCHRROMPage8KB(0)
-	b.selectPRGPage16KB(0, 0)
-	b.selectPRGPage16KB(1, -1)
-
-	return uxrom, nil
 }

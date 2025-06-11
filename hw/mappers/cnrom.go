@@ -1,10 +1,10 @@
 package mappers
 
 var CNROM = MapperDesc{
-	Name:         "CNROM",
-	Load:         loadCNROM,
-	PRGROMbanksz: 0x8000,
-	CHRROMbanksz: 0x2000,
+	Name:        "CNROM",
+	Load:        loadCNROM,
+	PRGBankSize: 0x8000,
+	CHRBankSize: 0x2000,
 }
 
 type cnrom struct {
@@ -13,6 +13,23 @@ type cnrom struct {
 	chrbank uint32
 
 	busConflicts bool
+}
+
+func loadCNROM(b *base) (Mapper, error) {
+	cnrom := &cnrom{
+		base:         b,
+		busConflicts: b.rom.SubMapper() == 2,
+	}
+	b.init(cnrom.WritePRGROM)
+
+	// PPU mapping.
+	b.setNTMirroring(b.rom.Mirroring())
+	b.selectCHRROMPage8KB(0)
+	b.selectPRGPage32KB(0)
+
+	return cnrom, nil
+
+	// TODO: load and map CHR-RAM if present in cartridge.
 }
 
 func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
@@ -39,21 +56,4 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 	if prev != m.chrbank {
 		m.selectCHRROMPage8KB(int(m.chrbank))
 	}
-}
-
-func loadCNROM(b *base) (Mapper, error) {
-	cnrom := &cnrom{
-		base:         b,
-		busConflicts: b.rom.SubMapper() == 2,
-	}
-	b.init(cnrom.WritePRGROM)
-
-	// PPU mapping.
-	b.setNTMirroring(b.rom.Mirroring())
-	b.selectCHRROMPage8KB(0)
-	b.selectPRGPage32KB(0)
-
-	return cnrom, nil
-
-	// TODO: load and map CHR-RAM if present in cartridge.
 }

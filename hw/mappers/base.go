@@ -33,6 +33,10 @@ func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, e
 		return nil, fmt.Errorf("only support PRGROM with power of 2 size, got %d", len(rom.PRGROM))
 	}
 
+	if desc.PRGBankSize == 0 || desc.CHRBankSize == 0 {
+		panic(fmt.Sprintf("invalid description for mapper %s, missing PRG/CHR bank size", desc.Name))
+	}
+
 	b := &base{
 		desc:     desc,
 		rom:      rom,

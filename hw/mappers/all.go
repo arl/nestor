@@ -40,9 +40,8 @@ type Mapper interface {
 type MapperDesc struct {
 	Name            string
 	Load            func(*base) (Mapper, error)
-	PRGROMbanksz    uint32
-	CHRROMbanksz    uint32
-	PRGRAMbanksz    uint32
+	PRGBankSize     uint32
+	CHRBankSize     uint32
 	HasBusConflicts func(*base) bool
 
 	RegisterStart uint16 // defaults to 0x8000 if not set

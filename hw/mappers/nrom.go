@@ -1,9 +1,10 @@
 package mappers
 
 var NROM = MapperDesc{
-	Name:         "NROM",
-	Load:         loadNROM,
-	CHRROMbanksz: 0x2000,
+	Name:        "NROM",
+	Load:        loadNROM,
+	CHRBankSize: 0x2000,
+	PRGBankSize: 0x4000,
 }
 
 type nrom struct{ *base }
