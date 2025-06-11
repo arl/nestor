@@ -142,6 +142,14 @@ func mirrorcopy(dst, src []byte) int {
 	return n
 }
 
+func (b *base) numPRGROMBanks() int {
+	prgbankSz := min(len(b.rom.PRGROM), int(b.desc.PRGBankSize))
+	if prgbankSz == 0 {
+		return 0
+	}
+	return len(b.rom.PRGROM) / prgbankSz
+}
+
 // select what 32KB PRG ROM bank to use.
 func (b *base) selectPRGPage32KB(bank int) {
 	mirrorcopy(b.PRGROM[:], b.rom.PRGROM[32*KB*(bank):])
@@ -160,9 +168,21 @@ func (b *base) selectPRGPage16KB(page uint32, bank int) {
 		bank += len(b.rom.PRGROM) / (16 * KB)
 	}
 
+	// wrap bank number if it is out of range
+	nbanks := b.numPRGROMBanks()
+	if nbanks == 0 {
+		return
+	}
+	if bank < 0 {
+		bank = nbanks + bank
+	} else {
+		bank = bank % nbanks
+	}
+
 	offbus := 16 * KB * page
 	endbus := 16 * KB * (page + 1)
 	offrom := 16 * KB * (bank)
+
 	copy(b.PRGROM[offbus:endbus], b.rom.PRGROM[offrom:])
 
 	modMapper.DebugZ("Select 16 kB PRG page").

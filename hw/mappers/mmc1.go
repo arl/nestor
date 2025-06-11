@@ -208,22 +208,23 @@ func (m *mmc1) remap() {
 
 	const _forceWramOn = false // TODO: read from ROM header
 
-	readonly := false
-	if m.disableWRAM && !_forceWramOn {
-		// no access
-		readonly = true
-	}
+	readonly := m.disableWRAM && !_forceWramOn
 
-	totalram := m.rom.PRGRAMSize() + m.rom.PRGNVRAMSize()
-	switch {
-	case totalram > 0x4000:
-		// SXROM with 32kB of save+work ram
-		panic("MMC1 with 32kB of save+work ram not implemented")
+	switch totalram := m.rom.PRGRAMSize() + m.rom.PRGNVRAMSize(); {
+	case totalram > 0x4000: // SxROM, 32kb of save ram.
+		ram := m.PRGNVRAM
+		if !m.rom.HasBattery() {
+			ram = m.PRGRAM
+		}
+		bank := (extrareg >> 2) & 0x03
+		m.cpu.Bus.Unmap(0x6000, 0x7FFF)
+		m.cpu.Bus.MapMemorySlice(0x6000, 0x7FFF, ram[0x2000*bank:], readonly)
 
 	case totalram > 0x2000:
 
 		// TODO: test persistency
-		// SOROM, half of the 16kb ram is battery backed
+
+		// SOROM, half of the 16kb ram is battery backed.
 		ram := m.PRGNVRAM
 		if ((extrareg >> 3) & 0x01) != 0 {
 			ram = m.PRGRAM
