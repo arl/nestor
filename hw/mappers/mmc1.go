@@ -199,6 +199,12 @@ func (m *mmc1) remap() {
 	if m.lastchr == 0xC000 && m.chrmode != 0 {
 		extrareg = m.chrbank1
 	}
+	var prgbankSelect uint32
+	if len(m.rom.PRGROM) == 0x80000 {
+		// 512kb carts use bit 7 of $A000/$C000 to select page
+		// This is used for SUROM (Dragon Warrior 3/4, Dragon Quest 4)
+		prgbankSelect = extrareg & 0x10
+	}
 
 	const _forceWramOn = false // TODO: read from ROM header
 
@@ -246,13 +252,13 @@ func (m *mmc1) remap() {
 	switch m.prgmode {
 	case 0, 1:
 		// ignore low bit of bank number
-		m.selectPRGPage32KB(int(m.prgbank & 0xFE))
+		m.selectPRGPage32KB(int((m.prgbank & 0xFE) | prgbankSelect))
 	case 2:
-		m.selectPRGPage16KB(0, 0)
-		m.selectPRGPage16KB(1, int(m.prgbank))
+		m.selectPRGPage16KB(0, int(0|prgbankSelect))
+		m.selectPRGPage16KB(1, int(m.prgbank|prgbankSelect))
 	case 3:
-		m.selectPRGPage16KB(0, int(m.prgbank))
-		m.selectPRGPage16KB(1, -1)
+		m.selectPRGPage16KB(0, int(m.prgbank|prgbankSelect))
+		m.selectPRGPage16KB(1, int(0x0F|prgbankSelect))
 	}
 
 	switch m.chrmode {
