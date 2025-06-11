@@ -20,18 +20,53 @@ type mmc1 struct {
 	counter uint8    // count of bits shifted
 
 	// CTRL reg bits
-	chrmode uint8
+	//
+	// 4bit0
+	// -----
+	// CPPMM
+	// |||||
+	// |||++- Nametable arrangement: (0: one-screen, lower bank; 1: one-screen, upper bank;
+	// |||               2: horizontal arrangement ("vertical mirroring", PPU A10);
+	// |||               3: vertical arrangement ("horizontal mirroring", PPU A11) )
+	// |++--- PRG-ROM bank mode (0, 1: switch 32 KB at $8000, ignoring low bit of bank number;
+	// |                         2: fix first bank at $8000 and switch 16 KB bank at $C000;
+	// |                         3: fix last bank at $C000 and switch 16 KB bank at $8000)
+	// +----- CHR-ROM bank mode (0: switch 8 KB at a time; 1: switch two separate 4 KB banks)
+	nt      uint8
 	prgmode uint8
-	ntm     uint8
+	chrmode uint8
 
-	// CHR reg 0 bits
+	// CHR bank 0 bits
+	//
+	// 4bit0
+	// -----
+	// CCCCC
+	// |||||
+	// +++++- Select 4 KB or 8 KB CHR bank at PPU $0000 (low bit ignored in 8 KB mode)
 	chrbank0 uint32
+
+	// CHR bank 1 bits
+	//
+	// 4bit0
+	// -----
+	// CCCCC
+	// |||||
+	// +++++- Select 4 KB CHR bank at PPU $1000 (ignored in 8 KB mode)
 	chrbank1 uint32
 	lastchr  uint16
 
 	// PRG reg bits
-	disableWRAM bool // TODO: unused for now
+	//
+	// 4bit0
+	// -----
+	// RPPPP
+	// |||||
+	// |++++- Select 16 KB PRG-ROM bank (low bit ignored in 32 KB mode)
+	// +----- MMC1B and later: PRG-RAM chip enable (0: enabled; 1: disabled; ignored on MMC1A)
+	//        MMC1A: Bit 3 bypasses fixed bank logic in 16K mode (0: fixed bank affects A17-A14;
+	//        1: fixed bank affects A16-A14 and bit 3 directly controls A17)
 	prgbank     uint32
+	disableWRAM bool // TODO: unused for now
 }
 
 func loadMMC1(b *base) (Mapper, error) {
@@ -95,15 +130,15 @@ func (m *mmc1) WritePRGROM(addr uint16, val uint8) {
 
 func (m *mmc1) writeREG(addr uint16, val uint8) {
 	switch (addr & 0x6000) >> 13 {
-	case 0:
+	case 0: // 0X8000
 		m.writeCTRL(val)
-	case 1:
+	case 1: // 0xA000
 		m.writeCHR0(val)
 		m.lastchr = addr
-	case 2:
+	case 2: // 0xC000
 		m.writeCHR1(val)
 		m.lastchr = addr
-	case 3:
+	case 3: // 0xE000
 		m.writePRG(val)
 	}
 }
@@ -112,10 +147,10 @@ func (m *mmc1) writeCTRL(val uint8) {
 	m.chrmode = (val & 0x10) >> 4
 	m.prgmode = (val & 0x0C) >> 2
 
-	prevNT := m.ntm
-	m.ntm = val & 0x03
-	if prevNT != m.ntm {
-		switch m.ntm {
+	prevNT := m.nt
+	m.nt = val & 0x03
+	if prevNT != m.nt {
+		switch m.nt {
 		case 0:
 			m.setNTMirroring(ines.OnlyAScreen)
 		case 1:

@@ -74,11 +74,18 @@ func (b *base) init(writeReg func(uint16, uint8)) {
 
 	b.writeReg = writeReg
 	b.cpu.Bus.MapMem(0x8000, &hwio.Mem{
-		Name:    "PRGROM",
-		Data:    b.PRGROM[:],
-		VSize:   0x8000,
-		Flags:   hwio.MemFlagReadOnlyNoLog,
-		WriteCb: b.write,
+		Name:  "PRGROM",
+		Data:  b.PRGROM[:],
+		VSize: 0x8000,
+		Flags: hwio.MemFlagReadOnlyNoLog,
+		WriteCb: func(addr uint16, value uint8) {
+			if b.registers.Test(uint(addr)) {
+				// This is a register write
+				if b.writeReg != nil {
+					b.writeReg(addr, value)
+				}
+			}
+		},
 	})
 
 	// Handle CHR RAM if CHRROM is empty.
@@ -113,15 +120,6 @@ func (b *base) SetBatteryPackedRAM(data []byte) error {
 	}
 	copy(b.PRGNVRAM, data)
 	return nil
-}
-
-func (b *base) write(addr uint16, value uint8) {
-	// is this a register write?
-	if b.registers.Test(uint(addr)) {
-		if b.writeReg != nil {
-			b.writeReg(addr, value)
-		}
-	}
 }
 
 const KB = 1 << 10
