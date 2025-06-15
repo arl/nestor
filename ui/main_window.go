@@ -189,7 +189,10 @@ func (mw *mainWindow) addRecentROM(romPath string, screenshot image.Image) error
 type waitFunc func() error
 
 func driveEmulator(args cli.Run) (*rpc.Client, waitFunc, error) {
-	port := rpc.UnusedPort()
+	port, err := rpc.PickUnusedPort()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to pick unused port: %w", err)
+	}
 	procArgs := []string{"run",
 		"--monitor", strconv.Itoa(int(args.Monitor)),
 		"--port", strconv.Itoa(port),
