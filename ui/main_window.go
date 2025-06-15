@@ -211,6 +211,7 @@ func driveEmulator(args cli.Run) (*rpc.Client, waitFunc, error) {
 
 	client, err := rpc.NewClient(port)
 	if err != nil {
+		cmd.Process.Kill()
 		return nil, nil, fmt.Errorf("failed to create emulator proxy: %w", err)
 	}
 

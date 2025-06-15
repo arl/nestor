@@ -19,14 +19,14 @@ func NewClient(port int) (*Client, error) {
 		err       error
 	)
 
-	const maxretries = 20
+	const maxretries = 10
 	for i := range maxretries {
 		if rpcclient, err = rpc.DialHTTP("tcp", ":"+strconv.Itoa(port)); err != nil {
 			modRPC.DebugZ("dial tcp failed").Error("err", err).Int("retry", i).End()
 		} else {
 			break
 		}
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	}
 
 	if rpcclient == nil {
