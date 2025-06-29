@@ -1,3 +1,5 @@
+// Package snapshot provides types and functions for snapshot encoding and
+// decoding.
 package snapshot
 
 import "nestor/hw/hwdefs"

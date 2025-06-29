@@ -1,4 +1,4 @@
-// package ines implements a Reader for roms in the iNES or NES 2.0 file format,
+// Package ines implements a Reader for roms in the iNES or NES 2.0 file format,
 // used for for the distribution of NES binary programs.
 package ines
 

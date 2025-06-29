@@ -1,3 +1,4 @@
+// Package apu provides NES APU (Audio Processing Unit) emulation.
 package apu
 
 import (

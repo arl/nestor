@@ -1,3 +1,4 @@
+// Package mappers provides the interface and implementations for NES mappers.
 package mappers
 
 import (
