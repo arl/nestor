@@ -21,7 +21,7 @@ func checkedRead8(tb testing.TB, bus *hwio.Table, addr uint16, want uint8) {
 func TestMapper000(t *testing.T) {
 	// Check that mapper 000 correctly maps ROM to the hardware.
 	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
-	rom, err := ines.ReadRom(romPath)
+	rom, err := ines.ReadROM(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestPPURegisterMapping(t *testing.T) {
 	// and mirrored into the CPU memory space.
 
 	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
-	rom, err := ines.ReadRom(romPath)
+	rom, err := ines.ReadROM(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}

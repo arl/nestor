@@ -10,19 +10,20 @@ import (
 
 var modMapper = log.NewModule("mapper")
 
-func Load(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) error {
+func Load(rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (Mapper, error) {
 	desc, ok := All[rom.Mapper()]
 	if !ok {
-		return fmt.Errorf("unsupported mapper %d", rom.Mapper())
+		return nil, fmt.Errorf("unsupported mapper %d", rom.Mapper())
 	}
 	base, err := newbase(desc, rom, cpu, ppu)
 	if err != nil {
-		return fmt.Errorf("mapper initialization failed: %w", err)
+		return nil, fmt.Errorf("mapper initialization failed: %w", err)
 	}
-	if err := desc.Load(base); err != nil {
-		return fmt.Errorf("failed to load mapper %s: %w", desc.Name, err)
+	mapper, err := desc.Load(base)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load mapper %s: %w", desc.Name, err)
 	}
-	return nil
+	return mapper, nil
 }
 
 type ErrUnsuppportedPRGROMSize int
@@ -31,12 +32,16 @@ func (e ErrUnsuppportedPRGROMSize) Error() string {
 	return fmt.Sprintf("unsupported PRGROM size: %d bytes", int(e))
 }
 
+type Mapper interface {
+	BatteryPackedRAM() []byte
+	SetBatteryPackedRAM(data []byte) error
+}
+
 type MapperDesc struct {
 	Name            string
-	Load            func(*base) error
-	PRGROMbanksz    uint32
-	CHRROMbanksz    uint32
-	PRGRAMbanksz    uint32
+	Load            func(*base) (Mapper, error)
+	PRGBankSize     uint32
+	CHRBankSize     uint32
 	HasBusConflicts func(*base) bool
 
 	RegisterStart uint16 // defaults to 0x8000 if not set

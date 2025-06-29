@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"nestor/hw"
+	"nestor/hw/apu"
 )
 
 type TestingOutputConfig struct {
@@ -28,7 +29,8 @@ type TestingOutputConfig struct {
 }
 
 type TestingOutput struct {
-	framebuf []byte
+	videobuf []byte
+	audiobuf []int16
 
 	framecounter int
 
@@ -40,7 +42,8 @@ func newTestingOutput(cfg TestingOutputConfig) *TestingOutput {
 		cfg.SaveFrameNum = math.MaxInt64
 	}
 	return &TestingOutput{
-		framebuf: make([]byte, cfg.Width*cfg.Height*4),
+		videobuf: make([]byte, cfg.Width*cfg.Height*4),
+		audiobuf: make([]int16, hw.SamplesPerFrame),
 		cfg:      cfg,
 	}
 }
@@ -48,7 +51,12 @@ func newTestingOutput(cfg TestingOutputConfig) *TestingOutput {
 func (to *TestingOutput) Close() {}
 
 func (to *TestingOutput) BeginFrame() (frame hw.Frame) {
-	return hw.Frame{Video: to.framebuf}
+	return hw.Frame{
+		Video: to.videobuf,
+		Audio: apu.AudioBuffer{
+			Samples: to.audiobuf,
+		},
+	}
 }
 
 func (to *TestingOutput) framePath(isGolden bool) string {
@@ -61,10 +69,10 @@ func (to *TestingOutput) framePath(isGolden bool) string {
 }
 
 func (to *TestingOutput) Screenshot() *image.RGBA {
-	return hw.FramebufImage(to.framebuf, to.cfg.Width, to.cfg.Height)
+	return hw.FramebufImage(to.videobuf, to.cfg.Width, to.cfg.Height)
 }
 
-func (to *TestingOutput) EndFrame(_ hw.Frame) {
+func (to *TestingOutput) EndFrame(_ *hw.Frame) {
 	if to.framecounter == int(to.cfg.SaveFrameNum) {
 		if err := hw.SaveAsPNG(to.Screenshot(), to.framePath(false)); err != nil {
 			panic("failed to save frame: " + err.Error())

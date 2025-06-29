@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -11,14 +11,14 @@ import (
 	"nestor/emu/log"
 )
 
-type mode byte
+type Mode byte
 
 const (
-	guiMode      mode = iota // Start Nestor GUI
-	runMode                  // Just run a ROM
-	romInfosMode             // Show ROM infos
-	versionMode              // Show Nestor version
-	captureMode              // Show input capture window (hidden option)
+	GUIMode      Mode = iota // Start Nestor GUI
+	RunMode                  // Just run a ROM
+	ROMInfosMode             // Show ROM infos
+	VersionMode              // Show Nestor version
+	CaptureMode              // Show input capture window (hidden option)
 )
 
 type (
@@ -31,7 +31,7 @@ type (
 
 		Log logModMask `help:"${log_help}" placeholder:"mod0,mod1,..."`
 
-		mode mode
+		Mode Mode
 	}
 
 	GUI      struct{}
@@ -41,6 +41,7 @@ type (
 
 	Run struct {
 		RomPath string `arg:"" name:"/path/to/rom" help:"${rompath_help}" required:"true" type:"existingfile"`
+		RAMFile string `name:"ramfile" help:"Read save ram from file." type:"existingfile"`
 
 		Monitor    int32    `name:"monitor" help:"Monitor index to use." default:"0"`
 		CPUProfile string   `name:"cpuprofile" help:"${cpuprofile_help}" type:"path"`
@@ -66,7 +67,7 @@ var vars = kong.Vars{
 	"log_help":        "Enable logging for specified modules.",
 }
 
-func parseArgs(args []string) CLI {
+func ParseCmdLineArgs(args []string) (CLI, error) {
 	var cfg CLI
 	parser, err := kong.New(&cfg,
 		kong.Name("nestor"),
@@ -79,22 +80,28 @@ func parseArgs(args []string) CLI {
 	}
 
 	ctx, err := parser.Parse(args)
-	checkf(err, "failed to parse command line")
-	checkf(ctx.Error, "failed to parse command line")
+	if err != nil {
+		return cfg, err
+	}
+	if ctx.Error != nil {
+		return cfg, ctx.Error
+	}
 
 	switch ctx.Command() {
 	case "gui":
-		cfg.mode = guiMode
+		cfg.Mode = GUIMode
 	case "capture":
-		cfg.mode = captureMode
+		cfg.Mode = CaptureMode
 	case "rom-infos </path/to/rom>":
-		cfg.mode = romInfosMode
+		cfg.Mode = ROMInfosMode
 	case "version":
-		cfg.mode = versionMode
+		cfg.Mode = VersionMode
+	case "run </path/to/rom>":
+		cfg.Mode = RunMode
 	default:
-		cfg.mode = runMode
+		panic("unknown command")
 	}
-	return cfg
+	return cfg, nil
 }
 
 func printHelp(options kong.HelpOptions, ctx *kong.Context) error {
@@ -202,16 +209,3 @@ func (f *outfile) Decode(ctx *kong.DecodeContext) error {
 func (f *outfile) String() string              { return f.name }
 func (f *outfile) Write(p []byte) (int, error) { return f.w.Write(p) }
 func (f *outfile) Close() error                { return f.close() }
-
-func checkf(err error, format string, args ...any) {
-	if err == nil {
-		return
-	}
-	fatalf(format+".\n"+err.Error(), args...)
-}
-
-func fatalf(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "fatal error:")
-	fmt.Fprintf(os.Stderr, "\n\t%s\n", fmt.Sprintf(format, args...))
-	os.Exit(1)
-}

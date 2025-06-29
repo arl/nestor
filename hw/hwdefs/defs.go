@@ -32,3 +32,5 @@ const (
 	SoftReset = true
 	HardReset = false
 )
+
+const NumAudioChannels = 5 // Square1, Square2, Triangle, Noise, DMC

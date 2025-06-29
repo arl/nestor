@@ -4,9 +4,11 @@ import (
 	"io"
 
 	"nestor/emu/log"
+	"nestor/hw/apu"
 	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
 	"nestor/hw/input"
+	"nestor/hw/snapshot"
 )
 
 // Locations reserved for vector pointers.
@@ -24,7 +26,7 @@ type CPU struct {
 
 	PPU *PPU // non-nil when there's a PPU.
 	DMA DMA
-	APU *APU
+	APU *apu.APU
 
 	// Non-nil when execution tracing is enabled.
 	tracer *tracer
@@ -115,7 +117,7 @@ func (c *CPU) InitBus() {
 	reg4017.Read = c.input.ReadOUT
 	reg4017.Peek = c.input.PeekOUT
 	if c.APU != nil {
-		reg4017.Write = c.APU.frameCounter.WriteFRAMECOUNTER
+		reg4017.Write = c.APU.WriteFrameCounterReg
 	}
 }
 
@@ -282,7 +284,7 @@ func (c *CPU) cycleBegin(forRead bool) {
 	if c.PPU != nil {
 		c.PPU.Run(uint64(c.masterClock - ppuOffset))
 	}
-	if c.APU != nil && c.APU.enabled {
+	if c.APU != nil && c.APU.Enabled() {
 		c.APU.Tick()
 	}
 }
@@ -658,4 +660,42 @@ func (cpu *CPU) izy(dummyread bool) uint16 {
 		_ = cpu.Read8(operand - off) // dummy read.
 	}
 	return operand
+}
+
+func (cpu *CPU) State() *snapshot.CPU {
+	return &snapshot.CPU{
+		PC:          cpu.PC,
+		SP:          cpu.SP,
+		P:           uint8(cpu.P),
+		A:           cpu.A,
+		X:           cpu.X,
+		Y:           cpu.Y,
+		Cycles:      cpu.Cycles,
+		MasterClock: cpu.masterClock,
+		IRQFlag:     uint8(cpu.irqFlag),
+		NMIFlag:     cpu.nmiFlag,
+		PrevNMIFlag: cpu.prevNmiFlag,
+		NeedNMI:     cpu.needNmi,
+		PrevNeedNMI: cpu.prevNeedNmi,
+		RunIRQ:      cpu.runIRQ,
+		PrevRunIRQ:  cpu.prevRunIRQ,
+	}
+}
+
+func (cpu *CPU) SetState(state *snapshot.CPU) {
+	cpu.PC = state.PC
+	cpu.SP = state.SP
+	cpu.P = P(state.P)
+	cpu.A = state.A
+	cpu.X = state.X
+	cpu.Y = state.Y
+	cpu.Cycles = state.Cycles
+	cpu.masterClock = state.MasterClock
+	cpu.nmiFlag = state.NMIFlag
+	cpu.irqFlag = hwdefs.IRQSource(state.IRQFlag)
+	cpu.prevNeedNmi = state.PrevNeedNMI
+	cpu.prevNmiFlag = state.PrevNMIFlag
+	cpu.needNmi = state.NeedNMI
+	cpu.runIRQ = state.RunIRQ
+	cpu.prevRunIRQ = state.PrevRunIRQ
 }

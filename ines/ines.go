@@ -34,27 +34,26 @@ func (rom *Rom) PrintInfos(w io.Writer) {
 	fmt.Fprintf(w, "|Mapper                 | % 14d |\n", rom.Mapper())
 	if rom.IsNES20() {
 		fmt.Fprintf(w, "|Submapper              | % 14d |\n", rom.SubMapper())
+		fmt.Fprintf(w, "|Bus conflicts          | % 14s |\n", yn(rom.HasBusConflicts()))
 	}
 	fmt.Fprintf(w, "|PRG ROM                | % 8d x 16k |\n", rom.nslotsPRGROM())
 	fmt.Fprintf(w, "|CHR ROM                | % 9d x 8k |\n", rom.nslotsCHRROM())
+
+	fmt.Fprintf(w, "|PRG RAM                | % 13dk |\n", rom.PRGRAMSize()/1024)
 	if rom.IsNES20() {
-		fmt.Fprintf(w, "|PRG RAM                | % 13dk |\n", rom.PRGRAMSize()/1024)
 		fmt.Fprintf(w, "|PRG NVRAM              | % 13dk |\n", rom.PRGNVRAMSize()/1024)
 		fmt.Fprintf(w, "|CHR RAM                | % 13dk |\n", rom.CHRRAMSize()/1024)
 		fmt.Fprintf(w, "|CHR NVRAM              | % 13dk |\n", rom.CHRNVRAMSize()/1024)
-	}
-	if rom.IsNES20() {
-		fmt.Fprintf(w, "|Bus conflicts          | % 14s |\n", yn(rom.HasBusConflicts()))
 	}
 
 	fmt.Fprintf(w, "|Nametable mirroring    | % 14s |\n", rom.Mirroring())
 	fmt.Fprintf(w, "|Alternative nametable  | % 14s |\n", yn(rom.HasAltNametables()))
 	fmt.Fprintf(w, "|Trainer                | % 14s |\n", yn(rom.HasTrainer()))
-	fmt.Fprintf(w, "|Persistent             | % 14s |\n", yn(rom.HasPersistence()))
+	fmt.Fprintf(w, "|Battery                | % 14s |\n", yn(rom.HasBattery()))
 }
 
-// ReadRom loads a rom from an iNES file.
-func ReadRom(path string) (*Rom, error) {
+// ReadROM loads a rom from an iNES file.
+func ReadROM(path string) (*Rom, error) {
 	buf, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -93,7 +92,7 @@ func Decode(buf []byte) (*Rom, error) {
 	if len(buf) < off+prgRomSize {
 		return nil, fmt.Errorf("incomplete PRG section")
 	}
-	rom.PRGROM = buf[off : off+prgRomSize]
+	rom.PRGROM = buf[off : off+prgRomSize : off+prgRomSize]
 	off += prgRomSize
 
 	// CHR rom data
@@ -101,7 +100,7 @@ func Decode(buf []byte) (*Rom, error) {
 	if len(buf) < off+chrRomSize {
 		return nil, fmt.Errorf("incomplete CHR section")
 	}
-	rom.CHRROM = buf[off : off+chrRomSize]
+	rom.CHRROM = buf[off : off+chrRomSize : off+chrRomSize]
 	off += chrRomSize
 
 	return rom, nil
@@ -133,10 +132,16 @@ func (hdr *header) decode(p []byte) error {
 	if hdr.IsNES20() {
 		hdr.prgromsz |= int(hdr.raw[9]&0x0F) << 8
 		hdr.chrromsz |= int(hdr.raw[9] & 0xF0)
-		hdr.prgramsz = 64 << int(hdr.raw[10]&0x0F)
-		hdr.prgnvramsz = 64 << int(hdr.raw[10]>>4)
+		if val := int(hdr.raw[10] & 0x0F); val != 0 {
+			hdr.prgramsz = 128 * (1 << (val - 1))
+		}
+		if val := int(hdr.raw[10]&0xF0) >> 4; val != 0 {
+			hdr.prgnvramsz = 128 * (1 << (val - 1))
+		}
 		hdr.chrramsz = 64 << int(hdr.raw[11]&0x0F)
 		hdr.chrnvramsz = 64 << int(hdr.raw[11]>>4)
+	} else {
+		hdr.prgramsz = 8 * 1024
 	}
 	return nil
 }
@@ -152,21 +157,25 @@ func (hdr *header) nslotsCHRROM() int {
 }
 
 // PRGRAMSize returns the size of the PRG-RAM (volatile).
+// Alias: Work RAM
 func (hdr *header) PRGRAMSize() int {
 	return hdr.prgramsz
 }
 
-// PRGNVRAMSize returns the size of the PRG-NVRAM/EEPROM (non-volatile). alias WRAM.
+// PRGNVRAMSize returns the size of the PRG-NVRAM/EEPROM (non-volatile).
+// Alias: Save RAM
 func (hdr *header) PRGNVRAMSize() int {
 	return hdr.prgnvramsz
 }
 
 // CHRRAMSize returns the size of the CHR-RAM (volatile). alias VRAM.
+// Alias: VRAM or Video RAM
 func (hdr *header) CHRRAMSize() int {
 	return hdr.chrramsz
 }
 
 // CHRNVRAMSize returns the size of the CHR-NVRAM (non-volatile).
+// Alias: Save VRAM
 func (hdr *header) CHRNVRAMSize() int {
 	return hdr.chrnvramsz
 }
@@ -233,10 +242,10 @@ func (hdr *header) Mirroring() NTMirroring {
 	return HorzMirroring
 }
 
-// HasPersistence indicates the presence of persistent saved memory in the rom.
-// The original cartridge contained battery-backed PRG RAM ($6000-7FFF) or other
+// HasBattery indicates the presence of persistent saved memory in the rom. The
+// original cartridge contained battery-backed PRG RAM ($6000-7FFF) or other
 // persistent memory.
-func (hdr *header) HasPersistence() bool {
+func (hdr *header) HasBattery() bool {
 	return hdr.raw[6]&0x02 == 0x02
 }
 

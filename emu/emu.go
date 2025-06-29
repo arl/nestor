@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"os"
 	"path/filepath"
 	"slices"
 	"sync/atomic"
@@ -18,18 +19,23 @@ import (
 
 type Output interface {
 	BeginFrame() hw.Frame
-	EndFrame(hw.Frame)
+	EndFrame(*hw.Frame)
 	Poll() bool
 	Close()
 	Screenshot() *image.RGBA
 }
 
 type Config struct {
-	Input input.Config `toml:"input"`
-	Video VideoConfig  `toml:"video"`
-	Audio AudioConfig  `toml:"audio"`
+	Input     input.Config    `toml:"input"`
+	Video     VideoConfig     `toml:"video"`
+	Audio     AudioConfig     `toml:"audio"`
+	Emulation EmulationConfig `toml:"emulation"`
 
 	TraceOut io.WriteCloser `toml:"-"`
+}
+
+type EmulationConfig struct {
+	RunAheadFrames int `toml:"run_ahead_frames"`
 }
 
 type VideoConfig struct {
@@ -56,6 +62,7 @@ type AudioConfig struct {
 type Emulator struct {
 	NES *NES
 	out Output
+	cfg EmulationConfig
 
 	// These are accessed concurrently by the emulator loop and the UI.
 	quit    atomic.Bool
@@ -77,14 +84,14 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 
 	// Output setup.
 	out := hw.NewOutput(hw.OutputConfig{
-		Width:           hw.NTSCWidth,
-		Height:          hw.NTSCHeight,
-		NumVideoBuffers: 2,
-		Title:           "Nestor",
-		ScaleFactor:     2,
-		DisableVSync:    cfg.Video.DisableVSync,
-		Monitor:         cfg.Video.Monitor,
-		Shader:          cfg.Video.Shader,
+		Width:          hw.NTSCWidth,
+		Height:         hw.NTSCHeight,
+		NumBackBuffers: 4,
+		Title:          "Nestor",
+		ScaleFactor:    2,
+		DisableVSync:   cfg.Video.DisableVSync,
+		Monitor:        cfg.Video.Monitor,
+		Shader:         cfg.Video.Shader,
 	})
 	if err := out.EnableVideo(true); err != nil {
 		return nil, err
@@ -110,16 +117,55 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	return &Emulator{
 		NES: nes,
 		out: out,
+		cfg: cfg.Emulation,
 	}, nil
 }
+
 func (e *Emulator) RunOneFrame() {
+	if e.cfg.RunAheadFrames > 0 {
+		e.RunFrameWithRunAhead()
+	} else {
+		frame := e.out.BeginFrame()
+		e.NES.RunOneFrame(&frame)
+		e.out.EndFrame(&frame)
+	}
+}
+
+func (e *Emulator) RunFrameWithRunAhead() {
+	frames := e.cfg.RunAheadFrames
+
+	// Run a single frame, make a snapshot, but do not render video nor play
+	// audio out of it.
+	e.NES.isRunAheadFrame = true
+	e.NES.CPU.Run(29781)
+	e.NES.APU.EndFrame(nil)
+
+	buf, err := e.NES.SaveSnapshot()
+	if err != nil {
+		log.ModEmu.PanicZ("failed run-ahead frame snapshot").Error("err", err).End()
+	}
+
+	for frames > 1 {
+		e.NES.CPU.Run(29781)
+		e.NES.APU.EndFrame(nil)
+		frames--
+	}
+	e.NES.isRunAheadFrame = false
+
+	// Run one frame normally.
 	frame := e.out.BeginFrame()
-	e.NES.RunOneFrame(frame)
-	e.out.EndFrame(frame)
+	e.NES.RunOneFrame(&frame)
+	e.out.EndFrame(&frame)
+
+	e.NES.isRunAheadFrame = true
+	if err := e.NES.LoadSnapshot(buf); err != nil {
+		log.ModEmu.PanicZ("failed to load snapshot").Error("err", err).End()
+	}
+	e.NES.isRunAheadFrame = false
 }
 
 func (e *Emulator) loop() {
-	for {
+	for e.out.Poll() {
 		// Handle pause.
 		if e.isPaused() {
 			// Don't burn cpu while paused.
@@ -128,11 +174,12 @@ func (e *Emulator) loop() {
 			e.RunOneFrame()
 		}
 		if e.shouldStop() {
-			e.out.Close()
 			break
 		}
 		e.handleReset()
 	}
+
+	e.out.Close()
 }
 
 // RaiseWindow raises the emulator window above others and sets the input focus.
@@ -152,9 +199,31 @@ func (e *Emulator) Run() {
 }
 
 func (e *Emulator) save() {
+	// Save state
+	state, err := e.NES.SaveSnapshot()
+	if err != nil {
+		log.ModEmu.WarnZ("Failed to save state").Error("err", err).End()
+		return
+	}
+
+	// TODO: state not saved for now
+	_ = state
+
 	path := filepath.Join(e.tmpdir, "screenshot.png")
+
 	if err := hw.SaveAsPNG(e.out.Screenshot(), path); err != nil {
-		log.ModEmu.WarnZ("Failed to save screenshot").String("path", path).End()
+		log.ModEmu.WarnZ("Error while saving screenshot").String("path", path).End()
+	} else {
+		log.ModEmu.DebugZ("Saved screenshot").String("path", path).End()
+	}
+
+	if saveram := e.NES.Mapper.BatteryPackedRAM(); saveram != nil {
+		path = filepath.Join(e.tmpdir, "battery.sav")
+		if err := os.WriteFile(path, saveram, 0644); err != nil {
+			log.ModEmu.WarnZ("Error while saving save ram").String("path", path).End()
+		} else {
+			log.ModEmu.DebugZ("Saved save ram").String("path", path).End()
+		}
 	}
 }
 
@@ -166,16 +235,14 @@ func (e *Emulator) SetTempDir(path string) { e.tmpdir = path }
 func (e *Emulator) SetPause(pause bool) { e.paused.CompareAndSwap(!pause, pause) }
 func (e *Emulator) Reset()              { e.reset.Store(true) }
 func (e *Emulator) Restart()            { e.restart.Store(true) }
-func (e *Emulator) Stop() {
-	e.quit.Store(true)
-}
+func (e *Emulator) Stop()               { e.quit.Store(true) }
 
 func (e *Emulator) isPaused() bool {
 	return e.paused.Load()
 }
 
 func (e *Emulator) shouldStop() bool {
-	return e.quit.Load() || !e.out.Poll() || e.NES.CPU.IsHalted()
+	return e.quit.Load() || e.NES.CPU.IsHalted()
 }
 
 func (e *Emulator) handleReset() {

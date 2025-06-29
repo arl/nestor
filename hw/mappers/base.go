@@ -13,10 +13,9 @@ type base struct {
 
 	cpu *hw.CPU
 
-	// TODO: should PRGRAM this always be there?
-	PRGRAM hwio.Mem `hwio:"offset=0x6000,size=0x2000"`
-
-	PRGROM [0x8000]byte // $8000-$FFFF
+	PRGROM   [0x8000]byte // $8000-$FFFF
+	PRGRAM   []byte
+	PRGNVRAM []byte
 
 	ppu        *hw.PPU
 	CHRROM     [0x2000]byte
@@ -34,11 +33,17 @@ func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, e
 		return nil, fmt.Errorf("only support PRGROM with power of 2 size, got %d", len(rom.PRGROM))
 	}
 
+	if desc.PRGBankSize == 0 || desc.CHRBankSize == 0 {
+		panic(fmt.Sprintf("invalid description for mapper %s, missing PRG/CHR bank size", desc.Name))
+	}
+
 	b := &base{
-		desc: desc,
-		rom:  rom,
-		cpu:  cpu,
-		ppu:  ppu,
+		desc:     desc,
+		rom:      rom,
+		cpu:      cpu,
+		ppu:      ppu,
+		PRGRAM:   make([]byte, rom.PRGRAMSize()),
+		PRGNVRAM: make([]byte, rom.PRGNVRAMSize()),
 	}
 
 	start := uint(0x8000)
@@ -59,16 +64,28 @@ func (b *base) init(writeReg func(uint16, uint8)) {
 	b.cpu.Bus.MapBank(0x0000, b, 0)
 
 	if b.rom.PRGRAMSize() > 0 {
-		// panic("PRGRAM not implemented")
+		// panic(fmt.Sprintf("PRGRAM not implemented, rom has $%XB", b.rom.PRGRAMSize()))
+		b.cpu.Bus.MapMem(0x6000, &hwio.Mem{
+			Name:  "PRGRAM",
+			VSize: 0x2000,
+			Data:  make([]byte, b.rom.PRGRAMSize()),
+		})
 	}
 
 	b.writeReg = writeReg
 	b.cpu.Bus.MapMem(0x8000, &hwio.Mem{
-		Name:    "PRGROM",
-		Data:    b.PRGROM[:],
-		VSize:   0x8000,
-		Flags:   hwio.MemFlagReadOnlyNoLog,
-		WriteCb: b.write,
+		Name:  "PRGROM",
+		Data:  b.PRGROM[:],
+		VSize: 0x8000,
+		Flags: hwio.MemFlagReadOnlyNoLog,
+		WriteCb: func(addr uint16, value uint8) {
+			if b.registers.Test(uint(addr)) {
+				// This is a register write
+				if b.writeReg != nil {
+					b.writeReg(addr, value)
+				}
+			}
+		},
 	})
 
 	// Handle CHR RAM if CHRROM is empty.
@@ -85,27 +102,64 @@ func (b *base) init(writeReg func(uint16, uint8)) {
 	})
 }
 
-func (b *base) write(addr uint16, value uint8) {
-	// is this a register write?
-	if b.registers.Test(uint(addr)) {
-		if b.writeReg != nil {
-			b.writeReg(addr, value)
-		}
+func (b *base) BatteryPackedRAM() []byte {
+	if b.rom.HasBattery() {
+		return b.PRGNVRAM
 	}
+	return nil
+}
+
+func (b *base) SetBatteryPackedRAM(data []byte) error {
+	if !b.rom.HasBattery() {
+		modMapper.WarnZ("rom doesn't support battery packed RAM").End()
+		return nil
+	}
+
+	if len(data) != len(b.PRGNVRAM) {
+		return fmt.Errorf("invalid battery packed RAM size: %d", len(data))
+	}
+	copy(b.PRGNVRAM, data)
+	return nil
 }
 
 const KB = 1 << 10
 
+func mirrorcopy(dst, src []byte) int {
+	n, m := len(dst), len(src)
+	if m == 0 || n == 0 {
+		return 0
+	}
+	// Hot path: same size
+	if m == n {
+		return copy(dst, src)
+	}
+	copy(dst, src)
+
+	// double-filled region each iteration
+	for size := m; size < n; size <<= 1 {
+		copy(dst[size:], dst[:size])
+	}
+	return n
+}
+
+func (b *base) numPRGROMBanks() int {
+	prgbankSz := min(len(b.rom.PRGROM), int(b.desc.PRGBankSize))
+	if prgbankSz == 0 {
+		return 0
+	}
+	return len(b.rom.PRGROM) / prgbankSz
+}
+
 // select what 32KB PRG ROM bank to use.
 func (b *base) selectPRGPage32KB(bank int) {
-	// TODO: what if instead of copying we were using
-	// table.MapMemorySlice. in this case we would avoid a copy, as well as
-	// define if the memory is read-only or read-write.
-	copy(b.PRGROM[:], b.rom.PRGROM[32*KB*(bank):])
+	mirrorcopy(b.PRGROM[:], b.rom.PRGROM[32*KB*(bank):])
 }
 
 // select what 16KB PRG ROM bank to use into which PRG 16KB page.
 func (b *base) selectPRGPage16KB(page uint32, bank int) {
+	if len(b.rom.PRGROM) == 0 {
+		return
+	}
 	if bank < 0 {
 		// TODO: should probably not be checked here and should not panic.
 		if len(b.rom.PRGROM)%(16*KB) != 0 {
@@ -114,54 +168,63 @@ func (b *base) selectPRGPage16KB(page uint32, bank int) {
 		bank += len(b.rom.PRGROM) / (16 * KB)
 	}
 
-	start := 16 * KB * page
-	end := 16 * KB * (page + 1)
-	copy(b.PRGROM[start:end], b.rom.PRGROM[16*KB*(bank):])
+	// wrap bank number if it is out of range
+	nbanks := b.numPRGROMBanks()
+	if nbanks == 0 {
+		return
+	}
+	if bank < 0 {
+		bank = nbanks + bank
+	} else {
+		bank = bank % nbanks
+	}
+
+	offbus := 16 * KB * page
+	endbus := 16 * KB * (page + 1)
+	offrom := 16 * KB * (bank)
+
+	copy(b.PRGROM[offbus:endbus], b.rom.PRGROM[offrom:])
 
 	modMapper.DebugZ("Select 16 kB PRG page").
-		Hex16("bus.start", uint16(0x8000+start)).
-		Hex16("bus.end", uint16(-1+0x8000+end)).
+		Hex16("bus.start", uint16(0x8000+offbus)).
+		Hex16("bus.end", uint16(-1+0x8000+endbus)).
 		Hex16("rom.start", uint16(16*KB*(bank))).
 		Int("bank", bank).End()
 }
 
-// TODO: remove and use selectCHRROM... instead
-func (b *base) copyCHRROM(dest []byte, bank uint32) {
-	// Copy CHRROM bank to PPU memory.
-	// CHRROM is 8KB in size (when present).
-	start := min(uint32(len(b.rom.CHRROM)-1), bank*b.desc.CHRROMbanksz)
-	end := min(uint32(len(b.rom.CHRROM)), start+b.desc.CHRROMbanksz)
-	copy(dest, b.rom.CHRROM[start:end])
-}
-
 // select what 8KB PRG ROM bank to use.
 func (b *base) selectCHRROMPage8KB(bank int) {
+	if len(b.rom.CHRROM) == 0 {
+		return
+	}
 	if bank < 0 {
 		bank += len(b.rom.CHRROM) / (8 * KB)
 	}
 
-	// b:bus r:rom
-	bstart, bend := 0, 8*KB
-	rstart := 8 * KB * bank
-	copy(b.CHRROM[bstart:bend], b.rom.CHRROM[rstart:])
+	offbus, endbus := 0, 8*KB
+	offrom := 8 * KB * bank
+	copy(b.CHRROM[offbus:endbus], b.rom.CHRROM[offrom:])
 
 	modMapper.DebugZ("Select 8 kB CHR page").
-		Hex16("bus.start", uint16(bstart)).
-		Hex16("bus.end", uint16(-1+bend)).
-		Hex16("rom.start", uint16(rstart)).
+		Hex16("bus.start", uint16(offbus)).
+		Hex16("bus.end", uint16(-1+endbus)).
+		Hex16("rom.start", uint16(offrom)).
 		Int("bank", bank).End()
 }
 
 // select what 4KB PRG ROM bank to use into which PRG 4KB page.
 func (b *base) selectCHRROMPage4KB(page uint32, bank int) {
+	if len(b.rom.CHRROM) == 0 {
+		return
+	}
 	if bank < 0 {
 		bank += len(b.rom.CHRROM) / (4 * KB)
 	}
 
-	if len(b.rom.CHRROM) != 0 {
-		romoff := min(4*KB*bank, len(b.rom.CHRROM)-1)
-		copy(b.CHRROM[4*KB*page:], b.rom.CHRROM[romoff:])
-	}
+	offbus := 4 * KB * page
+	endbus := 4 * KB * (page + 1)
+	offrom := min(4*KB*bank, len(b.rom.CHRROM)-1)
+	copy(b.CHRROM[offbus:endbus], b.rom.CHRROM[offrom:])
 }
 
 func (b *base) setNTMirroring(m ines.NTMirroring) {

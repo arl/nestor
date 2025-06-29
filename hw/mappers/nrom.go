@@ -1,12 +1,16 @@
 package mappers
 
 var NROM = MapperDesc{
-	Name:         "NROM",
-	Load:         loadNROM,
-	CHRROMbanksz: 0x2000,
+	Name:        "NROM",
+	Load:        loadNROM,
+	CHRBankSize: 0x2000,
+	PRGBankSize: 0x4000,
 }
 
-func loadNROM(b *base) error {
+type nrom struct{ *base }
+
+func loadNROM(b *base) (Mapper, error) {
+	nrom := &nrom{base: b}
 	b.init(nil)
 
 	b.setNTMirroring(b.rom.Mirroring())
@@ -18,9 +22,9 @@ func loadNROM(b *base) error {
 	case 32 * KB:
 		b.selectPRGPage32KB(0)
 	default:
-		return ErrUnsuppportedPRGROMSize(len(b.rom.PRGROM))
+		return nil, ErrUnsuppportedPRGROMSize(len(b.rom.PRGROM))
 	}
 
 	// TODO: handle ROMS with CHRRAM
-	return nil
+	return nrom, nil
 }

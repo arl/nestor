@@ -24,7 +24,7 @@ func TestNestest(t *testing.T) {
 	}
 
 	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
-	rom, err := ines.ReadRom(romPath)
+	rom, err := ines.ReadROM(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,9 +81,9 @@ func TestNestest(t *testing.T) {
 	}
 }
 
+// Various tests from blargg's test roms. They're easy to automate since
+// they write to a specific memory location to signal the test status.
 func TestBlarggRoms(t *testing.T) {
-	// Various tests from blargg's test roms. They're easily to automate since they
-	// write to a specific memory location to signal the test status.
 	if !testing.Verbose() {
 		log.Disable()
 	}
@@ -184,7 +184,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 	// data at $6000+ is valid, as opposed to some other NES program, $DE $B0
 	// $G1 is written to $6001-$6003.
 	return func(t *testing.T) {
-		rom, err := ines.ReadRom(path)
+		rom, err := ines.ReadROM(path)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -208,9 +208,9 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 		framesBeforeReset := -1 // not requested
 
 		for {
-			vbuf := out.BeginFrame()
-			nes.RunOneFrame(vbuf)
-			out.EndFrame(vbuf)
+			fbuf := out.BeginFrame()
+			nes.RunOneFrame(&fbuf)
+			out.EndFrame(&fbuf)
 
 			data := readString(nes.CPU.Bus, 0x6001, 3)
 			if magicset == 0 {
@@ -269,10 +269,6 @@ func readString(t *hwio.Table, addr uint16, maxlen int) string {
 }
 
 func TestSprite0Hit(t *testing.T) {
-	if !testing.Verbose() {
-		log.Disable()
-	}
-
 	outdir := filepath.Join("testdata", t.Name())
 	os.Mkdir(outdir, 0755)
 
@@ -300,10 +296,6 @@ func TestSprite0Hit(t *testing.T) {
 }
 
 func TestSpriteOverflow(t *testing.T) {
-	if !testing.Verbose() {
-		log.Disable()
-	}
-
 	outdir := filepath.Join("testdata", t.Name())
 	os.Mkdir(outdir, 0755)
 
@@ -325,10 +317,6 @@ func TestSpriteOverflow(t *testing.T) {
 }
 
 func TestDMCDMADuringRead(t *testing.T) {
-	if !testing.Verbose() {
-		log.Disable()
-	}
-
 	outdir := filepath.Join("testdata", t.Name())
 	os.Mkdir(outdir, 0755)
 
@@ -351,7 +339,7 @@ func TestDMCDMADuringRead(t *testing.T) {
 
 func TestNametableMirroring(t *testing.T) {
 	romPath := filepath.Join(tests.RomsPath(t), "other", "snow.nes")
-	rom, err := ines.ReadRom(romPath)
+	rom, err := ines.ReadROM(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -528,7 +516,11 @@ func TestCNROMSubmappers(t *testing.T) {
 func runAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame int64) {
 	t.Parallel()
 
-	rom, err := ines.ReadRom(romPath)
+	if !testing.Verbose() {
+		log.Disable()
+	}
+
+	rom, err := ines.ReadROM(romPath)
 	if err != nil {
 		t.Fatal(err)
 	}

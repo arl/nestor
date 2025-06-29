@@ -1,9 +1,11 @@
 package apu
 
+import "nestor/hw/snapshot"
+
 // timer is a divider driven by the ~1.79 MHz clock and is used by all APU
 // channels.
 type timer struct {
-	Mixer mixer
+	mixer *Mixer
 
 	prevCycle  uint32
 	timer      uint16
@@ -22,7 +24,7 @@ func (t *timer) reset(_ bool) {
 
 func (t *timer) addOutput(output int8) {
 	if output != t.lastOutput {
-		t.Mixer.AddDelta(t.Channel, t.prevCycle, int16(output-t.lastOutput))
+		t.mixer.addDelta(t.Channel, t.prevCycle, int16(output-t.lastOutput))
 		t.lastOutput = output
 	}
 }
@@ -43,4 +45,16 @@ func (t *timer) run(targetCycle uint32) bool {
 
 func (t *timer) endFrame() {
 	t.prevCycle = 0
+}
+
+func (t *timer) saveState(state *snapshot.APUTimer) {
+	state.Timer = t.timer
+	state.Period = t.period
+	state.LastOutput = t.lastOutput
+}
+
+func (t *timer) setState(state *snapshot.APUTimer) {
+	t.timer = state.Timer
+	t.period = state.Period
+	t.lastOutput = state.LastOutput
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/veandco/go-sdl2/sdl"
 
+	"nestor/cli"
 	"nestor/emu"
 	"nestor/emu/rpc"
 	"nestor/hw/input"
@@ -16,12 +17,12 @@ import (
 )
 
 // emuMain runs the emulator directly with the given rom.
-func emuMain(args Run, cfg *ui.Config) {
+func emuMain(args cli.Run, cfg *ui.Config) {
 	var exitcode int
 	sdl.Main(func() {
-		rom, err := ines.ReadRom(args.RomPath)
+		rom, err := ines.ReadROM(args.RomPath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading ROM: %s", err)
+			fmt.Fprintf(os.Stderr, "failed to read rom: %s", err)
 			exitcode = 1
 			return
 		}
@@ -41,6 +42,28 @@ func emuMain(args Run, cfg *ui.Config) {
 			exitcode = 1
 			return
 		}
+
+		if args.RAMFile != "" {
+			saveram, err := os.ReadFile(args.RAMFile)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to load 'save ram' file: %v", err)
+				exitcode = 1
+				return
+			}
+			if err := emulator.NES.Mapper.SetBatteryPackedRAM(saveram); err != nil {
+				fmt.Fprintf(os.Stderr, "failed to assign 'save ram' to ROM: %v", err)
+				exitcode = 1
+				return
+			}
+		}
+
+		tmpdir, err := os.MkdirTemp("", "nestor.out.*")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to create nestor out temp directory: %v", err)
+			exitcode = 1
+			return
+		}
+		emulator.SetTempDir(tmpdir)
 
 		if args.CPUProfile != "" {
 			f, err := os.Create(args.CPUProfile)
@@ -68,7 +91,7 @@ func emuMain(args Run, cfg *ui.Config) {
 	os.Exit(exitcode)
 }
 
-func captureMain(args Capture) {
+func captureMain(args cli.Capture) {
 	var (
 		code input.Code
 		err  error

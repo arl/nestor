@@ -1,23 +1,23 @@
-package hw
+package apu
 
 import (
 	"nestor/emu/log"
-	"nestor/hw/apu"
 	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
+	"nestor/hw/snapshot"
 )
 
 type APU struct {
-	cpu   *CPU
-	mixer *AudioMixer
+	cpu   cpu
+	mixer *Mixer
 
-	Square1  apu.SquareChannel
-	Square2  apu.SquareChannel
-	Triangle apu.TriangleChannel
-	Noise    apu.NoiseChannel
-	DMC      apu.DMC
+	Square1  squareChannel
+	Square2  squareChannel
+	Triangle triangleChannel
+	Noise    noiseChannel
+	DMC      DMC
 
-	frameCounter apu.FrameCounter
+	frameCounter frameCounter
 
 	prevCycle  uint32
 	curCycle   uint32
@@ -30,19 +30,19 @@ type APU struct {
 	DAC2   hwio.Reg8 `hwio:"offset=0x1A,rcb,readonly"` // current instant DAC value of DPCM channel (same as value written to $4011)
 }
 
-func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
+func New(cpu cpu, mixer *Mixer) *APU {
 	a := &APU{
 		enabled: true,
 		cpu:     cpu,
 		mixer:   mixer,
 	}
-	a.Noise = apu.NewNoiseChannel(a, mixer)
-	a.Square1 = apu.NewSquareChannel(a, mixer, apu.Square1, true)
-	a.Square2 = apu.NewSquareChannel(a, mixer, apu.Square2, false)
-	a.Triangle = apu.NewTriangleChannel(a, mixer)
-	a.DMC = apu.NewDMC(a, cpu, mixer)
+	a.Noise = newNoiseChannel(a, mixer)
+	a.Square1 = newSquareChannel(a, mixer, Square1, true)
+	a.Square2 = newSquareChannel(a, mixer, Square2, false)
+	a.Triangle = newTriangleChannel(a, mixer)
+	a.DMC = newDMC(a, cpu, mixer)
 
-	a.frameCounter.Init(a, cpu)
+	a.frameCounter.init(a, cpu)
 
 	hwio.MustInitRegs(a)
 	hwio.MustInitRegs(&a.Square1)
@@ -55,22 +55,26 @@ func NewAPU(cpu *CPU, mixer *AudioMixer) *APU {
 	return a
 }
 
+func (a *APU) WriteFrameCounterReg(old, val uint8) {
+	a.frameCounter.WriteFRAMECOUNTER(old, val)
+}
+
 func (a *APU) Status() uint8 {
 	var status uint8
 
-	if a.Square1.Status() {
+	if a.Square1.status() {
 		status |= 0x01
 	}
-	if a.Square2.Status() {
+	if a.Square2.status() {
 		status |= 0x02
 	}
-	if a.Triangle.Status() {
+	if a.Triangle.status() {
 		status |= 0x04
 	}
-	if a.Noise.Status() {
+	if a.Noise.status() {
 		status |= 0x08
 	}
-	if a.DMC.Status() {
+	if a.DMC.status() {
 		status |= 0x10
 	}
 
@@ -110,44 +114,44 @@ func (a *APU) WriteSTATUS(old, val uint8) {
 	// an IRQ).
 	a.cpu.ClearIRQSource(hwdefs.DMC)
 
-	a.Square1.SetEnabled((val & 0x01) == 0x01)
-	a.Square2.SetEnabled((val & 0x02) == 0x02)
-	a.Triangle.SetEnabled((val & 0x04) == 0x04)
-	a.Noise.SetEnabled((val & 0x08) == 0x08)
-	a.DMC.SetEnabled((val & 0x10) == 0x10)
+	a.Square1.setEnabled((val & 0x01) == 0x01)
+	a.Square2.setEnabled((val & 0x02) == 0x02)
+	a.Triangle.setEnabled((val & 0x04) == 0x04)
+	a.Noise.setEnabled((val & 0x08) == 0x08)
+	a.DMC.setEnabled((val & 0x10) == 0x10)
 }
 
 func (a *APU) ReadDAC0(val uint8) uint8 {
 	a.Run()
-	return a.Square1.Output() | a.Square2.Output()<<4
+	return a.Square1.output() | a.Square2.output()<<4
 }
 
 func (a *APU) ReadDAC1(val uint8) uint8 {
 	a.Run()
-	return a.Triangle.Output() | a.Noise.Output()<<4
+	return a.Triangle.output() | a.Noise.output()<<4
 }
 
 func (a *APU) ReadDAC2(val uint8) uint8 {
 	a.Run()
-	return a.DMC.Output()
+	return a.DMC.output()
 }
 
-func (a *APU) FrameCounterTick(ftyp apu.FrameType) {
+func (a *APU) FrameCounterTick(ftyp FrameType) {
 	// Quarter & half frame clock envelope & linear counter
-	a.Square1.TickEnvelope()
-	a.Square2.TickEnvelope()
-	a.Triangle.TickLinearCounter()
-	a.Noise.TickEnvelope()
+	a.Square1.tickEnvelope()
+	a.Square2.tickEnvelope()
+	a.Triangle.tickLinearCounter()
+	a.Noise.tickEnvelope()
 
-	if ftyp == apu.HalfFrame {
+	if ftyp == HalfFrame {
 		// Half frames clock length counter & sweep
-		a.Square1.TickLengthCounter()
-		a.Square2.TickLengthCounter()
-		a.Triangle.TickLengthCounter()
-		a.Noise.TickLengthCounter()
+		a.Square1.tickLengthCounter()
+		a.Square2.tickLengthCounter()
+		a.Triangle.tickLengthCounter()
+		a.Noise.tickLengthCounter()
 
-		a.Square1.TickSweep()
-		a.Square2.TickSweep()
+		a.Square1.tickSweep()
+		a.Square2.tickSweep()
 	}
 }
 
@@ -156,33 +160,33 @@ func (a *APU) Reset(soft bool) {
 	a.curCycle = 0
 	a.prevCycle = 0
 
-	a.Square1.Reset(soft)
-	a.Square2.Reset(soft)
-	a.Triangle.Reset(soft)
-	a.Noise.Reset(soft)
-	a.DMC.Reset(soft)
-	a.frameCounter.Reset(soft)
+	a.Square1.reset(soft)
+	a.Square2.reset(soft)
+	a.Triangle.reset(soft)
+	a.Noise.reset(soft)
+	a.DMC.reset(soft)
+	a.frameCounter.reset(soft)
 }
 
 func (a *APU) Tick() {
 	a.curCycle++
-	if a.curCycle == CycleLength-1 {
-		a.EndFrame()
+	if a.curCycle == cycleLength-1 {
+		panic("should never happen")
 	} else if a.needToRun(a.curCycle) {
 		a.Run()
 	}
 }
 
-func (a *APU) EndFrame() {
-	a.DMC.ProcessClock()
+func (a *APU) EndFrame(buf *AudioBuffer) {
+	a.DMC.processClock()
 	a.Run()
-	a.Square1.EndFrame()
-	a.Square2.EndFrame()
-	a.Triangle.EndFrame()
-	a.Noise.EndFrame()
-	a.DMC.EndFrame()
+	a.Square1.endFrame()
+	a.Square2.endFrame()
+	a.Triangle.endFrame()
+	a.Noise.endFrame()
+	a.DMC.endFrame()
 
-	a.mixer.PlayAudioBuffer(a.curCycle)
+	a.mixer.playAudioBuffer(a.curCycle, buf)
 
 	a.curCycle = 0
 	a.prevCycle = 0
@@ -197,31 +201,27 @@ func (a *APU) Run() {
 	cyclesToRun := int32(a.curCycle - a.prevCycle)
 
 	for cyclesToRun > 0 {
-		a.prevCycle += a.frameCounter.Run(&cyclesToRun)
+		a.prevCycle += a.frameCounter.run(&cyclesToRun)
 
 		// Reload counters set by writes to 4003/4008/400B/400F after running
 		// the frame counter to allow the length counter to be clocked first.
 		// This fixes the test "len_reload_timing" (tests 4 & 5)
-		a.Square1.ReloadLengthCounter()
-		a.Square2.ReloadLengthCounter()
-		a.Noise.ReloadLengthCounter()
-		a.Triangle.ReloadLengthCounter()
+		a.Square1.reloadLengthCounter()
+		a.Square2.reloadLengthCounter()
+		a.Noise.reloadLengthCounter()
+		a.Triangle.teloadLengthCounter()
 
-		a.Square1.Run(a.prevCycle)
-		a.Square2.Run(a.prevCycle)
-		a.Noise.Run(a.prevCycle)
-		a.Triangle.Run(a.prevCycle)
-		a.DMC.Run(a.prevCycle)
+		a.Square1.run(a.prevCycle)
+		a.Square2.run(a.prevCycle)
+		a.Noise.run(a.prevCycle)
+		a.Triangle.run(a.prevCycle)
+		a.DMC.run(a.prevCycle)
 	}
 }
 
-func (a *APU) SetNeedToRun() {
-	a.needToRun_ = true
-}
-
-func (a *APU) setEnabled(enabled bool) {
-	a.enabled = enabled
-}
+func (a *APU) Enabled() bool           { return a.enabled }
+func (a *APU) setEnabled(enabled bool) { a.enabled = enabled }
+func (a *APU) SetNeedToRun()           { a.needToRun_ = true }
 
 func (a *APU) needToRun(curCycle uint32) bool {
 	if a.DMC.NeedToRun() || a.needToRun_ {
@@ -234,5 +234,25 @@ func (a *APU) needToRun(curCycle uint32) bool {
 	}
 
 	cyclesToRun := curCycle - a.prevCycle
-	return a.frameCounter.NeedToRun(cyclesToRun) || a.DMC.IRQPending(cyclesToRun)
+	return a.frameCounter.needToRun(cyclesToRun) || a.DMC.irqPending(cyclesToRun)
+}
+
+func (a *APU) State() *snapshot.APU {
+	var state snapshot.APU
+	a.Square1.saveState(&state.Square1)
+	a.Square2.saveState(&state.Square2)
+	a.Triangle.saveState(&state.Triangle)
+	a.Noise.saveState(&state.Noise)
+	a.DMC.saveState(&state.DMC)
+	a.frameCounter.saveState(&state.FrameCounter)
+	return &state
+}
+
+func (a *APU) SetState(state *snapshot.APU) {
+	a.Square1.setState(&state.Square1)
+	a.Square2.setState(&state.Square2)
+	a.Triangle.setState(&state.Triangle)
+	a.Noise.setState(&state.Noise)
+	a.DMC.setState(&state.DMC)
+	a.frameCounter.setState(&state.FrameCounter)
 }
