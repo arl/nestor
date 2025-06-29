@@ -250,6 +250,8 @@ func (m *mmc1) remap() {
 		panic("not supported")
 	}
 
+	// TODO: handle submapper 5
+
 	switch m.prgmode {
 	case 0, 1:
 		// ignore low bit of bank number
