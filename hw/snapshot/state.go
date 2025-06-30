@@ -9,7 +9,7 @@ import "nestor/hw/hwdefs"
 type NES struct {
 	Version int
 	CPU     *CPU
-	RAM     [0x800]uint8
+	RAM     *[0x800]uint8
 	DMA     *DMA
 	PPU     *PPU
 	APU     *APU

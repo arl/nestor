@@ -1834,6 +1834,7 @@ func (z *APUTriangle) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
+// DecodeMsg implements msgp.Decodable
 func (z *CPU) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -2278,10 +2279,22 @@ func (z *NES) DecodeMsg(dc *msgp.Reader) (err error) {
 				}
 			}
 		case "RAM":
-			err = dc.ReadExactBytes((z.RAM)[:])
-			if err != nil {
-				err = msgp.WrapError(err, "RAM")
-				return
+			if dc.IsNil() {
+				err = dc.ReadNil()
+				if err != nil {
+					err = msgp.WrapError(err, "RAM")
+					return
+				}
+				z.RAM = nil
+			} else {
+				if z.RAM == nil {
+					z.RAM = new([0x800]uint8)
+				}
+				err = dc.ReadExactBytes((*z.RAM)[:])
+				if err != nil {
+					err = msgp.WrapError(err, "RAM")
+					return
+				}
 			}
 		case "DMA":
 			if dc.IsNil() {
@@ -2401,10 +2414,17 @@ func (z *NES) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes((z.RAM)[:])
-	if err != nil {
-		err = msgp.WrapError(err, "RAM")
-		return
+	if z.RAM == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = en.WriteBytes((*z.RAM)[:])
+		if err != nil {
+			err = msgp.WrapError(err, "RAM")
+			return
+		}
 	}
 	// write "DMA"
 	err = en.Append(0xa3, 0x44, 0x4d, 0x41)
@@ -2485,7 +2505,13 @@ func (z *NES) Msgsize() (s int) {
 	} else {
 		s += z.CPU.Msgsize()
 	}
-	s += 4 + msgp.ArrayHeaderSize + (0x800 * (msgp.Uint8Size)) + 4
+	s += 4
+	if z.RAM == nil {
+		s += msgp.NilSize
+	} else {
+		s += msgp.ArrayHeaderSize + (0x800 * (msgp.Uint8Size))
+	}
+	s += 4
 	if z.DMA == nil {
 		s += msgp.NilSize
 	} else {

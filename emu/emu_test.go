@@ -2,14 +2,12 @@ package emu
 
 import (
 	"flag"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/ines"
-	"nestor/tests"
 )
 
 var romPath = flag.String("rom", "", "ROM file to load for BenchmarkCPUSpeed")
@@ -43,8 +41,8 @@ func BenchmarkCPUSpeed(b *testing.B) {
 	if *romPath == "" {
 		b.Fatal("missing -rom flag")
 	}
-
 	e := loadEmulator(b, *romPath)
+
 	frame := e.out.BeginFrame()
 
 	const nframes = 300
@@ -62,15 +60,50 @@ func BenchmarkCPUSpeed(b *testing.B) {
 	b.ReportMetric(fps, "frames/s")
 }
 
-func BenchmarkSaveState(b *testing.B) {
-	romPath := filepath.Join(tests.RomsPath(b), "spritecans-2011", "spritecans.nes")
-	e := loadEmulator(b, romPath)
+func BenchmarkSaveSnapshot(b *testing.B) {
+	if *romPath == "" {
+		b.Fatal("missing -rom flag")
+	}
+	e := loadEmulator(b, *romPath)
 
 	frame := e.out.BeginFrame()
 	e.NES.RunOneFrame(&frame)
+
+	snapshot, err := e.NES.SaveSnapshot()
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	b.ResetTimer()
 	for b.Loop() {
 		_, _ = e.NES.SaveSnapshot()
 	}
+
+	totbytes := len(snapshot) * b.N
+	b.ReportMetric(float64(totbytes)/b.Elapsed().Seconds(), "bytes/s")
+	b.ReportMetric(float64(len(snapshot)), "bytes")
+}
+
+func BenchmarkLoadSnapshot(b *testing.B) {
+	if *romPath == "" {
+		b.Fatal("missing -rom flag")
+	}
+	e := loadEmulator(b, *romPath)
+
+	frame := e.out.BeginFrame()
+	e.NES.RunOneFrame(&frame)
+
+	snapshot, err := e.NES.SaveSnapshot()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		_ = e.NES.LoadSnapshot(snapshot)
+	}
+
+	totbytes := len(snapshot) * b.N
+	b.ReportMetric(float64(totbytes)/b.Elapsed().Seconds(), "bytes/s")
+	b.ReportMetric(float64(len(snapshot)), "bytes")
 }
