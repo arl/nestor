@@ -10,7 +10,7 @@ require (
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71
 	github.com/google/go-cmp v0.7.0
 	github.com/gotk3/gotk3 v0.6.5-0.20240618185848-ff349ae13f56
-	github.com/tinylib/msgp v1.2.5
+	github.com/tinylib/msgp v1.3.0
 	github.com/veandco/go-sdl2 v0.5.0-alpha.6.0.20240902114001-f9a623944236
 	golang.org/x/sync v0.12.0
 	gopkg.in/Sirupsen/logrus.v0 v0.11.5
