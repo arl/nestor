@@ -1,0 +1,21 @@
+# Hugo build output
+public/
+resources/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+.docker/
+
+# Temporary files
+*.tmp
+*.log
+
+# Hugo cache
+.hugo_build.lock

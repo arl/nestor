@@ -1,0 +1,42 @@
+baseURL: "/"
+languageCode: "en-us"
+title: "Nestor - NES Emulator"
+theme: "nestor-theme"
+
+params:
+  description: "Nestor is a cycle-accurate NES/Famicom emulator written in Go"
+  author: "arl"
+  github: "https://github.com/arl/nestor"
+
+menu:
+  main:
+    - name: "Home"
+      url: "/"
+      weight: 10
+    - name: "Features"
+      url: "/features/"
+      weight: 20
+    - name: "Mappers"
+      url: "/mappers/"
+      weight: 30
+    - name: "Screenshots"
+      url: "/screenshots/"
+      weight: 40
+    - name: "Documentation"
+      url: "/docs/"
+      weight: 50
+    - name: "About"
+      url: "/about/"
+      weight: 60
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  highlight:
+    style: github
+    lineNos: true
+
+outputs:
+  home: ["HTML", "RSS"]
+  page: ["HTML"]

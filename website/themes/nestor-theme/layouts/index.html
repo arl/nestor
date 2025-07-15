@@ -1,0 +1,137 @@
+{{ define "main" }}
+<section class="hero">
+    <div class="hero-container">
+        <div class="hero-content">
+            <img src="{{ "images/logo.png" | relURL }}" alt="Nestor Logo" class="hero-logo">
+            <h1 class="hero-title">Nestor</h1>
+            <p class="hero-subtitle">A cycle-accurate NES/Famicom emulator written in Go</p>
+            
+            <div class="hero-actions">
+                <a href="{{ .Site.Params.github }}/releases" class="btn btn-primary" target="_blank" rel="noopener">
+                    <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor" d="M13 2L3 14h4l-1 8 10-12h-4l1-8z"/>
+                    </svg>
+                    Download
+                </a>
+                <a href="{{ "/docs/" | relURL }}" class="btn btn-secondary">
+                    <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    </svg>
+                    Get Started
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="features-preview">
+    <div class="container">
+        <h2 class="section-title">Key Features</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Cycle Accurate</h3>
+                <p>Precise CPU emulation for authentic gaming experience</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎮</div>
+                <h3>Full Controller Support</h3>
+                <p>Joystick and gamepad support with customizable input mapping</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔊</div>
+                <h3>Audio Processing</h3>
+                <p>Complete APU implementation for authentic sound</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📺</div>
+                <h3>CRT Shader Effects</h3>
+                <p>Authentic retro visual experience with CRT simulation</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3>Frame Run-Ahead</h3>
+                <p>Reduced input lag for competitive gaming</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🗂️</div>
+                <h3>Multiple Mappers</h3>
+                <p>Support for 6 different mapper types including MMC1 and MMC3</p>
+            </div>
+        </div>
+        
+        <div class="features-cta">
+            <a href="{{ "/features/" | relURL }}" class="btn btn-outline">View All Features</a>
+        </div>
+    </div>
+</section>
+
+<section class="screenshots-preview">
+    <div class="container">
+        <h2 class="section-title">Games in Action</h2>
+        <div class="screenshots-grid">
+            <div class="screenshot-item">
+                <img src="https://github.com/user-attachments/assets/014025c9-6c7e-4f68-b351-3557c345a12e" alt="Adventures of Rad Gravity" loading="lazy">
+                <div class="screenshot-caption">Adventures of Rad Gravity</div>
+            </div>
+            <div class="screenshot-item">
+                <img src="https://github.com/user-attachments/assets/d7a03db0-fcf7-4e8f-a8f7-23ec0d01fae7" alt="Battletoads" loading="lazy">
+                <div class="screenshot-caption">Battletoads</div>
+            </div>
+            <div class="screenshot-item">
+                <img src="https://github.com/user-attachments/assets/534e5d32-7bf0-48a1-9b3e-bb580f651585" alt="Tsuppari Oozumou" loading="lazy">
+                <div class="screenshot-caption">Tsuppari Oozumou</div>
+            </div>
+            <div class="screenshot-item">
+                <img src="https://github.com/user-attachments/assets/8b283d1f-9eca-49da-849f-d4c9c91f98cd" alt="Castlevania" loading="lazy">
+                <div class="screenshot-caption">Castlevania</div>
+            </div>
+            <div class="screenshot-item">
+                <img src="https://github.com/user-attachments/assets/cdb49c3e-4ac4-4dd9-94fe-ac4d91af4aff" alt="Prince of Persia" loading="lazy">
+                <div class="screenshot-caption">Prince of Persia</div>
+            </div>
+            <div class="screenshot-item">
+                <img src="https://github.com/user-attachments/assets/a59fbc21-4938-441d-81d7-1dabda65c929" alt="Contra" loading="lazy">
+                <div class="screenshot-caption">Contra</div>
+            </div>
+        </div>
+        
+        <div class="screenshots-cta">
+            <a href="{{ "/screenshots/" | relURL }}" class="btn btn-outline">View All Screenshots</a>
+        </div>
+    </div>
+</section>
+
+<section class="quick-start">
+    <div class="container">
+        <div class="quick-start-content">
+            <h2 class="section-title">Quick Start</h2>
+            <div class="quick-start-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Install</h3>
+                        <p>Download from GitHub releases or install via Homebrew on macOS</p>
+                        <code>brew tap arl/arl && brew install nestor</code>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Run</h3>
+                        <p>Launch with a ROM file or use the GUI</p>
+                        <code>nestor run /path/to/rom.nes</code>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Play</h3>
+                        <p>Enjoy your favorite NES games with authentic emulation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{{ end }}
