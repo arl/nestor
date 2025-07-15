@@ -29,17 +29,16 @@ The name is a play on "NES" - plus Nestor was a wise character in Greek mytholog
 - **Input**: Joystick and keyboard support
 
 ### Written in Go because:
-- Good performance for an interpreted language
 - Nice cross-platform support
 - Clean, readable code
 - Great standard library
 
 ## Current Status
 
-The emulator can run many popular NES games reasonably well. It's not perfect - there are still bugs and missing features, but it's functional enough to enjoy classic games.
+The emulator can run many popular NES games reasonably well. It's not perfect - there are still bugs and missing features, but it's functional enough to enjoy classic games. A NES emulator should run at 60fps.
 
 ### Game Compatibility
-- Most popular games work fine
+- Most popular games should work fine
 - Some edge cases and less common mappers aren't supported yet
 - Homebrew games generally work well
 

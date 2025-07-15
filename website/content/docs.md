@@ -106,11 +106,6 @@ nestor
 nestor rominfo /path/to/your/rom.nes
 ```
 
-#### Capture Screenshots
-```bash
-nestor capture /path/to/rom.nes --output screenshots/
-```
-
 #### Version Information
 ```bash
 nestor --version
@@ -121,80 +116,17 @@ nestor --version
 ```bash
 # View all available options
 nestor --help
-
-# Common options for run mode
-nestor run game.nes \
-  --fullscreen \
-  --scale 3 \
-  --audio-sample-rate 44100 \
-  --video-renderer opengl
 ```
 
 ## Configuration
 
-Nestor stores configuration in platform-specific locations:
+Nestor has a built-in configuration GUI and stores configuration in platform-specific locations:
 
 - **macOS**: `~/Library/Application Support/nestor/config.toml`
 - **Linux**: `~/.config/nestor/config.toml`
 - **Windows**: `%APPDATA%/nestor/config.toml`
 
-### Configuration File Structure
-
-```toml
-[video]
-renderer = "opengl"
-scale = 2
-fullscreen = false
-vsync = true
-show_fps = false
-
-[audio]
-enabled = true
-sample_rate = 44100
-buffer_size = 512
-
-[input]
-[input.player1]
-up = "Up"
-down = "Down"
-left = "Left"
-right = "Right"
-a = "X"
-b = "Z"
-start = "Return"
-select = "RShift"
-
-[emulation]
-region = "NTSC"
-speed = 1.0
-frame_skip = 0
-```
-
-### Video Settings
-
-| Setting | Options | Description |
-|---------|---------|-------------|
-| `renderer` | `opengl`, `software` | Rendering backend |
-| `scale` | `1-6` | Window scaling factor |
-| `fullscreen` | `true`, `false` | Fullscreen mode |
-| `vsync` | `true`, `false` | Vertical synchronization |
-| `show_fps` | `true`, `false` | Display FPS counter |
-
-### Audio Settings
-
-| Setting | Options | Description |
-|---------|---------|-------------|
-| `enabled` | `true`, `false` | Enable audio output |
-| `sample_rate` | `22050`, `44100`, `48000` | Audio sample rate |
-| `buffer_size` | `256`, `512`, `1024` | Audio buffer size |
-
-### Emulation Settings
-
-| Setting | Options | Description |
-|---------|---------|-------------|
-| `region` | `NTSC`, `PAL` | Video standard (PAL planned) |
-| `speed` | `0.1-5.0` | Emulation speed multiplier |
-| `frame_skip` | `0-10` | Skip frames for performance |
+Configuration is managed through the emulator's interface and automatically saved to the TOML file.
 
 ## Controls and Input
 
@@ -275,10 +207,9 @@ Nestor supports standard gamepads including:
 3. **Increase buffer size**: Helps with crackling audio
 
 #### Performance Issues
-1. **Lower video scale**: Reduce from 3x to 2x or 1x
-2. **Disable VSync**: Can improve performance on some systems
-3. **Use frame skip**: Skip 1-2 frames if needed
-4. **Close other applications**: Free up system resources
+1. **Disable VSync**: Can improve performance on some systems
+2. **Use frame skip**: Skip 1-2 frames if needed
+3. **Close other applications**: Free up system resources
 
 #### Graphics Issues
 1. **Try different renderer**: Switch between OpenGL and software
