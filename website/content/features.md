@@ -1,115 +1,81 @@
 ---
 title: "Features"
-description: "Discover all the powerful features that make Nestor a top-tier NES emulator, from cycle-accurate emulation to modern enhancements."
+description: "What Nestor can do - features and capabilities of this NES emulator."
 ---
 
-# Nestor Features
+# Features
 
-Nestor provides a comprehensive NES emulation experience with both authentic accuracy and modern conveniences.
+Here's what Nestor currently supports and what's planned for the future.
 
 ## Core Emulation
 
-### ✅ Cycle Accurate CPU
-Nestor implements precise 6502 CPU emulation, ensuring games run exactly as they would on original hardware. This level of accuracy is crucial for games that rely on precise timing.
+### ✅ CPU (6502)
+The emulator tries to accurately simulate the NES's 6502 processor, including cycle timing. This helps games run more like they would on real hardware.
 
-### ✅ PPU (Picture Processing Unit)
-Complete implementation of the NES Picture Processing Unit with support for:
-- Sprite rendering
+### ✅ PPU (Graphics)
+Handles most NES graphics features:
+- Sprite rendering  
 - Background tiles
-- Scrolling effects
+- Scrolling
 - Color palettes
-- All standard PPU features
 
-### ✅ NTSC Support
-Full NTSC video standard support for authentic American/Japanese NES experience.
+### ✅ NTSC Video
+Supports the standard NTSC timing used by American and Japanese NES systems.
 
 ### ⏳ PAL Support
-PAL (European) standard support is planned for future releases.
+PAL (European) timing isn't implemented yet, but it's on the todo list.
 
 ## Audio
 
-### ✅ APU (Audio Processing Unit)
-Complete Audio Processing Unit implementation featuring:
-- All 5 audio channels (2 pulse, 1 triangle, 1 noise, 1 DMC)
-- Accurate sound synthesis
-- Audio mixing and filtering
-- High-quality audio output
+### ✅ APU (Sound)
+Has the NES audio processing unit with:
+- All 5 sound channels (2 pulse, 1 triangle, 1 noise, 1 DMC)
+- Decent sound quality
 
 ## Input and Controls
 
-### ✅ Joystick/Joypad Support
-- Full controller support for modern gamepads
-- Customizable input mapping
-- Support for multiple controllers
-- Keyboard input support
-- Configurable key bindings
-
-## Visual Enhancements
-
-### ✅ CRT Shader Effects
-Experience games as they were meant to be seen with authentic CRT monitor simulation:
-- Scanlines and phosphor effects
-- Color bleeding simulation
-- Curvature and distortion effects
-- Adjustable intensity settings
+### ✅ Controllers
+- Keyboard input
+- Joystick/gamepad support  
+- Basic input mapping
 
 ## Performance Features
 
 ### ✅ Frame Run-Ahead
-Reduce input lag for competitive gaming with run-ahead technology:
-- Predictive frame rendering
-- Reduced latency between input and display
-- Configurable run-ahead frames
-- Maintains game compatibility
+Can reduce input lag by predicting frames ahead of time. Useful for games where timing matters.
 
 ## Planned Features
 
 ### 🔄 Debugger
-Advanced debugging tools for developers and enthusiasts:
-- CPU state inspection
-- Memory viewer
-- Breakpoint support
-- Step-by-step execution
+Would be nice to have debugging tools for looking at CPU state and memory.
 
-### 🔄 Save State
-Complete save state functionality:
-- Quick save/load
-- Multiple save slots
-- Save state management
-- Cross-session compatibility
+### 🔄 Save States
+Would be useful to have save/load functionality for quick saves.
 
 ## Mapper Support
 
-Nestor supports multiple mapper types for broad game compatibility:
+Nestor supports several mapper types. See the [mappers page](/mappers/) for more details:
 
-| Mapper | Name | Status | Notable Games |
-|--------|------|--------|---------------|
-| 0 | NROM | ✅ Complete | Super Mario Bros, Donkey Kong |
-| 1 | MMC1 | ✅ Complete | The Legend of Zelda, Metroid |
-| 2 | UxROM | ✅ Complete | Mega Man, Contra |
-| 3 | CNROM | ✅ Complete | Solomon's Key, Arkanoid |
-| 7 | AxROM | ✅ Complete | Battletoads, Wizards & Warriors |
-| 66 | GxROM | ✅ Complete | SMB + Duck Hunt |
-| 4 | MMC3 | 🔄 Planned | Super Mario Bros. 3, Mega Man 2 |
-| 10 | MMC5 | 🔄 Planned | Castlevania III |
+| Mapper | Name | Status | Examples |
+|--------|------|--------|----------|
+| 0 | NROM | ✅ Works | Super Mario Bros, Donkey Kong |
+| 1 | MMC1 | ✅ Works | The Legend of Zelda, Metroid |
+| 2 | UxROM | ✅ Works | Mega Man, Contra |
+| 3 | CNROM | ✅ Works | Solomon's Key, Arkanoid |
+| 7 | AxROM | ✅ Works | Battletoads, Wizards & Warriors |
+| 66 | GxROM | ✅ Works | SMB + Duck Hunt |
+| 4 | MMC3 | 🔄 TODO | Super Mario Bros. 3, Mega Man 2 |
+| 10 | MMC5 | 🔄 TODO | Castlevania III |
 
-## Technical Specifications
+## Technical Stuff
 
-### Performance
-- Written in Go for excellent performance and cross-platform compatibility
-- Efficient memory usage
-- Optimized rendering pipeline
-- 60 FPS gameplay with accurate timing
+### What it's built with
+- Written in Go 
+- Uses SDL2 for graphics and input
+- Cross-platform (Windows, macOS, Linux)
+- Reads standard NES ROM files
 
-### Compatibility
-- Cross-platform support (Windows, macOS, Linux)
-- Standard ROM file format support
-- iNES header parsing
-- Multiple file format support
-
-### User Interface
-- Clean, intuitive interface
-- GTK-based GUI for Linux/Windows
-- Native macOS interface support
-- Configuration management
-- Recent ROMs tracking
+### Interface
+- GUI version available
+- Command line version too
+- Basic configuration options

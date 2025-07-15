@@ -1,6 +1,6 @@
 ---
 title: "Home"
-description: "Nestor is a cycle-accurate NES/Famicom emulator written in Go. Experience authentic retro gaming with modern features."
+description: "Nestor is a cycle-accurate NES/Famicom emulator written in Go."
 ---
 
-Welcome to Nestor, a high-quality NES emulator that brings classic gaming to modern systems with exceptional accuracy and performance.
+Welcome to Nestor, a NES emulator written in Go as a side project to learn emulation and have fun with retro gaming.

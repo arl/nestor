@@ -2,29 +2,39 @@
 
 This directory contains the static website for the Nestor NES emulator, built with Hugo.
 
-## Quick Start
+## Development
 
-### Development Server
+### Local Development
 
 ```bash
-# Using Docker Compose (recommended)
-docker-compose up dev
+# Install Hugo (if not already installed)
+# macOS: brew install hugo
+# Linux: apt install hugo / snap install hugo
+# Windows: choco install hugo
 
-# Or using Hugo directly (requires Hugo installation)
+# Run development server
 hugo server
 ```
 
 The site will be available at http://localhost:1313
 
-### Production Build
+### Building
 
 ```bash
-# Using Docker
-docker build -t nestor-website .
-
-# Or using Hugo directly
+# Build static files
 hugo --minify --cleanDestinationDir
 ```
+
+The built site will be in the `public/` directory.
+
+## GitHub Pages Deployment
+
+This site is designed to be deployed on GitHub Pages. The workflow is typically:
+
+1. Make changes to content or theme
+2. Test locally with `hugo server`
+3. Commit changes to the repository
+4. GitHub Pages will automatically build and deploy using Hugo
 
 ## Structure
 
@@ -39,15 +49,25 @@ website/
 │   ├── docs.md              # Documentation page
 │   └── about.md             # About page
 ├── static/                   # Static assets
-│   ├── images/
-│   │   └── logo.png         # Nestor logo
-│   └── css/                 # Additional CSS if needed
-├── themes/nestor-theme/     # Custom Hugo theme
-│   ├── layouts/
-│   │   ├── _default/
-│   │   │   ├── baseof.html  # Base template
-│   │   │   └── single.html  # Single page template
-│   │   └── index.html       # Home page template
+│   └── images/
+│       └── logo.png         # Nestor logo
+└── themes/nestor-theme/     # Custom Hugo theme
+    ├── layouts/
+    │   ├── _default/
+    │   │   ├── baseof.html  # Base template
+    │   │   └── single.html  # Single page template
+    │   └── index.html       # Home page template
+    └── static/css/
+        └── style.css        # Theme styles
+```
+
+## Editing Content
+
+Content is written in Markdown and stored in the `content/` directory. Each page has front matter with title and description for SEO.
+
+## Theme
+
+The site uses a custom Hugo theme called "nestor-theme" with simple, clean styling appropriate for a hobby project.
 │   └── static/css/
 │       └── style.css        # Main stylesheet
 ├── Dockerfile               # Multi-stage Docker build

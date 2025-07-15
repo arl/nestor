@@ -4,7 +4,7 @@ title: "Nestor - NES Emulator"
 theme: "nestor-theme"
 
 params:
-  description: "Nestor is a cycle-accurate NES/Famicom emulator written in Go"
+  description: "Nestor is a NES emulator written in Go"
   author: "arl"
   github: "https://github.com/arl/nestor"
 
