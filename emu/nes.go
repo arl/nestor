@@ -98,6 +98,6 @@ func (nes *NES) LoadSnapshot(buf []byte) error {
 	nes.PPU.SetState(state.PPU)
 	nes.APU.SetState(state.APU)
 	nes.Mixer.SetState(state.Mixer)
-	nes.CPU.RAM.Data = state.RAM[:]
+	copy(nes.CPU.RAM.Data, state.RAM[:])
 	return nil
 }
