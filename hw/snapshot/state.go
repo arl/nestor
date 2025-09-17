@@ -2,18 +2,22 @@
 // decoding.
 package snapshot
 
-import "nestor/hw/hwdefs"
+import (
+	"github.com/tinylib/msgp/msgp"
+
+	"nestor/hw/hwdefs"
+)
 
 //go:generate go tool msgp -tests=false -marshal=false
 
 type NES struct {
 	Version int
 	CPU     *CPU
-	RAM     *[0x800]uint8
-	DMA     *DMA
+	RAM     [0x800]uint8
 	PPU     *PPU
 	APU     *APU
 	Mixer   *APUMixer
+	Mapper  MapperState
 }
 
 type CPU struct {
@@ -35,6 +39,15 @@ type CPU struct {
 	PrevNeedNMI bool
 	PrevNMIFlag bool
 	NeedNMI     bool
+
+	Input InputPorts
+	DMA   *DMA
+}
+
+type InputPorts struct {
+	State      [2]uint8
+	PrevStrobe bool
+	Strobe     bool
 }
 
 type DMA struct {
@@ -209,4 +222,9 @@ type APUMixer struct {
 	CurrentOutput       [hwdefs.NumAudioChannels]int16
 	PreviousOutputLeft  int16
 	PreviousOutputRight int16
+}
+
+type MapperState struct {
+	Num  uint16   `msg:"num"`
+	Data msgp.Raw `msg:"data"`
 }
