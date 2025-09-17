@@ -1,5 +1,9 @@
 package mappers
 
+import (
+	"nestor/hw/snapshot"
+)
+
 var NROM = MapperDesc{
 	Name:        "NROM",
 	Load:        loadNROM,
@@ -27,4 +31,14 @@ func loadNROM(b *base) (Mapper, error) {
 
 	// TODO: handle ROMS with CHRRAM
 	return nrom, nil
+}
+
+func (m *nrom) state() *snapshot.NROMState {
+	return &snapshot.NROMState{
+		BaseState: m.base.State(),
+	}
+}
+
+func (m *nrom) setState(s *snapshot.NROMState) {
+	m.base.SetState(s.BaseState)
 }

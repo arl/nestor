@@ -1,5 +1,9 @@
 package mappers
 
+import (
+	"nestor/hw/snapshot"
+)
+
 var UxROM = MapperDesc{
 	Name:        "UxROM",
 	Load:        loadUxROM,
@@ -52,5 +56,24 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	//      ++++- Select 16 KB PRG ROM bank for CPU $8000-$BFFF
 	//            (UNROM uses bits 2-0; UOROM uses bits 3-0)
 	m.prgbank = uint32(val & m.bankmask)
+	m.selectPRGPage16KB(0, int(m.prgbank))
+}
+
+func (m *uxrom) state() *snapshot.UxROMState {
+	return &snapshot.UxROMState{
+		BaseState:    m.base.State(),
+		PRGBank:      m.prgbank,
+		BankMask:     m.bankmask,
+		BusConflicts: m.busConflicts,
+	}
+}
+
+func (m *uxrom) setState(s *snapshot.UxROMState) {
+	m.base.SetState(s.BaseState)
+	m.prgbank = s.PRGBank
+	m.bankmask = s.BankMask
+	m.busConflicts = s.BusConflicts
+
+	// Remap based on restored state
 	m.selectPRGPage16KB(0, int(m.prgbank))
 }

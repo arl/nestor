@@ -5,6 +5,7 @@ import (
 
 	"nestor/hw"
 	"nestor/hw/hwio"
+	"nestor/hw/snapshot"
 	"nestor/ines"
 )
 
@@ -258,6 +259,29 @@ func (b *base) remapNametables(nt1, nt2, nt3, nt4 []byte) {
 	b.ppu.Bus.MapMemorySlice(0x3400, 0x37FF, nt2, false)
 	b.ppu.Bus.MapMemorySlice(0x3800, 0x3BFF, nt3, false)
 	b.ppu.Bus.MapMemorySlice(0x3C00, 0x3EFF, nt4, false)
+}
+
+func (b *base) State() *snapshot.BaseState {
+	// we need to change the way we copy the slices here (hwio.Mem keeps track of uintptr, not the slice pointer)
+
+	// prgrom := b.PRGROM // Create a copy of the array
+	chrom := append([]byte(nil), b.CHRROM[:]...)
+
+	return &snapshot.BaseState{
+		// PRGROM:     prgrom,
+		PRGRAM:     append([]byte(nil), b.PRGRAM...),
+		PRGNVRAM:   append([]byte(nil), b.PRGNVRAM...),
+		CHRROM:     chrom,
+		Nametables: b.nametables,
+	}
+}
+
+func (b *base) SetState(state *snapshot.BaseState) {
+	// b.PRGROM = baseState.PRGROM
+	copy(b.PRGRAM, state.PRGRAM)
+	copy(b.PRGNVRAM, state.PRGNVRAM)
+	copy(b.CHRROM[:], state.CHRROM)
+	b.nametables = state.Nametables
 }
 
 func ispow2(n int) bool  { return n&(n-1) == 0 }

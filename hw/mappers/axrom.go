@@ -1,6 +1,7 @@
 package mappers
 
 import (
+	"nestor/hw/snapshot"
 	"nestor/ines"
 )
 
@@ -63,4 +64,24 @@ func (m *axrom) WritePRGROM(addr uint16, val uint8) {
 		m.setNTMirroring(m.ntm)
 		modMapper.DebugZ("select NT mirroring").String("mapper", m.desc.Name).Stringer("prev", prevntm).Stringer("new", m.ntm).End()
 	}
+}
+
+func (m *axrom) state() *snapshot.AxROMState {
+	return &snapshot.AxROMState{
+		BaseState:    m.base.State(),
+		NTM:          uint8(m.ntm),
+		PRGBank:      m.prgbank,
+		BusConflicts: m.busConflicts,
+	}
+}
+
+func (m *axrom) setState(s *snapshot.AxROMState) {
+	m.base.SetState(s.BaseState)
+	m.ntm = ines.NTMirroring(s.NTM)
+	m.prgbank = s.PRGBank
+	m.busConflicts = s.BusConflicts
+
+	// Remap based on restored state
+	m.selectPRGPage32KB(int(m.prgbank))
+	m.setNTMirroring(m.ntm)
 }

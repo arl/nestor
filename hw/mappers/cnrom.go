@@ -1,5 +1,9 @@
 package mappers
 
+import (
+	"nestor/hw/snapshot"
+)
+
 var CNROM = MapperDesc{
 	Name:        "CNROM",
 	Load:        loadCNROM,
@@ -56,4 +60,21 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 	if prev != m.chrbank {
 		m.selectCHRROMPage8KB(int(m.chrbank))
 	}
+}
+
+func (m *cnrom) state() *snapshot.CNROMState {
+	return &snapshot.CNROMState{
+		BaseState:    m.base.State(),
+		CHRBank:      m.chrbank,
+		BusConflicts: m.busConflicts,
+	}
+}
+
+func (m *cnrom) setState(s *snapshot.CNROMState) {
+	m.base.SetState(s.BaseState)
+	m.chrbank = s.CHRBank
+	m.busConflicts = s.BusConflicts
+
+	// Remap based on restored state
+	m.selectCHRROMPage8KB(int(m.chrbank))
 }
