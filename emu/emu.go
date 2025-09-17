@@ -122,6 +122,8 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 }
 
 func (e *Emulator) RunOneFrame() {
+	log.ModEmu.DebugZ("frame").Uint32("number", e.NES.PPU.FrameCount).End()
+
 	if e.cfg.RunAheadFrames > 0 {
 		e.RunFrameWithRunAhead()
 	} else {
@@ -137,8 +139,10 @@ func (e *Emulator) RunFrameWithRunAhead() {
 	// Run a single frame, make a snapshot, but do not render video nor play
 	// audio out of it.
 	e.NES.isRunAheadFrame = true
+	e.NES.CPU.EnableTrace(true)
 	e.NES.CPU.Run(29781)
 	e.NES.APU.EndFrame(nil)
+	e.NES.CPU.EnableTrace(false)
 
 	buf, err := e.NES.SaveSnapshot()
 	if err != nil {
