@@ -4,7 +4,7 @@ import (
 	"nestor/hw/snapshot"
 )
 
-var NROM = MapperDesc{
+var NROM = mapperDesc{
 	Name:        "NROM",
 	Load:        loadNROM,
 	CHRBankSize: 0x2000,

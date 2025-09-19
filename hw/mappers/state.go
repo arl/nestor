@@ -7,7 +7,7 @@ import (
 )
 
 func encodeState(num uint16, m msgp.Marshaler) *snapshot.MapperState {
-	// TODO: use a scratch buffer ans amortize allocations?
+	// TODO: use a scratch buffer and amortize allocations?
 	buf, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)

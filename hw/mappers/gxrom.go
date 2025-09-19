@@ -4,7 +4,7 @@ import (
 	"nestor/hw/snapshot"
 )
 
-var GxROM = MapperDesc{
+var GxROM = mapperDesc{
 	Name:        "GxROM",
 	Load:        loadGxROM,
 	PRGBankSize: 0x8000,

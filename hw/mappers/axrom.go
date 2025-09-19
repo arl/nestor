@@ -5,7 +5,7 @@ import (
 	"nestor/ines"
 )
 
-var AxROM = MapperDesc{
+var AxROM = mapperDesc{
 	Name:        "AxROM",
 	Load:        loadAxROM,
 	PRGBankSize: 0x8000,

@@ -22,14 +22,14 @@ type base struct {
 	CHRROM     [0x2000]byte
 	nametables [0x800]byte
 
-	desc MapperDesc
+	desc mapperDesc
 
 	// set by base.init
 	registers hwio.Bitset
 	writeReg  func(addr uint16, value uint8) // optional
 }
 
-func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, error) {
+func newbase(desc mapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, error) {
 	if !ispow2(len(rom.PRGROM)) {
 		return nil, fmt.Errorf("only support PRGROM with power of 2 size, got %d", len(rom.PRGROM))
 	}

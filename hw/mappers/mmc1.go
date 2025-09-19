@@ -5,7 +5,7 @@ import (
 	"nestor/ines"
 )
 
-var MMC1 = MapperDesc{
+var MMC1 = mapperDesc{
 	Name:        "MMC1",
 	Load:        loadMMC1,
 	PRGBankSize: 0x4000,
