@@ -59,17 +59,22 @@ func (m *uxrom) WritePRGROM(addr uint16, val uint8) {
 	m.selectPRGPage16KB(0, int(m.prgbank))
 }
 
-func (m *uxrom) state() *snapshot.UxROMState {
-	return &snapshot.UxROMState{
-		BaseState:    m.base.State(),
+func (m *uxrom) State() *snapshot.MapperState {
+	state := &snapshot.UxROMState{
+		BaseState:    m.base.state(),
 		PRGBank:      m.prgbank,
 		BankMask:     m.bankmask,
 		BusConflicts: m.busConflicts,
 	}
+
+	return encodeState(m.rom.Number(), state)
 }
 
-func (m *uxrom) setState(s *snapshot.UxROMState) {
-	m.base.SetState(s.BaseState)
+func (m *uxrom) SetState(ms *snapshot.MapperState) {
+	var s snapshot.UxROMState
+	decodeState(&s, ms)
+
+	m.base.setState(s.BaseState)
 	m.prgbank = s.PRGBank
 	m.bankmask = s.BankMask
 	m.busConflicts = s.BusConflicts

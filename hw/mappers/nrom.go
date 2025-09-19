@@ -33,12 +33,17 @@ func loadNROM(b *base) (Mapper, error) {
 	return nrom, nil
 }
 
-func (m *nrom) state() *snapshot.NROMState {
-	return &snapshot.NROMState{
-		BaseState: m.base.State(),
+func (m *nrom) State() *snapshot.MapperState {
+	state := &snapshot.NROMState{
+		BaseState: m.base.state(),
 	}
+
+	return encodeState(m.rom.Number(), state)
 }
 
-func (m *nrom) setState(s *snapshot.NROMState) {
-	m.base.SetState(s.BaseState)
+func (m *nrom) SetState(ms *snapshot.MapperState) {
+	var s snapshot.NROMState
+	decodeState(&s, ms)
+
+	m.base.setState(s.BaseState)
 }

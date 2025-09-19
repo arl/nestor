@@ -51,16 +51,21 @@ func (m *gxrom) WritePRGROM(addr uint16, val uint8) {
 	}
 }
 
-func (m *gxrom) state() *snapshot.GxROMState {
-	return &snapshot.GxROMState{
-		BaseState: m.base.State(),
+func (m *gxrom) State() *snapshot.MapperState {
+	state := &snapshot.GxROMState{
+		BaseState: m.base.state(),
 		CHRBank:   m.chrbank,
 		PRGBank:   m.prgbank,
 	}
+
+	return encodeState(m.rom.Number(), state)
 }
 
-func (m *gxrom) setState(s *snapshot.GxROMState) {
-	m.base.SetState(s.BaseState)
+func (m *gxrom) SetState(ms *snapshot.MapperState) {
+	var s snapshot.GxROMState
+	decodeState(&s, ms)
+
+	m.base.setState(s.BaseState)
 	m.chrbank = s.CHRBank
 	m.prgbank = s.PRGBank
 

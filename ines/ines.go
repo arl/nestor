@@ -31,7 +31,7 @@ func (rom *Rom) PrintInfos(w io.Writer) {
 	if rom.IsNES20() {
 		fmt.Fprintf(w, "|Region                 | % 14s |\n", rom.Region())
 	}
-	fmt.Fprintf(w, "|Mapper                 | % 14d |\n", rom.Mapper())
+	fmt.Fprintf(w, "|Mapper                 | % 14d |\n", rom.Number())
 	if rom.IsNES20() {
 		fmt.Fprintf(w, "|Submapper              | % 14d |\n", rom.SubMapper())
 		fmt.Fprintf(w, "|Bus conflicts          | % 14s |\n", yn(rom.HasBusConflicts()))
@@ -202,7 +202,7 @@ func (hdr *header) Region() Region {
 }
 
 // Mapper returns the mapper number.
-func (hdr *header) Mapper() uint16 {
+func (hdr *header) Number() uint16 {
 	base := uint16(hdr.raw[7]&0xF0) | uint16(hdr.raw[6]>>4)
 	if hdr.IsNES20() {
 		return uint16(hdr.raw[8]&0x0F) | base

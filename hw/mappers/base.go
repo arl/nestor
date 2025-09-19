@@ -261,23 +261,16 @@ func (b *base) remapNametables(nt1, nt2, nt3, nt4 []byte) {
 	b.ppu.Bus.MapMemorySlice(0x3C00, 0x3EFF, nt4, false)
 }
 
-func (b *base) State() *snapshot.BaseState {
-	// we need to change the way we copy the slices here (hwio.Mem keeps track of uintptr, not the slice pointer)
-
-	// prgrom := b.PRGROM // Create a copy of the array
-	chrom := append([]byte(nil), b.CHRROM[:]...)
-
+func (b *base) state() *snapshot.BaseState {
 	return &snapshot.BaseState{
-		// PRGROM:     prgrom,
 		PRGRAM:     append([]byte(nil), b.PRGRAM...),
 		PRGNVRAM:   append([]byte(nil), b.PRGNVRAM...),
-		CHRROM:     chrom,
+		CHRROM:     append([]byte(nil), b.CHRROM[:]...),
 		Nametables: b.nametables,
 	}
 }
 
-func (b *base) SetState(state *snapshot.BaseState) {
-	// b.PRGROM = baseState.PRGROM
+func (b *base) setState(state *snapshot.BaseState) {
 	copy(b.PRGRAM, state.PRGRAM)
 	copy(b.PRGNVRAM, state.PRGNVRAM)
 	copy(b.CHRROM[:], state.CHRROM)

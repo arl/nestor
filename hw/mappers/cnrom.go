@@ -62,16 +62,21 @@ func (m *cnrom) WritePRGROM(addr uint16, val uint8) {
 	}
 }
 
-func (m *cnrom) state() *snapshot.CNROMState {
-	return &snapshot.CNROMState{
-		BaseState:    m.base.State(),
+func (m *cnrom) State() *snapshot.MapperState {
+	state := &snapshot.CNROMState{
+		BaseState:    m.base.state(),
 		CHRBank:      m.chrbank,
 		BusConflicts: m.busConflicts,
 	}
+
+	return encodeState(m.rom.Number(), state)
 }
 
-func (m *cnrom) setState(s *snapshot.CNROMState) {
-	m.base.SetState(s.BaseState)
+func (m *cnrom) SetState(ms *snapshot.MapperState) {
+	var s snapshot.CNROMState
+	decodeState(&s, ms)
+
+	m.base.setState(s.BaseState)
 	m.chrbank = s.CHRBank
 	m.busConflicts = s.BusConflicts
 

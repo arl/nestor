@@ -276,9 +276,9 @@ func (m *mmc1) remap() {
 	}
 }
 
-func (m *mmc1) state() *snapshot.MMC1State {
-	return &snapshot.MMC1State{
-		BaseState:   m.base.State(),
+func (m *mmc1) State() *snapshot.MapperState {
+	state := &snapshot.MMC1State{
+		BaseState:   m.base.state(),
 		PrevCycle:   m.prevCycle,
 		Serial:      uint8(m.serial),
 		Counter:     m.counter,
@@ -291,10 +291,15 @@ func (m *mmc1) state() *snapshot.MMC1State {
 		PRGBank:     m.prgbank,
 		DisableWRAM: m.disableWRAM,
 	}
+
+	return encodeState(m.rom.Number(), state)
 }
 
-func (m *mmc1) setState(s *snapshot.MMC1State) {
-	m.base.SetState(s.BaseState)
+func (m *mmc1) SetState(ms *snapshot.MapperState) {
+	var s snapshot.MMC1State
+	decodeState(&s, ms)
+
+	m.base.setState(s.BaseState)
 	m.prevCycle = s.PrevCycle
 	m.serial = shiftReg(s.Serial)
 	m.counter = s.Counter

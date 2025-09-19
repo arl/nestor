@@ -17,7 +17,7 @@ type NES struct {
 	PPU     *PPU
 	APU     *APU
 	Mixer   *APUMixer
-	Mapper  MapperState
+	Mapper  *MapperState
 }
 
 type CPU struct {

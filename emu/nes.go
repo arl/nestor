@@ -74,7 +74,7 @@ func (nes *NES) SaveSnapshot() ([]byte, error) {
 		PPU:     nes.PPU.State(),
 		APU:     nes.APU.State(),
 		Mixer:   nes.Mixer.State(),
-		Mapper:  mappers.EncodeState(nes.Mapper),
+		Mapper:  nes.Mapper.State(),
 	}
 	// TODO: move RAM state in CPU state.
 	copy(state.RAM[:], nes.CPU.RAM.Data)
@@ -94,7 +94,7 @@ func (nes *NES) LoadSnapshot(buf []byte) error {
 		return err
 	}
 
-	mappers.DecodeState(nes.Mapper, state.Mapper)
+	nes.Mapper.SetState(state.Mapper)
 	nes.CPU.SetState(state.CPU)
 	nes.PPU.SetState(state.PPU)
 	nes.APU.SetState(state.APU)

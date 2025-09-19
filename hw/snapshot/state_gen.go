@@ -2820,37 +2820,49 @@ func (z *NES) DecodeMsg(dc *msgp.Reader) (err error) {
 				}
 			}
 		case "Mapper":
-			var zb0002 uint32
-			zb0002, err = dc.ReadMapHeader()
-			if err != nil {
-				err = msgp.WrapError(err, "Mapper")
-				return
-			}
-			for zb0002 > 0 {
-				zb0002--
-				field, err = dc.ReadMapKeyPtr()
+			if dc.IsNil() {
+				err = dc.ReadNil()
 				if err != nil {
 					err = msgp.WrapError(err, "Mapper")
 					return
 				}
-				switch msgp.UnsafeString(field) {
-				case "num":
-					z.Mapper.Num, err = dc.ReadUint16()
-					if err != nil {
-						err = msgp.WrapError(err, "Mapper", "Num")
-						return
-					}
-				case "data":
-					err = z.Mapper.Data.DecodeMsg(dc)
-					if err != nil {
-						err = msgp.WrapError(err, "Mapper", "Data")
-						return
-					}
-				default:
-					err = dc.Skip()
+				z.Mapper = nil
+			} else {
+				if z.Mapper == nil {
+					z.Mapper = new(MapperState)
+				}
+				var zb0002 uint32
+				zb0002, err = dc.ReadMapHeader()
+				if err != nil {
+					err = msgp.WrapError(err, "Mapper")
+					return
+				}
+				for zb0002 > 0 {
+					zb0002--
+					field, err = dc.ReadMapKeyPtr()
 					if err != nil {
 						err = msgp.WrapError(err, "Mapper")
 						return
+					}
+					switch msgp.UnsafeString(field) {
+					case "num":
+						z.Mapper.Num, err = dc.ReadUint16()
+						if err != nil {
+							err = msgp.WrapError(err, "Mapper", "Num")
+							return
+						}
+					case "data":
+						err = z.Mapper.Data.DecodeMsg(dc)
+						if err != nil {
+							err = msgp.WrapError(err, "Mapper", "Data")
+							return
+						}
+					default:
+						err = dc.Skip()
+						if err != nil {
+							err = msgp.WrapError(err, "Mapper")
+							return
+						}
 					}
 				}
 			}
@@ -2961,26 +2973,33 @@ func (z *NES) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// map header, size 2
-	// write "num"
-	err = en.Append(0x82, 0xa3, 0x6e, 0x75, 0x6d)
-	if err != nil {
-		return
-	}
-	err = en.WriteUint16(z.Mapper.Num)
-	if err != nil {
-		err = msgp.WrapError(err, "Mapper", "Num")
-		return
-	}
-	// write "data"
-	err = en.Append(0xa4, 0x64, 0x61, 0x74, 0x61)
-	if err != nil {
-		return
-	}
-	err = z.Mapper.Data.EncodeMsg(en)
-	if err != nil {
-		err = msgp.WrapError(err, "Mapper", "Data")
-		return
+	if z.Mapper == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		// map header, size 2
+		// write "num"
+		err = en.Append(0x82, 0xa3, 0x6e, 0x75, 0x6d)
+		if err != nil {
+			return
+		}
+		err = en.WriteUint16(z.Mapper.Num)
+		if err != nil {
+			err = msgp.WrapError(err, "Mapper", "Num")
+			return
+		}
+		// write "data"
+		err = en.Append(0xa4, 0x64, 0x61, 0x74, 0x61)
+		if err != nil {
+			return
+		}
+		err = z.Mapper.Data.EncodeMsg(en)
+		if err != nil {
+			err = msgp.WrapError(err, "Mapper", "Data")
+			return
+		}
 	}
 	return
 }
@@ -3011,7 +3030,12 @@ func (z *NES) Msgsize() (s int) {
 	} else {
 		s += z.Mixer.Msgsize()
 	}
-	s += 7 + 1 + 4 + msgp.Uint16Size + 5 + z.Mapper.Data.Msgsize()
+	s += 7
+	if z.Mapper == nil {
+		s += msgp.NilSize
+	} else {
+		s += 1 + 4 + msgp.Uint16Size + 5 + z.Mapper.Data.Msgsize()
+	}
 	return
 }
 

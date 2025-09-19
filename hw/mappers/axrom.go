@@ -66,17 +66,22 @@ func (m *axrom) WritePRGROM(addr uint16, val uint8) {
 	}
 }
 
-func (m *axrom) state() *snapshot.AxROMState {
-	return &snapshot.AxROMState{
-		BaseState:    m.base.State(),
+func (m *axrom) State() *snapshot.MapperState {
+	state := &snapshot.AxROMState{
+		BaseState:    m.base.state(),
 		NTM:          uint8(m.ntm),
 		PRGBank:      m.prgbank,
 		BusConflicts: m.busConflicts,
 	}
+
+	return encodeState(m.rom.Number(), state)
 }
 
-func (m *axrom) setState(s *snapshot.AxROMState) {
-	m.base.SetState(s.BaseState)
+func (m *axrom) SetState(ms *snapshot.MapperState) {
+	var s snapshot.AxROMState
+	decodeState(&s, ms)
+
+	m.base.setState(s.BaseState)
 	m.ntm = ines.NTMirroring(s.NTM)
 	m.prgbank = s.PRGBank
 	m.busConflicts = s.BusConflicts
