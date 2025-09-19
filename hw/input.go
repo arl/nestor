@@ -2,6 +2,7 @@ package hw
 
 import (
 	"nestor/hw/hwio"
+	"nestor/hw/snapshot"
 )
 
 type inputStateLoader interface {
@@ -86,4 +87,18 @@ func (ip *InputPorts) ReadOUT(_ uint8) uint8 {
 	}
 
 	return ip.regval(1)
+}
+
+func (ip *InputPorts) State() snapshot.InputPorts {
+	return snapshot.InputPorts{
+		State:      ip.state,
+		PrevStrobe: ip.prevStrobe,
+		Strobe:     ip.strobe,
+	}
+}
+
+func (ip *InputPorts) SetState(state snapshot.InputPorts) {
+	ip.state = state.State
+	ip.prevStrobe = state.PrevStrobe
+	ip.strobe = state.Strobe
 }

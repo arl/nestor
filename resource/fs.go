@@ -1,3 +1,4 @@
+// Package resource provides embedded resources for the application.
 package resource
 
 import _ "embed"

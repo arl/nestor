@@ -1,6 +1,12 @@
+// Package snapshot provides types and functions for snapshot encoding and
+// decoding.
 package snapshot
 
-import "nestor/hw/hwdefs"
+import (
+	"github.com/tinylib/msgp/msgp"
+
+	"nestor/hw/hwdefs"
+)
 
 //go:generate go tool msgp -tests=false -marshal=false
 
@@ -8,10 +14,10 @@ type NES struct {
 	Version int
 	CPU     *CPU
 	RAM     [0x800]uint8
-	DMA     *DMA
 	PPU     *PPU
 	APU     *APU
 	Mixer   *APUMixer
+	Mapper  *MapperState
 }
 
 type CPU struct {
@@ -33,14 +39,25 @@ type CPU struct {
 	PrevNeedNMI bool
 	PrevNMIFlag bool
 	NeedNMI     bool
+
+	Input InputPorts
+	DMA   DMA
+}
+
+type InputPorts struct {
+	State      [2]uint8
+	PrevStrobe bool
+	Strobe     bool
 }
 
 type DMA struct {
-	DMCRunning bool
-	AbortDMC   bool
-	OAMRunning bool
-	DummyCycle bool
-	NeedHalt   bool
+	NeedHalt     bool
+	DummyCycle   bool
+	DMCRunning   bool
+	AbortDMC     bool
+	OAMRunning   bool
+	OAMPage      uint8
+	OAMDMARegVal uint8
 }
 
 type PPU struct {
@@ -149,6 +166,11 @@ type APUSquare struct {
 	ReloadSweep bool
 	Duty        uint8
 	DutyPos     uint8
+
+	DutyRegVal   uint8
+	SweepRegVal  uint8
+	TimerRegVal  uint8
+	LengthRegVal uint8
 }
 
 type APUTriangle struct {
@@ -159,6 +181,11 @@ type APUTriangle struct {
 	LinearReload        bool
 	LinearCtrl          bool
 	Pos                 uint8
+
+	LinearRegVal uint8
+	UnusedRegVal uint8
+	TimerRegVal  uint8
+	LengthRegVal uint8
 }
 
 type APUNoise struct {
@@ -166,6 +193,11 @@ type APUNoise struct {
 	Timer          APUTimer
 	ShitftRegister uint16
 	Mode           bool
+
+	VolumeRegVal uint8
+	UnusedRegVal uint8
+	PeriodRegVal uint8
+	LengthRegVal uint8
 }
 
 type APUDMC struct {
@@ -188,6 +220,11 @@ type APUDMC struct {
 	ShiftReg   uint8
 	Silence    bool
 	NeedToRun  bool
+
+	FLAGSRegVal      uint8
+	LOADRegVal       uint8
+	SAMPLEADDRRegVal uint8
+	SAMPLELENRegVal  uint8
 }
 
 type APUFrameCounter struct {
@@ -207,4 +244,9 @@ type APUMixer struct {
 	CurrentOutput       [hwdefs.NumAudioChannels]int16
 	PreviousOutputLeft  int16
 	PreviousOutputRight int16
+}
+
+type MapperState struct {
+	Num  uint16   `msg:"num"`
+	Data msgp.Raw `msg:"data"`
 }

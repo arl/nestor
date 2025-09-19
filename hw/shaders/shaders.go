@@ -1,3 +1,4 @@
+// Package shaders provides functionality to load and compile embedded shader files.
 package shaders
 
 import (

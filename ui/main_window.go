@@ -1,3 +1,4 @@
+// Package ui provides the main user interface for the Nestor emulator.
 package ui
 
 import (

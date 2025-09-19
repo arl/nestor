@@ -5,6 +5,7 @@ import (
 
 	"nestor/hw"
 	"nestor/hw/hwio"
+	"nestor/hw/snapshot"
 	"nestor/ines"
 )
 
@@ -21,14 +22,14 @@ type base struct {
 	CHRROM     [0x2000]byte
 	nametables [0x800]byte
 
-	desc MapperDesc
+	desc mapperDesc
 
 	// set by base.init
 	registers hwio.Bitset
 	writeReg  func(addr uint16, value uint8) // optional
 }
 
-func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, error) {
+func newbase(desc mapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, error) {
 	if !ispow2(len(rom.PRGROM)) {
 		return nil, fmt.Errorf("only support PRGROM with power of 2 size, got %d", len(rom.PRGROM))
 	}
@@ -61,7 +62,6 @@ func newbase(desc MapperDesc, rom *ines.Rom, cpu *hw.CPU, ppu *hw.PPU) (*base, e
 func (b *base) init(writeReg func(uint16, uint8)) {
 	// CPU mapping.
 	hwio.MustInitRegs(b)
-	b.cpu.Bus.MapBank(0x0000, b, 0)
 
 	if b.rom.PRGRAMSize() > 0 {
 		// panic(fmt.Sprintf("PRGRAM not implemented, rom has $%XB", b.rom.PRGRAMSize()))
@@ -259,6 +259,22 @@ func (b *base) remapNametables(nt1, nt2, nt3, nt4 []byte) {
 	b.ppu.Bus.MapMemorySlice(0x3400, 0x37FF, nt2, false)
 	b.ppu.Bus.MapMemorySlice(0x3800, 0x3BFF, nt3, false)
 	b.ppu.Bus.MapMemorySlice(0x3C00, 0x3EFF, nt4, false)
+}
+
+func (b *base) state() *snapshot.BaseState {
+	return &snapshot.BaseState{
+		PRGRAM:     append([]byte(nil), b.PRGRAM...),
+		PRGNVRAM:   append([]byte(nil), b.PRGNVRAM...),
+		CHRROM:     append([]byte(nil), b.CHRROM[:]...),
+		Nametables: b.nametables,
+	}
+}
+
+func (b *base) setState(state *snapshot.BaseState) {
+	copy(b.PRGRAM, state.PRGRAM)
+	copy(b.PRGNVRAM, state.PRGNVRAM)
+	copy(b.CHRROM[:], state.CHRROM)
+	b.nametables = state.Nametables
 }
 
 func ispow2(n int) bool  { return n&(n-1) == 0 }

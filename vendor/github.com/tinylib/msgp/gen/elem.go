@@ -576,6 +576,7 @@ type BaseElem struct {
 	ShimFromBase string    // shim from base type, or empty
 	Value        Primitive // Type of element
 	Convert      bool      // should we do an explicit conversion?
+	zerocopy     bool      // Allow zerocopy for byte slices in unmarshal.
 	mustinline   bool      // must inline; not printable
 	needsref     bool      // needs reference for shim
 	allowNil     *bool     // Override from parent.
@@ -752,7 +753,8 @@ func (s *BaseElem) ZeroExpr() string {
 		return "(time.Time{})"
 	case JsonNumber:
 		return `""`
-
+	case Intf:
+		return "nil"
 	}
 
 	return ""

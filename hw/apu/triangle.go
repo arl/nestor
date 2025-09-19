@@ -175,6 +175,10 @@ func (tc *triangleChannel) saveState(state *snapshot.APUTriangle) {
 	state.LinearReload = tc.linearReload
 	state.LinearCtrl = tc.linearCtrl
 	state.Pos = tc.pos
+	state.LinearRegVal = tc.Linear.Value
+	state.UnusedRegVal = tc.Unused.Value
+	state.TimerRegVal = tc.Timer.Value
+	state.LengthRegVal = tc.Length.Value
 }
 
 func (tc *triangleChannel) setState(state *snapshot.APUTriangle) {
@@ -185,4 +189,8 @@ func (tc *triangleChannel) setState(state *snapshot.APUTriangle) {
 	tc.linearReload = state.LinearReload
 	tc.linearCtrl = state.LinearCtrl
 	tc.pos = state.Pos
+	tc.Linear.Value = state.LinearRegVal
+	tc.Unused.Value = state.UnusedRegVal
+	tc.Timer.Value = state.TimerRegVal
+	tc.Length.Value = state.LengthRegVal
 }

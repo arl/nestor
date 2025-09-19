@@ -1,10 +1,11 @@
 package mappers
 
 import (
+	"nestor/hw/snapshot"
 	"nestor/ines"
 )
 
-var MMC1 = MapperDesc{
+var MMC1 = mapperDesc{
 	Name:        "MMC1",
 	Load:        loadMMC1,
 	PRGBankSize: 0x4000,
@@ -273,4 +274,43 @@ func (m *mmc1) remap() {
 		m.selectCHRROMPage4KB(0, int(m.chrbank0))
 		m.selectCHRROMPage4KB(1, int(m.chrbank1))
 	}
+}
+
+func (m *mmc1) State() *snapshot.MapperState {
+	state := &snapshot.MMC1State{
+		BaseState:   m.base.state(),
+		PrevCycle:   m.prevCycle,
+		Serial:      uint8(m.serial),
+		Counter:     m.counter,
+		NT:          m.nt,
+		PRGMode:     m.prgmode,
+		CHRMode:     m.chrmode,
+		CHRBank0:    m.chrbank0,
+		CHRBank1:    m.chrbank1,
+		LastCHR:     m.lastchr,
+		PRGBank:     m.prgbank,
+		DisableWRAM: m.disableWRAM,
+	}
+
+	return encodeState(m.rom.Number(), state)
+}
+
+func (m *mmc1) SetState(ms *snapshot.MapperState) {
+	s := decodeState[snapshot.MMC1State](ms)
+
+	m.base.setState(s.BaseState)
+	m.prevCycle = s.PrevCycle
+	m.serial = shiftReg(s.Serial)
+	m.counter = s.Counter
+	m.nt = s.NT
+	m.prgmode = s.PRGMode
+	m.chrmode = s.CHRMode
+	m.chrbank0 = s.CHRBank0
+	m.chrbank1 = s.CHRBank1
+	m.lastchr = s.LastCHR
+	m.prgbank = s.PRGBank
+	m.disableWRAM = s.DisableWRAM
+
+	// Remap based on restored state
+	m.remap()
 }

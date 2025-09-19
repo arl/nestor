@@ -1,6 +1,10 @@
 package mappers
 
-var GxROM = MapperDesc{
+import (
+	"nestor/hw/snapshot"
+)
+
+var GxROM = mapperDesc{
 	Name:        "GxROM",
 	Load:        loadGxROM,
 	PRGBankSize: 0x8000,
@@ -45,4 +49,26 @@ func (m *gxrom) WritePRGROM(addr uint16, val uint8) {
 	if prevprg != m.prgbank {
 		m.selectPRGPage32KB(int(m.prgbank))
 	}
+}
+
+func (m *gxrom) State() *snapshot.MapperState {
+	state := &snapshot.GxROMState{
+		BaseState: m.base.state(),
+		CHRBank:   m.chrbank,
+		PRGBank:   m.prgbank,
+	}
+
+	return encodeState(m.rom.Number(), state)
+}
+
+func (m *gxrom) SetState(ms *snapshot.MapperState) {
+	s := decodeState[snapshot.GxROMState](ms)
+
+	m.base.setState(s.BaseState)
+	m.chrbank = s.CHRBank
+	m.prgbank = s.PRGBank
+
+	// Remap based on restored state
+	m.selectCHRROMPage8KB(int(m.chrbank))
+	m.selectPRGPage32KB(int(m.prgbank))
 }

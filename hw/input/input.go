@@ -1,3 +1,4 @@
+// Package input provides the input handling for NES controllers.
 package input
 
 import (

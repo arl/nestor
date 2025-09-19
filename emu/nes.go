@@ -71,11 +71,12 @@ func (nes *NES) SaveSnapshot() ([]byte, error) {
 	state := snapshot.NES{
 		Version: SaveStateVersion,
 		CPU:     nes.CPU.State(),
-		DMA:     nes.CPU.DMA.State(),
 		PPU:     nes.PPU.State(),
 		APU:     nes.APU.State(),
 		Mixer:   nes.Mixer.State(),
+		Mapper:  nes.Mapper.State(),
 	}
+	// TODO: move RAM state in CPU state.
 	copy(state.RAM[:], nes.CPU.RAM.Data)
 
 	if err := state.EncodeMsg(mw); err != nil {
@@ -93,12 +94,12 @@ func (nes *NES) LoadSnapshot(buf []byte) error {
 		return err
 	}
 
-	copy(nes.CPU.RAM.Data, state.RAM[:])
-
+	nes.Mapper.SetState(state.Mapper)
 	nes.CPU.SetState(state.CPU)
-	nes.CPU.DMA.SetState(state.DMA)
 	nes.PPU.SetState(state.PPU)
 	nes.APU.SetState(state.APU)
 	nes.Mixer.SetState(state.Mixer)
+	copy(nes.CPU.RAM.Data, state.RAM[:])
+
 	return nil
 }

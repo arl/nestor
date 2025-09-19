@@ -29,8 +29,9 @@ type CPU struct {
 	APU *apu.APU
 
 	// Non-nil when execution tracing is enabled.
-	tracer *tracer
-	dbg    Debugger
+	tracer  *tracer
+	dbg     Debugger
+	traceon bool // enable/disable tracing. no-op if tracer is nil (used to disable tracing during run-ahead frames)
 
 	input InputPorts
 
@@ -53,15 +54,16 @@ type CPU struct {
 // NewCPU creates a new CPU at power-up state.
 func NewCPU(ppu *PPU) *CPU {
 	cpu := &CPU{
-		Bus: hwio.NewTable("cpu"),
-		A:   0x00,
-		X:   0x00,
-		Y:   0x00,
-		SP:  0xFD,
-		P:   0x00,
-		PC:  0x0000,
-		PPU: ppu,
-		dbg: nopDebugger{},
+		Bus:     hwio.NewTable("cpu"),
+		A:       0x00,
+		X:       0x00,
+		Y:       0x00,
+		SP:      0xFD,
+		P:       0x00,
+		PC:      0x0000,
+		PPU:     ppu,
+		dbg:     nopDebugger{},
+		traceon: true,
 	}
 
 	if ppu != nil {
@@ -162,31 +164,10 @@ func (c *CPU) Reset(soft bool) {
 
 	// After a reset/power up, the CPU takes burns 8 cycles
 	// before going on with ROM execution.
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		c.cycleBegin(true)
 		c.cycleEnd(true)
 	}
-}
-
-func (c *CPU) traceOp() {
-	if c.tracer != nil {
-		state := cpuState{
-			A:     c.A,
-			X:     c.X,
-			Y:     c.Y,
-			P:     c.P,
-			SP:    c.SP,
-			Clock: c.Cycles,
-			PC:    c.PC,
-		}
-		if c.PPU != nil {
-			state.PPUCycle = c.PPU.Cycle
-			state.Scanline = c.PPU.Scanline
-		}
-		c.tracer.write(state)
-	}
-
-	c.dbg.Trace(c.PC)
 }
 
 func (c *CPU) Run(ncycles int64) {
@@ -467,6 +448,26 @@ func (c *CPU) IRQ() {
 
 /* tracing / debugging */
 
+func (c *CPU) traceOp() {
+	if c.tracer != nil && c.traceon {
+		state := cpuState{
+			A:     c.A,
+			X:     c.X,
+			Y:     c.Y,
+			P:     c.P,
+			SP:    c.SP,
+			Clock: c.Cycles,
+			PC:    c.PC,
+		}
+		if c.PPU != nil {
+			state.PPUCycle = c.PPU.Cycle
+			state.Scanline = c.PPU.Scanline
+		}
+		c.tracer.write(state)
+		c.dbg.Trace(c.PC)
+	}
+}
+
 func (c *CPU) SetTraceOutput(w io.Writer) {
 	c.tracer = &tracer{w: w, d: c}
 }
@@ -478,6 +479,11 @@ func (cpu *CPU) SetDebugger(dbg Debugger) {
 func (cpu *CPU) Disasm(pc uint16) DisasmOp {
 	opcode := cpu.Bus.Peek8(pc)
 	return disasmOps[opcode](cpu, pc)
+}
+
+// EnableTrace allows enabling/disabling trace during run-ahead frames.
+func (cpu *CPU) EnableTrace(on bool) {
+	cpu.traceon = on
 }
 
 /* helpers for opcodes */
@@ -679,6 +685,8 @@ func (cpu *CPU) State() *snapshot.CPU {
 		PrevNeedNMI: cpu.prevNeedNmi,
 		RunIRQ:      cpu.runIRQ,
 		PrevRunIRQ:  cpu.prevRunIRQ,
+		DMA:         cpu.DMA.State(),
+		Input:       cpu.input.State(),
 	}
 }
 
@@ -698,4 +706,6 @@ func (cpu *CPU) SetState(state *snapshot.CPU) {
 	cpu.needNmi = state.NeedNMI
 	cpu.runIRQ = state.RunIRQ
 	cpu.prevRunIRQ = state.PrevRunIRQ
+	cpu.DMA.SetState(state.DMA)
+	cpu.input.SetState(state.Input)
 }

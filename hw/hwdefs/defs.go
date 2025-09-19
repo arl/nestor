@@ -1,3 +1,4 @@
+// Package hwdefs provides NES constants and hardware definitions.
 package hwdefs
 
 import "strings"
