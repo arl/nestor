@@ -62,8 +62,7 @@ func (m *gxrom) State() *snapshot.MapperState {
 }
 
 func (m *gxrom) SetState(ms *snapshot.MapperState) {
-	var s snapshot.GxROMState
-	decodeState(&s, ms)
+	s := decodeState[snapshot.GxROMState](ms)
 
 	m.base.setState(s.BaseState)
 	m.chrbank = s.CHRBank

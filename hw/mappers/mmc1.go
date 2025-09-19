@@ -296,8 +296,7 @@ func (m *mmc1) State() *snapshot.MapperState {
 }
 
 func (m *mmc1) SetState(ms *snapshot.MapperState) {
-	var s snapshot.MMC1State
-	decodeState(&s, ms)
+	s := decodeState[snapshot.MMC1State](ms)
 
 	m.base.setState(s.BaseState)
 	m.prevCycle = s.PrevCycle

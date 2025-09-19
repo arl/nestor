@@ -19,8 +19,13 @@ func encodeState(num uint16, m msgp.Marshaler) *snapshot.MapperState {
 	}
 }
 
-func decodeState(m msgp.Unmarshaler, s *snapshot.MapperState) {
-	if _, err := m.UnmarshalMsg(s.Data); err != nil {
+func decodeState[T1 any, T2 interface {
+	*T1
+	msgp.Unmarshaler
+}](s *snapshot.MapperState) T1 {
+	var t T1
+	if _, err := T2(&t).UnmarshalMsg(s.Data); err != nil {
 		panic(err)
 	}
+	return t
 }

@@ -71,8 +71,7 @@ func (m *uxrom) State() *snapshot.MapperState {
 }
 
 func (m *uxrom) SetState(ms *snapshot.MapperState) {
-	var s snapshot.UxROMState
-	decodeState(&s, ms)
+	s := decodeState[snapshot.UxROMState](ms)
 
 	m.base.setState(s.BaseState)
 	m.prgbank = s.PRGBank

@@ -42,8 +42,7 @@ func (m *nrom) State() *snapshot.MapperState {
 }
 
 func (m *nrom) SetState(ms *snapshot.MapperState) {
-	var s snapshot.NROMState
-	decodeState(&s, ms)
+	s := decodeState[snapshot.NROMState](ms)
 
 	m.base.setState(s.BaseState)
 }

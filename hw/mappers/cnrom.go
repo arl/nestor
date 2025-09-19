@@ -73,8 +73,7 @@ func (m *cnrom) State() *snapshot.MapperState {
 }
 
 func (m *cnrom) SetState(ms *snapshot.MapperState) {
-	var s snapshot.CNROMState
-	decodeState(&s, ms)
+	s := decodeState[snapshot.CNROMState](ms)
 
 	m.base.setState(s.BaseState)
 	m.chrbank = s.CHRBank

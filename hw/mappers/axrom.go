@@ -78,8 +78,7 @@ func (m *axrom) State() *snapshot.MapperState {
 }
 
 func (m *axrom) SetState(ms *snapshot.MapperState) {
-	var s snapshot.AxROMState
-	decodeState(&s, ms)
+	s := decodeState[snapshot.AxROMState](ms)
 
 	m.base.setState(s.BaseState)
 	m.ntm = ines.NTMirroring(s.NTM)
