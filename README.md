@@ -34,8 +34,8 @@ All these features are planned, but not all of them are implemented yet.
 
  - [x] Cycle accurate CPU
  - [X] PPU (Picture Processing Unit)
- - [x] NTSC
- - [ ] PAL
+ - [x] NTSC (USA / Japan)
+ - [ ] PAL (Europe)
  - [x] Joystick/Joypad support
  - [x] APU (Audio Processing Unit)
  - [x] CRT Shader effects
