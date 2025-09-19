@@ -356,6 +356,10 @@ func (dc *DMC) saveState(state *snapshot.APUDMC) {
 	state.ShiftReg = dc.shiftReg
 	state.Silence = dc.silence
 	state.NeedToRun = dc.needToRun
+	state.FLAGSRegVal = dc.FLAGS.Value
+	state.LOADRegVal = dc.LOAD.Value
+	state.SAMPLEADDRRegVal = dc.SAMPLEADDR.Value
+	state.SAMPLELENRegVal = dc.SAMPLELEN.Value
 }
 
 func (dc *DMC) setState(state *snapshot.APUDMC) {
@@ -375,4 +379,8 @@ func (dc *DMC) setState(state *snapshot.APUDMC) {
 	dc.shiftReg = state.ShiftReg
 	dc.silence = state.Silence
 	dc.needToRun = state.NeedToRun
+	dc.FLAGS.Value = state.FLAGSRegVal
+	dc.LOAD.Value = state.LOADRegVal
+	dc.SAMPLEADDR.Value = state.SAMPLEADDRRegVal
+	dc.SAMPLELEN.Value = state.SAMPLELENRegVal
 }

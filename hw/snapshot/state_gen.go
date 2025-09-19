@@ -294,6 +294,30 @@ func (z *APUDMC) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "NeedToRun")
 				return
 			}
+		case "FLAGSRegVal":
+			z.FLAGSRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "FLAGSRegVal")
+				return
+			}
+		case "LOADRegVal":
+			z.LOADRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "LOADRegVal")
+				return
+			}
+		case "SAMPLEADDRRegVal":
+			z.SAMPLEADDRRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "SAMPLEADDRRegVal")
+				return
+			}
+		case "SAMPLELENRegVal":
+			z.SAMPLELENRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "SAMPLELENRegVal")
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -307,9 +331,9 @@ func (z *APUDMC) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *APUDMC) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 16
+	// map header, size 20
 	// write "Timer"
-	err = en.Append(0xde, 0x0, 0x10, 0xa5, 0x54, 0x69, 0x6d, 0x65, 0x72)
+	err = en.Append(0xde, 0x0, 0x14, 0xa5, 0x54, 0x69, 0x6d, 0x65, 0x72)
 	if err != nil {
 		return
 	}
@@ -494,12 +518,52 @@ func (z *APUDMC) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "NeedToRun")
 		return
 	}
+	// write "FLAGSRegVal"
+	err = en.Append(0xab, 0x46, 0x4c, 0x41, 0x47, 0x53, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.FLAGSRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "FLAGSRegVal")
+		return
+	}
+	// write "LOADRegVal"
+	err = en.Append(0xaa, 0x4c, 0x4f, 0x41, 0x44, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.LOADRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "LOADRegVal")
+		return
+	}
+	// write "SAMPLEADDRRegVal"
+	err = en.Append(0xb0, 0x53, 0x41, 0x4d, 0x50, 0x4c, 0x45, 0x41, 0x44, 0x44, 0x52, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.SAMPLEADDRRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "SAMPLEADDRRegVal")
+		return
+	}
+	// write "SAMPLELENRegVal"
+	err = en.Append(0xaf, 0x53, 0x41, 0x4d, 0x50, 0x4c, 0x45, 0x4c, 0x45, 0x4e, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.SAMPLELENRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "SAMPLELENRegVal")
+		return
+	}
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *APUDMC) Msgsize() (s int) {
-	s = 3 + 6 + 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size + 11 + msgp.Uint16Size + 10 + msgp.Uint16Size + 12 + msgp.Uint16Size + 10 + msgp.Uint16Size + 12 + msgp.Uint8Size + 8 + msgp.Uint8Size + 9 + msgp.Uint8Size + 11 + msgp.Uint8Size + 13 + msgp.Uint8Size + 11 + msgp.BoolSize + 5 + msgp.BoolSize + 9 + msgp.BoolSize + 9 + msgp.Uint8Size + 8 + msgp.BoolSize + 10 + msgp.BoolSize
+	s = 3 + 6 + 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size + 11 + msgp.Uint16Size + 10 + msgp.Uint16Size + 12 + msgp.Uint16Size + 10 + msgp.Uint16Size + 12 + msgp.Uint8Size + 8 + msgp.Uint8Size + 9 + msgp.Uint8Size + 11 + msgp.Uint8Size + 13 + msgp.Uint8Size + 11 + msgp.BoolSize + 5 + msgp.BoolSize + 9 + msgp.BoolSize + 9 + msgp.Uint8Size + 8 + msgp.BoolSize + 10 + msgp.BoolSize + 12 + msgp.Uint8Size + 11 + msgp.Uint8Size + 17 + msgp.Uint8Size + 16 + msgp.Uint8Size
 	return
 }
 
@@ -1147,6 +1211,30 @@ func (z *APUNoise) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Mode")
 				return
 			}
+		case "VolumeRegVal":
+			z.VolumeRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "VolumeRegVal")
+				return
+			}
+		case "UnusedRegVal":
+			z.UnusedRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "UnusedRegVal")
+				return
+			}
+		case "PeriodRegVal":
+			z.PeriodRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "PeriodRegVal")
+				return
+			}
+		case "LengthRegVal":
+			z.LengthRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "LengthRegVal")
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -1160,9 +1248,9 @@ func (z *APUNoise) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *APUNoise) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 4
+	// map header, size 8
 	// write "Envelope"
-	err = en.Append(0x84, 0xa8, 0x45, 0x6e, 0x76, 0x65, 0x6c, 0x6f, 0x70, 0x65)
+	err = en.Append(0x88, 0xa8, 0x45, 0x6e, 0x76, 0x65, 0x6c, 0x6f, 0x70, 0x65)
 	if err != nil {
 		return
 	}
@@ -1227,12 +1315,52 @@ func (z *APUNoise) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Mode")
 		return
 	}
+	// write "VolumeRegVal"
+	err = en.Append(0xac, 0x56, 0x6f, 0x6c, 0x75, 0x6d, 0x65, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.VolumeRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "VolumeRegVal")
+		return
+	}
+	// write "UnusedRegVal"
+	err = en.Append(0xac, 0x55, 0x6e, 0x75, 0x73, 0x65, 0x64, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.UnusedRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "UnusedRegVal")
+		return
+	}
+	// write "PeriodRegVal"
+	err = en.Append(0xac, 0x50, 0x65, 0x72, 0x69, 0x6f, 0x64, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.PeriodRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "PeriodRegVal")
+		return
+	}
+	// write "LengthRegVal"
+	err = en.Append(0xac, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.LengthRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "LengthRegVal")
+		return
+	}
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *APUNoise) Msgsize() (s int) {
-	s = 1 + 9 + z.Envelope.Msgsize() + 6 + 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size + 15 + msgp.Uint16Size + 5 + msgp.BoolSize
+	s = 1 + 9 + z.Envelope.Msgsize() + 6 + 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size + 15 + msgp.Uint16Size + 5 + msgp.BoolSize + 13 + msgp.Uint8Size + 13 + msgp.Uint8Size + 13 + msgp.Uint8Size + 13 + msgp.Uint8Size
 	return
 }
 
@@ -1361,6 +1489,30 @@ func (z *APUSquare) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "DutyPos")
 				return
 			}
+		case "DutyRegVal":
+			z.DutyRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "DutyRegVal")
+				return
+			}
+		case "SweepRegVal":
+			z.SweepRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "SweepRegVal")
+				return
+			}
+		case "TimerRegVal":
+			z.TimerRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "TimerRegVal")
+				return
+			}
+		case "LengthRegVal":
+			z.LengthRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "LengthRegVal")
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -1374,9 +1526,9 @@ func (z *APUSquare) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *APUSquare) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 12
+	// map header, size 16
 	// write "SweepTargetPeriod"
-	err = en.Append(0x8c, 0xb1, 0x53, 0x77, 0x65, 0x65, 0x70, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74, 0x50, 0x65, 0x72, 0x69, 0x6f, 0x64)
+	err = en.Append(0xde, 0x0, 0x10, 0xb1, 0x53, 0x77, 0x65, 0x65, 0x70, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74, 0x50, 0x65, 0x72, 0x69, 0x6f, 0x64)
 	if err != nil {
 		return
 	}
@@ -1521,12 +1673,52 @@ func (z *APUSquare) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "DutyPos")
 		return
 	}
+	// write "DutyRegVal"
+	err = en.Append(0xaa, 0x44, 0x75, 0x74, 0x79, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.DutyRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "DutyRegVal")
+		return
+	}
+	// write "SweepRegVal"
+	err = en.Append(0xab, 0x53, 0x77, 0x65, 0x65, 0x70, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.SweepRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "SweepRegVal")
+		return
+	}
+	// write "TimerRegVal"
+	err = en.Append(0xab, 0x54, 0x69, 0x6d, 0x65, 0x72, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.TimerRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "TimerRegVal")
+		return
+	}
+	// write "LengthRegVal"
+	err = en.Append(0xac, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.LengthRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "LengthRegVal")
+		return
+	}
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *APUSquare) Msgsize() (s int) {
-	s = 1 + 18 + msgp.Uint32Size + 11 + msgp.Uint16Size + 6 + 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size + 9 + z.Envelope.Msgsize() + 13 + msgp.BoolSize + 12 + msgp.Uint8Size + 12 + msgp.BoolSize + 11 + msgp.Uint8Size + 13 + msgp.Uint8Size + 12 + msgp.BoolSize + 5 + msgp.Uint8Size + 8 + msgp.Uint8Size
+	s = 3 + 18 + msgp.Uint32Size + 11 + msgp.Uint16Size + 6 + 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size + 9 + z.Envelope.Msgsize() + 13 + msgp.BoolSize + 12 + msgp.Uint8Size + 12 + msgp.BoolSize + 11 + msgp.Uint8Size + 13 + msgp.Uint8Size + 12 + msgp.BoolSize + 5 + msgp.Uint8Size + 8 + msgp.Uint8Size + 11 + msgp.Uint8Size + 12 + msgp.Uint8Size + 12 + msgp.Uint8Size + 13 + msgp.Uint8Size
 	return
 }
 
@@ -1714,6 +1906,30 @@ func (z *APUTriangle) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Pos")
 				return
 			}
+		case "LinearRegVal":
+			z.LinearRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "LinearRegVal")
+				return
+			}
+		case "UnusedRegVal":
+			z.UnusedRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "UnusedRegVal")
+				return
+			}
+		case "TimerRegVal":
+			z.TimerRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "TimerRegVal")
+				return
+			}
+		case "LengthRegVal":
+			z.LengthRegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "LengthRegVal")
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -1727,9 +1943,9 @@ func (z *APUTriangle) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *APUTriangle) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 7
+	// map header, size 11
 	// write "LengthCounter"
-	err = en.Append(0x87, 0xad, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x65, 0x72)
+	err = en.Append(0x8b, 0xad, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x65, 0x72)
 	if err != nil {
 		return
 	}
@@ -1824,12 +2040,52 @@ func (z *APUTriangle) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Pos")
 		return
 	}
+	// write "LinearRegVal"
+	err = en.Append(0xac, 0x4c, 0x69, 0x6e, 0x65, 0x61, 0x72, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.LinearRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "LinearRegVal")
+		return
+	}
+	// write "UnusedRegVal"
+	err = en.Append(0xac, 0x55, 0x6e, 0x75, 0x73, 0x65, 0x64, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.UnusedRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "UnusedRegVal")
+		return
+	}
+	// write "TimerRegVal"
+	err = en.Append(0xab, 0x54, 0x69, 0x6d, 0x65, 0x72, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.TimerRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "TimerRegVal")
+		return
+	}
+	// write "LengthRegVal"
+	err = en.Append(0xac, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.LengthRegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "LengthRegVal")
+		return
+	}
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *APUTriangle) Msgsize() (s int) {
-	s = 1 + 14 + z.LengthCounter.Msgsize() + 6 + 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size + 14 + msgp.Uint8Size + 20 + msgp.Uint8Size + 13 + msgp.BoolSize + 11 + msgp.BoolSize + 4 + msgp.Uint8Size
+	s = 1 + 14 + z.LengthCounter.Msgsize() + 6 + 1 + 6 + msgp.Uint16Size + 7 + msgp.Uint16Size + 11 + msgp.Int8Size + 14 + msgp.Uint8Size + 20 + msgp.Uint8Size + 13 + msgp.BoolSize + 11 + msgp.BoolSize + 4 + msgp.Uint8Size + 13 + msgp.Uint8Size + 13 + msgp.Uint8Size + 12 + msgp.Uint8Size + 13 + msgp.Uint8Size
 	return
 }
 
@@ -2200,6 +2456,12 @@ func (z *DMA) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "OAMPage")
 				return
 			}
+		case "OAMDMARegVal":
+			z.OAMDMARegVal, err = dc.ReadUint8()
+			if err != nil {
+				err = msgp.WrapError(err, "OAMDMARegVal")
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -2213,9 +2475,9 @@ func (z *DMA) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *DMA) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 6
+	// map header, size 7
 	// write "NeedHalt"
-	err = en.Append(0x86, 0xa8, 0x4e, 0x65, 0x65, 0x64, 0x48, 0x61, 0x6c, 0x74)
+	err = en.Append(0x87, 0xa8, 0x4e, 0x65, 0x65, 0x64, 0x48, 0x61, 0x6c, 0x74)
 	if err != nil {
 		return
 	}
@@ -2274,12 +2536,22 @@ func (z *DMA) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "OAMPage")
 		return
 	}
+	// write "OAMDMARegVal"
+	err = en.Append(0xac, 0x4f, 0x41, 0x4d, 0x44, 0x4d, 0x41, 0x52, 0x65, 0x67, 0x56, 0x61, 0x6c)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint8(z.OAMDMARegVal)
+	if err != nil {
+		err = msgp.WrapError(err, "OAMDMARegVal")
+		return
+	}
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *DMA) Msgsize() (s int) {
-	s = 1 + 9 + msgp.BoolSize + 11 + msgp.BoolSize + 11 + msgp.BoolSize + 9 + msgp.BoolSize + 11 + msgp.BoolSize + 8 + msgp.Uint8Size
+	s = 1 + 9 + msgp.BoolSize + 11 + msgp.BoolSize + 11 + msgp.BoolSize + 9 + msgp.BoolSize + 11 + msgp.BoolSize + 8 + msgp.Uint8Size + 13 + msgp.Uint8Size
 	return
 }
 

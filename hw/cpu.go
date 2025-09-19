@@ -464,9 +464,8 @@ func (c *CPU) traceOp() {
 			state.Scanline = c.PPU.Scanline
 		}
 		c.tracer.write(state)
+		c.dbg.Trace(c.PC)
 	}
-
-	c.dbg.Trace(c.PC)
 }
 
 func (c *CPU) SetTraceOutput(w io.Writer) {

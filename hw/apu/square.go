@@ -257,6 +257,10 @@ func (sc *squareChannel) saveState(state *snapshot.APUSquare) {
 	state.ReloadSweep = sc.reloadSweep
 	state.Duty = sc.duty
 	state.DutyPos = sc.dutyPos
+	state.DutyRegVal = sc.Duty.Value
+	state.SweepRegVal = sc.Sweep.Value
+	state.TimerRegVal = sc.Timer.Value
+	state.LengthRegVal = sc.Length.Value
 }
 
 func (sc *squareChannel) setState(state *snapshot.APUSquare) {
@@ -272,4 +276,8 @@ func (sc *squareChannel) setState(state *snapshot.APUSquare) {
 	sc.reloadSweep = state.ReloadSweep
 	sc.duty = state.Duty
 	sc.dutyPos = state.DutyPos
+	sc.Duty.Value = state.DutyRegVal
+	sc.Sweep.Value = state.SweepRegVal
+	sc.Timer.Value = state.TimerRegVal
+	sc.Length.Value = state.LengthRegVal
 }

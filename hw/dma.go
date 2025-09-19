@@ -214,12 +214,13 @@ func (dma *DMA) processRead(addr uint16, isInternalReg bool) uint8 {
 
 func (dma *DMA) State() snapshot.DMA {
 	return snapshot.DMA{
-		DMCRunning: dma.dmcRunning,
-		AbortDMC:   dma.abortDMC,
-		OAMRunning: dma.oamRunning,
-		DummyCycle: dma.dummy,
-		NeedHalt:   dma.needHalt,
-		OAMPage:    dma.oamPage,
+		DMCRunning:   dma.dmcRunning,
+		AbortDMC:     dma.abortDMC,
+		OAMRunning:   dma.oamRunning,
+		DummyCycle:   dma.dummy,
+		NeedHalt:     dma.needHalt,
+		OAMPage:      dma.oamPage,
+		OAMDMARegVal: dma.OAMDMA.Value,
 	}
 }
 
@@ -230,4 +231,5 @@ func (dma *DMA) SetState(state snapshot.DMA) {
 	dma.dummy = state.DummyCycle
 	dma.needHalt = state.NeedHalt
 	dma.oamPage = state.OAMPage
+	dma.OAMDMA.Value = state.OAMDMARegVal
 }

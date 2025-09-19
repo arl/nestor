@@ -51,12 +51,13 @@ type InputPorts struct {
 }
 
 type DMA struct {
-	NeedHalt   bool
-	DummyCycle bool
-	DMCRunning bool
-	AbortDMC   bool
-	OAMRunning bool
-	OAMPage    uint8
+	NeedHalt     bool
+	DummyCycle   bool
+	DMCRunning   bool
+	AbortDMC     bool
+	OAMRunning   bool
+	OAMPage      uint8
+	OAMDMARegVal uint8
 }
 
 type PPU struct {
@@ -165,6 +166,11 @@ type APUSquare struct {
 	ReloadSweep bool
 	Duty        uint8
 	DutyPos     uint8
+
+	DutyRegVal   uint8
+	SweepRegVal  uint8
+	TimerRegVal  uint8
+	LengthRegVal uint8
 }
 
 type APUTriangle struct {
@@ -175,6 +181,11 @@ type APUTriangle struct {
 	LinearReload        bool
 	LinearCtrl          bool
 	Pos                 uint8
+
+	LinearRegVal uint8
+	UnusedRegVal uint8
+	TimerRegVal  uint8
+	LengthRegVal uint8
 }
 
 type APUNoise struct {
@@ -182,6 +193,11 @@ type APUNoise struct {
 	Timer          APUTimer
 	ShitftRegister uint16
 	Mode           bool
+
+	VolumeRegVal uint8
+	UnusedRegVal uint8
+	PeriodRegVal uint8
+	LengthRegVal uint8
 }
 
 type APUDMC struct {
@@ -204,6 +220,11 @@ type APUDMC struct {
 	ShiftReg   uint8
 	Silence    bool
 	NeedToRun  bool
+
+	FLAGSRegVal      uint8
+	LOADRegVal       uint8
+	SAMPLEADDRRegVal uint8
+	SAMPLELENRegVal  uint8
 }
 
 type APUFrameCounter struct {
