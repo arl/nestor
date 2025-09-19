@@ -164,7 +164,7 @@ func (c *CPU) Reset(soft bool) {
 
 	// After a reset/power up, the CPU takes burns 8 cycles
 	// before going on with ROM execution.
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		c.cycleBegin(true)
 		c.cycleEnd(true)
 	}
