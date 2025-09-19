@@ -41,7 +41,7 @@ type CPU struct {
 	NeedNMI     bool
 
 	Input InputPorts
-	DMA   *DMA
+	DMA   DMA
 }
 
 type InputPorts struct {
@@ -51,11 +51,12 @@ type InputPorts struct {
 }
 
 type DMA struct {
+	NeedHalt   bool
+	DummyCycle bool
 	DMCRunning bool
 	AbortDMC   bool
 	OAMRunning bool
-	DummyCycle bool
-	NeedHalt   bool
+	OAMPage    uint8
 }
 
 type PPU struct {

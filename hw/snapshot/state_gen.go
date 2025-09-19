@@ -1948,22 +1948,10 @@ func (z *CPU) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "DMA":
-			if dc.IsNil() {
-				err = dc.ReadNil()
-				if err != nil {
-					err = msgp.WrapError(err, "DMA")
-					return
-				}
-				z.DMA = nil
-			} else {
-				if z.DMA == nil {
-					z.DMA = new(DMA)
-				}
-				err = z.DMA.DecodeMsg(dc)
-				if err != nil {
-					err = msgp.WrapError(err, "DMA")
-					return
-				}
+			err = z.DMA.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "DMA")
+				return
 			}
 		default:
 			err = dc.Skip()
@@ -2144,29 +2132,17 @@ func (z *CPU) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	if z.DMA == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.DMA.EncodeMsg(en)
-		if err != nil {
-			err = msgp.WrapError(err, "DMA")
-			return
-		}
+	err = z.DMA.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "DMA")
+		return
 	}
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *CPU) Msgsize() (s int) {
-	s = 3 + 3 + msgp.Uint16Size + 3 + msgp.Uint8Size + 2 + msgp.Uint8Size + 2 + msgp.Uint8Size + 2 + msgp.Uint8Size + 2 + msgp.Uint8Size + 7 + msgp.Int64Size + 12 + msgp.Int64Size + 8 + msgp.Uint8Size + 7 + msgp.BoolSize + 11 + msgp.BoolSize + 8 + msgp.BoolSize + 12 + msgp.BoolSize + 12 + msgp.BoolSize + 8 + msgp.BoolSize + 6 + z.Input.Msgsize() + 4
-	if z.DMA == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.DMA.Msgsize()
-	}
+	s = 3 + 3 + msgp.Uint16Size + 3 + msgp.Uint8Size + 2 + msgp.Uint8Size + 2 + msgp.Uint8Size + 2 + msgp.Uint8Size + 2 + msgp.Uint8Size + 7 + msgp.Int64Size + 12 + msgp.Int64Size + 8 + msgp.Uint8Size + 7 + msgp.BoolSize + 11 + msgp.BoolSize + 8 + msgp.BoolSize + 12 + msgp.BoolSize + 12 + msgp.BoolSize + 8 + msgp.BoolSize + 6 + z.Input.Msgsize() + 4 + z.DMA.Msgsize()
 	return
 }
 
@@ -2188,6 +2164,18 @@ func (z *DMA) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
+		case "NeedHalt":
+			z.NeedHalt, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "NeedHalt")
+				return
+			}
+		case "DummyCycle":
+			z.DummyCycle, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "DummyCycle")
+				return
+			}
 		case "DMCRunning":
 			z.DMCRunning, err = dc.ReadBool()
 			if err != nil {
@@ -2206,16 +2194,10 @@ func (z *DMA) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "OAMRunning")
 				return
 			}
-		case "DummyCycle":
-			z.DummyCycle, err = dc.ReadBool()
+		case "OAMPage":
+			z.OAMPage, err = dc.ReadUint8()
 			if err != nil {
-				err = msgp.WrapError(err, "DummyCycle")
-				return
-			}
-		case "NeedHalt":
-			z.NeedHalt, err = dc.ReadBool()
-			if err != nil {
-				err = msgp.WrapError(err, "NeedHalt")
+				err = msgp.WrapError(err, "OAMPage")
 				return
 			}
 		default:
@@ -2231,9 +2213,29 @@ func (z *DMA) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *DMA) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 5
+	// map header, size 6
+	// write "NeedHalt"
+	err = en.Append(0x86, 0xa8, 0x4e, 0x65, 0x65, 0x64, 0x48, 0x61, 0x6c, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.NeedHalt)
+	if err != nil {
+		err = msgp.WrapError(err, "NeedHalt")
+		return
+	}
+	// write "DummyCycle"
+	err = en.Append(0xaa, 0x44, 0x75, 0x6d, 0x6d, 0x79, 0x43, 0x79, 0x63, 0x6c, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.DummyCycle)
+	if err != nil {
+		err = msgp.WrapError(err, "DummyCycle")
+		return
+	}
 	// write "DMCRunning"
-	err = en.Append(0x85, 0xaa, 0x44, 0x4d, 0x43, 0x52, 0x75, 0x6e, 0x6e, 0x69, 0x6e, 0x67)
+	err = en.Append(0xaa, 0x44, 0x4d, 0x43, 0x52, 0x75, 0x6e, 0x6e, 0x69, 0x6e, 0x67)
 	if err != nil {
 		return
 	}
@@ -2262,24 +2264,14 @@ func (z *DMA) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "OAMRunning")
 		return
 	}
-	// write "DummyCycle"
-	err = en.Append(0xaa, 0x44, 0x75, 0x6d, 0x6d, 0x79, 0x43, 0x79, 0x63, 0x6c, 0x65)
+	// write "OAMPage"
+	err = en.Append(0xa7, 0x4f, 0x41, 0x4d, 0x50, 0x61, 0x67, 0x65)
 	if err != nil {
 		return
 	}
-	err = en.WriteBool(z.DummyCycle)
+	err = en.WriteUint8(z.OAMPage)
 	if err != nil {
-		err = msgp.WrapError(err, "DummyCycle")
-		return
-	}
-	// write "NeedHalt"
-	err = en.Append(0xa8, 0x4e, 0x65, 0x65, 0x64, 0x48, 0x61, 0x6c, 0x74)
-	if err != nil {
-		return
-	}
-	err = en.WriteBool(z.NeedHalt)
-	if err != nil {
-		err = msgp.WrapError(err, "NeedHalt")
+		err = msgp.WrapError(err, "OAMPage")
 		return
 	}
 	return
@@ -2287,7 +2279,7 @@ func (z *DMA) EncodeMsg(en *msgp.Writer) (err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *DMA) Msgsize() (s int) {
-	s = 1 + 11 + msgp.BoolSize + 9 + msgp.BoolSize + 11 + msgp.BoolSize + 11 + msgp.BoolSize + 9 + msgp.BoolSize
+	s = 1 + 9 + msgp.BoolSize + 11 + msgp.BoolSize + 11 + msgp.BoolSize + 9 + msgp.BoolSize + 11 + msgp.BoolSize + 8 + msgp.Uint8Size
 	return
 }
 

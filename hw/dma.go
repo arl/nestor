@@ -212,20 +212,22 @@ func (dma *DMA) processRead(addr uint16, isInternalReg bool) uint8 {
 	return val
 }
 
-func (dma *DMA) State() *snapshot.DMA {
-	return &snapshot.DMA{
+func (dma *DMA) State() snapshot.DMA {
+	return snapshot.DMA{
 		DMCRunning: dma.dmcRunning,
 		AbortDMC:   dma.abortDMC,
 		OAMRunning: dma.oamRunning,
 		DummyCycle: dma.dummy,
 		NeedHalt:   dma.needHalt,
+		OAMPage:    dma.oamPage,
 	}
 }
 
-func (dma *DMA) SetState(state *snapshot.DMA) {
+func (dma *DMA) SetState(state snapshot.DMA) {
 	dma.dmcRunning = state.DMCRunning
 	dma.abortDMC = state.AbortDMC
 	dma.oamRunning = state.OAMRunning
 	dma.dummy = state.DummyCycle
 	dma.needHalt = state.NeedHalt
+	dma.oamPage = state.OAMPage
 }
