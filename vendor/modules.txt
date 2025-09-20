@@ -2,12 +2,34 @@
 ## explicit; go 1.18
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
-# github.com/alecthomas/kong v1.9.0
+# github.com/alecthomas/kong v1.12.1
 ## explicit; go 1.20
 github.com/alecthomas/kong
 # github.com/arl/blip v0.2.2
 ## explicit; go 1.22
 github.com/arl/blip
+# github.com/ebitengine/gomobile v0.0.0-20240911145611-4856209ac325
+## explicit; go 1.22.0
+github.com/ebitengine/gomobile/app
+github.com/ebitengine/gomobile/app/internal/callfn
+github.com/ebitengine/gomobile/event/key
+github.com/ebitengine/gomobile/event/lifecycle
+github.com/ebitengine/gomobile/event/paint
+github.com/ebitengine/gomobile/event/size
+github.com/ebitengine/gomobile/event/touch
+github.com/ebitengine/gomobile/geom
+github.com/ebitengine/gomobile/gl
+github.com/ebitengine/gomobile/internal/mobileinit
+# github.com/ebitengine/hideconsole v1.0.0
+## explicit; go 1.18
+github.com/ebitengine/hideconsole
+# github.com/ebitengine/purego v0.8.0
+## explicit; go 1.18
+github.com/ebitengine/purego
+github.com/ebitengine/purego/internal/cgo
+github.com/ebitengine/purego/internal/fakecgo
+github.com/ebitengine/purego/internal/strings
+github.com/ebitengine/purego/objc
 # github.com/go-faster/errors v0.6.1
 ## explicit; go 1.18
 github.com/go-faster/errors
@@ -37,6 +59,51 @@ github.com/gotk3/gotk3/internal/callback
 github.com/gotk3/gotk3/internal/closure
 github.com/gotk3/gotk3/internal/slab
 github.com/gotk3/gotk3/pango
+# github.com/hajimehoshi/ebiten/v2 v2.8.8
+## explicit; go 1.22.0
+github.com/hajimehoshi/ebiten/v2
+github.com/hajimehoshi/ebiten/v2/internal/affine
+github.com/hajimehoshi/ebiten/v2/internal/atlas
+github.com/hajimehoshi/ebiten/v2/internal/buffered
+github.com/hajimehoshi/ebiten/v2/internal/builtinshader
+github.com/hajimehoshi/ebiten/v2/internal/clock
+github.com/hajimehoshi/ebiten/v2/internal/cocoa
+github.com/hajimehoshi/ebiten/v2/internal/debug
+github.com/hajimehoshi/ebiten/v2/internal/file
+github.com/hajimehoshi/ebiten/v2/internal/gamepad
+github.com/hajimehoshi/ebiten/v2/internal/gamepaddb
+github.com/hajimehoshi/ebiten/v2/internal/glfw
+github.com/hajimehoshi/ebiten/v2/internal/graphics
+github.com/hajimehoshi/ebiten/v2/internal/graphicscommand
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/directx
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/playstation5
+github.com/hajimehoshi/ebiten/v2/internal/hook
+github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk
+github.com/hajimehoshi/ebiten/v2/internal/mipmap
+github.com/hajimehoshi/ebiten/v2/internal/packing
+github.com/hajimehoshi/ebiten/v2/internal/png
+github.com/hajimehoshi/ebiten/v2/internal/restorable
+github.com/hajimehoshi/ebiten/v2/internal/shader
+github.com/hajimehoshi/ebiten/v2/internal/shaderir
+github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl
+github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl
+github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl
+github.com/hajimehoshi/ebiten/v2/internal/thread
+github.com/hajimehoshi/ebiten/v2/internal/ui
+github.com/hajimehoshi/ebiten/v2/internal/vibrate
+github.com/hajimehoshi/ebiten/v2/internal/winver
+# github.com/jezek/xgb v1.1.1
+## explicit; go 1.11
+github.com/jezek/xgb
+github.com/jezek/xgb/randr
+github.com/jezek/xgb/render
+github.com/jezek/xgb/xproto
 # github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c
 ## explicit; go 1.20
 github.com/philhofer/fwd
@@ -74,6 +141,7 @@ golang.org/x/sync/errgroup
 ## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
+golang.org/x/sys/windows
 # golang.org/x/tools v0.29.0
 ## explicit; go 1.22.0
 golang.org/x/tools/cmd/stringer

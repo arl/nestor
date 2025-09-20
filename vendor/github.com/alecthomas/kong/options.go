@@ -55,6 +55,16 @@ func Exit(exit func(int)) Option {
 	})
 }
 
+// WithHyphenPrefixedParameters enables or disables hyphen-prefixed parameters.
+//
+// These are disabled by default.
+func WithHyphenPrefixedParameters(enable bool) Option {
+	return OptionFunc(func(k *Kong) error {
+		k.allowHyphenated = enable
+		return nil
+	})
+}
+
 type embedded struct {
 	strct any
 	tags  []string
@@ -89,10 +99,6 @@ type dynamicCommand struct {
 // "tags" is a list of extra tag strings to parse, in the form <key>:"<value>".
 func DynamicCommand(name, help, group string, cmd any, tags ...string) Option {
 	return OptionFunc(func(k *Kong) error {
-		if run := getMethod(reflect.Indirect(reflect.ValueOf(cmd)), "Run"); !run.IsValid() {
-			return fmt.Errorf("kong: DynamicCommand %q must be a type with a 'Run' method; got %T", name, cmd)
-		}
-
 		k.dynamicCommands = append(k.dynamicCommands, &dynamicCommand{
 			name:  name,
 			help:  help,
@@ -119,6 +125,40 @@ func NoDefaultHelp() Option {
 func PostBuild(fn func(*Kong) error) Option {
 	return OptionFunc(func(k *Kong) error {
 		k.postBuildOptions = append(k.postBuildOptions, OptionFunc(fn))
+		return nil
+	})
+}
+
+// WithBeforeReset registers a hook to run before fields values are reset to their defaults
+// (as specified in the grammar) or to zero values.
+func WithBeforeReset(fn any) Option {
+	return withHook("BeforeReset", fn)
+}
+
+// WithBeforeResolve registers a hook to run before resolvers are applied.
+func WithBeforeResolve(fn any) Option {
+	return withHook("BeforeResolve", fn)
+}
+
+// WithBeforeApply registers a hook to run before command line arguments are applied to the grammar.
+func WithBeforeApply(fn any) Option {
+	return withHook("BeforeApply", fn)
+}
+
+// WithAfterApply registers a hook to run after values are applied to the grammar and validated.
+func WithAfterApply(fn any) Option {
+	return withHook("AfterApply", fn)
+}
+
+// withHook registers a named hook.
+func withHook(name string, fn any) Option {
+	value := reflect.ValueOf(fn)
+	if value.Kind() != reflect.Func {
+		panic(fmt.Errorf("expected function, got %s", value.Type()))
+	}
+
+	return OptionFunc(func(k *Kong) error {
+		k.hooks[name] = append(k.hooks[name], value)
 		return nil
 	})
 }
