@@ -44,7 +44,7 @@ func StartROM(cfg config.Config, romPath string) error {
 // UI implements [ebiten.Game] interface
 type UI struct {
 	emulator *emu.Emulator
-	out      *output
+	out      *emu.Output
 	framech  chan *emu.Frame
 	input    *input.Provider
 }
@@ -56,8 +56,8 @@ func (ui *UI) loadROM(path string, cfg config.Config) error {
 	}
 
 	ui.framech = make(chan *emu.Frame)
-	ui.out = newOutput(ui.framech,
-		OutputConfig{
+	ui.out = emu.NewOutput(ui.framech,
+		emu.OutputConfig{
 			Width:          emu.NTSCWidth,
 			Height:         emu.NTSCHeight,
 			NumBackBuffers: 4,

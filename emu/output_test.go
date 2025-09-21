@@ -2,17 +2,14 @@ package emu
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"image"
-	"math"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"nestor/hw/apu"
 )
 
-type TestingOutputConfig struct {
+type FrameSaver struct {
 	// Framebuffer dimensions
 	Width, Height int32
 
@@ -27,73 +24,47 @@ type TestingOutputConfig struct {
 	SaveFrameDir string
 }
 
-type TestingOutput struct {
-	videobuf []byte
-	audiobuf []int16
+func (fs *FrameSaver) Drive(ctx context.Context, framech <-chan *Frame) {
+	var framecounter int64
 
-	framecounter int
+	for {
+		select {
+		case <-ctx.Done():
+			return
 
-	cfg TestingOutputConfig
-}
+		case f := <-framech:
 
-func newTestingOutput(cfg TestingOutputConfig) *TestingOutput {
-	if cfg.SaveFrameNum == 0 {
-		cfg.SaveFrameNum = math.MaxInt64
-	}
-	return &TestingOutput{
-		videobuf: make([]byte, cfg.Width*cfg.Height*4),
-		audiobuf: make([]int16, SamplesPerFrame),
-		cfg:      cfg,
-	}
-}
+			if framecounter == fs.SaveFrameNum {
+				img := FramebufImage(f.Video, fs.Width, fs.Height)
+				if err := SaveAsPNG(img, fs.framePath(false)); err != nil {
+					panic("failed to save frame: " + err.Error())
+				}
+				return
+			}
 
-func (to *TestingOutput) Close() {}
-
-func (to *TestingOutput) BeginFrame() (frame Frame) {
-	return Frame{
-		Video: to.videobuf,
-		Audio: apu.AudioBuffer{
-			Samples: to.audiobuf,
-		},
+			framecounter++
+		}
 	}
 }
 
-func (to *TestingOutput) framePath(isGolden bool) string {
+func (fs FrameSaver) framePath(isGolden bool) string {
 	golden := ""
 	if isGolden {
 		golden = "golden."
 	}
-	fn := fmt.Sprintf("%s.%03d.%spng", to.cfg.SaveFrameFile, to.cfg.SaveFrameNum, golden)
-	return filepath.Join(to.cfg.SaveFrameDir, fn)
+	fn := fmt.Sprintf("%s.%03d.%spng", fs.SaveFrameFile, fs.SaveFrameNum, golden)
+	return filepath.Join(fs.SaveFrameDir, fn)
 }
 
-func (to *TestingOutput) Screenshot() *image.RGBA {
-	return FramebufImage(to.videobuf, to.cfg.Width, to.cfg.Height)
-}
-
-func (to *TestingOutput) EndFrame(_ *Frame) {
-	if to.framecounter == int(to.cfg.SaveFrameNum) {
-		if err := SaveAsPNG(to.Screenshot(), to.framePath(false)); err != nil {
-			panic("failed to save frame: " + err.Error())
-		}
-	}
-
-	to.framecounter++
-}
-
-func (to *TestingOutput) Poll() bool {
-	return to.framecounter <= int(to.cfg.SaveFrameNum)
-}
-
-func (to *TestingOutput) CompareFrame(t *testing.T) {
+func (fs *FrameSaver) CompareFrame(t *testing.T) {
 	t.Helper()
 
-	framePath := to.framePath(false)
+	framePath := fs.framePath(false)
 	got, err := os.ReadFile(framePath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	goldenPath := to.framePath(true)
+	goldenPath := fs.framePath(true)
 	if *updateGolden {
 		writeGolden(t, goldenPath, got)
 	} else {

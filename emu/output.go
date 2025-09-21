@@ -1,12 +1,10 @@
-package ebit
+package emu
 
 import (
 	"image"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/veandco/go-sdl2/sdl"
 
-	"nestor/emu"
 	"nestor/hw/apu"
 )
 
@@ -34,11 +32,11 @@ type OutputConfig struct {
 	Shader string
 }
 
-type output struct {
+type Output struct {
 	framebufidx  int
 	framebuf     [][]byte
 	framecounter int
-	framech      chan *emu.Frame
+	framech      chan *Frame
 
 	audioEnabled bool
 	audiodev     sdl.AudioDeviceID
@@ -47,7 +45,10 @@ type output struct {
 	cfg OutputConfig
 }
 
-func newOutput(framech chan *emu.Frame, cfg OutputConfig) *output {
+// NewOutput creates an emulation Output device.
+//
+// If framech is nil, frames are discarded (headless mode).
+func NewOutput(framech chan *Frame, cfg OutputConfig) *Output {
 	if cfg.NumBackBuffers == 0 {
 		cfg.NumBackBuffers = 2
 	}
@@ -59,20 +60,18 @@ func newOutput(framech chan *emu.Frame, cfg OutputConfig) *output {
 
 	audiobuf := make([][]int16, cfg.NumBackBuffers)
 	for i := range audiobuf {
-		audiobuf[i] = make([]int16, emu.SamplesPerFrame)
+		audiobuf[i] = make([]int16, SamplesPerFrame)
 	}
 
-	return &output{
+	return &Output{
 		framebuf: videobuf,
 		audiobuf: audiobuf,
 		cfg:      cfg,
 		framech:  framech,
-		// framech: make(chan *hw.Frame),
-		// stop:    make(chan struct{}),
 	}
 }
 
-func (out *output) BeginFrame() emu.Frame {
+func (out *Output) BeginFrame() Frame {
 	out.framebufidx++
 	if out.framebufidx == out.cfg.NumBackBuffers {
 		out.framebufidx = 0
@@ -84,39 +83,31 @@ func (out *output) BeginFrame() emu.Frame {
 	//    ns0 = total samples up to frame N (frame fidx)
 	//    ns1 = up to N+1 (fidx + 1)
 	//    ns1 - ns0 = samples this frame
-	fidx := out.framecounter % emu.FramesPerSecond
-	ns0 := (emu.AudioSampleRate * fidx) / emu.FramesPerSecond
-	ns1 := (emu.AudioSampleRate * (fidx + 1)) / emu.FramesPerSecond
+	fidx := out.framecounter % FramesPerSecond
+	ns0 := (AudioSampleRate * fidx) / FramesPerSecond
+	ns1 := (AudioSampleRate * (fidx + 1)) / FramesPerSecond
 	total := (ns1 - ns0) * apu.AudioChannels // interleaved stereo samples
 
 	abuf := out.audiobuf[out.framebufidx]
 	audioSlice := abuf[:total]
 
-	return emu.Frame{
+	return Frame{
 		Video: vbuf,
 		Audio: apu.AudioBuffer{Samples: audioSlice},
 	}
 }
 
-func (out *output) EndFrame(frame *emu.Frame) {
+func (out *Output) EndFrame(frame *Frame) {
 	out.framecounter++
-	out.framech <- frame
+	if out.framech != nil {
+		out.framech <- frame
+	}
 }
 
-func (out *output) Poll() bool {
+func (out *Output) Poll() bool {
 	return true
 }
 
-func (out *output) Close() {}
+func (out *Output) Close() {}
 
-func (out *output) Screenshot() *image.RGBA { return nil }
-
-func ImageFromFrame(frame *emu.Frame) *ebiten.Image {
-	img := &image.RGBA{
-		Pix:    frame.Video,
-		Stride: 4 * emu.NTSCWidth,
-		Rect:   image.Rect(0, 0, emu.NTSCWidth, emu.NTSCHeight),
-	}
-
-	return ebiten.NewImageFromImage(img)
-}
+func (out *Output) Screenshot() *image.RGBA { return nil }

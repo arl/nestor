@@ -56,14 +56,16 @@ func TestNestest(t *testing.T) {
 	nes.APU.Square2.Length.Value = 0x40
 
 	// Configure a headless testing output.
-	cfg := TestingOutputConfig{
+	cfg := OutputConfig{
 		Height: NTSCHeight,
 		Width:  NTSCWidth,
 	}
+
 	e := Emulator{
 		NES: nes,
-		out: newTestingOutput(cfg),
+		out: NewOutput(nil, cfg),
 	}
+
 	e.Run()
 
 	result := nes.CPU.Read16(0x02)
@@ -82,6 +84,7 @@ func TestNestest(t *testing.T) {
 
 // Various tests from blargg's test roms. They're easy to automate since
 // they write to a specific memory location to signal the test status.
+
 func TestBlarggRoms(t *testing.T) {
 	if !testing.Verbose() {
 		log.Disable()
@@ -197,7 +200,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 		var result uint8
 
 		// Configure a headless testing output.
-		out := newTestingOutput(TestingOutputConfig{
+		out := NewOutput(nil, OutputConfig{
 			Height: NTSCHeight,
 			Width:  NTSCWidth,
 		})
@@ -529,18 +532,24 @@ func runAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame
 		t.Fatal(err)
 	}
 
-	out := newTestingOutput(
-		TestingOutputConfig{
-			Height:        NTSCHeight,
-			Width:         NTSCWidth,
-			SaveFrameDir:  frameDir,
-			SaveFrameFile: framePath,
-			SaveFrameNum:  frame,
-		},
-	)
+	framech := make(chan *Frame)
+	out := NewOutput(framech, OutputConfig{
+		Height: NTSCHeight,
+		Width:  NTSCWidth,
+	})
 
 	e := Emulator{NES: nes, out: out}
-	e.Run()
+	go e.Run()
 
-	out.CompareFrame(t)
+	fs := FrameSaver{
+		Width:         NTSCWidth,
+		Height:        NTSCHeight,
+		SaveFrameNum:  frame,
+		SaveFrameFile: framePath,
+		SaveFrameDir:  frameDir,
+	}
+
+	fs.Drive(t.Context(), framech)
+
+	fs.CompareFrame(t)
 }

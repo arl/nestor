@@ -25,13 +25,13 @@ func loadEmulator(b *testing.B, romPath string) *Emulator {
 		b.Fatal(err)
 	}
 
-	cfg := TestingOutputConfig{
+	cfg := OutputConfig{
 		Height: NTSCHeight,
 		Width:  NTSCWidth,
 	}
 	e := Emulator{
 		NES: nes,
-		out: newTestingOutput(cfg),
+		out: NewOutput(nil, cfg),
 	}
 	return &e
 }

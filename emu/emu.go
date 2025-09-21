@@ -2,7 +2,6 @@ package emu
 
 import (
 	"fmt"
-	"image"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,14 +14,6 @@ import (
 	"nestor/hw/shaders"
 	"nestor/ines"
 )
-
-type Output interface {
-	BeginFrame() Frame
-	EndFrame(*Frame)
-	Poll() bool
-	Close()
-	Screenshot() *image.RGBA
-}
 
 type Config struct {
 	Input     input.Config    `toml:"input"`
@@ -60,7 +51,7 @@ type AudioConfig struct {
 
 type Emulator struct {
 	NES *NES
-	out Output
+	out *Output
 	cfg EmulationConfig
 
 	// These are accessed concurrently by the emulator loop and the UI.
@@ -75,7 +66,7 @@ type Emulator struct {
 // Launch starts the various hardware subsystems, shows the window, setups the
 // video and audio streams and plugs controllers. It doesn't start the emulation
 // loop, call Run() for that.
-func Launch(rom *ines.Rom, cfg Config, out Output, inp *input.Provider) (*Emulator, error) {
+func Launch(rom *ines.Rom, cfg Config, out *Output, inp *input.Provider) (*Emulator, error) {
 	nes, err := powerUp(rom)
 	if err != nil {
 		return nil, fmt.Errorf("power up failed: %s", err)
