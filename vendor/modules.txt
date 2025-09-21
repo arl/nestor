@@ -46,16 +46,6 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/gotk3/gotk3 v0.6.5-0.20240618185848-ff349ae13f56
-## explicit; go 1.14
-github.com/gotk3/gotk3/cairo
-github.com/gotk3/gotk3/gdk
-github.com/gotk3/gotk3/glib
-github.com/gotk3/gotk3/gtk
-github.com/gotk3/gotk3/internal/callback
-github.com/gotk3/gotk3/internal/closure
-github.com/gotk3/gotk3/internal/slab
-github.com/gotk3/gotk3/pango
 # github.com/hajimehoshi/ebiten/v2 v2.8.8
 ## explicit; go 1.22.0
 github.com/hajimehoshi/ebiten/v2
@@ -125,7 +115,6 @@ github.com/tinylib/msgp/printer
 github.com/veandco/go-sdl2/_libs
 github.com/veandco/go-sdl2/_libs/include/SDL2
 github.com/veandco/go-sdl2/sdl
-github.com/veandco/go-sdl2/ttf
 # golang.org/x/mod v0.22.0
 ## explicit; go 1.22.0
 golang.org/x/mod/internal/lazyregexp
