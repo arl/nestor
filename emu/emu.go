@@ -76,38 +76,15 @@ type Emulator struct {
 // Launch starts the various hardware subsystems, shows the window, setups the
 // video and audio streams and plugs controllers. It doesn't start the emulation
 // loop, call Run() for that.
-func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
+func Launch(rom *ines.Rom, cfg Config, out Output) (*Emulator, error) {
 	nes, err := powerUp(rom)
 	if err != nil {
 		return nil, fmt.Errorf("power up failed: %s", err)
 	}
 
-	// Output setup.
-	out := hw.NewOutput(hw.OutputConfig{
-		Width:          hw.NTSCWidth,
-		Height:         hw.NTSCHeight,
-		NumBackBuffers: 4,
-		Title:          "Nestor",
-		ScaleFactor:    2,
-		DisableVSync:   cfg.Video.DisableVSync,
-		Monitor:        cfg.Video.Monitor,
-		Shader:         cfg.Video.Shader,
-	})
-	if err := out.EnableVideo(true); err != nil {
-		return nil, err
-	}
-
-	if cfg.Audio.DisableAudio {
-		log.ModEmu.WarnZ("Audio disabled").End()
-	} else {
-		if err := out.EnableAudio(true); err != nil {
-			return nil, err
-		}
-		log.ModEmu.InfoZ("Audio enabled").End()
-	}
-
-	inprov := input.NewProvider(cfg.Input)
-	nes.CPU.PlugInputDevice(inprov)
+	// TODO: re-add input with ebitengine
+	// inprov := input.NewProvider(cfg.Input)
+	// nes.CPU.PlugInputDevice(inprov)
 
 	// CPU execution trace setup.
 	if cfg.TraceOut != nil {

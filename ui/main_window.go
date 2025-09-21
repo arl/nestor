@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"sync"
 	"time"
 
@@ -108,10 +107,11 @@ func (mw *mainWindow) runROM(rompath string) {
 	if !found {
 		ramfile = ""
 	}
+	_ = ramfile
 	client, wait, err := driveEmulator(cli.Run{
-		RomPath: rompath,
-		RAMFile: ramfile,
-		Monitor: monitorIdx(mustT(mw.GetWindow())),
+		// RomPath: rompath,
+		// RAMFile: ramfile,
+		// Monitor: monitorIdx(mustT(mw.GetWindow())),
 	})
 	if err != nil {
 		modGUI.WarnZ("failed to start rom").Error("err", err).End()
@@ -194,10 +194,9 @@ func driveEmulator(args cli.Run) (*rpc.Client, waitFunc, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to pick unused port: %w", err)
 	}
-	procArgs := []string{"run",
-		"--monitor", strconv.Itoa(int(args.Monitor)),
-		"--port", strconv.Itoa(port),
-		args.RomPath}
+	procArgs := []string{"run"} // "--monitor", strconv.Itoa(int(args.Monitor)),
+	// "--port", strconv.Itoa(port),
+	// args.RomPath,
 
 	if args.RAMFile != "" {
 		procArgs = append(procArgs, "--ramfile", args.RAMFile)

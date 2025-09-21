@@ -4,7 +4,6 @@ go 1.25.0
 
 require (
 	github.com/BurntSushi/toml v1.5.0
-	github.com/alecthomas/kong v1.12.1
 	github.com/arl/blip v0.2.2
 	github.com/go-faster/jx v1.1.0
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71

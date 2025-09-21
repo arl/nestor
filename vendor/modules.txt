@@ -2,9 +2,6 @@
 ## explicit; go 1.18
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
-# github.com/alecthomas/kong v1.12.1
-## explicit; go 1.20
-github.com/alecthomas/kong
 # github.com/arl/blip v0.2.2
 ## explicit; go 1.22
 github.com/arl/blip
