@@ -8,18 +8,14 @@ import (
 	"image"
 	"image/png"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/gotk3/gotk3/gdk"
-	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 
-	"nestor/cli"
 	"nestor/emu/log"
-	"nestor/emu/rpc"
 )
 
 var modGUI = log.NewModule("gui")
@@ -100,43 +96,45 @@ func (mw *mainWindow) Close(err error) {
 }
 
 func (mw *mainWindow) runROM(rompath string) {
-	mw.SetSensitive(false)
-	panel := showGamePanel(mw.Window)
+	/*
+		mw.SetSensitive(false)
+		panel := showGamePanel(mw.Window)
 
-	ramfile, found := getSaveRAMPath(rompath)
-	if !found {
-		ramfile = ""
-	}
-	_ = ramfile
-	client, wait, err := driveEmulator(cli.Run{
-		// RomPath: rompath,
-		// RAMFile: ramfile,
-		// Monitor: monitorIdx(mustT(mw.GetWindow())),
-	})
-	if err != nil {
-		modGUI.WarnZ("failed to start rom").Error("err", err).End()
-		panel.Close()
-		mw.SetSensitive(true)
-		return
-	}
+		ramfile, found := getSaveRAMPath(rompath)
+		if !found {
+			ramfile = ""
+		}
+		_ = ramfile
+		// client, wait, err := driveEmulator(cli.Run{
+		// 	// RomPath: rompath,
+		// 	// RAMFile: ramfile,
+		// 	// Monitor: monitorIdx(mustT(mw.GetWindow())),
+		// })
+		// if err != nil {
+		// 	modGUI.WarnZ("failed to start rom").Error("err", err).End()
+		// 	panel.Close()
+		// 	mw.SetSensitive(true)
+		// 	return
+		// }
 
-	panel.connect(client)
+		panel.connect(client)
 
-	mw.wg.Add(1)
-	go func() {
-		defer mw.wg.Done()
-		defer mw.SetSensitive(true)
+		mw.wg.Add(1)
+		go func() {
+			defer mw.wg.Done()
+			defer mw.SetSensitive(true)
 
-		modGUI.DebugZ("waiting for emulator process to finish").End()
-		wait()
+			modGUI.DebugZ("waiting for emulator process to finish").End()
+			wait()
 
-		glib.IdleAdd(func() {
-			panel.setGameStopped()
-			modGUI.DebugZ("closing game panel").End()
-			panel.Close()
-			mw.onRomStopped(rompath, client.TempDir())
-		})
-	}()
+			glib.IdleAdd(func() {
+				panel.setGameStopped()
+				modGUI.DebugZ("closing game panel").End()
+				panel.Close()
+				mw.onRomStopped(rompath, client.TempDir())
+			})
+		}()
+	*/
 }
 
 func (mw *mainWindow) onRomStopped(rompath, tmpdir string) {
@@ -187,6 +185,7 @@ func (mw *mainWindow) addRecentROM(romPath string, screenshot image.Image) error
 	})
 }
 
+/*
 type waitFunc func() error
 
 func driveEmulator(args cli.Run) (*rpc.Client, waitFunc, error) {
@@ -217,3 +216,5 @@ func driveEmulator(args cli.Run) (*rpc.Client, waitFunc, error) {
 
 	return client, cmd.Wait, nil
 }
+
+*/
