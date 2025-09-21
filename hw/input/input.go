@@ -2,7 +2,8 @@
 package input
 
 import (
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 // A PaddleButton identifies a button of a standard NES controller/paddle.
@@ -60,16 +61,14 @@ type PaddleConfig struct {
 }
 
 type Provider struct {
-	keys     [2][8]sdl.Scancode
-	keystate []uint8
+	keys [2][8]ebiten.Key
 
-	cfg Config
+	scratch [256]ebiten.Key
+	cfg     Config
 }
 
 func NewProvider(cfg Config) *Provider {
-	var keystate []uint8
-	sdl.Do(func() { keystate = sdl.GetKeyboardState() })
-	return &Provider{keystate: keystate, cfg: cfg}
+	return &Provider{cfg: cfg}
 }
 
 func (ui *Provider) paddleState(idx int) uint8 {
@@ -81,20 +80,17 @@ func (ui *Provider) paddleState(idx int) uint8 {
 
 	preset := ui.cfg.Paddles[idx].Preset
 
+	keys := inpututil.AppendPressedKeys(ui.scratch[:0])
+
 	state := uint8(0)
 	for i, code := range preset.Buttons {
 		pressed := uint8(0)
 		switch code.Type {
 		case KeyboardCtrl:
-			pressed = ui.keystate[code.Scancode]
-		case ButtonCtrl:
-			if ctrl := Gamectrls.getByGUID(code.CtrlGUID); ctrl != nil {
-				pressed = ctrl.Button(code.CtrlButton)
-			}
-		case AxisCtrl:
-			if ctrl := Gamectrls.getByGUID(code.CtrlGUID); ctrl != nil {
-				if ctrl.Axis(code.CtrlAxis) >= JoyAxisThreshold {
+			for _, k := range keys {
+				if k == code.Scancode {
 					pressed = 1
+					break
 				}
 			}
 		}

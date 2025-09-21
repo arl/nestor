@@ -11,15 +11,14 @@ import (
 	"time"
 
 	"nestor/emu/log"
-	"nestor/hw"
 	"nestor/hw/input"
 	"nestor/hw/shaders"
 	"nestor/ines"
 )
 
 type Output interface {
-	BeginFrame() hw.Frame
-	EndFrame(*hw.Frame)
+	BeginFrame() Frame
+	EndFrame(*Frame)
 	Poll() bool
 	Close()
 	Screenshot() *image.RGBA
@@ -76,15 +75,13 @@ type Emulator struct {
 // Launch starts the various hardware subsystems, shows the window, setups the
 // video and audio streams and plugs controllers. It doesn't start the emulation
 // loop, call Run() for that.
-func Launch(rom *ines.Rom, cfg Config, out Output) (*Emulator, error) {
+func Launch(rom *ines.Rom, cfg Config, out Output, inp *input.Provider) (*Emulator, error) {
 	nes, err := powerUp(rom)
 	if err != nil {
 		return nil, fmt.Errorf("power up failed: %s", err)
 	}
 
-	// TODO: re-add input with ebitengine
-	// inprov := input.NewProvider(cfg.Input)
-	// nes.CPU.PlugInputDevice(inprov)
+	nes.CPU.PlugInputDevice(inp)
 
 	// CPU execution trace setup.
 	if cfg.TraceOut != nil {
@@ -163,13 +160,6 @@ func (e *Emulator) loop() {
 	e.out.Close()
 }
 
-// RaiseWindow raises the emulator window above others and sets the input focus.
-func (e *Emulator) RaiseWindow() {
-	if hwout, ok := e.out.(*hw.Output); ok {
-		hwout.FocusWindow()
-	}
-}
-
 func (e *Emulator) Run() {
 	e.loop()
 	log.ModEmu.InfoZ("Emulation loop exited").End()
@@ -192,7 +182,7 @@ func (e *Emulator) save() {
 
 	path := filepath.Join(e.tmpdir, "screenshot.png")
 
-	if err := hw.SaveAsPNG(e.out.Screenshot(), path); err != nil {
+	if err := SaveAsPNG(e.out.Screenshot(), path); err != nil {
 		log.ModEmu.WarnZ("Error while saving screenshot").String("path", path).End()
 	} else {
 		log.ModEmu.DebugZ("Saved screenshot").String("path", path).End()

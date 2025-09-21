@@ -7,7 +7,7 @@ import (
 
 	"nestor/config"
 	"nestor/emu"
-	"nestor/hw"
+	"nestor/hw/input"
 	"nestor/ines"
 )
 
@@ -27,6 +27,8 @@ func StartROM(cfg config.Config, romPath string) error {
 	ebiten.SetWindowTitle("Nestor")
 
 	eui := new(UI)
+	eui.input = input.NewProvider(cfg.Input)
+
 	if err := eui.loadROM(romPath, cfg); err != nil {
 		return fmt.Errorf("failed to load rom: %w", err)
 	}
@@ -43,7 +45,8 @@ func StartROM(cfg config.Config, romPath string) error {
 type UI struct {
 	emulator *emu.Emulator
 	out      *output
-	framech  chan *hw.Frame
+	framech  chan *emu.Frame
+	input    *input.Provider
 }
 
 func (ui *UI) loadROM(path string, cfg config.Config) error {
@@ -52,11 +55,11 @@ func (ui *UI) loadROM(path string, cfg config.Config) error {
 		return fmt.Errorf("failed to read rom: %w", err)
 	}
 
-	ui.framech = make(chan *hw.Frame)
+	ui.framech = make(chan *emu.Frame)
 	ui.out = newOutput(ui.framech,
-		hw.OutputConfig{
-			Width:          hw.NTSCWidth,
-			Height:         hw.NTSCHeight,
+		OutputConfig{
+			Width:          emu.NTSCWidth,
+			Height:         emu.NTSCHeight,
 			NumBackBuffers: 4,
 			Title:          "Nestor",
 			ScaleFactor:    2,
@@ -66,7 +69,7 @@ func (ui *UI) loadROM(path string, cfg config.Config) error {
 		},
 	)
 
-	emulator, err := emu.Launch(rom, cfg.Config, ui.out)
+	emulator, err := emu.Launch(rom, cfg.Config, ui.out, ui.input)
 	if err != nil {
 		return fmt.Errorf("failed to start emulator: %w", err)
 	}
@@ -81,7 +84,7 @@ func (ui *UI) Update() error {
 	if ui.emulator == nil {
 		return nil
 	}
-	// ui.emulator.RunOneFrame()
+
 	return nil
 }
 
@@ -102,8 +105,6 @@ func (ui *UI) Draw(screen *ebiten.Image) {
 		screen.DrawImage(frameImg, nil)
 	default:
 	}
-
-	// frame.Video
 }
 
 // Layout accepts a native outside size in device-independent pixels and returns the game's logical screen

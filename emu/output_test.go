@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"nestor/hw"
 	"nestor/hw/apu"
 )
 
@@ -43,15 +42,15 @@ func newTestingOutput(cfg TestingOutputConfig) *TestingOutput {
 	}
 	return &TestingOutput{
 		videobuf: make([]byte, cfg.Width*cfg.Height*4),
-		audiobuf: make([]int16, hw.SamplesPerFrame),
+		audiobuf: make([]int16, SamplesPerFrame),
 		cfg:      cfg,
 	}
 }
 
 func (to *TestingOutput) Close() {}
 
-func (to *TestingOutput) BeginFrame() (frame hw.Frame) {
-	return hw.Frame{
+func (to *TestingOutput) BeginFrame() (frame Frame) {
+	return Frame{
 		Video: to.videobuf,
 		Audio: apu.AudioBuffer{
 			Samples: to.audiobuf,
@@ -69,12 +68,12 @@ func (to *TestingOutput) framePath(isGolden bool) string {
 }
 
 func (to *TestingOutput) Screenshot() *image.RGBA {
-	return hw.FramebufImage(to.videobuf, to.cfg.Width, to.cfg.Height)
+	return FramebufImage(to.videobuf, to.cfg.Width, to.cfg.Height)
 }
 
-func (to *TestingOutput) EndFrame(_ *hw.Frame) {
+func (to *TestingOutput) EndFrame(_ *Frame) {
 	if to.framecounter == int(to.cfg.SaveFrameNum) {
-		if err := hw.SaveAsPNG(to.Screenshot(), to.framePath(false)); err != nil {
+		if err := SaveAsPNG(to.Screenshot(), to.framePath(false)); err != nil {
 			panic("failed to save frame: " + err.Error())
 		}
 	}

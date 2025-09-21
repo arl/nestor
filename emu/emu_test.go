@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"nestor/emu/log"
-	"nestor/hw"
 	"nestor/ines"
 )
 
@@ -27,8 +26,8 @@ func loadEmulator(b *testing.B, romPath string) *Emulator {
 	}
 
 	cfg := TestingOutputConfig{
-		Height: hw.NTSCHeight,
-		Width:  hw.NTSCWidth,
+		Height: NTSCHeight,
+		Width:  NTSCWidth,
 	}
 	e := Emulator{
 		NES: nes,

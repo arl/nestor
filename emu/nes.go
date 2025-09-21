@@ -52,7 +52,7 @@ func (nes *NES) Reset(soft bool) {
 	nes.Mixer.Reset()
 }
 
-func (nes *NES) RunOneFrame(frame *hw.Frame) {
+func (nes *NES) RunOneFrame(frame *Frame) {
 	nes.PPU.BeginFrame(frame.Video)
 	nes.CPU.Run(29781)
 	nes.APU.EndFrame(&frame.Audio)

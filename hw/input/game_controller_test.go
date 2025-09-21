@@ -15,8 +15,8 @@ func TestInputCodeMarshalRoundTrip(t *testing.T) {
 	}{
 		{"", &Code{Type: ControlNotSet}},
 		{"key W", &Code{Type: KeyboardCtrl, Scancode: ebiten.KeyW}},
-		{"key Up", &Code{Type: KeyboardCtrl, Scancode: ebiten.KeyUp}},
-		{"key Return", &Code{Type: KeyboardCtrl, Scancode: ebiten.KeyEnter}},
+		{"key ArrowUp", &Code{Type: KeyboardCtrl, Scancode: ebiten.KeyUp}},
+		{"key Enter", &Code{Type: KeyboardCtrl, Scancode: ebiten.KeyEnter}},
 		{"joybtn a 030000004c050000cc0900", &Code{Type: ButtonCtrl, CtrlButton: sdl.CONTROLLER_BUTTON_A, CtrlGUID: "030000004c050000cc0900"}},
 		{"joybtn x 030000004c050000cc0900", &Code{Type: ButtonCtrl, CtrlButton: sdl.CONTROLLER_BUTTON_X, CtrlGUID: "030000004c050000cc0900"}},
 		{"joyaxis righttrigger+ 030000004c050000cc1212", &Code{Type: AxisCtrl, CtrlAxis: sdl.CONTROLLER_AXIS_TRIGGERRIGHT, CtrlAxisDir: 1, CtrlGUID: "030000004c050000cc1212"}},

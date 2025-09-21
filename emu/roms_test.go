@@ -12,7 +12,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"nestor/emu/log"
-	"nestor/hw"
 	"nestor/hw/hwio"
 	"nestor/ines"
 	"nestor/tests"
@@ -58,8 +57,8 @@ func TestNestest(t *testing.T) {
 
 	// Configure a headless testing output.
 	cfg := TestingOutputConfig{
-		Height: hw.NTSCHeight,
-		Width:  hw.NTSCWidth,
+		Height: NTSCHeight,
+		Width:  NTSCWidth,
 	}
 	e := Emulator{
 		NES: nes,
@@ -199,8 +198,8 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 
 		// Configure a headless testing output.
 		out := newTestingOutput(TestingOutputConfig{
-			Height: hw.NTSCHeight,
-			Width:  hw.NTSCWidth,
+			Height: NTSCHeight,
+			Width:  NTSCWidth,
 		})
 
 		// When reset is required, it needs to be pressed 100ms later, so we
@@ -532,8 +531,8 @@ func runAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame
 
 	out := newTestingOutput(
 		TestingOutputConfig{
-			Height:        hw.NTSCHeight,
-			Width:         hw.NTSCWidth,
+			Height:        NTSCHeight,
+			Width:         NTSCWidth,
 			SaveFrameDir:  frameDir,
 			SaveFrameFile: framePath,
 			SaveFrameNum:  frame,

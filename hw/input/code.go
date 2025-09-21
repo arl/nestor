@@ -121,6 +121,10 @@ func (mc *Code) UnmarshalText(text []byte) error {
 			return fmt.Errorf("malformed key code: %s", s)
 		}
 
+		mc.Scancode = KeyFromString(str)
+		if mc.Scancode < 0 {
+			return fmt.Errorf("unrecognized scancode %q", s)
+		}
 		mc.Type = KeyboardCtrl
 
 	default:
@@ -128,4 +132,15 @@ func (mc *Code) UnmarshalText(text []byte) error {
 	}
 
 	return nil
+}
+
+// KeyFromString returns the ebiten.Key for s, or a negative value if s is
+// unknown.
+func KeyFromString(s string) ebiten.Key {
+	var k ebiten.Key
+	if err := k.UnmarshalText([]byte(s)); err != nil {
+		return -1
+	}
+
+	return k
 }
