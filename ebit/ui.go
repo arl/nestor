@@ -5,10 +5,10 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
+	"nestor/config"
 	"nestor/emu"
 	"nestor/hw"
 	"nestor/ines"
-	"nestor/ui"
 )
 
 const (
@@ -22,11 +22,10 @@ func StartUI() {
 }
 
 // StartROM starts the emulation of a ROM in a window.
-func StartROM(romPath string) error {
+func StartROM(cfg config.Config, romPath string) error {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Nestor")
 
-	cfg := ui.LoadConfigOrDefault()
 	eui := new(UI)
 	if err := eui.loadROM(romPath, cfg); err != nil {
 		return fmt.Errorf("failed to load rom: %w", err)
@@ -47,7 +46,7 @@ type UI struct {
 	framech  chan *hw.Frame
 }
 
-func (ui *UI) loadROM(path string, cfg ui.Config) error {
+func (ui *UI) loadROM(path string, cfg config.Config) error {
 	rom, err := ines.ReadROM(path)
 	if err != nil {
 		return fmt.Errorf("failed to read rom: %w", err)

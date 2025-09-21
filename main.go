@@ -8,9 +8,9 @@ import (
 	"runtime/pprof"
 	"slices"
 
+	"nestor/config"
 	"nestor/ebit"
 	"nestor/ines"
-	"nestor/ui"
 )
 
 func usage() {
@@ -74,7 +74,7 @@ func main() {
 		return
 	}
 
-	cfg := ui.LoadConfigOrDefault()
+	cfg := config.LoadConfigOrDefault()
 
 	if traceFlag.name != "" {
 		cfg.TraceOut = &traceFlag
@@ -110,7 +110,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := ebit.StartROM(romPath); err != nil {
+	if err := ebit.StartROM(cfg, romPath); err != nil {
 		fatalf("%s", err)
 	}
 

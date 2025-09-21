@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -31,7 +32,7 @@ func (t ControlType) String() string {
 // A Code describes the user input event (keyboard key, game controller
 // button/axis). Only one of these is valid.
 type Code struct {
-	Scancode sdl.Scancode
+	Scancode ebiten.Key
 
 	CtrlGUID    string
 	CtrlButton  sdl.GameControllerButton
@@ -45,7 +46,7 @@ type Code struct {
 func (mc Code) Name() string {
 	switch mc.Type {
 	case KeyboardCtrl:
-		return sdl.GetScancodeName(mc.Scancode)
+		return mc.Scancode.String()
 	case ButtonCtrl:
 		return sdl.GameControllerGetStringForButton(mc.CtrlButton)
 	case AxisCtrl:
@@ -120,10 +121,6 @@ func (mc *Code) UnmarshalText(text []byte) error {
 			return fmt.Errorf("malformed key code: %s", s)
 		}
 
-		mc.Scancode = sdl.GetScancodeFromName(str)
-		if mc.Scancode == sdl.SCANCODE_UNKNOWN {
-			return fmt.Errorf("unrecognized scancode %q", s)
-		}
 		mc.Type = KeyboardCtrl
 
 	default:

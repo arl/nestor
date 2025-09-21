@@ -1,4 +1,4 @@
-package ui
+package config
 
 import (
 	"os"
@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/hajimehoshi/ebiten/v2"
 
 	"nestor/emu"
 	"nestor/emu/log"
@@ -40,14 +40,14 @@ var defaultConfig = Config{
 				{
 					Buttons: [8]input.Code{
 						// TODO: change this to QWERTY layout?
-						{Scancode: sdl.SCANCODE_W, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_Q, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_A, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_S, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_UP, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_DOWN, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_LEFT, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_RIGHT, Type: input.KeyboardCtrl},
+						{Scancode: ebiten.KeyW, Type: input.KeyboardCtrl},
+						{Scancode: ebiten.KeyQ, Type: input.KeyboardCtrl},
+						{Scancode: ebiten.KeyA, Type: input.KeyboardCtrl},
+						{Scancode: ebiten.KeyS, Type: input.KeyboardCtrl},
+						{Scancode: ebiten.KeyUp, Type: input.KeyboardCtrl},
+						{Scancode: ebiten.KeyDown, Type: input.KeyboardCtrl},
+						{Scancode: ebiten.KeyLeft, Type: input.KeyboardCtrl},
+						{Scancode: ebiten.KeyRight, Type: input.KeyboardCtrl},
 					},
 				},
 			},
@@ -124,3 +124,12 @@ func saveConfig(cfg *Config) error {
 	log.ModEmu.Infof("Configuration saved to %s", configPath())
 	return nil
 }
+
+var SaveRAMDir = sync.OnceValue(func() string {
+	dir := filepath.Join(ConfigDir(), "saveram")
+	if err := os.MkdirAll(dir, dirMode); err != nil {
+		log.ModEmu.Fatalf("failed to create directory %s: %v", dir, err)
+	}
+
+	return dir
+})
