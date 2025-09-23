@@ -5,7 +5,7 @@ github.com/BurntSushi/toml/internal
 # github.com/arl/blip v0.2.2
 ## explicit; go 1.22
 github.com/arl/blip
-# github.com/ebitengine/gomobile v0.0.0-20240911145611-4856209ac325
+# github.com/ebitengine/gomobile v0.0.0-20250209143333-6071a2a2351c
 ## explicit; go 1.22.0
 github.com/ebitengine/gomobile/app
 github.com/ebitengine/gomobile/app/internal/callfn
@@ -20,13 +20,31 @@ github.com/ebitengine/gomobile/internal/mobileinit
 # github.com/ebitengine/hideconsole v1.0.0
 ## explicit; go 1.18
 github.com/ebitengine/hideconsole
-# github.com/ebitengine/purego v0.8.0
+# github.com/ebitengine/purego v0.8.2
 ## explicit; go 1.18
 github.com/ebitengine/purego
 github.com/ebitengine/purego/internal/cgo
 github.com/ebitengine/purego/internal/fakecgo
 github.com/ebitengine/purego/internal/strings
 github.com/ebitengine/purego/objc
+# github.com/ebitenui/ebitenui v0.7.1
+## explicit; go 1.23.0
+github.com/ebitenui/ebitenui
+github.com/ebitenui/ebitenui/event
+github.com/ebitenui/ebitenui/image
+github.com/ebitenui/ebitenui/input
+github.com/ebitenui/ebitenui/internal/event
+github.com/ebitenui/ebitenui/internal/input
+github.com/ebitenui/ebitenui/internal/jsUtil
+github.com/ebitenui/ebitenui/utilities/colorutil
+github.com/ebitenui/ebitenui/utilities/constantutil
+github.com/ebitenui/ebitenui/utilities/datastructures
+github.com/ebitenui/ebitenui/utilities/mobile
+github.com/ebitenui/ebitenui/utilities/sliceutil
+github.com/ebitenui/ebitenui/widget
+# github.com/frustra/bbcode v0.0.0-20201127003707-6ef347fbe1c8
+## explicit
+github.com/frustra/bbcode
 # github.com/go-faster/errors v0.6.1
 ## explicit; go 1.18
 github.com/go-faster/errors
@@ -38,6 +56,19 @@ github.com/go-faster/jx/internal/byteseq
 ## explicit; go 1.12
 github.com/go-gl/gl/v4.1-core/gl
 github.com/go-gl/gl/v4.1-core/gl/KHR
+# github.com/go-text/typesetting v0.3.0
+## explicit; go 1.19
+github.com/go-text/typesetting/di
+github.com/go-text/typesetting/font
+github.com/go-text/typesetting/font/cff
+github.com/go-text/typesetting/font/cff/interpreter
+github.com/go-text/typesetting/font/opentype
+github.com/go-text/typesetting/font/opentype/tables
+github.com/go-text/typesetting/harfbuzz
+github.com/go-text/typesetting/language
+github.com/go-text/typesetting/segmenter
+github.com/go-text/typesetting/shaping
+github.com/go-text/typesetting/unicodedata
 # github.com/google/go-cmp v0.7.0
 ## explicit; go 1.21
 github.com/google/go-cmp/cmp
@@ -86,6 +117,8 @@ github.com/hajimehoshi/ebiten/v2/internal/thread
 github.com/hajimehoshi/ebiten/v2/internal/ui
 github.com/hajimehoshi/ebiten/v2/internal/vibrate
 github.com/hajimehoshi/ebiten/v2/internal/winver
+github.com/hajimehoshi/ebiten/v2/text/v2
+github.com/hajimehoshi/ebiten/v2/vector
 # github.com/jezek/xgb v1.1.1
 ## explicit; go 1.11
 github.com/jezek/xgb
@@ -116,21 +149,40 @@ github.com/tinylib/msgp/printer
 github.com/veandco/go-sdl2/_libs
 github.com/veandco/go-sdl2/_libs/include/SDL2
 github.com/veandco/go-sdl2/sdl
-# golang.org/x/mod v0.22.0
-## explicit; go 1.22.0
+# golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
+## explicit; go 1.23.0
+golang.org/x/exp/slices
+# golang.org/x/image v0.25.0
+## explicit; go 1.23.0
+golang.org/x/image/ccitt
+golang.org/x/image/colornames
+golang.org/x/image/font
+golang.org/x/image/math/fixed
+golang.org/x/image/tiff
+golang.org/x/image/tiff/lzw
+golang.org/x/image/vector
+# golang.org/x/mod v0.24.0
+## explicit; go 1.23.0
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
 # golang.org/x/sync v0.12.0
 ## explicit; go 1.23.0
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.29.0
-## explicit; go 1.18
+# golang.org/x/sys v0.31.0
+## explicit; go 1.23.0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/tools v0.29.0
-## explicit; go 1.22.0
+# golang.org/x/text v0.23.0
+## explicit; go 1.23.0
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/tag
+golang.org/x/text/language
+golang.org/x/text/unicode/bidi
+# golang.org/x/tools v0.31.0
+## explicit; go 1.23.0
 golang.org/x/tools/cmd/stringer
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
