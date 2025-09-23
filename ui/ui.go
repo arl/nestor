@@ -18,16 +18,32 @@ const (
 
 // StartUI is the entry point of the GUI mode.
 func StartUI(cfg config.Config) error {
-	panic("not implemented")
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Nestor")
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+
+	var options *ebiten.RunGameOptions
+
+	app := NewApp(cfg)
+
+	if err := ebiten.RunGameWithOptions(app, options); err != nil {
+		return fmt.Errorf("failed to start ebiten: %w", err)
+	}
+	return nil
+
 }
 
 // StartROM starts the emulation of a ROM in a window.
 func StartROM(cfg config.Config, romPath string) error {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Nestor")
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
-	eui := new(UI)
-	eui.input = input.NewProvider(cfg.Input)
+	eui := &Game{
+		outw:  screenWidth,
+		outh:  screenHeight,
+		input: input.NewProvider(cfg.Input),
+	}
 
 	if err := eui.loadROM(romPath, cfg); err != nil {
 		return fmt.Errorf("failed to load rom: %w", err)
@@ -41,22 +57,24 @@ func StartROM(cfg config.Config, romPath string) error {
 	return nil
 }
 
-// UI implements [ebiten.Game] interface
-type UI struct {
+// Game implements [ebiten.Game] interface
+type Game struct {
 	emulator *emu.Emulator
 	out      *emu.Output
 	framech  chan *emu.Frame
 	input    *input.Provider
+
+	outw, outh float64 // current output window size
 }
 
-func (ui *UI) loadROM(path string, cfg config.Config) error {
+func (g *Game) loadROM(path string, cfg config.Config) error {
 	rom, err := ines.ReadROM(path)
 	if err != nil {
 		return fmt.Errorf("failed to read rom: %w", err)
 	}
 
-	ui.framech = make(chan *emu.Frame)
-	ui.out = emu.NewOutput(ui.framech,
+	g.framech = make(chan *emu.Frame)
+	g.out = emu.NewOutput(g.framech,
 		emu.OutputConfig{
 			Width:          emu.NTSCWidth,
 			Height:         emu.NTSCHeight,
@@ -69,64 +87,57 @@ func (ui *UI) loadROM(path string, cfg config.Config) error {
 		},
 	)
 
-	emulator, err := emu.Launch(rom, cfg.Config, ui.out, ui.input)
+	emulator, err := emu.Launch(rom, cfg.Config, g.out, g.input)
 	if err != nil {
 		return fmt.Errorf("failed to start emulator: %w", err)
 	}
-	ui.emulator = emulator
+	g.emulator = emulator
 
 	go emulator.Run()
 
 	return nil
 }
 
-func (ui *UI) Update() error {
-	if ui.emulator == nil {
+func (g *Game) Update() error {
+	if g.emulator == nil {
 		return nil
 	}
 
 	return nil
 }
 
-// Draw draws the game screen by one frame.
-//
-// The give argument represents a screen image. The updated content is adopted as the game screen.
-//
-// The frequency of Draw calls depends on the user's environment, especially the monitors refresh rate.
-// For portability, you should not put your game logic in Draw in general.
-func (ui *UI) Draw(screen *ebiten.Image) {
-	if ui.emulator == nil {
+func (g *Game) Draw(screen *ebiten.Image) {
+	if g.emulator == nil {
 		return
 	}
 
 	select {
-	case frame := <-ui.framech:
+	case frame := <-g.framech:
 		frameImg := ImageFromFrame(frame)
-		screen.DrawImage(frameImg, nil)
+
+		// Draw the frame at the maxium size that fits the window while keeping the aspect ratio.
+		fw, fh := frameImg.Bounds().Dx(), frameImg.Bounds().Dy()
+
+		scaleX := g.outw / float64(fw)
+		scaleY := g.outh / float64(fh)
+
+		scale := scaleX
+		if scaleY < scaleX {
+			scale = scaleY
+		}
+
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Scale(scale, scale)
+		op.GeoM.Translate((g.outw-float64(fw)*scale)/2, (g.outh-float64(fh)*scale)/2)
+		screen.DrawImage(frameImg, op)
 	default:
 	}
 }
 
-// Layout accepts a native outside size in device-independent pixels and returns the game's logical screen
-// size in pixels. The logical size is used for 1) the screen size given at Draw and 2) calculation of the
-// scale from the screen to the final screen size.
-//
-// On desktops, the outside is a window or a monitor (fullscreen mode). On browsers, the outside is a body
-// element. On mobiles, the outside is the view's size.
-//
-// Even though the outside size and the screen size differ, the rendering scale is automatically adjusted to
-// fit with the outside.
-//
-// Layout is called almost every frame.
-//
-// It is ensured that Layout is invoked before Update is called in the first frame.
-//
-// If Layout returns non-positive numbers, the caller can panic.
-//
-// You can return a fixed screen size if you don't care, or you can also return a calculated screen size
-// adjusted with the given outside size.
-//
-// If the game implements the interface LayoutFer, Layout is never called and LayoutF is called instead.
-func (ui *UI) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	g.outw, g.outh = float64(outsideWidth), float64(outsideHeight)
 	return outsideWidth, outsideHeight
+}
+
+type EmuWidget struct {
 }
