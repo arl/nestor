@@ -10,15 +10,15 @@ import (
 
 // RomListState represents the state for browsing and selecting ROMs
 type RomListState struct {
-	context StateContext
-	ui      *ebitenui.UI
-	root    *widget.Container
+	app  *App
+	ui   *ebitenui.UI
+	root *widget.Container
 }
 
 // NewRomListState creates a new ROM list state
-func NewRomListState(context StateContext) *RomListState {
+func NewRomListState(app *App) *RomListState {
 	state := &RomListState{
-		context: context,
+		app: app,
 	}
 
 	// Initialize UI
@@ -85,8 +85,8 @@ func (s *RomListState) initUI() {
 		),
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
 			const romPath = "/home/aurelien/dev/roms/nes/all.nes.roms.goodnes/USA/Super Mario Bros. + Duck Hunt (U) [!].nes"
-			if err := s.context.LaunchEmulator(romPath); err == nil {
-				s.context.ChangeState(s.context.(*App).GetState(StateRomRunning))
+			if err := s.app.LaunchEmulator(romPath); err == nil {
+				s.app.ChangeState(s.app.GetState(StateRomRunning))
 			}
 		}),
 	)
@@ -115,7 +115,7 @@ func (s *RomListState) initUI() {
 			widget.WidgetOpts.MinSize(180, 48),
 		),
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.context.ChangeState(s.context.(*App).GetState(StateConfig))
+			s.app.ChangeState(s.app.GetState(StateConfig))
 		}),
 	)
 

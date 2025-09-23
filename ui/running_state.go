@@ -7,14 +7,14 @@ import (
 
 // RunningState represents the state when a ROM is running
 type RunningState struct {
-	context    StateContext
+	app        *App
 	fullScreen bool
 }
 
 // NewRunningState creates a new running state
-func NewRunningState(context StateContext) *RunningState {
+func NewRunningState(app *App) *RunningState {
 	return &RunningState{
-		context:    context,
+		app:        app,
 		fullScreen: true,
 	}
 }
@@ -38,7 +38,7 @@ func (s *RunningState) Update() {
 
 	// Handle Escape key to pause
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		s.context.ChangeState(s.context.(*App).GetState(StateRomPaused))
+		s.app.ChangeState(s.app.GetState(StateRomPaused))
 	}
 }
 
@@ -46,7 +46,7 @@ func (s *RunningState) Update() {
 func (s *RunningState) Draw(screen *ebiten.Image) {
 	// Get frame from emulator
 	select {
-	case frame := <-s.context.(*App).GetFrameChannel():
+	case frame := <-s.app.GetFrameChannel():
 		frameImg := ImageFromFrame(frame)
 
 		// Draw in fullscreen

@@ -11,15 +11,15 @@ import (
 
 // PausedState represents the state when a ROM is paused
 type PausedState struct {
-	context StateContext
-	ui      *ebitenui.UI
-	root    *widget.Container
+	ui   *ebitenui.UI
+	root *widget.Container
+	app  *App
 }
 
 // NewPausedState creates a new paused state
-func NewPausedState(context StateContext) *PausedState {
+func NewPausedState(app *App) *PausedState {
 	state := &PausedState{
-		context: context,
+		app: app,
 	}
 
 	// Initialize UI
@@ -106,7 +106,7 @@ func (s *PausedState) initUI() {
 		}),
 		widget.ButtonOpts.TextLabel("Resume"),
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.context.ChangeState(s.context.(*App).GetState(StateRomRunning))
+			s.app.ChangeState(s.app.GetState(StateRomRunning))
 		}),
 	)
 	pauseMenu.AddChild(resumeButton)
@@ -127,7 +127,7 @@ func (s *PausedState) initUI() {
 		}),
 		widget.ButtonOpts.TextLabel("Main Menu"),
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.context.ChangeState(s.context.(*App).GetState(StateRomList))
+			s.app.ChangeState(s.app.GetState(StateRomList))
 		}),
 	)
 	pauseMenu.AddChild(menuButton)
@@ -140,19 +140,19 @@ func (s *PausedState) initUI() {
 
 // Enter implements State interface
 func (s *PausedState) Enter(prevState State) {
-	// Nothing special to do on enter
+	s.app.emulator.SetPause(true)
 }
 
 // Exit implements State interface
 func (s *PausedState) Exit(nextState State) {
-	// Nothing special to do on exit
+	s.app.emulator.SetPause(false)
 }
 
 // Update implements State interface
 func (s *PausedState) Update() {
 	// Handle Escape key to resume
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		s.context.ChangeState(s.context.(*App).GetState(StateRomRunning))
+		s.app.ChangeState(s.app.GetState(StateRomRunning))
 	}
 
 	s.ui.Update()
@@ -160,29 +160,6 @@ func (s *PausedState) Update() {
 
 // Draw implements State interface
 func (s *PausedState) Draw(screen *ebiten.Image) {
-	// First draw the game frame in the background
-	select {
-	case frame := <-s.context.(*App).GetFrameChannel():
-		frameImg := ImageFromFrame(frame)
-		w, h := screen.Bounds().Dx(), screen.Bounds().Dy()
-
-		op := &ebiten.DrawImageOptions{}
-		fw, fh := frameImg.Bounds().Dx(), frameImg.Bounds().Dy()
-		scaleX := float64(w) / float64(fw)
-		scaleY := float64(h) / float64(fh)
-		scale := scaleX
-		if scaleY < scaleX {
-			scale = scaleY
-		}
-
-		op.GeoM.Scale(scale, scale)
-		op.GeoM.Translate((float64(w)-float64(fw)*scale)/2, (float64(h)-float64(fh)*scale)/2)
-		screen.DrawImage(frameImg, op)
-	default:
-		// No frame available
-	}
-
-	// Then draw the UI overlay
 	s.ui.Draw(screen)
 }
 

@@ -10,15 +10,15 @@ import (
 
 // ConfigState represents the configuration screen
 type ConfigState struct {
-	context StateContext
-	ui      *ebitenui.UI
-	root    *widget.Container
+	app  *App
+	ui   *ebitenui.UI
+	root *widget.Container
 }
 
 // NewConfigState creates a new configuration state
-func NewConfigState(context StateContext) *ConfigState {
+func NewConfigState(app *App) *ConfigState {
 	state := &ConfigState{
-		context: context,
+		app: app,
 	}
 
 	// Initialize UI
@@ -112,7 +112,7 @@ func (s *ConfigState) initUI() {
 			}),
 		),
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.context.ChangeState(s.context.(*App).GetState(StateRomList))
+			s.app.ChangeState(s.app.GetState(StateRomList))
 		}),
 	)
 	contentPanel.AddChild(backButton)

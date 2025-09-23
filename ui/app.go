@@ -117,12 +117,11 @@ func (app *App) LaunchEmulator(romPath string) error {
 	return nil
 }
 
-// GetConfig implements StateContext interface
-func (app *App) GetConfig() config.Config {
+// Config implements StateContext interface
+func (app *App) Config() config.Config {
 	return app.cfg
 }
 
-// GetInput implements StateContext interface
 func (app *App) GetInput() *input.Provider {
 	return app.input
 }

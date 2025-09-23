@@ -2,10 +2,6 @@ package ui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-
-	"nestor/config"
-	"nestor/emu"
-	"nestor/hw/input"
 )
 
 //go:generate go tool stringer -type=StateID
@@ -38,22 +34,4 @@ type State interface {
 
 	// ID returns the unique identifier of this state
 	ID() StateID
-}
-
-// StateContext provides shared context and functionality to all states
-type StateContext interface {
-	// GetConfig returns the app configuration
-	GetConfig() config.Config
-
-	// GetInput returns the input provider
-	GetInput() *input.Provider
-
-	// ChangeState transitions to a new state
-	ChangeState(newState State)
-
-	// GetEmulator returns the emulator instance, if available
-	GetEmulator() *emu.Emulator
-
-	// LaunchEmulator creates and starts a new emulator with the given ROM path
-	LaunchEmulator(romPath string) error
 }
