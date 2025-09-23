@@ -138,6 +138,3 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	g.outw, g.outh = float64(outsideWidth), float64(outsideHeight)
 	return outsideWidth, outsideHeight
 }
-
-type EmuWidget struct {
-}
