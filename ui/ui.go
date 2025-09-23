@@ -30,28 +30,27 @@ func StartUI(cfg config.Config) error {
 		return fmt.Errorf("failed to start ebiten: %w", err)
 	}
 	return nil
-
 }
 
 // StartROM starts the emulation of a ROM in a window.
 func StartROM(cfg config.Config, romPath string) error {
+	// We can reuse the same App structure but immediately transition to the running state
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Nestor")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
-	eui := &Game{
-		outw:  screenWidth,
-		outh:  screenHeight,
-		input: input.NewProvider(cfg.Input),
-	}
+	var options *ebiten.RunGameOptions
 
-	if err := eui.loadROM(romPath, cfg); err != nil {
+	modUI.InfoZ("test").End()
+	app := NewApp(cfg)
+	app.ChangeState(app.GetState(StateRomRunning))
+
+	// Launch emulator and transition to running state
+	if err := app.LaunchEmulator(romPath); err != nil {
 		return fmt.Errorf("failed to load rom: %w", err)
 	}
 
-	var options *ebiten.RunGameOptions
-
-	if err := ebiten.RunGameWithOptions(eui, options); err != nil {
+	if err := ebiten.RunGameWithOptions(app, options); err != nil {
 		return fmt.Errorf("failed to start ebiten: %w", err)
 	}
 	return nil

@@ -1,19 +1,6 @@
 package ui
 
-import (
-	"github.com/ebitenui/ebitenui"
-	"github.com/ebitenui/ebitenui/image"
-	"github.com/ebitenui/ebitenui/widget"
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"golang.org/x/image/colornames"
-
-	"nestor/config"
-	"nestor/emu"
-	"nestor/hw/input"
-	"nestor/ines"
-)
-
+/*
 type AppState int
 
 const (
@@ -240,3 +227,4 @@ func (app *App) drawFrame(screen *ebiten.Image, frameImg *ebiten.Image, targetW,
 func (app *App) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return outsideWidth, outsideHeight
 }
+*/
