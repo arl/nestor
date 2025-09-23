@@ -1,4 +1,4 @@
-package ebit
+package ui
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ const (
 )
 
 // StartUI is the entry point of the GUI mode.
-func StartUI() {
+func StartUI(cfg config.Config) error {
 	panic("not implemented")
 }
 

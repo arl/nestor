@@ -9,8 +9,8 @@ import (
 	"slices"
 
 	"nestor/config"
-	"nestor/ebit"
 	"nestor/ines"
+	"nestor/ui"
 )
 
 func usage() {
@@ -63,7 +63,6 @@ func main() {
 	fs.Usage = usage
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		if err == flag.ErrHelp {
-			usage()
 			return
 		}
 		os.Exit(1)
@@ -110,8 +109,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := ebit.StartROM(cfg, romPath); err != nil {
-		fatalf("%s", err)
+	if romPath == "" {
+		checkf(ui.StartUI(cfg), "can't start ui")
+	} else {
+		checkf(ui.StartROM(cfg, romPath), "can't start rom")
 	}
 
 	// if args.RAMFile != "" {

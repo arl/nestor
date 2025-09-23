@@ -1,4 +1,4 @@
-package ebit
+package ui
 
 import (
 	"image"
