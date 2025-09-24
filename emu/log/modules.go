@@ -63,8 +63,16 @@ func (mod Module) Mask() ModuleMask {
 	return 1 << ModuleMask(mod)
 }
 
+var logLevel = WarnLevel
+
+// SetLevel sets the global log level. Should only be called once at startup, or
+// this would be racy.
+func SetLevel(level Level) {
+	logLevel = level
+}
+
 func (mod Module) Enabled(level Level) bool {
-	return level <= WarnLevel || modDebugMask&mod.Mask() != 0
+	return level <= logLevel || modDebugMask&mod.Mask() != 0
 }
 
 // Implement the whole logging interface directly on modules

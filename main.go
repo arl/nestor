@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	"nestor/config"
+	"nestor/emu/log"
 	"nestor/ines"
 	"nestor/ui"
 )
@@ -31,6 +32,7 @@ Options:
 	-ramfile FILE      Read 'save ram' from file [WIP/TODO].
 
 	-log               comma separated list of log modules to enable (or 'all' or 'no').
+	-v, --verbose      enable verbose logging (set info log level). Default is warning.
 	-cpuprofile FILE   write cpu profile to FILE
 	-trace FILE        write cpu trace log to FILE
 	                   also accepts: stdout or stderr
@@ -49,6 +51,7 @@ func main() {
 		traceFlag      outfile
 		ramfileFlag    existingFile
 		logModules     logModMask
+		verboseFlag    bool
 	)
 
 	fs := flag.NewFlagSet("nestor", flag.ContinueOnError)
@@ -60,6 +63,8 @@ func main() {
 	fs.Var(&traceFlag, "trace", "write cpu trace log to FILE|stdout|stderr")
 	fs.Var(&ramfileFlag, "ramfile", "Read 'save ram' from file [WIP/TODO].")
 	fs.Var(&logModules, "log", "comma separated list of log modules to enable (or 'all' or 'no').")
+	fs.BoolVar(&verboseFlag, "v", false, "enable verbose logging (set info log level)")
+	fs.BoolVar(&verboseFlag, "verbose", false, "enable verbose logging (set info log level)")
 	fs.Usage = usage
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		if err == flag.ErrHelp {
@@ -71,6 +76,10 @@ func main() {
 	if versionFlag {
 		printVersion()
 		return
+	}
+
+	if verboseFlag {
+		log.SetLevel(log.InfoLevel)
 	}
 
 	cfg := config.LoadConfigOrDefault()
