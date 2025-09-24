@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 	"runtime/pprof"
 	"slices"
+	"strings"
 
 	"nestor/config"
 	"nestor/emu/log"
@@ -17,27 +18,32 @@ import (
 func usage() {
 	const help = `NES emulator. github.com/arl/nestor
 
-Usage: nestor [options] [ROM]
+Usage:
 
-Run Nestor GUI:
-    nestor
+    nestor [options] [/path/to/rom]
 
-Run ROM directly:
-    nestor <path/to/rom>
+Run Nestor:
+
+    nestor                    gui mode.
+
+    nestor <path/to/rom>      starts ROM directly. 
 
 Options:
-	-version      	   print version and exit
-	-rom-infos FILE    print information about the ROM and exit
+    -version           print version and exit.
+    -rom-infos FILE    print information about the ROM and exit.
 
-	-ramfile FILE      Read 'save ram' from file [WIP/TODO].
+    -ramfile FILE      read 'save ram' from file [WIP/TODO].
 
-	-log               comma separated list of log modules to enable (or 'all' or 'no').
-	-v, --verbose      enable verbose logging (set info log level). Default is warning.
-	-cpuprofile FILE   write cpu profile to FILE
-	-trace FILE        write cpu trace log to FILE
-	                   also accepts: stdout or stderr
+    -cpuprofile FILE   write cpu profile to FILE.
+    -trace FILE        write cpu trace log to FILE,
+                       also accepts: stdout or stderr
+    -v, --verbose      enable verbose logging (set info log level). Default is warning.
+    -log               comma separated list of log modules to enable in debug mode, from:
+                       %s
+                       accepts also 'all' or 'no' (disable log entirely).
+
 `
-	fmt.Fprint(os.Stderr, help)
+	fmt.Fprintf(os.Stderr, help, strings.Join(log.ModuleNames(), ", "))
 }
 
 func main() {
