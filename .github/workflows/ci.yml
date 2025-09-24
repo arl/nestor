@@ -30,15 +30,15 @@ jobs:
           sudo apt-get update &&
           sudo apt-get install
           gcc
+          libasound2-dev
+          libc6-dev
+          libgl1-mesa-dev
+          libxcursor-dev
+          libxi-dev
+          libxinerama-dev
+          libxrandr-dev
+          libxxf86vm-dev
           pkg-config
-          libsdl2-dev
-          libgtk-3-dev
-          libglib2.0-dev
-          libgdk-pixbuf-2.0-dev
-          libsdl2-image-dev
-          libsdl2-mixer-dev
-          libsdl2-ttf-dev
-          libsdl2-gfx-dev
 
       - name: Run tests
         run: go test -shuffle=on ./...
