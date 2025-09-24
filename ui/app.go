@@ -40,13 +40,11 @@ func NewApp(cfg config.Config) *App {
 	// Create all available states
 	romListState := NewRomListState(app)
 	runningState := NewRunningState(app)
-	pausedState := NewPausedState(app)
 	configState := NewConfigState(app)
 
 	// Register states in the map for easy access
 	app.states[StateRomList] = romListState
 	app.states[StateRomRunning] = runningState
-	app.states[StateRomPaused] = pausedState
 	app.states[StateConfig] = configState
 
 	// Set initial state

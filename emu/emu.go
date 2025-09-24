@@ -53,7 +53,9 @@ type Emulator struct {
 	out *Output
 	cfg EmulationConfig
 
-	quit atomic.Bool
+	quit      atomic.Bool
+	softReset atomic.Bool
+	hardReset atomic.Bool
 
 	tmpdir string
 }
@@ -129,8 +131,21 @@ func (e *Emulator) RunFrameWithRunAhead() {
 }
 
 func (e *Emulator) Run() {
-	for !e.quit.Load() {
-		e.RunOneFrame()
+	for {
+		for !e.quit.Load() {
+			e.RunOneFrame()
+		}
+		e.quit.Store(false)
+
+		if e.hardReset.Load() {
+			e.NES.Reset(false)
+			e.hardReset.Store(false)
+		} else if e.softReset.Load() {
+			e.NES.Reset(true)
+			e.softReset.Store(false)
+		} else {
+			break
+		}
 	}
 
 	log.ModEmu.InfoZ("Emulation loop exited").End()
@@ -174,14 +189,16 @@ func (e *Emulator) SetTempDir(path string) { e.tmpdir = path }
 // Stop stops the emulator loop in a concurrent safe way.
 func (e *Emulator) Stop() { e.quit.Store(true) }
 
-// SoftReset performs a soft reset synchronously (should be called from UI thread)
+// SoftReset stops the emulator and performs a soft reset.
 func (e *Emulator) SoftReset() {
+	e.Stop()
 	log.ModEmu.InfoZ("Performing soft reset").End()
-	e.NES.Reset(true)
+	e.softReset.Store(true)
 }
 
-// HardReset performs a hard reset synchronously (should be called from UI thread)
+// HardReset stops the emulator and performs a hard reset.
 func (e *Emulator) HardReset() {
+	e.Stop()
 	log.ModEmu.InfoZ("Performing hard reset").End()
-	e.NES.Reset(false)
+	e.hardReset.Store(true)
 }
