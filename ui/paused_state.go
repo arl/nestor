@@ -101,15 +101,15 @@ func (s *PausedState) initUI() {
 		s.app.ChangeState(s.app.GetState(StateRomRunning))
 	}))
 	bc.AddChild(stdButton("Reset", func(args *widget.ButtonClickedEventArgs) {
-		s.app.emulator.Reset()
+		s.app.ResetEmulator()
 		s.app.ChangeState(s.app.GetState(StateRomRunning))
 	}))
 	bc.AddChild(stdButton("Restart", func(args *widget.ButtonClickedEventArgs) {
-		s.app.emulator.Restart()
+		s.app.RestartEmulator()
 		s.app.ChangeState(s.app.GetState(StateRomRunning))
 	}))
 	bc.AddChild(stdButton("Stop", func(args *widget.ButtonClickedEventArgs) {
-		s.app.emulator.Stop()
+		s.app.StopEmulator()
 		s.app.ChangeState(s.app.GetState(StateRomList))
 	}))
 
@@ -122,13 +122,13 @@ func (s *PausedState) initUI() {
 // Enter implements State interface
 func (s *PausedState) Enter(prevState State) {
 	modUI.InfoZ("entering paused state").End()
-	s.app.emulator.SetPause(true)
+	// s.app.emulator.SetPause(true)
 }
 
 // Exit implements State interface
 func (s *PausedState) Exit(nextState State) {
 	modUI.InfoZ("exiting paused state").End()
-	s.app.emulator.SetPause(false)
+	// s.app.emulator.SetPause(false)
 }
 
 // Update implements State interface

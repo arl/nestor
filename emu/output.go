@@ -108,6 +108,4 @@ func (out *Output) Poll() bool {
 	return true
 }
 
-func (out *Output) Close() {}
-
 func (out *Output) Screenshot() *image.RGBA { return nil }

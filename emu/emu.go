@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"slices"
 	"sync/atomic"
-	"time"
 
 	"nestor/emu/log"
 	"nestor/hw/input"
@@ -54,11 +53,7 @@ type Emulator struct {
 	out *Output
 	cfg EmulationConfig
 
-	// These are accessed concurrently by the emulator loop and the UI.
-	quit    atomic.Bool
-	paused  atomic.Bool
-	reset   atomic.Bool
-	restart atomic.Bool
+	quit atomic.Bool
 
 	tmpdir string
 }
@@ -133,26 +128,11 @@ func (e *Emulator) RunFrameWithRunAhead() {
 	e.NES.isRunAheadFrame = false
 }
 
-func (e *Emulator) loop() {
-	for e.out.Poll() {
-		// Handle pause.
-		if e.isPaused() {
-			// Don't burn cpu while paused.
-			time.Sleep(100 * time.Millisecond)
-		} else {
-			e.RunOneFrame()
-		}
-		if e.shouldStop() {
-			break
-		}
-		e.handleReset()
+func (e *Emulator) Run() {
+	for !e.quit.Load() {
+		e.RunOneFrame()
 	}
 
-	e.out.Close()
-}
-
-func (e *Emulator) Run() {
-	e.loop()
 	log.ModEmu.InfoZ("Emulation loop exited").End()
 
 	if e.tmpdir != "" {
@@ -191,28 +171,17 @@ func (e *Emulator) save() {
 
 func (e *Emulator) SetTempDir(path string) { e.tmpdir = path }
 
-// SetPause, Stop, Reset and Restart allows to control
-// the emulator loop in a concurrent-safe way.
+// Stop stops the emulator loop in a concurrent safe way.
+func (e *Emulator) Stop() { e.quit.Store(true) }
 
-func (e *Emulator) SetPause(pause bool) { e.paused.CompareAndSwap(!pause, pause) }
-func (e *Emulator) Reset()              { e.reset.Store(true) }
-func (e *Emulator) Restart()            { e.restart.Store(true) }
-func (e *Emulator) Stop()               { e.quit.Store(true) }
-
-func (e *Emulator) isPaused() bool {
-	return e.paused.Load()
+// SoftReset performs a soft reset synchronously (should be called from UI thread)
+func (e *Emulator) SoftReset() {
+	log.ModEmu.InfoZ("Performing soft reset").End()
+	e.NES.Reset(true)
 }
 
-func (e *Emulator) shouldStop() bool {
-	return e.quit.Load() || e.NES.CPU.IsHalted()
-}
-
-func (e *Emulator) handleReset() {
-	if e.reset.CompareAndSwap(true, false) {
-		log.ModEmu.InfoZ("Performing soft reset").End()
-		e.NES.Reset(true)
-	} else if e.restart.CompareAndSwap(true, false) {
-		log.ModEmu.InfoZ("Performing hard reset").End()
-		e.NES.Reset(false)
-	}
+// HardReset performs a hard reset synchronously (should be called from UI thread)
+func (e *Emulator) HardReset() {
+	log.ModEmu.InfoZ("Performing hard reset").End()
+	e.NES.Reset(false)
 }

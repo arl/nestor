@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"sync"
 
 	"nestor/config"
 	"nestor/emu"
@@ -20,10 +21,12 @@ type App struct {
 	currentState State
 	states       map[StateID]State
 
-	cfg      config.Config
-	input    *input.Provider
+	cfg     config.Config
+	input   *input.Provider
+	framech chan *emu.Frame
+
+	mu       sync.Mutex
 	emulator *emu.Emulator
-	framech  chan *emu.Frame
 }
 
 // NewApp creates a new application instance
@@ -129,4 +132,34 @@ func (app *App) GetInput() *input.Provider {
 
 func (app *App) GetFrameChannel() chan *emu.Frame {
 	return app.framech
+}
+
+func (app *App) ResetEmulator() {
+	if app.emulator == nil {
+		return
+	}
+
+	app.mu.Lock()
+	defer app.mu.Unlock()
+
+	app.emulator.SoftReset()
+}
+
+func (app *App) RestartEmulator() {
+	if app.emulator == nil {
+		return
+	}
+
+	app.mu.Lock()
+	defer app.mu.Unlock()
+
+	app.emulator.HardReset()
+}
+
+func (app *App) StopEmulator() {
+	if app.emulator == nil {
+		return
+	}
+
+	app.emulator.Stop()
 }
