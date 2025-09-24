@@ -14,8 +14,6 @@ const (
 	StateRomRunning
 	StateRomPaused
 	StateConfig
-	StateDebug
-	// Add more states as needed
 )
 
 // State represents a UI state with its own update and draw logic

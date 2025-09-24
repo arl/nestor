@@ -90,47 +90,28 @@ func (s *PausedState) initUI() {
 	)
 	pauseMenu.AddChild(titleLabel)
 
-	// Add resume button
-	resumeButton := widget.NewButton(
-		widget.ButtonOpts.TextFace(DefaultFont()),
-		widget.ButtonOpts.TextColor(&widget.ButtonTextColor{
-			Idle:    colornames.White,
-			Hover:   colornames.White,
-			Pressed: Mix(colornames.White, colornames.Black, 0.4),
-		}),
-		widget.ButtonOpts.Image(&widget.ButtonImage{
-			Idle:         DefaultNineSlice(colornames.Forestgreen),
-			Hover:        DefaultNineSlice(Mix(colornames.Forestgreen, colornames.White, 0.2)),
-			Pressed:      PressedNineSlice(Mix(colornames.Forestgreen, colornames.Black, 0.4)),
-			PressedHover: PressedNineSlice(Mix(colornames.Forestgreen, colornames.Black, 0.4)),
-		}),
-		widget.ButtonOpts.TextLabel("Resume"),
-		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.app.ChangeState(s.app.GetState(StateRomRunning))
-		}),
-	)
-	pauseMenu.AddChild(resumeButton)
+	bc := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Spacing(5),
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+		)))
+	pauseMenu.AddChild(bc)
 
-	// Add main menu button
-	menuButton := widget.NewButton(
-		widget.ButtonOpts.TextFace(DefaultFont()),
-		widget.ButtonOpts.TextColor(&widget.ButtonTextColor{
-			Idle:    colornames.White,
-			Hover:   colornames.White,
-			Pressed: Mix(colornames.White, colornames.Black, 0.4),
-		}),
-		widget.ButtonOpts.Image(&widget.ButtonImage{
-			Idle:         DefaultNineSlice(colornames.Darkslategray),
-			Hover:        DefaultNineSlice(Mix(colornames.Darkslategray, colornames.White, 0.2)),
-			Pressed:      PressedNineSlice(Mix(colornames.Darkslategray, colornames.Black, 0.4)),
-			PressedHover: PressedNineSlice(Mix(colornames.Darkslategray, colornames.Black, 0.4)),
-		}),
-		widget.ButtonOpts.TextLabel("Main Menu"),
-		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.app.ChangeState(s.app.GetState(StateRomList))
-		}),
-	)
-	pauseMenu.AddChild(menuButton)
+	bc.AddChild(stdButton("Resume", func(args *widget.ButtonClickedEventArgs) {
+		s.app.ChangeState(s.app.GetState(StateRomRunning))
+	}))
+	bc.AddChild(stdButton("Reset", func(args *widget.ButtonClickedEventArgs) {
+		s.app.emulator.Reset()
+		s.app.ChangeState(s.app.GetState(StateRomRunning))
+	}))
+	bc.AddChild(stdButton("Restart", func(args *widget.ButtonClickedEventArgs) {
+		s.app.emulator.Restart()
+		s.app.ChangeState(s.app.GetState(StateRomRunning))
+	}))
+	bc.AddChild(stdButton("Stop", func(args *widget.ButtonClickedEventArgs) {
+		s.app.emulator.Stop()
+		s.app.ChangeState(s.app.GetState(StateRomList))
+	}))
 
 	overlay.AddChild(pauseMenu)
 	s.root.AddChild(overlay)
@@ -140,11 +121,13 @@ func (s *PausedState) initUI() {
 
 // Enter implements State interface
 func (s *PausedState) Enter(prevState State) {
+	modUI.InfoZ("entering paused state").End()
 	s.app.emulator.SetPause(true)
 }
 
 // Exit implements State interface
 func (s *PausedState) Exit(nextState State) {
+	modUI.InfoZ("exiting paused state").End()
 	s.app.emulator.SetPause(false)
 }
 

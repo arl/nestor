@@ -10,6 +10,7 @@ import (
 	"nestor/ines"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 var modUI = log.NewModule("ui")
@@ -61,6 +62,7 @@ func (app *App) Update() error {
 // Draw delegates to the current state
 func (app *App) Draw(screen *ebiten.Image) {
 	app.currentState.Draw(screen)
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %f", ebiten.ActualFPS()))
 }
 
 // Layout implements the ebiten.Game interface
@@ -117,7 +119,6 @@ func (app *App) LaunchEmulator(romPath string) error {
 	return nil
 }
 
-// Config implements StateContext interface
 func (app *App) Config() config.Config {
 	return app.cfg
 }
@@ -126,12 +127,6 @@ func (app *App) GetInput() *input.Provider {
 	return app.input
 }
 
-// GetEmulator implements StateContext interface
-func (app *App) GetEmulator() *emu.Emulator {
-	return app.emulator
-}
-
-// GetFrameChannel returns the channel for receiving frames
 func (app *App) GetFrameChannel() chan *emu.Frame {
 	return app.framech
 }

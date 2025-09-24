@@ -12,12 +12,11 @@ func _() {
 	_ = x[StateRomRunning-1]
 	_ = x[StateRomPaused-2]
 	_ = x[StateConfig-3]
-	_ = x[StateDebug-4]
 }
 
-const _StateID_name = "StateRomListStateRomRunningStateRomPausedStateConfigStateDebug"
+const _StateID_name = "StateRomListStateRomRunningStateRomPausedStateConfig"
 
-var _StateID_index = [...]uint8{0, 12, 27, 41, 52, 62}
+var _StateID_index = [...]uint8{0, 12, 27, 41, 52}
 
 func (i StateID) String() string {
 	if i < 0 || i >= StateID(len(_StateID_index)-1) {
