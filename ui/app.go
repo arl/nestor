@@ -159,5 +159,5 @@ func (app *App) StopEmulator() {
 		return
 	}
 
-	app.emulator.Stop()
+	// app.emulator.Pause()
 }

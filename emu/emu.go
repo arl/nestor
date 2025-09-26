@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sync/atomic"
+	"time"
 
 	"nestor/emu/log"
 	"nestor/hw/input"
@@ -53,11 +54,11 @@ type Emulator struct {
 	out *Output
 	cfg EmulationConfig
 
-	quit    atomic.Bool // should emulation loop stop
-	running atomic.Bool // is emulation loop running
-
-	// softReset  atomic.Bool
-	// hardReset  atomic.Bool
+	// These are accessed concurrently by the emulator loop and the UI.
+	quit    atomic.Bool
+	paused  atomic.Bool
+	reset   atomic.Bool
+	restart atomic.Bool
 
 	tmpdir string
 }
@@ -133,29 +134,54 @@ func (e *Emulator) RunFrameWithRunAhead() {
 }
 
 func (e *Emulator) Run() {
-	e.running.Store(true)
-	e.quit.Store(false)
-
-	for !e.quit.Load() {
-		e.RunOneFrame()
-
-		// if e.hardReset.Load() {
-		// 	e.NES.Reset(false)
-		// 	e.hardReset.Store(false)
-		// } else if e.softReset.Load() {
-		// 	e.NES.Reset(true)
-		// 	e.softReset.Store(false)
-		// } else {
-		// 	break
-		// }
-	}
-	e.running.Store(false)
-
+	e.loop()
 	log.ModEmu.InfoZ("Emulation loop exited").End()
 
 	if e.tmpdir != "" {
 		e.save()
 	}
+}
+
+func (e *Emulator) loop() {
+	for e.out.Poll() {
+		// Handle pause.
+		if e.isPaused() {
+			// Don't burn cpu while paused.
+			time.Sleep(100 * time.Millisecond)
+		} else {
+			e.RunOneFrame()
+		}
+		if e.shouldStop() {
+			break
+		}
+		e.handleReset()
+	}
+}
+
+func (e *Emulator) handleReset() {
+	if e.reset.CompareAndSwap(true, false) {
+		log.ModEmu.InfoZ("Performing soft reset").End()
+		e.NES.Reset(true)
+	} else if e.restart.CompareAndSwap(true, false) {
+		log.ModEmu.InfoZ("Performing hard reset").End()
+		e.NES.Reset(false)
+	}
+}
+
+// SetPause, Stop, Reset and Restart allows to control
+// the emulator loop in a concurrent-safe way.
+
+func (e *Emulator) SetPause(pause bool) { e.paused.CompareAndSwap(!pause, pause) }
+func (e *Emulator) Reset()              { e.reset.Store(true) }
+func (e *Emulator) Restart()            { e.restart.Store(true) }
+func (e *Emulator) Stop()               { e.quit.Store(true) }
+
+func (e *Emulator) isPaused() bool {
+	return e.paused.Load()
+}
+
+func (e *Emulator) shouldStop() bool {
+	return e.quit.Load() || e.NES.CPU.IsHalted()
 }
 
 func (e *Emulator) save() {
@@ -188,12 +214,6 @@ func (e *Emulator) save() {
 }
 
 func (e *Emulator) SetTempDir(path string) { e.tmpdir = path }
-
-// Stop stops the emulator loop in a concurrent safe way.
-func (e *Emulator) Stop() { e.quit.Store(true) }
-
-// IsRunning returns whether the emulator is running.
-func (e *Emulator) IsRunning() bool { return e.running.Load() }
 
 /*
 // SoftReset stops the emulator and performs a soft reset.
