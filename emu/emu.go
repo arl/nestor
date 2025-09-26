@@ -53,9 +53,11 @@ type Emulator struct {
 	out *Output
 	cfg EmulationConfig
 
-	quit      atomic.Bool
-	softReset atomic.Bool
-	hardReset atomic.Bool
+	quit    atomic.Bool // should emulation loop stop
+	running atomic.Bool // is emulation loop running
+
+	// softReset  atomic.Bool
+	// hardReset  atomic.Bool
 
 	tmpdir string
 }
@@ -131,22 +133,23 @@ func (e *Emulator) RunFrameWithRunAhead() {
 }
 
 func (e *Emulator) Run() {
-	for {
-		for !e.quit.Load() {
-			e.RunOneFrame()
-		}
-		e.quit.Store(false)
+	e.running.Store(true)
+	e.quit.Store(false)
 
-		if e.hardReset.Load() {
-			e.NES.Reset(false)
-			e.hardReset.Store(false)
-		} else if e.softReset.Load() {
-			e.NES.Reset(true)
-			e.softReset.Store(false)
-		} else {
-			break
-		}
+	for !e.quit.Load() {
+		e.RunOneFrame()
+
+		// if e.hardReset.Load() {
+		// 	e.NES.Reset(false)
+		// 	e.hardReset.Store(false)
+		// } else if e.softReset.Load() {
+		// 	e.NES.Reset(true)
+		// 	e.softReset.Store(false)
+		// } else {
+		// 	break
+		// }
 	}
+	e.running.Store(false)
 
 	log.ModEmu.InfoZ("Emulation loop exited").End()
 
@@ -189,6 +192,10 @@ func (e *Emulator) SetTempDir(path string) { e.tmpdir = path }
 // Stop stops the emulator loop in a concurrent safe way.
 func (e *Emulator) Stop() { e.quit.Store(true) }
 
+// IsRunning returns whether the emulator is running.
+func (e *Emulator) IsRunning() bool { return e.running.Load() }
+
+/*
 // SoftReset stops the emulator and performs a soft reset.
 func (e *Emulator) SoftReset() {
 	e.Stop()
@@ -202,3 +209,4 @@ func (e *Emulator) HardReset() {
 	log.ModEmu.InfoZ("Performing hard reset").End()
 	e.hardReset.Store(true)
 }
+*/

@@ -93,6 +93,16 @@ func (ui *Provider) paddleState(idx int) uint8 {
 					break
 				}
 			}
+			// case ButtonCtrl:
+			// 	if ctrl := Gamectrls.getByGUID(code.CtrlGUID); ctrl != nil {
+			// 		pressed = ctrl.Button(code.CtrlButton)
+			// 	}
+			// case AxisCtrl:
+			// 	if ctrl := Gamectrls.getByGUID(code.CtrlGUID); ctrl != nil {
+			// 		if ctrl.Axis(code.CtrlAxis) >= JoyAxisThreshold {
+			// 			pressed = 1
+			// 		}
+			// 	}
 		}
 		state |= pressed << i
 	}

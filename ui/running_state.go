@@ -1,18 +1,25 @@
 package ui
 
 import (
+	"sync"
+
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"golang.org/x/image/colornames"
+
+	"nestor/emu"
 )
 
 // RunningState represents the state when a ROM is running
 type RunningState struct {
 	app        *App
 	fullScreen bool
+
+	mu       sync.Mutex
+	emulator *emu.Emulator
 
 	// pause fields
 	paused    bool
@@ -110,6 +117,10 @@ func (s *RunningState) Update() {
 
 // Draw implements State interface
 func (s *RunningState) Draw(screen *ebiten.Image) {
+	if s.paused {
+
+	}
+
 	// fetch frame if not paused
 	if !s.paused {
 		select {

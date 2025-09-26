@@ -140,7 +140,7 @@ func (app *App) ResetEmulator() {
 	app.mu.Lock()
 	defer app.mu.Unlock()
 
-	app.emulator.SoftReset()
+	// app.emulator.SoftReset()
 }
 
 func (app *App) RestartEmulator() {
@@ -151,7 +151,7 @@ func (app *App) RestartEmulator() {
 	app.mu.Lock()
 	defer app.mu.Unlock()
 
-	app.emulator.HardReset()
+	// app.emulator.HardReset()
 }
 
 func (app *App) StopEmulator() {
