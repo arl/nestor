@@ -7,7 +7,6 @@ require (
 	github.com/arl/blip v0.2.2
 	github.com/ebitenui/ebitenui v0.7.1
 	github.com/go-faster/jx v1.1.0
-	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71
 	github.com/google/go-cmp v0.7.0
 	github.com/hajimehoshi/ebiten/v2 v2.8.8
 	github.com/tinylib/msgp v1.3.0

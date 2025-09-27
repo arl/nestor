@@ -5,13 +5,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"slices"
 	"sync/atomic"
 	"time"
 
 	"nestor/emu/log"
 	"nestor/hw/input"
-	"nestor/hw/shaders"
 	"nestor/ines"
 )
 
@@ -36,13 +34,13 @@ type VideoConfig struct {
 
 func (vcfg *VideoConfig) Check() {
 	// Ensure we have a valid shader.
-	if vcfg.Shader == "" {
-		vcfg.Shader = shaders.DefaultName
-	}
-	if !slices.Contains(shaders.Names(), vcfg.Shader) {
-		log.ModEmu.Warnf("Invalid shader name %q, fallback to %q", vcfg.Shader, shaders.DefaultName)
-		vcfg.Shader = shaders.DefaultName
-	}
+	// if vcfg.Shader == "" {
+	// 	vcfg.Shader = shaders.DefaultName
+	// }
+	// if !slices.Contains(shaders.Names(), vcfg.Shader) {
+	// 	log.ModEmu.Warnf("Invalid shader name %q, fallback to %q", vcfg.Shader, shaders.DefaultName)
+	// 	vcfg.Shader = shaders.DefaultName
+	// }
 }
 
 type AudioConfig struct {

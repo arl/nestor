@@ -11,7 +11,6 @@ import (
 	"nestor/emu"
 	"nestor/emu/log"
 	"nestor/hw/input"
-	"nestor/hw/shaders"
 )
 
 type GeneralConfig struct {
@@ -55,7 +54,7 @@ var defaultConfig = Config{
 		Video: emu.VideoConfig{
 			DisableVSync: false,
 			Monitor:      0,
-			Shader:       shaders.DefaultName,
+			Shader:       "",
 		},
 		Audio: emu.AudioConfig{
 			DisableAudio: false,
