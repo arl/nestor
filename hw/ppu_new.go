@@ -429,7 +429,14 @@ func (p *PPU) Read8(addr uint16) uint8 {
 			p.memoryReadBuffer = p.readVram(p.ppuBusAddress & 0x3FFF)
 
 			if (p.ppuBusAddress & 0x3FFF) >= 0x3F00 {
-				returnValue = (p.readPalette(p.ppuBusAddress) & uint8(p.paletteRamMask)) | (p.openBus & 0xC0)
+				returnValue = p.readPalette(p.ppuBusAddress)&uint8(p.paletteRamMask) | p.openBus&0xC0
+
+				// This is a palette read, they're immediate but they still overwrite
+				// the read buffer, on which we apply mirroring (ignor bit 12 of the
+				// vram address). (passes Blargg's vram_access test)
+				const mask uint16 = 1 << 12
+				p.memoryReadBuffer = p.Bus.Read8(p.ppuBusAddress & ^mask)
+
 				openbusMask = 0xC0
 			} else {
 				openbusMask = 0x00
