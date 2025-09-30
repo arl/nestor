@@ -221,7 +221,7 @@ func (a *APU) Run() {
 }
 
 func (a *APU) Enabled() bool           { return a.enabled }
-func (a *APU) setEnabled(enabled bool) { a.enabled = enabled }
+func (a *APU) SetEnabled(enabled bool) { a.enabled = enabled }
 func (a *APU) SetNeedToRun()           { a.needToRun_ = true }
 
 func (a *APU) needToRun(curCycle uint32) bool {

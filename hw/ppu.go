@@ -4,10 +4,7 @@
 package hw
 
 import (
-	"encoding/json"
-	"fmt"
 	"image/color"
-	"os"
 	"unsafe"
 
 	"nestor/emu/log"
@@ -93,27 +90,6 @@ func (p *PPU) BeginFrame(framebuf []byte) {
 
 	// We're using a RGBA8 framebuffer.
 	p.framebuf = unsafe.Slice((*uint32)(unsafe.Pointer(&framebuf[0])), len(framebuf)/4)
-
-	m := map[string]any{
-		"oamMem":        p.oamMem,
-		"oamAddr":       p.oamAddr,
-		"oam":           p.oam,
-		"oam2":          p.oam2,
-		"ppudataBuf":    p.ppudataBuf,
-		"framebuf":      p.framebuf,
-		"oddFrame":      p.oddFrame,
-		"preventVblank": p.preventVblank,
-		"vramAddr":      p.vramAddr,
-		"vramTmp":       p.vramTmp,
-		"writeLatch":    p.writeLatch,
-		"busAddr":       p.busAddr,
-	}
-
-	out, err := json.MarshalIndent(m, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	os.WriteFile(fmt.Sprintf("out/old/%04d.json", p.FrameCount), out, 0644)
 }
 
 func (p *PPU) Reset(_ bool) {

@@ -18,19 +18,19 @@ const (
 	Auto
 )
 
-type PpuRegisters uint16
+type ppureg uint16
 
 const (
-	Control PpuRegisters = iota
-	Mask
-	Status
-	SpriteAddr
-	SpriteData
-	ScrollOffsets
-	VideoMemoryAddr
-	VideoMemoryData
+	PPUCTRL   ppureg = 0x00
+	PPUMASK   ppureg = 0x01
+	PPUSTATUS ppureg = 0x02
+	OAMADDR   ppureg = 0x03
+	OAMDATA   ppureg = 0x04
+	PPUSCROLL ppureg = 0x05
+	PPUADDR   ppureg = 0x06
+	PPUDATA   ppureg = 0x07
 
-	SpriteDMA PpuRegisters = 0x4014
+	OAMDMA ppureg = 0x4014
 )
 
 type ppuControl struct {
@@ -350,18 +350,18 @@ func (p *PPU) WritePALETTE(addr uint16, val uint8) {
 
 // Peek8 reads a PPU register without causing side-effects.
 func (p *PPU) Peek8(addr uint16) uint8 {
-	openBusMask := uint8(0xFF)
-	var returnValue uint8
+	openbusMask := uint8(0xFF)
+	var ret uint8
 
 	switch getRegisterID(addr) {
-	case Status:
-		returnValue = boolToUint8(p.statusFlags.SpriteOverflow)<<5 | boolToUint8(p.statusFlags.Sprite0Hit)<<6 | boolToUint8(p.statusFlags.VerticalBlank)<<7
+	case PPUSTATUS:
+		ret = boolToUint8(p.statusFlags.SpriteOverflow)<<5 | boolToUint8(p.statusFlags.Sprite0Hit)<<6 | boolToUint8(p.statusFlags.VerticalBlank)<<7
 		if p.Scanline == int16(p.nmiScanline) && p.Cycle < 3 {
-			returnValue &^= 0x80 // Clear vertical blank flag
+			ret &^= 0x80 // Clear vertical blank flag
 		}
-		openBusMask = 0x1F
+		openbusMask = 0x1F
 
-	case SpriteData:
+	case OAMDATA:
 		if p.Scanline <= 239 && p.isRenderingEnabled() {
 			if p.Cycle >= 257 && p.Cycle <= 320 {
 				step := (uint8(p.Cycle-257) % 8)
@@ -369,40 +369,40 @@ func (p *PPU) Peek8(addr uint16) uint8 {
 					step = 3
 				}
 				oamAddr := uint8(p.Cycle-257)/8*4 + step
-				returnValue = p.secondarySpriteRam[oamAddr]
+				ret = p.secondarySpriteRam[oamAddr]
 			} else {
-				returnValue = p.oamCopybuffer
+				ret = p.oamCopybuffer
 			}
 		} else {
-			returnValue = p.spriteRam[p.spriteRamAddr]
+			ret = p.spriteRam[p.spriteRamAddr]
 		}
-		openBusMask = 0x00
+		openbusMask = 0x00
 
-	case VideoMemoryData:
-		returnValue = p.memoryReadBuffer
+	case PPUDATA:
+		ret = p.memoryReadBuffer
 		if (p.videoRamAddr & 0x3FFF) >= 0x3F00 {
-			returnValue = p.readPalette(p.videoRamAddr)&uint8(p.paletteRamMask) | (p.openBus & 0xC0)
-			openBusMask = 0xC0
+			ret = p.readPalette(p.videoRamAddr)&uint8(p.paletteRamMask) | (p.openBus & 0xC0)
+			openbusMask = 0xC0
 		} else {
-			openBusMask = 0x00
+			openbusMask = 0x00
 		}
 	}
-	return returnValue | (p.openBus & openBusMask)
+	return ret | (p.openBus & openbusMask)
 }
 
 // Read8 reads from a PPU register, with side-effects.
 func (p *PPU) Read8(addr uint16) uint8 {
-	openBusMask := uint8(0xFF)
+	openbusMask := uint8(0xFF)
 	var returnValue uint8
 
 	switch getRegisterID(addr) {
-	case Status:
+	case PPUSTATUS:
 		p.writeToggle = false
 		returnValue = boolToUint8(p.statusFlags.SpriteOverflow)<<5 | boolToUint8(p.statusFlags.Sprite0Hit)<<6 | boolToUint8(p.statusFlags.VerticalBlank)<<7
 		// TODO: C++ line 417: UpdateStatusFlag();
 		p.updateStatusFlag()
-		openBusMask = 0x1F
-	case SpriteData:
+		openbusMask = 0x1F
+	case OAMDATA:
 		if p.Scanline <= 239 && p.isRenderingEnabled() {
 			if p.Cycle >= 257 && p.Cycle <= 320 {
 				step := (uint8(p.Cycle-257) % 8)
@@ -416,23 +416,23 @@ func (p *PPU) Read8(addr uint16) uint8 {
 		} else {
 			returnValue = p.readSpriteRam(p.spriteRamAddr)
 		}
-		openBusMask = 0x00
+		openbusMask = 0x00
 
-	case VideoMemoryData:
+	case PPUDATA:
 		if p.ignoreVramRead != 0 {
 			// 2 reads to $2007 in quick succession (2 consecutive CPU
 			// cycles) causes the 2nd read to be ignored (normally depends
 			// on PPU/CPU timing, but this is the simplest solution)
-			openBusMask = 0xFF
+			openbusMask = 0xFF
 		} else {
 			returnValue = p.memoryReadBuffer
 			p.memoryReadBuffer = p.readVram(p.ppuBusAddress & 0x3FFF)
 
 			if (p.ppuBusAddress & 0x3FFF) >= 0x3F00 {
 				returnValue = (p.readPalette(p.ppuBusAddress) & uint8(p.paletteRamMask)) | (p.openBus & 0xC0)
-				openBusMask = 0xC0
+				openbusMask = 0xC0
 			} else {
-				openBusMask = 0x00
+				openbusMask = 0x00
 			}
 
 			p.ignoreVramRead = 6
@@ -440,7 +440,7 @@ func (p *PPU) Read8(addr uint16) uint8 {
 			p.needVideoRamIncrement = true
 		}
 	}
-	return p.applyOpenBus(openBusMask, returnValue)
+	return p.applyOpenBus(openbusMask, returnValue)
 }
 
 // Write8 writes to a PPU register.
@@ -450,13 +450,13 @@ func (p *PPU) Write8(addr uint16, value uint8) {
 	}
 
 	switch getRegisterID(addr) {
-	case Control:
+	case PPUCTRL:
 		p.setControlRegister(value)
-	case Mask:
+	case PPUMASK:
 		p.setMaskRegister(value)
-	case SpriteAddr:
+	case OAMADDR:
 		p.spriteRamAddr = value
-	case SpriteData:
+	case OAMDATA:
 		if (p.Scanline >= 240 && (p.region != Pal || p.Scanline < int16(p.palSpriteEvalScanline))) || !p.isRenderingEnabled() {
 			if (p.spriteRamAddr & 0x03) == 0x02 {
 				value &= 0xE3
@@ -466,7 +466,7 @@ func (p *PPU) Write8(addr uint16, value uint8) {
 		} else {
 			p.spriteRamAddr = (p.spriteRamAddr + 4) & 0xFF
 		}
-	case ScrollOffsets:
+	case PPUSCROLL:
 		if p.writeToggle {
 			p.tmpVideoRamAddr = (p.tmpVideoRamAddr & ^uint16(0x73E0)) | (uint16(value&0xF8) << 2) | (uint16(value&0x07) << 12)
 		} else {
@@ -475,7 +475,7 @@ func (p *PPU) Write8(addr uint16, value uint8) {
 			p.tmpVideoRamAddr = newAddr
 		}
 		p.writeToggle = !p.writeToggle
-	case VideoMemoryAddr:
+	case PPUADDR:
 		if p.writeToggle {
 			p.tmpVideoRamAddr = (p.tmpVideoRamAddr & ^uint16(0x00FF)) | uint16(value)
 			p.needStateUpdate = true
@@ -486,7 +486,7 @@ func (p *PPU) Write8(addr uint16, value uint8) {
 			p.tmpVideoRamAddr = newAddr
 		}
 		p.writeToggle = !p.writeToggle
-	case VideoMemoryData:
+	case PPUDATA:
 		if (p.ppuBusAddress & 0x3FFF) >= 0x3F00 {
 			p.WritePALETTE(p.ppuBusAddress, value)
 		} else {
@@ -862,11 +862,11 @@ func (p *PPU) loadTileInfo() {
 
 // --- Unexported (Private/Protected) Methods ---
 
-func getRegisterID(addr uint16) PpuRegisters {
+func getRegisterID(addr uint16) ppureg {
 	if addr == 0x4014 {
-		return SpriteDMA
+		return OAMDMA
 	}
-	return PpuRegisters(addr & 0x07)
+	return ppureg(addr & 0x07)
 }
 
 func (p *PPU) updateVideoRamAddr() {
@@ -1262,13 +1262,13 @@ func (p *PPU) State() *snapshot.PPU {
 
 	copy(state.PaletteRAM[:], p.Palette.Data[:])
 	copy(state.SpriteRAM[:], p.spriteRam[:])
-	copy(state.SecondarySpriteRam[:], p.secondarySpriteRam[:])
+	copy(state.SecondarySpriteRAM[:], p.secondarySpriteRam[:])
 	copy(state.OpenBusDecayStamp[:], p.openBusDecayStamp[:])
 
-	state.SpriteRamAddr = p.spriteRamAddr
-	state.VideoRamAddr = p.videoRamAddr
+	state.SpriteRAMAddr = p.spriteRamAddr
+	state.VRAMAddr = p.videoRamAddr
 	state.XScroll = p.xScroll
-	state.TmpVideoRamAddr = p.tmpVideoRamAddr
+	state.TmpVRAMAddr = p.tmpVideoRamAddr
 	state.WriteToggle = p.writeToggle
 
 	state.HighBitShift = p.highBitShift
@@ -1276,7 +1276,7 @@ func (p *PPU) State() *snapshot.PPU {
 
 	state.PPUCTRL = snapshot.PPUCTRL(p.control)
 	state.PPUMASK = snapshot.PPUMASK(p.mask)
-	state.PaletteRamMask = p.paletteRamMask
+	state.PaletteRAMMask = p.paletteRamMask
 	state.IntensifyColorBits = p.intensifyColorBits
 
 	state.PPUSTATUS = snapshot.PPUSTATUS(p.statusFlags)
@@ -1299,13 +1299,13 @@ func (p *PPU) State() *snapshot.PPU {
 	state.Sprite0Added = p.sprite0Added
 	state.Sprite0Visible = p.sprite0Visible
 	state.OAMCopybuffer = p.oamCopybuffer
-	state.SecondaryOamAddr = p.secondaryOamAddr
+	state.SecondaryOAMAddr = p.secondaryOamAddr
 	state.SpriteInRange = p.spriteInRange
 	state.RenderingEnabled = p.renderingEnabled
 	state.PrevRenderingEnabled = p.prevRenderingEnabled
 
 	state.OpenBus = p.openBus
-	state.IgnoreVramRead = p.ignoreVramRead
+	state.IgnoreVRAMRead = p.ignoreVramRead
 
 	state.OAMCopyDone = p.oamCopyDone
 
@@ -1313,8 +1313,8 @@ func (p *PPU) State() *snapshot.PPU {
 	state.NeedVideoRAMIncrement = p.needVideoRamIncrement
 	state.PreventVblFlag = p.preventVblFlag
 	state.OverflowBugCounter = p.overflowBugCounter
-	state.UpdateVramAddr = p.updateVramAddr
-	state.UpdateVramAddrDelay = p.updateVramAddrDelay
+	state.UpdateVRAMAddr = p.updateVramAddr
+	state.UpdateVRAMAddrDelay = p.updateVramAddrDelay
 	state.AllowFullPpuAccess = p.allowFullPpuAccess
 
 	for i := range p.spriteCount {
