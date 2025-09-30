@@ -34,7 +34,7 @@ func (f *textFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 }
 
 func Disable() {
-	logrus.SetLevel(PanicLevel)
+	SetLevel(PanicLevel)
 }
 
 func SetOutput(out io.Writer) {

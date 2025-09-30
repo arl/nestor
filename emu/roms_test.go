@@ -34,7 +34,9 @@ func TestNestest(t *testing.T) {
 	}
 	t.Cleanup(func() { flog.Close() })
 
-	println("nestest log:", flog.Name())
+	if testing.Verbose() {
+		println("nestest log:", flog.Name())
+	}
 
 	nes, err := powerUp(rom)
 	if err != nil {
