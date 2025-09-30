@@ -1,6 +1,8 @@
 package hw
 
 import (
+	"fmt"
+	"os"
 	"unsafe"
 
 	"nestor/hw/hwio"
@@ -73,14 +75,15 @@ type spriteInfo struct {
 	BackgroundPriority bool
 }
 
-// --- NesPpu Struct ---
-
 type PPU struct {
 	CPU *CPU
 
 	// Clocking
-	masterClock        uint64
-	masterClockDivider int
+	masterClock uint64
+	Cycle       uint32
+	Scanline    int16
+
+	masterClockDivider uint8
 
 	// RGBA Frame Buffer
 	framebuf []uint32
@@ -110,12 +113,10 @@ type PPU struct {
 	spriteRamAddr     uint8
 	ppuBusAddress     uint16
 	openBus           uint8
-	openBusDecayStamp [8]uint64
+	openBusDecayStamp [8]int32
 
 	// Rendering state
-	Scanline                       int
-	Cycle                          int
-	FrameCount                     uint64
+	FrameCount                     uint32
 	renderingEnabled               bool
 	prevRenderingEnabled           bool
 	lowBitShift                    uint16
@@ -126,15 +127,15 @@ type PPU struct {
 	needStateUpdate                bool
 	needVideoRamIncrement          bool
 	ignoreVramRead                 int
-	updateVramAddrDelay            int
+	updateVramAddrDelay            uint8
 	updateVramAddr                 uint16
 	preventVblFlag                 bool
 	allowFullPpuAccess             bool
 	intensifyColorBits             uint16
 	paletteRamMask                 uint16
-	minimumDrawBgCycle             int
-	minimumDrawSpriteCycle         int
-	minimumDrawSpriteStandardCycle int
+	minimumDrawBgCycle             uint16
+	minimumDrawSpriteCycle         uint16
+	minimumDrawSpriteStandardCycle uint16
 
 	// Sprite evaluation state
 	spriteTiles            [64]spriteInfo // max possible sprites
@@ -150,7 +151,7 @@ type PPU struct {
 	sprite0Added           bool
 	sprite0Visible         bool
 	lastSprite             *spriteInfo
-	overflowBugCounter     int
+	overflowBugCounter     uint8
 	firstVisibleSpriteAddr uint32
 	lastVisibleSpriteAddr  uint32
 
@@ -159,14 +160,14 @@ type PPU struct {
 
 	// Region-specific timings
 	region                ConsoleRegion
-	nmiScanline           int
-	vblankEnd             int
-	standardNmiScanline   int
-	standardVblankEnd     int
-	palSpriteEvalScanline int
+	nmiScanline           int16
+	vblankEnd             int16
+	standardNmiScanline   int16
+	standardVblankEnd     int16
+	palSpriteEvalScanline int16
 
 	// Misc
-	lastUpdatedPixel int
+	lastUpdatedPixel int32
 }
 
 // NewPPU creates and initializes a new NesPpu instance.
@@ -204,6 +205,8 @@ func (p *PPU) BeginFrame(framebuf []byte) {
 
 // Reset resets the PPU to a startup or post-reset state.
 func (p *PPU) Reset(softReset bool) {
+	Log("reset ppu %d\n", boolToUint8(softReset))
+
 	p.masterClock = 0
 
 	p.preventVblFlag = false
@@ -212,7 +215,7 @@ func (p *PPU) Reset(softReset bool) {
 	p.renderingEnabled = false
 	p.ignoreVramRead = 0
 	p.openBus = 0
-	p.openBusDecayStamp = [8]uint64{}
+	p.openBusDecayStamp = [8]int32{}
 	p.tmpVideoRamAddr = 0
 	p.highBitShift = 0
 	p.lowBitShift = 0
@@ -353,7 +356,7 @@ func (p *PPU) Peek8(addr uint16) uint8 {
 	switch getRegisterID(addr) {
 	case Status:
 		returnValue = boolToUint8(p.statusFlags.SpriteOverflow)<<5 | boolToUint8(p.statusFlags.Sprite0Hit)<<6 | boolToUint8(p.statusFlags.VerticalBlank)<<7
-		if p.Scanline == p.nmiScanline && p.Cycle < 3 {
+		if p.Scanline == int16(p.nmiScanline) && p.Cycle < 3 {
 			returnValue &^= 0x80 // Clear vertical blank flag
 		}
 		openBusMask = 0x1F
@@ -454,7 +457,7 @@ func (p *PPU) Write8(addr uint16, value uint8) {
 	case SpriteAddr:
 		p.spriteRamAddr = value
 	case SpriteData:
-		if (p.Scanline >= 240 && (p.region != Pal || p.Scanline < p.palSpriteEvalScanline)) || !p.isRenderingEnabled() {
+		if (p.Scanline >= 240 && (p.region != Pal || p.Scanline < int16(p.palSpriteEvalScanline))) || !p.isRenderingEnabled() {
 			if (p.spriteRamAddr & 0x03) == 0x02 {
 				value &= 0xE3
 			}
@@ -644,8 +647,23 @@ func (p *PPU) shiftTileRegisters() {
 	p.highBitShift <<= 1
 }
 
+var plog *os.File
+
+func Log(format string, args ...any) {
+	if plog == nil {
+		var err error
+		plog, err = os.Create("/tmp/nestor.log")
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	fmt.Fprintf(plog, format+"\n", args...)
+}
+
 func (p *PPU) loadSpriteTileInfo() {
 	sprite := p.secondarySpriteRam[p.spriteIndex*4:]
+	Log("LoadSpriteTileInfo Cycle %d Scanline %d spriteY %d tileIndex %d attributes %d spriteX %d", p.Cycle, p.Scanline, sprite[0], sprite[1], sprite[2], sprite[3])
 
 	p.loadSprite(sprite[0], sprite[1], sprite[2], sprite[3])
 }
@@ -659,12 +677,12 @@ func (p *PPU) loadSprite(spriteY, tileIndex, attributes, spriteX uint8) {
 	var lineOffset uint8
 	if verticalMirror {
 		if p.control.LargeSprites {
-			lineOffset = 15 - uint8(p.Scanline-int(spriteY))
+			lineOffset = 15 - uint8(p.Scanline-int16(spriteY))
 		} else {
-			lineOffset = 7 - uint8(p.Scanline-int(spriteY))
+			lineOffset = 7 - uint8(p.Scanline-int16(spriteY))
 		}
 	} else {
-		lineOffset = uint8(p.Scanline - int(spriteY))
+		lineOffset = uint8(p.Scanline - int16(spriteY))
 	}
 
 	if p.control.LargeSprites {
@@ -761,7 +779,7 @@ func (p *PPU) drawPixel() {
 		colidx = p.Palette.Data[p.videoRamAddr&0x1F]
 	}
 
-	p.framebuf[(p.Scanline<<8)+p.Cycle-1] = nesPalette[colidx]
+	p.framebuf[(uint32(p.Scanline)<<8)+p.Cycle-1] = nesPalette[colidx]
 }
 
 func (p *PPU) pixelColor() uint8 {
@@ -769,13 +787,13 @@ func (p *PPU) pixelColor() uint8 {
 	backgroundColor := uint8(0)
 	spriteBgColor := uint8(0)
 
-	if p.Cycle > p.minimumDrawBgCycle {
+	if p.Cycle > uint32(p.minimumDrawBgCycle) {
 		// BackgroundMask = false: Hide background in leftmost 8 pixels of screen
 		spriteBgColor = uint8((((p.lowBitShift << offset) & 0x8000) >> 15) | (((p.highBitShift << offset) & 0x8000) >> 14))
 		backgroundColor = spriteBgColor
 	}
 
-	if p.hasSprite[p.Cycle] && p.Cycle > p.minimumDrawSpriteCycle {
+	if p.hasSprite[p.Cycle] && p.Cycle > uint32(p.minimumDrawSpriteCycle) {
 		// SpriteMask = true: Hide sprites in leftmost 8 pixels of screen
 		for i := range p.spriteCount {
 			shift := int32(p.Cycle) - int32(p.spriteTiles[i].SpriteX) - 1
@@ -790,7 +808,7 @@ func (p *PPU) pixelColor() uint8 {
 
 				if spriteColor != 0 {
 					// First sprite without a 00 color, use it.
-					if i == 0 && spriteBgColor != 0 && p.sprite0Visible && p.Cycle != 256 && p.mask.BackgroundEnabled && !p.statusFlags.Sprite0Hit && p.Cycle > p.minimumDrawSpriteStandardCycle {
+					if i == 0 && spriteBgColor != 0 && p.sprite0Visible && p.Cycle != 256 && p.mask.BackgroundEnabled && !p.statusFlags.Sprite0Hit && p.Cycle > uint32(p.minimumDrawSpriteStandardCycle) {
 						//  "The hit condition is basically sprite zero is in
 						//   range AND the first sprite output unit is outputting
 						//   a non-zero pixel AND the background drawing unit is
@@ -869,7 +887,7 @@ func (p *PPU) setOpenBus(mask, value uint8) {
 	if mask == 0xFF {
 		p.openBus = value
 		for i := range 8 {
-			p.openBusDecayStamp[i] = p.FrameCount
+			p.openBusDecayStamp[i] = int32(p.FrameCount)
 		}
 	} else {
 		var openBus uint16 = uint16(p.openBus) << 8
@@ -881,8 +899,8 @@ func (p *PPU) setOpenBus(mask, value uint8) {
 				} else {
 					openBus &^= 0x0080
 				}
-				p.openBusDecayStamp[i] = p.FrameCount
-			} else if p.FrameCount-p.openBusDecayStamp[i] > 3 {
+				p.openBusDecayStamp[i] = int32(p.FrameCount)
+			} else if int32(p.FrameCount)-p.openBusDecayStamp[i] > 3 {
 				openBus &^= 0x0080
 			}
 			value >>= 1
@@ -1139,12 +1157,12 @@ func (p *PPU) processSpriteEvaluation() {
 						p.oamCopybuffer = p.secondarySpriteRam[p.secondaryOamAddr&0x1F]
 					}
 				} else {
-					spriteHeight := 8
+					spriteHeight := uint8(8)
 					if p.control.LargeSprites {
 						spriteHeight = 16
 					}
 
-					if !p.spriteInRange && p.Scanline >= int(p.oamCopybuffer) && p.Scanline < int(p.oamCopybuffer)+spriteHeight {
+					if !p.spriteInRange && p.Scanline >= int16(p.oamCopybuffer) && p.Scanline < int16(p.oamCopybuffer+spriteHeight) {
 						p.spriteInRange = !p.oamCopyDone
 					}
 
@@ -1169,11 +1187,11 @@ func (p *PPU) processSpriteEvaluation() {
 								p.lastVisibleSpriteAddr = uint32(p.spriteAddrH-1) * 4
 
 								if p.spriteAddrL != 0 {
-									spriteHeight := 8
+									spriteHeight := uint8(8)
 									if p.control.LargeSprites {
 										spriteHeight = 16
 									}
-									inRange := p.Scanline >= int(p.oamCopybuffer) && p.Scanline < int(p.oamCopybuffer)+spriteHeight
+									inRange := p.Scanline >= int16(p.oamCopybuffer) && p.Scanline < int16(p.oamCopybuffer+spriteHeight)
 									if !inRange {
 										p.spriteAddrL = 0
 									}

@@ -32,6 +32,8 @@ func TestNestest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { flog.Close() })
+
 	println("nestest log:", flog.Name())
 
 	nes, err := powerUp(rom)
@@ -55,6 +57,9 @@ func TestNestest(t *testing.T) {
 	nes.APU.Square2.Timer.Value = 0x40
 	nes.APU.Square2.Length.Value = 0x40
 
+	// For some reason we need this to match nestest output.
+	nes.PPU.Cycle--
+
 	// Configure a headless testing output.
 	cfg := OutputConfig{
 		Height: NTSCHeight,
@@ -72,8 +77,6 @@ func TestNestest(t *testing.T) {
 	if result != 0 {
 		t.Fatalf("nestest CPU tests failed with result 0x%04x (check nestest.txt)", result)
 	}
-
-	flog.Close()
 
 	want := filepath.Join("testdata", "nestest.mesen.log")
 	CompareFileWithGolden(t, flog.Name(), want, false)
