@@ -12,8 +12,8 @@ import (
 type ConsoleRegion int
 
 const (
-	Ntsc ConsoleRegion = iota
-	Pal
+	NTSC ConsoleRegion = iota
+	PAL
 	Dendy
 	Auto
 )
@@ -103,46 +103,45 @@ type PPU struct {
 	memoryReadBuffer   uint8
 
 	// PPU Registers state
-	control           ppuControl
-	mask              ppuMask
-	statusFlags       ppuStatus
-	videoRamAddr      uint16 // 'v'
-	tmpVideoRamAddr   uint16 // 't'
-	xScroll           uint8  // fine x
-	writeToggle       bool
-	spriteRamAddr     uint8
-	ppuBusAddress     uint16
-	openBus           uint8
-	openBusDecayStamp [8]int32
+	control      ppuControl
+	mask         ppuMask
+	status       ppuStatus
+	vramAddr     uint16 // 'v'
+	vramAddrTemp uint16 // 't'
+	xscroll      uint8  // fine x
+	writelatch   bool
+	oamaddr      uint8
+	busaddr      uint16
+	openbus      uint8
+	openbusDecay [8]int32
 
 	// Rendering state
-	FrameCount                     uint32
-	renderingEnabled               bool
-	prevRenderingEnabled           bool
-	lowBitShift                    uint16
-	highBitShift                   uint16
-	tile                           tileInfo
-	currentTilePalette             uint8
-	previousTilePalette            uint8
-	needStateUpdate                bool
-	needVideoRamIncrement          bool
-	ignoreVramRead                 int
-	updateVramAddrDelay            uint8
-	updateVramAddr                 uint16
-	preventVblFlag                 bool
-	allowFullPpuAccess             bool
-	intensifyColorBits             uint16
-	paletteRamMask                 uint16
-	minimumDrawBgCycle             uint16
-	minimumDrawSpriteCycle         uint16
-	minimumDrawSpriteStandardCycle uint16
+	FrameCount          uint32
+	renderingON         bool
+	prevRenderingON     bool
+	lobitShift          uint16
+	hibitShift          uint16
+	tile                tileInfo
+	curTilePalette      uint8
+	prevTilePalette     uint8
+	needStateUpdate     bool
+	needVRAMIncr        bool
+	ignoreVRAMRead      int
+	updateVRAMAddrDelay uint8
+	updateVRAMAddr      uint16
+	preventVBlank       bool
+	fullAccessON        bool
+	paletteRamMask      uint16
+	minCycleBGDraw      uint16
+	minCycleSpriteDraw  uint16
+	minCycleSpriteStd   uint16
 
 	// Sprite evaluation state
 	spriteTiles            [64]spriteInfo // max possible sprites
 	hasSprite              [257]bool
 	spriteCount            int
 	secondaryOamAddr       uint8
-	spriteIndex            int
+	idxSprite              int
 	spriteInRange          bool
 	oamCopybuffer          uint8
 	oamCopyDone            bool
@@ -162,8 +161,8 @@ type PPU struct {
 	region                ConsoleRegion
 	nmiScanline           int16
 	vblankEnd             int16
-	standardNmiScanline   int16
-	standardVblankEnd     int16
+	stdNMIScanline        int16
+	stdVBlankEnd          int16
 	palSpriteEvalScanline int16
 
 	// Misc
@@ -190,9 +189,9 @@ func NewPPU() *PPU {
 		0x09, 0x01, 0x34, 0x03, 0x00, 0x04, 0x00, 0x14, 0x08, 0x3A, 0x00, 0x02, 0x00, 0x20, 0x2C, 0x08,
 	})
 
-	p.videoRamAddr = 0
+	p.vramAddr = 0
 
-	p.UpdateTimings(Ntsc)
+	p.UpdateTimings(NTSC)
 	p.Reset(false)
 
 	return p
@@ -209,32 +208,31 @@ func (p *PPU) Reset(softReset bool) {
 
 	p.masterClock = 0
 
-	p.preventVblFlag = false
+	p.preventVBlank = false
 	p.needStateUpdate = false
-	p.prevRenderingEnabled = false
-	p.renderingEnabled = false
-	p.ignoreVramRead = 0
-	p.openBus = 0
-	p.openBusDecayStamp = [8]int32{}
-	p.tmpVideoRamAddr = 0
-	p.highBitShift = 0
-	p.lowBitShift = 0
-	p.spriteRamAddr = 0
-	p.xScroll = 0
-	p.writeToggle = false
+	p.prevRenderingON = false
+	p.renderingON = false
+	p.ignoreVRAMRead = 0
+	p.openbus = 0
+	p.openbusDecay = [8]int32{}
+	p.vramAddrTemp = 0
+	p.hibitShift = 0
+	p.lobitShift = 0
+	p.oamaddr = 0
+	p.xscroll = 0
+	p.writelatch = false
 	p.control = ppuControl{}
 	p.mask = ppuMask{}
 
 	if !softReset {
-		p.statusFlags = ppuStatus{}
-		p.statusFlags.VerticalBlank = false
+		p.status = ppuStatus{}
+		p.status.VerticalBlank = false
 	}
 
 	p.tile = tileInfo{}
-	p.currentTilePalette = 0
-	p.previousTilePalette = 0
-	p.ppuBusAddress = 0
-	p.intensifyColorBits = 0
+	p.curTilePalette = 0
+	p.prevTilePalette = 0
+	p.busaddr = 0
 	p.paletteRamMask = 0x3F
 	p.lastUpdatedPixel = -1
 	p.lastSprite = nil
@@ -249,17 +247,17 @@ func (p *PPU) Reset(softReset bool) {
 	p.spriteCount = 0
 	p.secondaryOamAddr = 0
 	p.sprite0Visible = false
-	p.spriteIndex = 0
+	p.idxSprite = 0
 	p.Scanline = -1
 	p.Cycle = 340
 	p.FrameCount = 1
 	p.memoryReadBuffer = 0
 	p.overflowBugCounter = 0
-	p.updateVramAddrDelay = 0
-	p.updateVramAddr = 0
+	p.updateVRAMAddrDelay = 0
+	p.updateVRAMAddr = 0
 	p.firstVisibleSpriteAddr = 0
 	p.lastVisibleSpriteAddr = 0
-	p.allowFullPpuAccess = false
+	p.fullAccessON = false
 
 	p.updateMinimumDrawCycles()
 }
@@ -267,23 +265,23 @@ func (p *PPU) Reset(softReset bool) {
 func (p *PPU) updateMinimumDrawCycles() {
 	switch {
 	case !p.mask.BackgroundEnabled:
-		p.minimumDrawBgCycle = 300
+		p.minCycleBGDraw = 300
 	case !p.mask.BackgroundMask:
-		p.minimumDrawBgCycle = 8
+		p.minCycleBGDraw = 8
 	default:
-		p.minimumDrawBgCycle = 0
+		p.minCycleBGDraw = 0
 	}
 
 	switch {
 	case !p.mask.SpritesEnabled:
-		p.minimumDrawSpriteCycle = 300
-		p.minimumDrawSpriteStandardCycle = 300
+		p.minCycleSpriteDraw = 300
+		p.minCycleSpriteStd = 300
 	case !p.mask.SpriteMask:
-		p.minimumDrawSpriteCycle = 8
-		p.minimumDrawSpriteStandardCycle = 8
+		p.minCycleSpriteDraw = 8
+		p.minCycleSpriteStd = 8
 	default:
-		p.minimumDrawSpriteCycle = 0
-		p.minimumDrawSpriteStandardCycle = 0
+		p.minCycleSpriteDraw = 0
+		p.minCycleSpriteStd = 0
 	}
 }
 
@@ -292,23 +290,23 @@ func (p *PPU) UpdateTimings(region ConsoleRegion) {
 	p.region = region
 
 	switch p.region {
-	case Ntsc:
+	case NTSC:
 		p.nmiScanline = 241
 		p.vblankEnd = 260
-		p.standardNmiScanline = 241
-		p.standardVblankEnd = 260
+		p.stdNMIScanline = 241
+		p.stdVBlankEnd = 260
 		p.masterClockDivider = 4
-	case Pal:
+	case PAL:
 		p.nmiScanline = 241
 		p.vblankEnd = 310
-		p.standardNmiScanline = 241
-		p.standardVblankEnd = 310
+		p.stdNMIScanline = 241
+		p.stdVBlankEnd = 310
 		p.masterClockDivider = 5
 	case Dendy:
 		p.nmiScanline = 291
 		p.vblankEnd = 310
-		p.standardNmiScanline = 291
-		p.standardVblankEnd = 310
+		p.stdNMIScanline = 291
+		p.stdVBlankEnd = 310
 		p.masterClockDivider = 5
 	default:
 		panic("nes region should be set here")
@@ -355,7 +353,7 @@ func (p *PPU) Peek8(addr uint16) uint8 {
 
 	switch getRegisterID(addr) {
 	case PPUSTATUS:
-		ret = boolToUint8(p.statusFlags.SpriteOverflow)<<5 | boolToUint8(p.statusFlags.Sprite0Hit)<<6 | boolToUint8(p.statusFlags.VerticalBlank)<<7
+		ret = boolToUint8(p.status.SpriteOverflow)<<5 | boolToUint8(p.status.Sprite0Hit)<<6 | boolToUint8(p.status.VerticalBlank)<<7
 		if p.Scanline == int16(p.nmiScanline) && p.Cycle < 3 {
 			ret &^= 0x80 // Clear vertical blank flag
 		}
@@ -374,20 +372,20 @@ func (p *PPU) Peek8(addr uint16) uint8 {
 				ret = p.oamCopybuffer
 			}
 		} else {
-			ret = p.spriteRam[p.spriteRamAddr]
+			ret = p.spriteRam[p.oamaddr]
 		}
 		openbusMask = 0x00
 
 	case PPUDATA:
 		ret = p.memoryReadBuffer
-		if (p.videoRamAddr & 0x3FFF) >= 0x3F00 {
-			ret = p.readPalette(p.videoRamAddr)&uint8(p.paletteRamMask) | (p.openBus & 0xC0)
+		if (p.vramAddr & 0x3FFF) >= 0x3F00 {
+			ret = p.readPalette(p.vramAddr)&uint8(p.paletteRamMask) | (p.openbus & 0xC0)
 			openbusMask = 0xC0
 		} else {
 			openbusMask = 0x00
 		}
 	}
-	return ret | (p.openBus & openbusMask)
+	return ret | (p.openbus & openbusMask)
 }
 
 // Read8 reads from a PPU register, with side-effects.
@@ -397,8 +395,8 @@ func (p *PPU) Read8(addr uint16) uint8 {
 
 	switch getRegisterID(addr) {
 	case PPUSTATUS:
-		p.writeToggle = false
-		returnValue = boolToUint8(p.statusFlags.SpriteOverflow)<<5 | boolToUint8(p.statusFlags.Sprite0Hit)<<6 | boolToUint8(p.statusFlags.VerticalBlank)<<7
+		p.writelatch = false
+		returnValue = boolToUint8(p.status.SpriteOverflow)<<5 | boolToUint8(p.status.Sprite0Hit)<<6 | boolToUint8(p.status.VerticalBlank)<<7
 		// TODO: C++ line 417: UpdateStatusFlag();
 		p.updateStatusFlag()
 		openbusMask = 0x1F
@@ -414,37 +412,37 @@ func (p *PPU) Read8(addr uint16) uint8 {
 			}
 			returnValue = p.oamCopybuffer
 		} else {
-			returnValue = p.readSpriteRam(p.spriteRamAddr)
+			returnValue = p.readSpriteRam(p.oamaddr)
 		}
 		openbusMask = 0x00
 
 	case PPUDATA:
-		if p.ignoreVramRead != 0 {
+		if p.ignoreVRAMRead != 0 {
 			// 2 reads to $2007 in quick succession (2 consecutive CPU
 			// cycles) causes the 2nd read to be ignored (normally depends
 			// on PPU/CPU timing, but this is the simplest solution)
 			openbusMask = 0xFF
 		} else {
 			returnValue = p.memoryReadBuffer
-			p.memoryReadBuffer = p.readVram(p.ppuBusAddress & 0x3FFF)
+			p.memoryReadBuffer = p.readVram(p.busaddr & 0x3FFF)
 
-			if (p.ppuBusAddress & 0x3FFF) >= 0x3F00 {
-				returnValue = p.readPalette(p.ppuBusAddress)&uint8(p.paletteRamMask) | p.openBus&0xC0
+			if (p.busaddr & 0x3FFF) >= 0x3F00 {
+				returnValue = p.readPalette(p.busaddr)&uint8(p.paletteRamMask) | p.openbus&0xC0
 
 				// This is a palette read, they're immediate but they still overwrite
 				// the read buffer, on which we apply mirroring (ignor bit 12 of the
 				// vram address). (passes Blargg's vram_access test)
 				const mask uint16 = 1 << 12
-				p.memoryReadBuffer = p.Bus.Read8(p.ppuBusAddress & ^mask)
+				p.memoryReadBuffer = p.Bus.Read8(p.busaddr & ^mask)
 
 				openbusMask = 0xC0
 			} else {
 				openbusMask = 0x00
 			}
 
-			p.ignoreVramRead = 6
+			p.ignoreVRAMRead = 6
 			p.needStateUpdate = true
-			p.needVideoRamIncrement = true
+			p.needVRAMIncr = true
 		}
 	}
 	return p.applyOpenBus(openbusMask, returnValue)
@@ -462,50 +460,50 @@ func (p *PPU) Write8(addr uint16, value uint8) {
 	case PPUMASK:
 		p.setMaskRegister(value)
 	case OAMADDR:
-		p.spriteRamAddr = value
+		p.oamaddr = value
 	case OAMDATA:
-		if (p.Scanline >= 240 && (p.region != Pal || p.Scanline < int16(p.palSpriteEvalScanline))) || !p.isRenderingEnabled() {
-			if (p.spriteRamAddr & 0x03) == 0x02 {
+		if (p.Scanline >= 240 && (p.region != PAL || p.Scanline < int16(p.palSpriteEvalScanline))) || !p.isRenderingEnabled() {
+			if (p.oamaddr & 0x03) == 0x02 {
 				value &= 0xE3
 			}
-			p.writeSpriteRam(p.spriteRamAddr, value)
-			p.spriteRamAddr = (p.spriteRamAddr + 1) & 0xFF
+			p.writeSpriteRam(p.oamaddr, value)
+			p.oamaddr = (p.oamaddr + 1) & 0xFF
 		} else {
-			p.spriteRamAddr = (p.spriteRamAddr + 4) & 0xFF
+			p.oamaddr = (p.oamaddr + 4) & 0xFF
 		}
 	case PPUSCROLL:
-		if p.writeToggle {
-			p.tmpVideoRamAddr = (p.tmpVideoRamAddr & ^uint16(0x73E0)) | (uint16(value&0xF8) << 2) | (uint16(value&0x07) << 12)
+		if p.writelatch {
+			p.vramAddrTemp = (p.vramAddrTemp & ^uint16(0x73E0)) | (uint16(value&0xF8) << 2) | (uint16(value&0x07) << 12)
 		} else {
-			p.xScroll = value & 0x07
-			newAddr := (p.tmpVideoRamAddr & ^uint16(0x001F)) | (uint16(value) >> 3)
-			p.tmpVideoRamAddr = newAddr
+			p.xscroll = value & 0x07
+			newAddr := (p.vramAddrTemp & ^uint16(0x001F)) | (uint16(value) >> 3)
+			p.vramAddrTemp = newAddr
 		}
-		p.writeToggle = !p.writeToggle
+		p.writelatch = !p.writelatch
 	case PPUADDR:
-		if p.writeToggle {
-			p.tmpVideoRamAddr = (p.tmpVideoRamAddr & ^uint16(0x00FF)) | uint16(value)
+		if p.writelatch {
+			p.vramAddrTemp = (p.vramAddrTemp & ^uint16(0x00FF)) | uint16(value)
 			p.needStateUpdate = true
-			p.updateVramAddrDelay = 3
-			p.updateVramAddr = p.tmpVideoRamAddr
+			p.updateVRAMAddrDelay = 3
+			p.updateVRAMAddr = p.vramAddrTemp
 		} else {
-			newAddr := (p.tmpVideoRamAddr & ^uint16(0xFF00)) | (uint16(value&0x3F) << 8)
-			p.tmpVideoRamAddr = newAddr
+			newAddr := (p.vramAddrTemp & ^uint16(0xFF00)) | (uint16(value&0x3F) << 8)
+			p.vramAddrTemp = newAddr
 		}
-		p.writeToggle = !p.writeToggle
+		p.writelatch = !p.writelatch
 	case PPUDATA:
-		if (p.ppuBusAddress & 0x3FFF) >= 0x3F00 {
-			p.WritePALETTE(p.ppuBusAddress, value)
+		if (p.busaddr & 0x3FFF) >= 0x3F00 {
+			p.WritePALETTE(p.busaddr, value)
 		} else {
 			if p.Scanline >= 240 || !p.isRenderingEnabled() {
-				p.writeVram(p.ppuBusAddress&0x3FFF, value)
+				p.writeVram(p.busaddr&0x3FFF, value)
 			} else {
 				// During rendering, the value written is ignored, and instead the address' LSB is used (not confirmed, based on Visual NES)
-				p.writeVram(p.ppuBusAddress&0x3FFF, uint8(p.ppuBusAddress))
+				p.writeVram(p.busaddr&0x3FFF, uint8(p.busaddr))
 			}
 		}
 		p.needStateUpdate = true
-		p.needVideoRamIncrement = true
+		p.needVRAMIncr = true
 	}
 }
 
@@ -532,16 +530,16 @@ func (p *PPU) Tick() {
 		if p.Scanline < 240 {
 			p.ProcessScanline()
 		} else if p.Cycle == 1 && p.Scanline == p.nmiScanline {
-			if !p.preventVblFlag {
-				p.statusFlags.VerticalBlank = true
+			if !p.preventVBlank {
+				p.status.VerticalBlank = true
 				p.beginVBlank()
 			}
-			p.preventVblFlag = false
-		} else if p.region == Pal && p.Scanline >= p.palSpriteEvalScanline {
+			p.preventVBlank = false
+		} else if p.region == PAL && p.Scanline >= p.palSpriteEvalScanline {
 			if p.Cycle <= 256 {
 				p.processSpriteEvaluation()
 			} else if p.Cycle >= 257 && p.Cycle < 320 {
-				p.spriteRamAddr = 0
+				p.oamaddr = 0
 			}
 		}
 	} else {
@@ -558,7 +556,7 @@ func (p *PPU) ProcessScanline() {
 	if p.Cycle <= 256 {
 		p.loadTileInfo()
 
-		if p.prevRenderingEnabled && (p.Cycle&0x07) == 0 {
+		if p.prevRenderingON && (p.Cycle&0x07) == 0 {
 			p.incHorizontalScrolling()
 			if p.Cycle == 256 {
 				p.incVerticalScrolling()
@@ -574,33 +572,33 @@ func (p *PPU) ProcessScanline() {
 		} else if p.Cycle < 9 {
 			//Pre-render scanline logic
 			if p.Cycle == 1 {
-				p.statusFlags.VerticalBlank = false
+				p.status.VerticalBlank = false
 				p.CPU.clearNMIflag()
 			}
-			if p.spriteRamAddr >= 0x08 && p.isRenderingEnabled() {
+			if p.oamaddr >= 0x08 && p.isRenderingEnabled() {
 				// This should only be done if rendering is enabled (otherwise
 				// oam_stress test fails immediately):
 				//
 				//  If OAMADDR is not less than eight when rendering starts, the
 				//  eight bytes starting at OAMADDR & 0xF8 are copied to the
 				//  first eight bytes of OAM"
-				p.writeSpriteRam(uint8(p.Cycle-1), p.readSpriteRam((p.spriteRamAddr&0xF8)+uint8(p.Cycle)-1))
+				p.writeSpriteRam(uint8(p.Cycle-1), p.readSpriteRam((p.oamaddr&0xF8)+uint8(p.Cycle)-1))
 			}
 		}
 	} else if p.Cycle >= 257 && p.Cycle <= 320 {
 		if p.Cycle == 257 {
-			p.spriteIndex = 0
+			p.idxSprite = 0
 			p.hasSprite = [257]bool{}
-			if p.prevRenderingEnabled {
+			if p.prevRenderingON {
 				// Copy horizontal scrolling value from t.
-				p.videoRamAddr = (p.videoRamAddr & ^uint16(0x041F)) | (p.tmpVideoRamAddr & 0x041F)
+				p.vramAddr = (p.vramAddr & ^uint16(0x041F)) | (p.vramAddrTemp & 0x041F)
 			}
 		}
 		if p.isRenderingEnabled() {
 			//  "OAMADDR is set to 0 during each of ticks 257-320 (the sprite
 			//  tile loading interval) of the pre-render and visible scanlines."
 			//  (When rendering)
-			p.spriteRamAddr = 0
+			p.oamaddr = 0
 
 			switch (p.Cycle - 257) % 8 {
 			// Garbage NT sprite fetch (257, 265, 273, etc.) - Required for
@@ -621,7 +619,7 @@ func (p *PPU) ProcessScanline() {
 
 			if p.Scanline == -1 && p.Cycle >= 280 && p.Cycle <= 304 {
 				// copy vertical scrolling value from t
-				p.videoRamAddr = (p.videoRamAddr & ^uint16(0x7BE0)) | (p.tmpVideoRamAddr & 0x7BE0)
+				p.vramAddr = (p.vramAddr & ^uint16(0x7BE0)) | (p.vramAddrTemp & 0x7BE0)
 			}
 		}
 	} else if p.Cycle >= 321 && p.Cycle <= 336 {
@@ -631,16 +629,16 @@ func (p *PPU) ProcessScanline() {
 			if p.isRenderingEnabled() {
 				p.oamCopybuffer = p.secondarySpriteRam[0]
 			}
-		} else if p.prevRenderingEnabled && (p.Cycle == 328 || p.Cycle == 336) {
-			p.lowBitShift <<= 8
-			p.highBitShift <<= 8
+		} else if p.prevRenderingON && (p.Cycle == 328 || p.Cycle == 336) {
+			p.lobitShift <<= 8
+			p.hibitShift <<= 8
 			p.incHorizontalScrolling()
 		}
 	} else if p.Cycle == 337 || p.Cycle == 339 {
 		if p.isRenderingEnabled() {
 			p.tile.TileAddr = uint16(p.readVram(p.getNameTableAddr()))
 
-			if p.Scanline == -1 && p.Cycle == 339 && (p.FrameCount&0x01) != 0 && p.region == Ntsc {
+			if p.Scanline == -1 && p.Cycle == 339 && (p.FrameCount&0x01) != 0 && p.region == NTSC {
 				//This behavior is NTSC-specific - PAL frames are always the same number of cycles
 				//"With rendering enabled, each odd PPU frame is one PPU clock shorter than normal" (skip from 339 to 0, going over 340)
 				p.Cycle = 340
@@ -650,13 +648,18 @@ func (p *PPU) ProcessScanline() {
 }
 
 func (p *PPU) shiftTileRegisters() {
-	p.lowBitShift <<= 1
-	p.highBitShift <<= 1
+	p.lobitShift <<= 1
+	p.hibitShift <<= 1
 }
 
 var plog *os.File
 
+const logEnabled = false
+
 func Log(format string, args ...any) {
+	if !logEnabled {
+		return
+	}
 	if plog == nil {
 		var err error
 		plog, err = os.Create("/tmp/nestor.log")
@@ -669,7 +672,7 @@ func Log(format string, args ...any) {
 }
 
 func (p *PPU) loadSpriteTileInfo() {
-	sprite := p.secondarySpriteRam[p.spriteIndex*4:]
+	sprite := p.secondarySpriteRam[p.idxSprite*4:]
 	Log("LoadSpriteTileInfo Cycle %d Scanline %d spriteY %d tileIndex %d attributes %d spriteX %d", p.Cycle, p.Scanline, sprite[0], sprite[1], sprite[2], sprite[3])
 
 	p.loadSprite(sprite[0], sprite[1], sprite[2], sprite[3])
@@ -709,8 +712,8 @@ func (p *PPU) loadSprite(spriteY, tileIndex, attributes, spriteX uint8) {
 	}
 
 	fetchLastSprite := true
-	if (p.spriteIndex < p.spriteCount) && spriteY < 240 {
-		info := &p.spriteTiles[p.spriteIndex]
+	if (p.idxSprite < p.spriteCount) && spriteY < 240 {
+		info := &p.spriteTiles[p.idxSprite]
 		info.BackgroundPriority = backgroundPriority
 		info.HorizontalMirror = horizontalMirror
 		info.PaletteOffset = ((attributes & 0x03) << 2) | 0x10
@@ -751,7 +754,7 @@ func (p *PPU) loadSprite(spriteY, tileIndex, attributes, spriteX uint8) {
 		p.readVram(tileAddr + 8)
 	}
 
-	p.spriteIndex++
+	p.idxSprite++
 }
 
 // ABGR format. Convenient for little endian since it has the same memory layout
@@ -773,7 +776,7 @@ var nesPalette = [...]uint32{
 func (p *PPU) drawPixel() {
 	var colidx uint8
 	// This is called 3.7 million times per second - needs to be as fast as possible.
-	if p.isRenderingEnabled() || ((p.videoRamAddr & 0x3F00) != 0x3F00) {
+	if p.isRenderingEnabled() || ((p.vramAddr & 0x3F00) != 0x3F00) {
 		color := p.pixelColor()
 		if color&0x03 == 0 {
 			color = 0
@@ -783,24 +786,24 @@ func (p *PPU) drawPixel() {
 		// "If the current VRAM address points in the range $3F00-$3FFF during
 		// forced blanking, the color indicated by this palette location will be
 		// shown on screen instead of the backdrop color."
-		colidx = p.Palette.Data[p.videoRamAddr&0x1F]
+		colidx = p.Palette.Data[p.vramAddr&0x1F]
 	}
 
 	p.framebuf[(uint32(p.Scanline)<<8)+p.Cycle-1] = nesPalette[colidx]
 }
 
 func (p *PPU) pixelColor() uint8 {
-	offset := p.xScroll
+	offset := p.xscroll
 	backgroundColor := uint8(0)
 	spriteBgColor := uint8(0)
 
-	if p.Cycle > uint32(p.minimumDrawBgCycle) {
+	if p.Cycle > uint32(p.minCycleBGDraw) {
 		// BackgroundMask = false: Hide background in leftmost 8 pixels of screen
-		spriteBgColor = uint8((((p.lowBitShift << offset) & 0x8000) >> 15) | (((p.highBitShift << offset) & 0x8000) >> 14))
+		spriteBgColor = uint8((((p.lobitShift << offset) & 0x8000) >> 15) | (((p.hibitShift << offset) & 0x8000) >> 14))
 		backgroundColor = spriteBgColor
 	}
 
-	if p.hasSprite[p.Cycle] && p.Cycle > uint32(p.minimumDrawSpriteCycle) {
+	if p.hasSprite[p.Cycle] && p.Cycle > uint32(p.minCycleSpriteDraw) {
 		// SpriteMask = true: Hide sprites in leftmost 8 pixels of screen
 		for i := range p.spriteCount {
 			shift := int32(p.Cycle) - int32(p.spriteTiles[i].SpriteX) - 1
@@ -815,7 +818,7 @@ func (p *PPU) pixelColor() uint8 {
 
 				if spriteColor != 0 {
 					// First sprite without a 00 color, use it.
-					if i == 0 && spriteBgColor != 0 && p.sprite0Visible && p.Cycle != 256 && p.mask.BackgroundEnabled && !p.statusFlags.Sprite0Hit && p.Cycle > uint32(p.minimumDrawSpriteStandardCycle) {
+					if i == 0 && spriteBgColor != 0 && p.sprite0Visible && p.Cycle != 256 && p.mask.BackgroundEnabled && !p.status.Sprite0Hit && p.Cycle > uint32(p.minCycleSpriteStd) {
 						//  "The hit condition is basically sprite zero is in
 						//   range AND the first sprite output unit is outputting
 						//   a non-zero pixel AND the background drawing unit is
@@ -823,7 +826,7 @@ func (p *PPU) pixelColor() uint8 {
 						//  "Sprite zero hits do not register at x=255" (cycle 256)
 						//  "... provided that background and sprite rendering are both enabled"
 						//  "Should always miss when Y >= 239"
-						p.statusFlags.Sprite0Hit = true
+						p.status.Sprite0Hit = true
 					}
 					if backgroundColor == 0 || !p.spriteTiles[i].BackgroundPriority {
 						// Check sprite priority
@@ -836,26 +839,26 @@ func (p *PPU) pixelColor() uint8 {
 	}
 
 	if offset+uint8((p.Cycle-1)&0x07) < 8 {
-		return p.previousTilePalette + backgroundColor
+		return p.prevTilePalette + backgroundColor
 	}
-	return p.currentTilePalette + backgroundColor
+	return p.curTilePalette + backgroundColor
 }
 
 func (p *PPU) loadTileInfo() {
 	if p.isRenderingEnabled() {
 		switch p.Cycle & 0x07 {
 		case 1:
-			p.previousTilePalette = p.currentTilePalette
-			p.currentTilePalette = p.tile.PaletteOffset
+			p.prevTilePalette = p.curTilePalette
+			p.curTilePalette = p.tile.PaletteOffset
 
-			p.lowBitShift |= uint16(p.tile.LowByte)
-			p.highBitShift |= uint16(p.tile.HighByte)
+			p.lobitShift |= uint16(p.tile.LowByte)
+			p.hibitShift |= uint16(p.tile.HighByte)
 
 			tileIndex := p.readVram(p.getNameTableAddr())
-			p.tile.TileAddr = (uint16(tileIndex) << 4) | (p.videoRamAddr >> 12) | p.control.BackgroundPatternAddr
+			p.tile.TileAddr = (uint16(tileIndex) << 4) | (p.vramAddr >> 12) | p.control.BackgroundPatternAddr
 
 		case 3:
-			shift := ((p.videoRamAddr >> 4) & 0x04) | (p.videoRamAddr & 0x02)
+			shift := ((p.vramAddr >> 4) & 0x04) | (p.vramAddr & 0x02)
 			p.tile.PaletteOffset = ((p.readVram(p.getAttributeAddr()) >> shift) & 0x03) << 2
 
 		case 5:
@@ -882,8 +885,8 @@ func (p *PPU) updateVideoRamAddr() {
 		if p.control.VerticalWrite {
 			increment = 32
 		}
-		p.videoRamAddr = (p.videoRamAddr + increment) & 0x7FFF
-		p.setBusAddress(p.videoRamAddr & 0x3FFF)
+		p.vramAddr = (p.vramAddr + increment) & 0x7FFF
+		p.setBusAddress(p.vramAddr & 0x3FFF)
 	} else {
 		p.incHorizontalScrolling()
 		p.incVerticalScrolling()
@@ -892,12 +895,12 @@ func (p *PPU) updateVideoRamAddr() {
 
 func (p *PPU) setOpenBus(mask, value uint8) {
 	if mask == 0xFF {
-		p.openBus = value
+		p.openbus = value
 		for i := range 8 {
-			p.openBusDecayStamp[i] = int32(p.FrameCount)
+			p.openbusDecay[i] = int32(p.FrameCount)
 		}
 	} else {
-		var openBus uint16 = uint16(p.openBus) << 8
+		var openBus uint16 = uint16(p.openbus) << 8
 		for i := range 8 {
 			openBus >>= 1
 			if (mask & 0x01) != 0 {
@@ -906,26 +909,26 @@ func (p *PPU) setOpenBus(mask, value uint8) {
 				} else {
 					openBus &^= 0x0080
 				}
-				p.openBusDecayStamp[i] = int32(p.FrameCount)
-			} else if int32(p.FrameCount)-p.openBusDecayStamp[i] > 3 {
+				p.openbusDecay[i] = int32(p.FrameCount)
+			} else if int32(p.FrameCount)-p.openbusDecay[i] > 3 {
 				openBus &^= 0x0080
 			}
 			value >>= 1
 			mask >>= 1
 		}
-		p.openBus = uint8(openBus)
+		p.openbus = uint8(openBus)
 	}
 }
 
 func (p *PPU) applyOpenBus(mask, value uint8) uint8 {
 	p.setOpenBus(^mask, value)
-	return value | (p.openBus & mask)
+	return value | (p.openbus & mask)
 }
 
 func (p *PPU) setControlRegister(value uint8) {
 	nameTable := uint16(value & 0x03)
-	normalAddr := (p.tmpVideoRamAddr & ^uint16(0x0C00)) | (nameTable << 10)
-	p.tmpVideoRamAddr = normalAddr
+	normalAddr := (p.vramAddrTemp & ^uint16(0x0C00)) | (nameTable << 10)
+	p.vramAddrTemp = normalAddr
 
 	p.control.VerticalWrite = (value & 0x04) == 0x04
 	p.control.SpritePatternAddr = 0
@@ -942,7 +945,7 @@ func (p *PPU) setControlRegister(value uint8) {
 
 	if !p.control.NmiOnVerticalBlank {
 		p.CPU.clearNMIflag()
-	} else if p.control.NmiOnVerticalBlank && p.statusFlags.VerticalBlank {
+	} else if p.control.NmiOnVerticalBlank && p.status.VerticalBlank {
 		p.CPU.setNMIflag()
 	}
 }
@@ -955,15 +958,15 @@ func (p *PPU) setMaskRegister(value uint8) {
 	p.mask.SpritesEnabled = (value & 0x10) == 0x10
 	p.mask.IntensifyBlue = (value & 0x80) == 0x80
 
-	if p.region == Ntsc {
+	if p.region == NTSC {
 		p.mask.IntensifyRed = (value & 0x20) == 0x20
 		p.mask.IntensifyGreen = (value & 0x40) == 0x40
-	} else if p.region == Pal || p.region == Dendy {
+	} else if p.region == PAL || p.region == Dendy {
 		p.mask.IntensifyRed = (value & 0x40) == 0x40
 		p.mask.IntensifyGreen = (value & 0x20) == 0x20
 	}
 
-	if p.renderingEnabled != (p.mask.BackgroundEnabled || p.mask.SpritesEnabled) {
+	if p.renderingON != (p.mask.BackgroundEnabled || p.mask.SpritesEnabled) {
 		p.needStateUpdate = true
 	}
 
@@ -973,16 +976,16 @@ func (p *PPU) setMaskRegister(value uint8) {
 }
 
 func (p *PPU) updateStatusFlag() {
-	p.statusFlags.VerticalBlank = false
+	p.status.VerticalBlank = false
 	p.CPU.clearNMIflag()
 
 	if p.Scanline == p.nmiScanline && p.Cycle == 0 {
-		p.preventVblFlag = true
+		p.preventVBlank = true
 	}
 }
 
 func (p *PPU) incVerticalScrolling() {
-	addr := p.videoRamAddr
+	addr := p.vramAddr
 	if (addr & 0x7000) != 0x7000 {
 		addr += 0x1000
 	} else {
@@ -999,29 +1002,29 @@ func (p *PPU) incVerticalScrolling() {
 		}
 		addr = (addr & ^uint16(0x03E0)) | (y << 5)
 	}
-	p.videoRamAddr = addr
+	p.vramAddr = addr
 }
 
 func (p *PPU) incHorizontalScrolling() {
-	addr := p.videoRamAddr
+	addr := p.vramAddr
 	if addr&0x001F == 31 {
 		addr = (addr & ^uint16(0x001F)) ^ 0x0400
 	} else {
 		addr++
 	}
-	p.videoRamAddr = addr
+	p.vramAddr = addr
 }
 
 func (p *PPU) getNameTableAddr() uint16 {
-	return 0x2000 | (p.videoRamAddr & 0x0FFF)
+	return 0x2000 | (p.vramAddr & 0x0FFF)
 }
 
 func (p *PPU) getAttributeAddr() uint16 {
-	return 0x23C0 | (p.videoRamAddr & 0x0C00) | ((p.videoRamAddr >> 4) & 0x38) | ((p.videoRamAddr >> 2) & 0x07)
+	return 0x23C0 | (p.vramAddr & 0x0C00) | ((p.vramAddr >> 4) & 0x38) | ((p.vramAddr >> 2) & 0x07)
 }
 
 func (p *PPU) setBusAddress(addr uint16) {
-	p.ppuBusAddress = addr
+	p.busaddr = addr
 }
 
 func (p *PPU) readVram(addr uint16) uint8 {
@@ -1066,16 +1069,16 @@ func (p *PPU) processScanlineFirstCycle() {
 
 	if p.Scanline < 240 {
 		if p.Scanline == -1 {
-			p.statusFlags.SpriteOverflow = false
-			p.statusFlags.Sprite0Hit = false
-			p.allowFullPpuAccess = true
-		} else if p.prevRenderingEnabled {
-			if p.Scanline > 0 || (p.FrameCount&0x01 == 0) || p.region != Ntsc {
-				p.setBusAddress((p.tile.TileAddr << 4) | (p.videoRamAddr >> 12) | p.control.BackgroundPatternAddr)
+			p.status.SpriteOverflow = false
+			p.status.Sprite0Hit = false
+			p.fullAccessON = true
+		} else if p.prevRenderingON {
+			if p.Scanline > 0 || (p.FrameCount&0x01 == 0) || p.region != NTSC {
+				p.setBusAddress((p.tile.TileAddr << 4) | (p.vramAddr >> 12) | p.control.BackgroundPatternAddr)
 			}
 		}
 	} else if p.Scanline == 240 {
-		p.setBusAddress(p.videoRamAddr & 0x3FFF)
+		p.setBusAddress(p.vramAddr & 0x3FFF)
 		p.FrameCount++
 	}
 }
@@ -1083,47 +1086,47 @@ func (p *PPU) processScanlineFirstCycle() {
 func (p *PPU) updateState() {
 	p.needStateUpdate = false
 
-	if p.prevRenderingEnabled != p.renderingEnabled {
-		p.prevRenderingEnabled = p.renderingEnabled
+	if p.prevRenderingON != p.renderingON {
+		p.prevRenderingON = p.renderingON
 		if p.Scanline < 240 {
-			if !p.prevRenderingEnabled {
-				p.setBusAddress(p.videoRamAddr & 0x3FFF)
+			if !p.prevRenderingON {
+				p.setBusAddress(p.vramAddr & 0x3FFF)
 				if p.Cycle >= 65 && p.Cycle <= 256 {
-					p.spriteRamAddr++
-					p.spriteAddrH = (p.spriteRamAddr >> 2) & 0x3F
-					p.spriteAddrL = p.spriteRamAddr & 0x03
+					p.oamaddr++
+					p.spriteAddrH = (p.oamaddr >> 2) & 0x3F
+					p.spriteAddrL = p.oamaddr & 0x03
 				}
 			}
 		}
 	}
 
-	if p.renderingEnabled != (p.mask.BackgroundEnabled || p.mask.SpritesEnabled) {
-		p.renderingEnabled = p.mask.BackgroundEnabled || p.mask.SpritesEnabled
+	if p.renderingON != (p.mask.BackgroundEnabled || p.mask.SpritesEnabled) {
+		p.renderingON = p.mask.BackgroundEnabled || p.mask.SpritesEnabled
 		p.needStateUpdate = true
 	}
 
-	if p.updateVramAddrDelay > 0 {
-		p.updateVramAddrDelay--
-		if p.updateVramAddrDelay == 0 {
-			p.videoRamAddr = p.updateVramAddr
-			p.tmpVideoRamAddr = p.videoRamAddr
+	if p.updateVRAMAddrDelay > 0 {
+		p.updateVRAMAddrDelay--
+		if p.updateVRAMAddrDelay == 0 {
+			p.vramAddr = p.updateVRAMAddr
+			p.vramAddrTemp = p.vramAddr
 			if p.Scanline >= 240 || !p.isRenderingEnabled() {
-				p.setBusAddress(p.videoRamAddr & 0x3FFF)
+				p.setBusAddress(p.vramAddr & 0x3FFF)
 			}
 		} else {
 			p.needStateUpdate = true
 		}
 	}
 
-	if p.ignoreVramRead > 0 {
-		p.ignoreVramRead--
-		if p.ignoreVramRead > 0 {
+	if p.ignoreVRAMRead > 0 {
+		p.ignoreVRAMRead--
+		if p.ignoreVRAMRead > 0 {
 			p.needStateUpdate = true
 		}
 	}
 
-	if p.needVideoRamIncrement {
-		p.needVideoRamIncrement = false
+	if p.needVRAMIncr {
+		p.needVRAMIncr = false
 		p.updateVideoRamAddr()
 	}
 }
@@ -1134,15 +1137,15 @@ func (p *PPU) updateApuStatus() {
 		return
 	}
 
-	if p.Scanline > p.standardVblankEnd {
+	if p.Scanline > p.stdVBlankEnd {
 		p.CPU.APU.SetEnabled(false)
-	} else if p.Scanline >= p.standardNmiScanline && p.Scanline < p.nmiScanline {
+	} else if p.Scanline >= p.stdNMIScanline && p.Scanline < p.nmiScanline {
 		p.CPU.APU.SetEnabled(false)
 	}
 }
 
 func (p *PPU) processSpriteEvaluation() {
-	if p.isRenderingEnabled() || (p.region == Pal && p.Scanline >= p.palSpriteEvalScanline) {
+	if p.isRenderingEnabled() || (p.region == PAL && p.Scanline >= p.palSpriteEvalScanline) {
 		if p.Cycle < 65 {
 			// Clear secondary OAM at between cycle 1 and 64.
 			p.oamCopybuffer = 0xFF
@@ -1152,7 +1155,7 @@ func (p *PPU) processSpriteEvaluation() {
 				if p.Cycle == 65 {
 					p.processSpriteEvaluationStart()
 				}
-				p.oamCopybuffer = p.readSpriteRam(p.spriteRamAddr)
+				p.oamCopybuffer = p.readSpriteRam(p.oamaddr)
 			} else {
 				if p.Cycle == 256 {
 					p.processSpriteEvaluationEnd()
@@ -1217,7 +1220,7 @@ func (p *PPU) processSpriteEvaluation() {
 							p.spriteAddrH = (p.spriteAddrH + 1) & 0x3F
 							p.spriteAddrL = 0
 						} else if p.spriteInRange {
-							p.statusFlags.SpriteOverflow = true
+							p.status.SpriteOverflow = true
 							p.spriteAddrL = (p.spriteAddrL + 1)
 							if p.spriteAddrL == 4 {
 								p.spriteAddrH = (p.spriteAddrH + 1) & 0x3F
@@ -1241,7 +1244,7 @@ func (p *PPU) processSpriteEvaluation() {
 						}
 					}
 				}
-				p.spriteRamAddr = (p.spriteAddrL & 0x03) | (p.spriteAddrH << 2)
+				p.oamaddr = (p.spriteAddrL & 0x03) | (p.spriteAddrH << 2)
 			}
 		}
 	}
@@ -1253,8 +1256,8 @@ func (p *PPU) processSpriteEvaluationStart() {
 	p.secondaryOamAddr = 0
 	p.overflowBugCounter = 0
 	p.oamCopyDone = false
-	p.spriteAddrH = (p.spriteRamAddr >> 2) & 0x3F
-	p.spriteAddrL = p.spriteRamAddr & 0x03
+	p.spriteAddrH = (p.oamaddr >> 2) & 0x3F
+	p.spriteAddrL = p.oamaddr & 0x03
 	p.firstVisibleSpriteAddr = uint32(p.spriteAddrH) * 4
 	p.lastVisibleSpriteAddr = p.firstVisibleSpriteAddr
 }
@@ -1270,36 +1273,35 @@ func (p *PPU) State() *snapshot.PPU {
 	copy(state.PaletteRAM[:], p.Palette.Data[:])
 	copy(state.SpriteRAM[:], p.spriteRam[:])
 	copy(state.SecondarySpriteRAM[:], p.secondarySpriteRam[:])
-	copy(state.OpenBusDecayStamp[:], p.openBusDecayStamp[:])
+	copy(state.OpenBusDecay[:], p.openbusDecay[:])
 
-	state.SpriteRAMAddr = p.spriteRamAddr
-	state.VRAMAddr = p.videoRamAddr
-	state.XScroll = p.xScroll
-	state.TmpVRAMAddr = p.tmpVideoRamAddr
-	state.WriteToggle = p.writeToggle
+	state.OAMAdrr = p.oamaddr
+	state.VRAMAddr = p.vramAddr
+	state.XScroll = p.xscroll
+	state.VRAMAddrTemp = p.vramAddrTemp
+	state.WriteLatch = p.writelatch
 
-	state.HighBitShift = p.highBitShift
-	state.LowBitShift = p.lowBitShift
+	state.HibitShift = p.hibitShift
+	state.LoBitShift = p.lobitShift
 
 	state.PPUCTRL = snapshot.PPUCTRL(p.control)
 	state.PPUMASK = snapshot.PPUMASK(p.mask)
 	state.PaletteRAMMask = p.paletteRamMask
-	state.IntensifyColorBits = p.intensifyColorBits
 
-	state.PPUSTATUS = snapshot.PPUSTATUS(p.statusFlags)
+	state.PPUSTATUS = snapshot.PPUSTATUS(p.status)
 	state.Scanline = int64(p.Scanline)
 	state.Cycle = int64(p.Cycle)
 	state.FrameCount = p.FrameCount
 	state.MemoryReadBuffer = p.memoryReadBuffer
 	state.Region = int(p.region)
-	state.PPUBusAddress = p.ppuBusAddress
+	state.BusAddr = p.busaddr
 	state.MasterClock = p.masterClock
 
-	state.CurrentTilePalette = p.currentTilePalette
+	state.CurTilePalette = p.curTilePalette
 	state.Tile = snapshot.PPUTileInfo(p.tile)
-	state.PreviousTilePalette = p.previousTilePalette
+	state.PrevTilePalette = p.prevTilePalette
 
-	state.SpriteIndex = p.spriteIndex
+	state.IdxSprite = p.idxSprite
 	state.SpriteCount = p.spriteCount
 	state.SpriteAddrH = p.spriteAddrH
 	state.SpriteAddrL = p.spriteAddrL
@@ -1308,21 +1310,21 @@ func (p *PPU) State() *snapshot.PPU {
 	state.OAMCopybuffer = p.oamCopybuffer
 	state.SecondaryOAMAddr = p.secondaryOamAddr
 	state.SpriteInRange = p.spriteInRange
-	state.RenderingEnabled = p.renderingEnabled
-	state.PrevRenderingEnabled = p.prevRenderingEnabled
+	state.RenderingON = p.renderingON
+	state.PrevRenderingON = p.prevRenderingON
 
-	state.OpenBus = p.openBus
-	state.IgnoreVRAMRead = p.ignoreVramRead
+	state.OpenBus = p.openbus
+	state.IgnoreVRAMRead = p.ignoreVRAMRead
 
 	state.OAMCopyDone = p.oamCopyDone
 
 	state.NeedStateUpdate = p.needStateUpdate
-	state.NeedVideoRAMIncrement = p.needVideoRamIncrement
-	state.PreventVblFlag = p.preventVblFlag
+	state.NeedVideoRAMIncrement = p.needVRAMIncr
+	state.PreventVBlank = p.preventVBlank
 	state.OverflowBugCounter = p.overflowBugCounter
-	state.UpdateVRAMAddr = p.updateVramAddr
-	state.UpdateVRAMAddrDelay = p.updateVramAddrDelay
-	state.AllowFullPpuAccess = p.allowFullPpuAccess
+	state.UpdateVRAMAddr = p.updateVRAMAddr
+	state.UpdateVRAMAddrDelay = p.updateVRAMAddrDelay
+	state.FullAccessON = p.fullAccessON
 
 	for i := range p.spriteCount {
 		state.SpriteTiles[i] = snapshot.PPUSpriteInfo(p.spriteTiles[i])

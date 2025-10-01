@@ -3081,21 +3081,21 @@ func (z *PPU) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "SecondarySpriteRAM")
 				return
 			}
-		case "OpenBusDecayStamp":
+		case "OpenBusDecay":
 			var zb0002 uint32
 			zb0002, err = dc.ReadArrayHeader()
 			if err != nil {
-				err = msgp.WrapError(err, "OpenBusDecayStamp")
+				err = msgp.WrapError(err, "OpenBusDecay")
 				return
 			}
 			if zb0002 != uint32(8) {
 				err = msgp.ArrayError{Wanted: uint32(8), Got: zb0002}
 				return
 			}
-			for za0004 := range z.OpenBusDecayStamp {
-				z.OpenBusDecayStamp[za0004], err = dc.ReadInt32()
+			for za0004 := range z.OpenBusDecay {
+				z.OpenBusDecay[za0004], err = dc.ReadInt32()
 				if err != nil {
-					err = msgp.WrapError(err, "OpenBusDecayStamp", za0004)
+					err = msgp.WrapError(err, "OpenBusDecay", za0004)
 					return
 				}
 			}
@@ -3105,10 +3105,10 @@ func (z *PPU) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "MemoryReadBuffer")
 				return
 			}
-		case "SpriteRAMAddr":
-			z.SpriteRAMAddr, err = dc.ReadUint8()
+		case "OAMAdrr":
+			z.OAMAdrr, err = dc.ReadUint8()
 			if err != nil {
-				err = msgp.WrapError(err, "SpriteRAMAddr")
+				err = msgp.WrapError(err, "OAMAdrr")
 				return
 			}
 		case "VRAMAddr":
@@ -3123,28 +3123,28 @@ func (z *PPU) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "XScroll")
 				return
 			}
-		case "TmpVRAMAddr":
-			z.TmpVRAMAddr, err = dc.ReadUint16()
+		case "VRAMAddrTemp":
+			z.VRAMAddrTemp, err = dc.ReadUint16()
 			if err != nil {
-				err = msgp.WrapError(err, "TmpVRAMAddr")
+				err = msgp.WrapError(err, "VRAMAddrTemp")
 				return
 			}
-		case "WriteToggle":
-			z.WriteToggle, err = dc.ReadBool()
+		case "WriteLatch":
+			z.WriteLatch, err = dc.ReadBool()
 			if err != nil {
-				err = msgp.WrapError(err, "WriteToggle")
+				err = msgp.WrapError(err, "WriteLatch")
 				return
 			}
-		case "HighBitShift":
-			z.HighBitShift, err = dc.ReadUint16()
+		case "HibitShift":
+			z.HibitShift, err = dc.ReadUint16()
 			if err != nil {
-				err = msgp.WrapError(err, "HighBitShift")
+				err = msgp.WrapError(err, "HibitShift")
 				return
 			}
-		case "LowBitShift":
-			z.LowBitShift, err = dc.ReadUint16()
+		case "LoBitShift":
+			z.LoBitShift, err = dc.ReadUint16()
 			if err != nil {
-				err = msgp.WrapError(err, "LowBitShift")
+				err = msgp.WrapError(err, "LoBitShift")
 				return
 			}
 		case "PPUCTRL":
@@ -3200,10 +3200,10 @@ func (z *PPU) DecodeMsg(dc *msgp.Reader) (err error) {
 					}
 				}
 			}
-		case "PPUBusAddress":
-			z.PPUBusAddress, err = dc.ReadUint16()
+		case "BusAddr":
+			z.BusAddr, err = dc.ReadUint16()
 			if err != nil {
-				err = msgp.WrapError(err, "PPUBusAddress")
+				err = msgp.WrapError(err, "BusAddr")
 				return
 			}
 		case "PaletteRAMMask":
@@ -3236,16 +3236,16 @@ func (z *PPU) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "FrameCount")
 				return
 			}
-		case "CurrentTilePalette":
-			z.CurrentTilePalette, err = dc.ReadUint8()
+		case "CurTilePalette":
+			z.CurTilePalette, err = dc.ReadUint8()
 			if err != nil {
-				err = msgp.WrapError(err, "CurrentTilePalette")
+				err = msgp.WrapError(err, "CurTilePalette")
 				return
 			}
-		case "PreviousTilePalette":
-			z.PreviousTilePalette, err = dc.ReadUint8()
+		case "PrevTilePalette":
+			z.PrevTilePalette, err = dc.ReadUint8()
 			if err != nil {
-				err = msgp.WrapError(err, "PreviousTilePalette")
+				err = msgp.WrapError(err, "PrevTilePalette")
 				return
 			}
 		case "Tile":
@@ -3278,10 +3278,10 @@ func (z *PPU) DecodeMsg(dc *msgp.Reader) (err error) {
 					return
 				}
 			}
-		case "SpriteIndex":
-			z.SpriteIndex, err = dc.ReadInt()
+		case "IdxSprite":
+			z.IdxSprite, err = dc.ReadInt()
 			if err != nil {
-				err = msgp.WrapError(err, "SpriteIndex")
+				err = msgp.WrapError(err, "IdxSprite")
 				return
 			}
 		case "SpriteCount":
@@ -3332,16 +3332,16 @@ func (z *PPU) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "SpriteInRange")
 				return
 			}
-		case "RenderingEnabled":
-			z.RenderingEnabled, err = dc.ReadBool()
+		case "RenderingON":
+			z.RenderingON, err = dc.ReadBool()
 			if err != nil {
-				err = msgp.WrapError(err, "RenderingEnabled")
+				err = msgp.WrapError(err, "RenderingON")
 				return
 			}
-		case "PrevRenderingEnabled":
-			z.PrevRenderingEnabled, err = dc.ReadBool()
+		case "PrevRenderingON":
+			z.PrevRenderingON, err = dc.ReadBool()
 			if err != nil {
-				err = msgp.WrapError(err, "PrevRenderingEnabled")
+				err = msgp.WrapError(err, "PrevRenderingON")
 				return
 			}
 		case "IgnoreVRAMRead":
@@ -3368,10 +3368,10 @@ func (z *PPU) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "NeedVideoRAMIncrement")
 				return
 			}
-		case "PreventVblFlag":
-			z.PreventVblFlag, err = dc.ReadBool()
+		case "PreventVBlank":
+			z.PreventVBlank, err = dc.ReadBool()
 			if err != nil {
-				err = msgp.WrapError(err, "PreventVblFlag")
+				err = msgp.WrapError(err, "PreventVBlank")
 				return
 			}
 		case "OverflowBugCounter":
@@ -3392,10 +3392,10 @@ func (z *PPU) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "UpdateVRAMAddrDelay")
 				return
 			}
-		case "AllowFullPpuAccess":
-			z.AllowFullPpuAccess, err = dc.ReadBool()
+		case "FullAccessON":
+			z.FullAccessON, err = dc.ReadBool()
 			if err != nil {
-				err = msgp.WrapError(err, "AllowFullPpuAccess")
+				err = msgp.WrapError(err, "FullAccessON")
 				return
 			}
 		case "Region":
@@ -3458,20 +3458,20 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "SecondarySpriteRAM")
 		return
 	}
-	// write "OpenBusDecayStamp"
-	err = en.Append(0xb1, 0x4f, 0x70, 0x65, 0x6e, 0x42, 0x75, 0x73, 0x44, 0x65, 0x63, 0x61, 0x79, 0x53, 0x74, 0x61, 0x6d, 0x70)
+	// write "OpenBusDecay"
+	err = en.Append(0xac, 0x4f, 0x70, 0x65, 0x6e, 0x42, 0x75, 0x73, 0x44, 0x65, 0x63, 0x61, 0x79)
 	if err != nil {
 		return
 	}
 	err = en.WriteArrayHeader(uint32(8))
 	if err != nil {
-		err = msgp.WrapError(err, "OpenBusDecayStamp")
+		err = msgp.WrapError(err, "OpenBusDecay")
 		return
 	}
-	for za0004 := range z.OpenBusDecayStamp {
-		err = en.WriteInt32(z.OpenBusDecayStamp[za0004])
+	for za0004 := range z.OpenBusDecay {
+		err = en.WriteInt32(z.OpenBusDecay[za0004])
 		if err != nil {
-			err = msgp.WrapError(err, "OpenBusDecayStamp", za0004)
+			err = msgp.WrapError(err, "OpenBusDecay", za0004)
 			return
 		}
 	}
@@ -3485,14 +3485,14 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "MemoryReadBuffer")
 		return
 	}
-	// write "SpriteRAMAddr"
-	err = en.Append(0xad, 0x53, 0x70, 0x72, 0x69, 0x74, 0x65, 0x52, 0x41, 0x4d, 0x41, 0x64, 0x64, 0x72)
+	// write "OAMAdrr"
+	err = en.Append(0xa7, 0x4f, 0x41, 0x4d, 0x41, 0x64, 0x72, 0x72)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint8(z.SpriteRAMAddr)
+	err = en.WriteUint8(z.OAMAdrr)
 	if err != nil {
-		err = msgp.WrapError(err, "SpriteRAMAddr")
+		err = msgp.WrapError(err, "OAMAdrr")
 		return
 	}
 	// write "VRAMAddr"
@@ -3515,44 +3515,44 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "XScroll")
 		return
 	}
-	// write "TmpVRAMAddr"
-	err = en.Append(0xab, 0x54, 0x6d, 0x70, 0x56, 0x52, 0x41, 0x4d, 0x41, 0x64, 0x64, 0x72)
+	// write "VRAMAddrTemp"
+	err = en.Append(0xac, 0x56, 0x52, 0x41, 0x4d, 0x41, 0x64, 0x64, 0x72, 0x54, 0x65, 0x6d, 0x70)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint16(z.TmpVRAMAddr)
+	err = en.WriteUint16(z.VRAMAddrTemp)
 	if err != nil {
-		err = msgp.WrapError(err, "TmpVRAMAddr")
+		err = msgp.WrapError(err, "VRAMAddrTemp")
 		return
 	}
-	// write "WriteToggle"
-	err = en.Append(0xab, 0x57, 0x72, 0x69, 0x74, 0x65, 0x54, 0x6f, 0x67, 0x67, 0x6c, 0x65)
-	if err != nil {
-		return
-	}
-	err = en.WriteBool(z.WriteToggle)
-	if err != nil {
-		err = msgp.WrapError(err, "WriteToggle")
-		return
-	}
-	// write "HighBitShift"
-	err = en.Append(0xac, 0x48, 0x69, 0x67, 0x68, 0x42, 0x69, 0x74, 0x53, 0x68, 0x69, 0x66, 0x74)
+	// write "WriteLatch"
+	err = en.Append(0xaa, 0x57, 0x72, 0x69, 0x74, 0x65, 0x4c, 0x61, 0x74, 0x63, 0x68)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint16(z.HighBitShift)
+	err = en.WriteBool(z.WriteLatch)
 	if err != nil {
-		err = msgp.WrapError(err, "HighBitShift")
+		err = msgp.WrapError(err, "WriteLatch")
 		return
 	}
-	// write "LowBitShift"
-	err = en.Append(0xab, 0x4c, 0x6f, 0x77, 0x42, 0x69, 0x74, 0x53, 0x68, 0x69, 0x66, 0x74)
+	// write "HibitShift"
+	err = en.Append(0xaa, 0x48, 0x69, 0x62, 0x69, 0x74, 0x53, 0x68, 0x69, 0x66, 0x74)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint16(z.LowBitShift)
+	err = en.WriteUint16(z.HibitShift)
 	if err != nil {
-		err = msgp.WrapError(err, "LowBitShift")
+		err = msgp.WrapError(err, "HibitShift")
+		return
+	}
+	// write "LoBitShift"
+	err = en.Append(0xaa, 0x4c, 0x6f, 0x42, 0x69, 0x74, 0x53, 0x68, 0x69, 0x66, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(z.LoBitShift)
+	if err != nil {
+		err = msgp.WrapError(err, "LoBitShift")
 		return
 	}
 	// write "PPUCTRL"
@@ -3611,14 +3611,14 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "PPUSTATUS", "VerticalBlank")
 		return
 	}
-	// write "PPUBusAddress"
-	err = en.Append(0xad, 0x50, 0x50, 0x55, 0x42, 0x75, 0x73, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73)
+	// write "BusAddr"
+	err = en.Append(0xa7, 0x42, 0x75, 0x73, 0x41, 0x64, 0x64, 0x72)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint16(z.PPUBusAddress)
+	err = en.WriteUint16(z.BusAddr)
 	if err != nil {
-		err = msgp.WrapError(err, "PPUBusAddress")
+		err = msgp.WrapError(err, "BusAddr")
 		return
 	}
 	// write "PaletteRAMMask"
@@ -3671,24 +3671,24 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "FrameCount")
 		return
 	}
-	// write "CurrentTilePalette"
-	err = en.Append(0xb2, 0x43, 0x75, 0x72, 0x72, 0x65, 0x6e, 0x74, 0x54, 0x69, 0x6c, 0x65, 0x50, 0x61, 0x6c, 0x65, 0x74, 0x74, 0x65)
+	// write "CurTilePalette"
+	err = en.Append(0xae, 0x43, 0x75, 0x72, 0x54, 0x69, 0x6c, 0x65, 0x50, 0x61, 0x6c, 0x65, 0x74, 0x74, 0x65)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint8(z.CurrentTilePalette)
+	err = en.WriteUint8(z.CurTilePalette)
 	if err != nil {
-		err = msgp.WrapError(err, "CurrentTilePalette")
+		err = msgp.WrapError(err, "CurTilePalette")
 		return
 	}
-	// write "PreviousTilePalette"
-	err = en.Append(0xb3, 0x50, 0x72, 0x65, 0x76, 0x69, 0x6f, 0x75, 0x73, 0x54, 0x69, 0x6c, 0x65, 0x50, 0x61, 0x6c, 0x65, 0x74, 0x74, 0x65)
+	// write "PrevTilePalette"
+	err = en.Append(0xaf, 0x50, 0x72, 0x65, 0x76, 0x54, 0x69, 0x6c, 0x65, 0x50, 0x61, 0x6c, 0x65, 0x74, 0x74, 0x65)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint8(z.PreviousTilePalette)
+	err = en.WriteUint8(z.PrevTilePalette)
 	if err != nil {
-		err = msgp.WrapError(err, "PreviousTilePalette")
+		err = msgp.WrapError(err, "PrevTilePalette")
 		return
 	}
 	// write "Tile"
@@ -3728,14 +3728,14 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
-	// write "SpriteIndex"
-	err = en.Append(0xab, 0x53, 0x70, 0x72, 0x69, 0x74, 0x65, 0x49, 0x6e, 0x64, 0x65, 0x78)
+	// write "IdxSprite"
+	err = en.Append(0xa9, 0x49, 0x64, 0x78, 0x53, 0x70, 0x72, 0x69, 0x74, 0x65)
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.SpriteIndex)
+	err = en.WriteInt(z.IdxSprite)
 	if err != nil {
-		err = msgp.WrapError(err, "SpriteIndex")
+		err = msgp.WrapError(err, "IdxSprite")
 		return
 	}
 	// write "SpriteCount"
@@ -3818,24 +3818,24 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "SpriteInRange")
 		return
 	}
-	// write "RenderingEnabled"
-	err = en.Append(0xb0, 0x52, 0x65, 0x6e, 0x64, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x45, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64)
+	// write "RenderingON"
+	err = en.Append(0xab, 0x52, 0x65, 0x6e, 0x64, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x4f, 0x4e)
 	if err != nil {
 		return
 	}
-	err = en.WriteBool(z.RenderingEnabled)
+	err = en.WriteBool(z.RenderingON)
 	if err != nil {
-		err = msgp.WrapError(err, "RenderingEnabled")
+		err = msgp.WrapError(err, "RenderingON")
 		return
 	}
-	// write "PrevRenderingEnabled"
-	err = en.Append(0xb4, 0x50, 0x72, 0x65, 0x76, 0x52, 0x65, 0x6e, 0x64, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x45, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64)
+	// write "PrevRenderingON"
+	err = en.Append(0xaf, 0x50, 0x72, 0x65, 0x76, 0x52, 0x65, 0x6e, 0x64, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x4f, 0x4e)
 	if err != nil {
 		return
 	}
-	err = en.WriteBool(z.PrevRenderingEnabled)
+	err = en.WriteBool(z.PrevRenderingON)
 	if err != nil {
-		err = msgp.WrapError(err, "PrevRenderingEnabled")
+		err = msgp.WrapError(err, "PrevRenderingON")
 		return
 	}
 	// write "IgnoreVRAMRead"
@@ -3878,14 +3878,14 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "NeedVideoRAMIncrement")
 		return
 	}
-	// write "PreventVblFlag"
-	err = en.Append(0xae, 0x50, 0x72, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x56, 0x62, 0x6c, 0x46, 0x6c, 0x61, 0x67)
+	// write "PreventVBlank"
+	err = en.Append(0xad, 0x50, 0x72, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x56, 0x42, 0x6c, 0x61, 0x6e, 0x6b)
 	if err != nil {
 		return
 	}
-	err = en.WriteBool(z.PreventVblFlag)
+	err = en.WriteBool(z.PreventVBlank)
 	if err != nil {
-		err = msgp.WrapError(err, "PreventVblFlag")
+		err = msgp.WrapError(err, "PreventVBlank")
 		return
 	}
 	// write "OverflowBugCounter"
@@ -3918,14 +3918,14 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "UpdateVRAMAddrDelay")
 		return
 	}
-	// write "AllowFullPpuAccess"
-	err = en.Append(0xb2, 0x41, 0x6c, 0x6c, 0x6f, 0x77, 0x46, 0x75, 0x6c, 0x6c, 0x50, 0x70, 0x75, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73)
+	// write "FullAccessON"
+	err = en.Append(0xac, 0x46, 0x75, 0x6c, 0x6c, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x4f, 0x4e)
 	if err != nil {
 		return
 	}
-	err = en.WriteBool(z.AllowFullPpuAccess)
+	err = en.WriteBool(z.FullAccessON)
 	if err != nil {
-		err = msgp.WrapError(err, "AllowFullPpuAccess")
+		err = msgp.WrapError(err, "FullAccessON")
 		return
 	}
 	// write "Region"
@@ -3943,11 +3943,11 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *PPU) Msgsize() (s int) {
-	s = 3 + 12 + msgp.Uint64Size + 11 + msgp.ArrayHeaderSize + (0x20 * (msgp.Uint8Size)) + 10 + msgp.ArrayHeaderSize + (0x100 * (msgp.Uint8Size)) + 19 + msgp.ArrayHeaderSize + (0x20 * (msgp.Uint8Size)) + 18 + msgp.ArrayHeaderSize + (8 * (msgp.Int32Size)) + 17 + msgp.Uint8Size + 14 + msgp.Uint8Size + 9 + msgp.Uint16Size + 8 + msgp.Uint8Size + 12 + msgp.Uint16Size + 12 + msgp.BoolSize + 13 + msgp.Uint16Size + 12 + msgp.Uint16Size + 8 + z.PPUCTRL.Msgsize() + 8 + z.PPUMASK.Msgsize() + 10 + 1 + 15 + msgp.BoolSize + 11 + msgp.BoolSize + 14 + msgp.BoolSize + 14 + msgp.Uint16Size + 15 + msgp.Uint16Size + 19 + msgp.Uint16Size + 9 + msgp.Int64Size + 6 + msgp.Int64Size + 11 + msgp.Uint32Size + 19 + msgp.Uint8Size + 20 + msgp.Uint8Size + 5 + z.Tile.Msgsize() + 8 + msgp.Uint8Size + 12 + msgp.ArrayHeaderSize
+	s = 3 + 12 + msgp.Uint64Size + 11 + msgp.ArrayHeaderSize + (0x20 * (msgp.Uint8Size)) + 10 + msgp.ArrayHeaderSize + (0x100 * (msgp.Uint8Size)) + 19 + msgp.ArrayHeaderSize + (0x20 * (msgp.Uint8Size)) + 13 + msgp.ArrayHeaderSize + (8 * (msgp.Int32Size)) + 17 + msgp.Uint8Size + 8 + msgp.Uint8Size + 9 + msgp.Uint16Size + 8 + msgp.Uint8Size + 13 + msgp.Uint16Size + 11 + msgp.BoolSize + 11 + msgp.Uint16Size + 11 + msgp.Uint16Size + 8 + z.PPUCTRL.Msgsize() + 8 + z.PPUMASK.Msgsize() + 10 + 1 + 15 + msgp.BoolSize + 11 + msgp.BoolSize + 14 + msgp.BoolSize + 8 + msgp.Uint16Size + 15 + msgp.Uint16Size + 19 + msgp.Uint16Size + 9 + msgp.Int64Size + 6 + msgp.Int64Size + 11 + msgp.Uint32Size + 15 + msgp.Uint8Size + 16 + msgp.Uint8Size + 5 + z.Tile.Msgsize() + 8 + msgp.Uint8Size + 12 + msgp.ArrayHeaderSize
 	for za0005 := range z.SpriteTiles {
 		s += z.SpriteTiles[za0005].Msgsize()
 	}
-	s += 12 + msgp.IntSize + 12 + msgp.IntSize + 12 + msgp.Uint8Size + 12 + msgp.Uint8Size + 13 + msgp.BoolSize + 15 + msgp.BoolSize + 14 + msgp.Uint8Size + 17 + msgp.Uint8Size + 14 + msgp.BoolSize + 17 + msgp.BoolSize + 21 + msgp.BoolSize + 15 + msgp.IntSize + 12 + msgp.BoolSize + 16 + msgp.BoolSize + 22 + msgp.BoolSize + 15 + msgp.BoolSize + 19 + msgp.Uint8Size + 15 + msgp.Uint16Size + 20 + msgp.Uint8Size + 19 + msgp.BoolSize + 7 + msgp.IntSize
+	s += 10 + msgp.IntSize + 12 + msgp.IntSize + 12 + msgp.Uint8Size + 12 + msgp.Uint8Size + 13 + msgp.BoolSize + 15 + msgp.BoolSize + 14 + msgp.Uint8Size + 17 + msgp.Uint8Size + 14 + msgp.BoolSize + 12 + msgp.BoolSize + 16 + msgp.BoolSize + 15 + msgp.IntSize + 12 + msgp.BoolSize + 16 + msgp.BoolSize + 22 + msgp.BoolSize + 14 + msgp.BoolSize + 19 + msgp.Uint8Size + 15 + msgp.Uint16Size + 20 + msgp.Uint8Size + 13 + msgp.BoolSize + 7 + msgp.IntSize
 	return
 }
 

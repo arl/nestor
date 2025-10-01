@@ -66,54 +66,54 @@ type PPU struct {
 	PaletteRAM         [0x20]uint8
 	SpriteRAM          [0x100]uint8
 	SecondarySpriteRAM [0x20]uint8
-	OpenBusDecayStamp  [8]int32
+	OpenBusDecay       [8]int32
 	MemoryReadBuffer   uint8
 
-	SpriteRAMAddr uint8
-	VRAMAddr      uint16
-	XScroll       uint8
-	TmpVRAMAddr   uint16
-	WriteToggle   bool
+	OAMAdrr      uint8
+	VRAMAddr     uint16
+	XScroll      uint8
+	VRAMAddrTemp uint16
+	WriteLatch   bool
 
-	HighBitShift  uint16
-	LowBitShift   uint16
-	PPUCTRL       PPUCTRL
-	PPUMASK       PPUMASK
-	PPUSTATUS     PPUSTATUS
-	PPUBusAddress uint16
+	HibitShift uint16
+	LoBitShift uint16
+	PPUCTRL    PPUCTRL
+	PPUMASK    PPUMASK
+	PPUSTATUS  PPUSTATUS
+	BusAddr    uint16
 
-	PaletteRAMMask      uint16
-	IntensifyColorBits  uint16
-	Scanline            int64
-	Cycle               int64
-	FrameCount          uint32
-	CurrentTilePalette  uint8
-	PreviousTilePalette uint8
-	Tile                PPUTileInfo
-	OpenBus             uint8
+	PaletteRAMMask     uint16
+	IntensifyColorBits uint16
+	Scanline           int64
+	Cycle              int64
+	FrameCount         uint32
+	CurTilePalette     uint8
+	PrevTilePalette    uint8
+	Tile               PPUTileInfo
+	OpenBus            uint8
 
-	SpriteTiles          [64]PPUSpriteInfo
-	SpriteIndex          int
-	SpriteCount          int
-	SpriteAddrH          uint8
-	SpriteAddrL          uint8
-	Sprite0Added         bool
-	Sprite0Visible       bool
-	OAMCopybuffer        uint8
-	SecondaryOAMAddr     uint8
-	SpriteInRange        bool
-	RenderingEnabled     bool
-	PrevRenderingEnabled bool
-	IgnoreVRAMRead       int
-	OAMCopyDone          bool
+	SpriteTiles      [64]PPUSpriteInfo
+	IdxSprite        int
+	SpriteCount      int
+	SpriteAddrH      uint8
+	SpriteAddrL      uint8
+	Sprite0Added     bool
+	Sprite0Visible   bool
+	OAMCopybuffer    uint8
+	SecondaryOAMAddr uint8
+	SpriteInRange    bool
+	RenderingON      bool
+	PrevRenderingON  bool
+	IgnoreVRAMRead   int
+	OAMCopyDone      bool
 
 	NeedStateUpdate       bool
 	NeedVideoRAMIncrement bool
-	PreventVblFlag        bool
+	PreventVBlank         bool
 	OverflowBugCounter    uint8
 	UpdateVRAMAddr        uint16
 	UpdateVRAMAddrDelay   uint8
-	AllowFullPpuAccess    bool
+	FullAccessON          bool
 
 	Region int
 }
