@@ -40,5 +40,8 @@ jobs:
           libxxf86vm-dev
           pkg-config
 
+      # Run tests, with export DISPLAY=:0
       - name: Run tests
+        env:
+          DISPLAY: ":0"
         run: go test -shuffle=on ./...
