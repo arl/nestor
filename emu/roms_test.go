@@ -262,9 +262,9 @@ func readString(t *hwio.Table, addr uint16, maxlen int) string {
 	if maxlen == -1 {
 		maxlen = math.MaxUint16
 	}
-	for i := 0; ; i++ {
+	for i := range maxlen {
 		val := t.Peek8(addr + uint16(i))
-		if val == 0 || i >= maxlen {
+		if val == 0 {
 			break
 		}
 		sb.WriteByte(val)
@@ -306,9 +306,9 @@ func TestSpriteOverflow(t *testing.T) {
 
 	roms := []string{
 		"1.Basics.nes",
-		// "2.Details.nes", // failed #9
-		// "3.Timing.nes",
-		// "4.Obscure.nes",
+		"2.Details.nes",
+		"3.Timing.nes",
+		"4.Obscure.nes",
 		"5.Emulator.nes",
 	}
 
