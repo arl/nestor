@@ -84,8 +84,8 @@ type PPU struct {
 
 	PaletteRAMMask     uint16
 	IntensifyColorBits uint16
-	Scanline           int64
-	Cycle              int64
+	Scanline           int16
+	Cycle              uint32
 	FrameCount         uint32
 	CurTilePalette     uint8
 	PrevTilePalette    uint8
@@ -123,13 +123,13 @@ type PPUCTRL struct {
 	SpritePatternAddr     uint16
 	BackgroundPatternAddr uint16
 	LargeSprites          bool
-	SecondaryPpu          bool // not saved
-	NmiOnVerticalBlank    bool
+	Slave                 bool // not saved
+	NMI                   bool
 }
 
 type PPUMASK struct {
-	Grayscale         bool
-	BackgroundMask    bool
+	Gray              bool
+	BGMask            bool
 	SpriteMask        bool
 	BackgroundEnabled bool
 	SpritesEnabled    bool
@@ -141,7 +141,7 @@ type PPUMASK struct {
 type PPUSTATUS struct {
 	SpriteOverflow bool
 	Sprite0Hit     bool
-	VerticalBlank  bool
+	VBlank         bool
 }
 
 type PPUTileInfo struct {

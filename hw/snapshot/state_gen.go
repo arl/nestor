@@ -3186,10 +3186,10 @@ func (z *PPU) DecodeMsg(dc *msgp.Reader) (err error) {
 						err = msgp.WrapError(err, "PPUSTATUS", "Sprite0Hit")
 						return
 					}
-				case "VerticalBlank":
-					z.PPUSTATUS.VerticalBlank, err = dc.ReadBool()
+				case "VBlank":
+					z.PPUSTATUS.VBlank, err = dc.ReadBool()
 					if err != nil {
-						err = msgp.WrapError(err, "PPUSTATUS", "VerticalBlank")
+						err = msgp.WrapError(err, "PPUSTATUS", "VBlank")
 						return
 					}
 				default:
@@ -3219,13 +3219,13 @@ func (z *PPU) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "Scanline":
-			z.Scanline, err = dc.ReadInt64()
+			z.Scanline, err = dc.ReadInt16()
 			if err != nil {
 				err = msgp.WrapError(err, "Scanline")
 				return
 			}
 		case "Cycle":
-			z.Cycle, err = dc.ReadInt64()
+			z.Cycle, err = dc.ReadUint32()
 			if err != nil {
 				err = msgp.WrapError(err, "Cycle")
 				return
@@ -3601,14 +3601,14 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "PPUSTATUS", "Sprite0Hit")
 		return
 	}
-	// write "VerticalBlank"
-	err = en.Append(0xad, 0x56, 0x65, 0x72, 0x74, 0x69, 0x63, 0x61, 0x6c, 0x42, 0x6c, 0x61, 0x6e, 0x6b)
+	// write "VBlank"
+	err = en.Append(0xa6, 0x56, 0x42, 0x6c, 0x61, 0x6e, 0x6b)
 	if err != nil {
 		return
 	}
-	err = en.WriteBool(z.PPUSTATUS.VerticalBlank)
+	err = en.WriteBool(z.PPUSTATUS.VBlank)
 	if err != nil {
-		err = msgp.WrapError(err, "PPUSTATUS", "VerticalBlank")
+		err = msgp.WrapError(err, "PPUSTATUS", "VBlank")
 		return
 	}
 	// write "BusAddr"
@@ -3646,7 +3646,7 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt64(z.Scanline)
+	err = en.WriteInt16(z.Scanline)
 	if err != nil {
 		err = msgp.WrapError(err, "Scanline")
 		return
@@ -3656,7 +3656,7 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt64(z.Cycle)
+	err = en.WriteUint32(z.Cycle)
 	if err != nil {
 		err = msgp.WrapError(err, "Cycle")
 		return
@@ -3943,7 +3943,7 @@ func (z *PPU) EncodeMsg(en *msgp.Writer) (err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *PPU) Msgsize() (s int) {
-	s = 3 + 12 + msgp.Uint64Size + 11 + msgp.ArrayHeaderSize + (0x20 * (msgp.Uint8Size)) + 10 + msgp.ArrayHeaderSize + (0x100 * (msgp.Uint8Size)) + 19 + msgp.ArrayHeaderSize + (0x20 * (msgp.Uint8Size)) + 13 + msgp.ArrayHeaderSize + (8 * (msgp.Int32Size)) + 17 + msgp.Uint8Size + 8 + msgp.Uint8Size + 9 + msgp.Uint16Size + 8 + msgp.Uint8Size + 13 + msgp.Uint16Size + 11 + msgp.BoolSize + 11 + msgp.Uint16Size + 11 + msgp.Uint16Size + 8 + z.PPUCTRL.Msgsize() + 8 + z.PPUMASK.Msgsize() + 10 + 1 + 15 + msgp.BoolSize + 11 + msgp.BoolSize + 14 + msgp.BoolSize + 8 + msgp.Uint16Size + 15 + msgp.Uint16Size + 19 + msgp.Uint16Size + 9 + msgp.Int64Size + 6 + msgp.Int64Size + 11 + msgp.Uint32Size + 15 + msgp.Uint8Size + 16 + msgp.Uint8Size + 5 + z.Tile.Msgsize() + 8 + msgp.Uint8Size + 12 + msgp.ArrayHeaderSize
+	s = 3 + 12 + msgp.Uint64Size + 11 + msgp.ArrayHeaderSize + (0x20 * (msgp.Uint8Size)) + 10 + msgp.ArrayHeaderSize + (0x100 * (msgp.Uint8Size)) + 19 + msgp.ArrayHeaderSize + (0x20 * (msgp.Uint8Size)) + 13 + msgp.ArrayHeaderSize + (8 * (msgp.Int32Size)) + 17 + msgp.Uint8Size + 8 + msgp.Uint8Size + 9 + msgp.Uint16Size + 8 + msgp.Uint8Size + 13 + msgp.Uint16Size + 11 + msgp.BoolSize + 11 + msgp.Uint16Size + 11 + msgp.Uint16Size + 8 + z.PPUCTRL.Msgsize() + 8 + z.PPUMASK.Msgsize() + 10 + 1 + 15 + msgp.BoolSize + 11 + msgp.BoolSize + 7 + msgp.BoolSize + 8 + msgp.Uint16Size + 15 + msgp.Uint16Size + 19 + msgp.Uint16Size + 9 + msgp.Int16Size + 6 + msgp.Uint32Size + 11 + msgp.Uint32Size + 15 + msgp.Uint8Size + 16 + msgp.Uint8Size + 5 + z.Tile.Msgsize() + 8 + msgp.Uint8Size + 12 + msgp.ArrayHeaderSize
 	for za0005 := range z.SpriteTiles {
 		s += z.SpriteTiles[za0005].Msgsize()
 	}
@@ -4226,16 +4226,16 @@ func (z *PPUCTRL) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "LargeSprites")
 				return
 			}
-		case "SecondaryPpu":
-			z.SecondaryPpu, err = dc.ReadBool()
+		case "Slave":
+			z.Slave, err = dc.ReadBool()
 			if err != nil {
-				err = msgp.WrapError(err, "SecondaryPpu")
+				err = msgp.WrapError(err, "Slave")
 				return
 			}
-		case "NmiOnVerticalBlank":
-			z.NmiOnVerticalBlank, err = dc.ReadBool()
+		case "NMI":
+			z.NMI, err = dc.ReadBool()
 			if err != nil {
-				err = msgp.WrapError(err, "NmiOnVerticalBlank")
+				err = msgp.WrapError(err, "NMI")
 				return
 			}
 		default:
@@ -4292,24 +4292,24 @@ func (z *PPUCTRL) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "LargeSprites")
 		return
 	}
-	// write "SecondaryPpu"
-	err = en.Append(0xac, 0x53, 0x65, 0x63, 0x6f, 0x6e, 0x64, 0x61, 0x72, 0x79, 0x50, 0x70, 0x75)
+	// write "Slave"
+	err = en.Append(0xa5, 0x53, 0x6c, 0x61, 0x76, 0x65)
 	if err != nil {
 		return
 	}
-	err = en.WriteBool(z.SecondaryPpu)
+	err = en.WriteBool(z.Slave)
 	if err != nil {
-		err = msgp.WrapError(err, "SecondaryPpu")
+		err = msgp.WrapError(err, "Slave")
 		return
 	}
-	// write "NmiOnVerticalBlank"
-	err = en.Append(0xb2, 0x4e, 0x6d, 0x69, 0x4f, 0x6e, 0x56, 0x65, 0x72, 0x74, 0x69, 0x63, 0x61, 0x6c, 0x42, 0x6c, 0x61, 0x6e, 0x6b)
+	// write "NMI"
+	err = en.Append(0xa3, 0x4e, 0x4d, 0x49)
 	if err != nil {
 		return
 	}
-	err = en.WriteBool(z.NmiOnVerticalBlank)
+	err = en.WriteBool(z.NMI)
 	if err != nil {
-		err = msgp.WrapError(err, "NmiOnVerticalBlank")
+		err = msgp.WrapError(err, "NMI")
 		return
 	}
 	return
@@ -4317,7 +4317,7 @@ func (z *PPUCTRL) EncodeMsg(en *msgp.Writer) (err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *PPUCTRL) Msgsize() (s int) {
-	s = 1 + 14 + msgp.BoolSize + 18 + msgp.Uint16Size + 22 + msgp.Uint16Size + 13 + msgp.BoolSize + 13 + msgp.BoolSize + 19 + msgp.BoolSize
+	s = 1 + 14 + msgp.BoolSize + 18 + msgp.Uint16Size + 22 + msgp.Uint16Size + 13 + msgp.BoolSize + 6 + msgp.BoolSize + 4 + msgp.BoolSize
 	return
 }
 
@@ -4339,16 +4339,16 @@ func (z *PPUMASK) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "Grayscale":
-			z.Grayscale, err = dc.ReadBool()
+		case "Gray":
+			z.Gray, err = dc.ReadBool()
 			if err != nil {
-				err = msgp.WrapError(err, "Grayscale")
+				err = msgp.WrapError(err, "Gray")
 				return
 			}
-		case "BackgroundMask":
-			z.BackgroundMask, err = dc.ReadBool()
+		case "BGMask":
+			z.BGMask, err = dc.ReadBool()
 			if err != nil {
-				err = msgp.WrapError(err, "BackgroundMask")
+				err = msgp.WrapError(err, "BGMask")
 				return
 			}
 		case "SpriteMask":
@@ -4401,24 +4401,24 @@ func (z *PPUMASK) DecodeMsg(dc *msgp.Reader) (err error) {
 // EncodeMsg implements msgp.Encodable
 func (z *PPUMASK) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 8
-	// write "Grayscale"
-	err = en.Append(0x88, 0xa9, 0x47, 0x72, 0x61, 0x79, 0x73, 0x63, 0x61, 0x6c, 0x65)
+	// write "Gray"
+	err = en.Append(0x88, 0xa4, 0x47, 0x72, 0x61, 0x79)
 	if err != nil {
 		return
 	}
-	err = en.WriteBool(z.Grayscale)
+	err = en.WriteBool(z.Gray)
 	if err != nil {
-		err = msgp.WrapError(err, "Grayscale")
+		err = msgp.WrapError(err, "Gray")
 		return
 	}
-	// write "BackgroundMask"
-	err = en.Append(0xae, 0x42, 0x61, 0x63, 0x6b, 0x67, 0x72, 0x6f, 0x75, 0x6e, 0x64, 0x4d, 0x61, 0x73, 0x6b)
+	// write "BGMask"
+	err = en.Append(0xa6, 0x42, 0x47, 0x4d, 0x61, 0x73, 0x6b)
 	if err != nil {
 		return
 	}
-	err = en.WriteBool(z.BackgroundMask)
+	err = en.WriteBool(z.BGMask)
 	if err != nil {
-		err = msgp.WrapError(err, "BackgroundMask")
+		err = msgp.WrapError(err, "BGMask")
 		return
 	}
 	// write "SpriteMask"
@@ -4486,7 +4486,7 @@ func (z *PPUMASK) EncodeMsg(en *msgp.Writer) (err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *PPUMASK) Msgsize() (s int) {
-	s = 1 + 10 + msgp.BoolSize + 15 + msgp.BoolSize + 11 + msgp.BoolSize + 18 + msgp.BoolSize + 15 + msgp.BoolSize + 13 + msgp.BoolSize + 15 + msgp.BoolSize + 14 + msgp.BoolSize
+	s = 1 + 5 + msgp.BoolSize + 7 + msgp.BoolSize + 11 + msgp.BoolSize + 18 + msgp.BoolSize + 15 + msgp.BoolSize + 13 + msgp.BoolSize + 15 + msgp.BoolSize + 14 + msgp.BoolSize
 	return
 }
 
@@ -4520,10 +4520,10 @@ func (z *PPUSTATUS) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Sprite0Hit")
 				return
 			}
-		case "VerticalBlank":
-			z.VerticalBlank, err = dc.ReadBool()
+		case "VBlank":
+			z.VBlank, err = dc.ReadBool()
 			if err != nil {
-				err = msgp.WrapError(err, "VerticalBlank")
+				err = msgp.WrapError(err, "VBlank")
 				return
 			}
 		default:
@@ -4560,14 +4560,14 @@ func (z PPUSTATUS) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Sprite0Hit")
 		return
 	}
-	// write "VerticalBlank"
-	err = en.Append(0xad, 0x56, 0x65, 0x72, 0x74, 0x69, 0x63, 0x61, 0x6c, 0x42, 0x6c, 0x61, 0x6e, 0x6b)
+	// write "VBlank"
+	err = en.Append(0xa6, 0x56, 0x42, 0x6c, 0x61, 0x6e, 0x6b)
 	if err != nil {
 		return
 	}
-	err = en.WriteBool(z.VerticalBlank)
+	err = en.WriteBool(z.VBlank)
 	if err != nil {
-		err = msgp.WrapError(err, "VerticalBlank")
+		err = msgp.WrapError(err, "VBlank")
 		return
 	}
 	return
@@ -4575,7 +4575,7 @@ func (z PPUSTATUS) EncodeMsg(en *msgp.Writer) (err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z PPUSTATUS) Msgsize() (s int) {
-	s = 1 + 15 + msgp.BoolSize + 11 + msgp.BoolSize + 14 + msgp.BoolSize
+	s = 1 + 15 + msgp.BoolSize + 11 + msgp.BoolSize + 7 + msgp.BoolSize
 	return
 }
 
