@@ -39,7 +39,7 @@ Options:
     -cpuprofile FILE   write cpu profile to FILE.
     -trace FILE        write cpu trace log to FILE,
                        also accepts: stdout or stderr
-    -v, --verbose      enable verbose logging (set info log level). Default is warning.
+    -v, --verbose      set log level to info (default: warning).
     -log               comma separated list of log modules to enable in debug mode, from:
                        %s
                        accepts also 'all' or 'no' (disable log entirely).
@@ -51,28 +51,28 @@ Options:
 func main() {
 	var (
 		// general options
-		versionFlag  bool
-		rominfosFlag string
+		version  bool
+		rominfos string
 
 		// cli options
-		cpuprofileFlag string
-		traceFlag      outfile
-		ramfileFlag    existingFile
-		logModules     logModMask
-		verboseFlag    bool
+		cpuprofile string
+		trace      outfile
+		ramfile    existingFile
+		logModules logModMask
+		verbose    bool
 	)
 
 	fs := flag.NewFlagSet("nestor", flag.ContinueOnError)
 
-	fs.BoolVar(&versionFlag, "version", false, "print version and exit")
-	fs.StringVar(&rominfosFlag, "rom-infos", "", "print ROM information and exit")
+	fs.BoolVar(&version, "version", false, "print version and exit")
+	fs.StringVar(&rominfos, "rom-infos", "", "print ROM information and exit")
 
-	fs.StringVar(&cpuprofileFlag, "cpuprofile", "", "write cpu profile to file")
-	fs.Var(&traceFlag, "trace", "write cpu trace log to FILE|stdout|stderr")
-	fs.Var(&ramfileFlag, "ramfile", "Read 'save ram' from file [WIP/TODO].")
+	fs.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
+	fs.Var(&trace, "trace", "write cpu trace log to FILE|stdout|stderr")
+	fs.Var(&ramfile, "ramfile", "Read 'save ram' from file [WIP/TODO].")
 	fs.Var(&logModules, "log", "comma separated list of log modules to enable (or 'all' or 'no').")
-	fs.BoolVar(&verboseFlag, "v", false, "enable verbose logging (set info log level)")
-	fs.BoolVar(&verboseFlag, "verbose", false, "enable verbose logging (set info log level)")
+	fs.BoolVar(&verbose, "v", false, "enable verbose logging (set info log level)")
+	fs.BoolVar(&verbose, "verbose", false, "enable verbose logging (set info log level)")
 	fs.Usage = usage
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		if err == flag.ErrHelp {
@@ -81,35 +81,35 @@ func main() {
 		os.Exit(1)
 	}
 
-	if versionFlag {
+	if version {
 		printVersion()
 		return
 	}
 
-	if verboseFlag {
+	if verbose {
 		log.SetLevel(log.InfoLevel)
 	}
 
 	cfg := config.LoadConfigOrDefault()
 
-	if traceFlag.name != "" {
-		cfg.TraceOut = &traceFlag
-		defer traceFlag.Close()
+	if trace.name != "" {
+		cfg.TraceOut = &trace
+		defer trace.Close()
 	}
 
-	if cpuprofileFlag != "" {
-		f, err := os.Create(cpuprofileFlag)
+	if cpuprofile != "" {
+		f, err := os.Create(cpuprofile)
 		checkf(err, "failed to create cpu profile file")
 		checkf(pprof.StartCPUProfile(f), "failed to start cpu profile")
 		defer func() {
 			pprof.StopCPUProfile()
 			f.Close()
-			fmt.Fprint(os.Stderr, "CPU profile written to", cpuprofileFlag)
+			fmt.Fprintf(os.Stderr, "CPU profile written to %q", cpuprofile)
 		}()
 	}
 
-	if rominfosFlag != "" {
-		if err := printRomInfos(rominfosFlag); err != nil {
+	if rominfos != "" {
+		if err := printRomInfos(rominfos); err != nil {
 			fatalf("failed to print ROM infos: %v", err)
 		}
 		return
