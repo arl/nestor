@@ -71,7 +71,7 @@ func (sc *squareChannel) WriteDUTY(_, val uint8) {
 	sc.envelope.init(val)
 	sc.duty = (val & 0xC0) >> 6
 
-	log.ModSound.InfoZ("write pulse duty").
+	log.ModSound.DebugZ("write pulse duty").
 		Uint8("reg", val).
 		Uint8("duty", sc.duty).
 		End()
@@ -81,7 +81,7 @@ func (sc *squareChannel) WriteSWEEP(_, val uint8) {
 	sc.apu.Run()
 	sc.initSweep(val)
 
-	log.ModSound.InfoZ("write pulse sweep").
+	log.ModSound.DebugZ("write pulse sweep").
 		Uint8("reg", val).
 		End()
 }
@@ -91,7 +91,7 @@ func (sc *squareChannel) WriteTIMER(_, val uint8) {
 	period := (sc.realPeriod & 0x0700) | uint16(val)
 	sc.setPeriod(period)
 
-	log.ModSound.InfoZ("write pulse timer").
+	log.ModSound.DebugZ("write pulse timer").
 		Uint8("reg", val).
 		Uint16("period", period).
 		End()
@@ -111,7 +111,7 @@ func (sc *squareChannel) WriteLENGTH(_, val uint8) {
 	// envelope is also restarted.
 	sc.envelope.restart()
 
-	log.ModSound.InfoZ("write pulse length").
+	log.ModSound.DebugZ("write pulse length").
 		Uint8("reg", val).
 		Uint8("env len", envlen).
 		Uint16("period", period).

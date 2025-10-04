@@ -101,12 +101,12 @@ func (a *APU) ReadSTATUS(val uint8) uint8 {
 	// Reading $4015 clears the Frame Counter interrupt flag.
 	a.cpu.ClearIRQSource(hwdefs.FrameCounter)
 
-	log.ModSound.InfoZ("read status").Uint8("status", status).End()
+	log.ModSound.DebugZ("read status").Uint8("status", status).End()
 	return status
 }
 
 func (a *APU) WriteSTATUS(old, val uint8) {
-	log.ModSound.InfoZ("write status").Uint8("val", val).End()
+	log.ModSound.DebugZ("write status").Uint8("val", val).End()
 
 	a.Run()
 

@@ -42,7 +42,7 @@ func newNoiseChannel(apu *APU, mixer *Mixer) noiseChannel {
 }
 
 func (nc *noiseChannel) WriteVOLUME(old, val uint8) {
-	log.ModSound.InfoZ("write noise volume").Uint8("val", val).End()
+	log.ModSound.DebugZ("write noise volume").Uint8("val", val).End()
 	nc.apu.Run()
 	nc.env.init(val)
 }
@@ -54,7 +54,7 @@ func (nc *noiseChannel) WriteUNUSED(_, _ uint8) {
 var noisePeriodLUT = [16]uint16{4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068}
 
 func (nc *noiseChannel) WritePERIOD(old, val uint8) {
-	log.ModSound.InfoZ("write noise period").Uint8("val", val).End()
+	log.ModSound.DebugZ("write noise period").Uint8("val", val).End()
 
 	nc.apu.Run()
 	nc.timer.period = noisePeriodLUT[val&0x0F] - 1
@@ -62,7 +62,7 @@ func (nc *noiseChannel) WritePERIOD(old, val uint8) {
 }
 
 func (nc *noiseChannel) WriteLENGTH(old, val uint8) {
-	log.ModSound.InfoZ("write noise length").Uint8("val", val).End()
+	log.ModSound.DebugZ("write noise length").Uint8("val", val).End()
 	nc.apu.Run()
 	nc.env.lenCounter.load(val >> 3)
 	nc.env.restart()

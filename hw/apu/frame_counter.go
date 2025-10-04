@@ -61,7 +61,7 @@ func (afc *frameCounter) reset(soft bool) {
 }
 
 func (afc *frameCounter) WriteFRAMECOUNTER(old, val uint8) {
-	log.ModSound.InfoZ("write framecounter").Uint8("val", val).End()
+	log.ModSound.DebugZ("write framecounter").Uint8("val", val).End()
 	afc.apu.Run()
 	afc.newval = int16(val)
 
