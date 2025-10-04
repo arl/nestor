@@ -8,7 +8,6 @@ import (
 
 	"nestor/hw"
 	"nestor/hw/apu"
-	"nestor/hw/hwdefs"
 	"nestor/hw/mappers"
 	"nestor/hw/snapshot"
 	"nestor/ines"
@@ -41,11 +40,11 @@ func powerUp(rom *ines.Rom) (*NES, error) {
 	}
 
 	nes.Mapper = mapper
-	nes.Reset(hwdefs.HardReset)
+	nes.reset(false)
 	return &nes, nil
 }
 
-func (nes *NES) Reset(soft bool) {
+func (nes *NES) reset(soft bool) {
 	nes.PPU.Reset(soft)
 	nes.APU.Reset(soft)
 	nes.CPU.Reset(soft)
@@ -54,6 +53,15 @@ func (nes *NES) Reset(soft bool) {
 
 func (nes *NES) RunOneFrame(frame *Frame) {
 	nes.PPU.BeginFrame(frame.Video)
+	nes.CPU.Run(29781)
+	nes.APU.EndFrame(&frame.Audio)
+}
+
+// There's no such thing as a reset frame, but this allows to call reset at the
+// right time (without race condition on the frame buffer
+func (nes *NES) RunResetFrame(frame *Frame, soft bool) {
+	nes.PPU.BeginFrame(frame.Video)
+	nes.reset(soft)
 	nes.CPU.Run(29781)
 	nes.APU.EndFrame(&frame.Audio)
 }

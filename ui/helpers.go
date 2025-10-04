@@ -1,24 +1,9 @@
 package ui
 
 import (
-	"image"
-
 	"github.com/ebitenui/ebitenui/widget"
-	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
-
-	"nestor/emu"
 )
-
-func ImageFromFrame(frame *emu.Frame) *ebiten.Image {
-	img := &image.RGBA{
-		Pix:    frame.Video,
-		Stride: 4 * emu.NTSCWidth,
-		Rect:   image.Rect(0, 0, emu.NTSCWidth, emu.NTSCHeight),
-	}
-
-	return ebiten.NewImageFromImage(img)
-}
 
 func stdButton(text string, onclick func(args *widget.ButtonClickedEventArgs)) *widget.Button {
 	return widget.NewButton(

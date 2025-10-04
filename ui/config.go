@@ -8,28 +8,24 @@ import (
 	"golang.org/x/image/colornames"
 )
 
-// ConfigState represents the configuration screen
-type ConfigState struct {
-	app  *App
+type configState struct {
+	*Application
 	ui   *ebitenui.UI
 	root *widget.Container
 }
 
-// NewConfigState creates a new configuration state
-func NewConfigState(app *App) *ConfigState {
-	state := &ConfigState{
-		app: app,
+// newConfigState creates a new configuration state
+func newConfigState(app *Application) *configState {
+	state := &configState{
+		Application: app,
 	}
 
-	// Initialize UI
 	state.initUI()
 
 	return state
 }
 
-// initUI creates the UI for this state
-func (s *ConfigState) initUI() {
-	// Create root container
+func (s *configState) initUI() {
 	s.root = widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(
 			image.NewNineSliceColor(colornames.Gainsboro),
@@ -112,7 +108,7 @@ func (s *ConfigState) initUI() {
 			}),
 		),
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.app.ChangeState(s.app.GetState(StateRomList))
+			s.Application.setState("rom_list")
 		}),
 	)
 	contentPanel.AddChild(backButton)
@@ -121,27 +117,12 @@ func (s *ConfigState) initUI() {
 	s.ui = &ebitenui.UI{Container: s.root}
 }
 
-// Enter implements State interface
-func (s *ConfigState) Enter(prevState State) {
-	// Nothing to do on enter
-}
-
-// Exit implements State interface
-func (s *ConfigState) Exit(nextState State) {
-	// Nothing to do on exit
-}
-
 // Update implements State interface
-func (s *ConfigState) Update() {
+func (s *configState) Update() {
 	s.ui.Update()
 }
 
 // Draw implements State interface
-func (s *ConfigState) Draw(screen *ebiten.Image) {
+func (s *configState) Draw(screen *ebiten.Image) {
 	s.ui.Draw(screen)
-}
-
-// ID implements State interface
-func (s *ConfigState) ID() StateID {
-	return StateConfig
 }

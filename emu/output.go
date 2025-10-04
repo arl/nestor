@@ -5,6 +5,7 @@ import (
 
 	"github.com/veandco/go-sdl2/sdl"
 
+	"nestor/emu/log"
 	"nestor/hw/apu"
 )
 
@@ -99,9 +100,11 @@ func (out *Output) BeginFrame() Frame {
 
 func (out *Output) EndFrame(frame *Frame) {
 	out.framecounter++
-	if out.framech != nil {
-		out.framech <- frame
+	log.ModEmu.DebugZ("end_frame").End()
+	if out.framech == nil {
+		return
 	}
+	out.framech <- frame
 }
 
 func (out *Output) Poll() bool {

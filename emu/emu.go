@@ -33,7 +33,7 @@ type VideoConfig struct {
 }
 
 func (vcfg *VideoConfig) Check() {
-	// Ensure we have a valid shader.
+	// TODO: Ensure we have a valid shader.
 	// if vcfg.Shader == "" {
 	// 	vcfg.Shader = shaders.DefaultName
 	// }
@@ -132,21 +132,13 @@ func (e *Emulator) RunFrameWithRunAhead() {
 }
 
 func (e *Emulator) Run() {
-	e.loop()
-	log.ModEmu.InfoZ("Emulation loop exited").End()
-
-	if e.tmpdir != "" {
-		e.save()
-	}
-}
-
-func (e *Emulator) loop() {
 	for e.out.Poll() {
 		// Handle pause.
 		if e.isPaused() {
 			// Don't burn cpu while paused.
 			time.Sleep(100 * time.Millisecond)
 		} else {
+			log.ModEmu.DebugZ("running one frame").End()
 			e.RunOneFrame()
 		}
 		if e.shouldStop() {
@@ -154,15 +146,25 @@ func (e *Emulator) loop() {
 		}
 		e.handleReset()
 	}
+
+	log.ModEmu.InfoZ("Emulation loop exited").End()
+
+	if e.tmpdir != "" {
+		e.save()
+	}
 }
 
 func (e *Emulator) handleReset() {
 	if e.reset.CompareAndSwap(true, false) {
 		log.ModEmu.InfoZ("Performing soft reset").End()
-		e.NES.Reset(true)
+		frame := e.out.BeginFrame()
+		e.NES.RunResetFrame(&frame, true)
+		e.out.EndFrame(&frame)
 	} else if e.restart.CompareAndSwap(true, false) {
 		log.ModEmu.InfoZ("Performing hard reset").End()
-		e.NES.Reset(false)
+		frame := e.out.BeginFrame()
+		e.NES.RunResetFrame(&frame, false)
+		e.out.EndFrame(&frame)
 	}
 }
 
@@ -212,19 +214,3 @@ func (e *Emulator) save() {
 }
 
 func (e *Emulator) SetTempDir(path string) { e.tmpdir = path }
-
-/*
-// SoftReset stops the emulator and performs a soft reset.
-func (e *Emulator) SoftReset() {
-	e.Stop()
-	log.ModEmu.InfoZ("Performing soft reset").End()
-	e.softReset.Store(true)
-}
-
-// HardReset stops the emulator and performs a hard reset.
-func (e *Emulator) HardReset() {
-	e.Stop()
-	log.ModEmu.InfoZ("Performing hard reset").End()
-	e.hardReset.Store(true)
-}
-*/

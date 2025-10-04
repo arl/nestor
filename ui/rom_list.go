@@ -8,28 +8,23 @@ import (
 	"golang.org/x/image/colornames"
 )
 
-// RomListState represents the state for browsing and selecting ROMs
-type RomListState struct {
-	app  *App
+type romList struct {
+	*Application
 	ui   *ebitenui.UI
 	root *widget.Container
 }
 
-// NewRomListState creates a new ROM list state
-func NewRomListState(app *App) *RomListState {
-	state := &RomListState{
-		app: app,
+func newRomListState(app *Application) *romList {
+	state := &romList{
+		Application: app,
 	}
 
-	// Initialize UI
 	state.initUI()
 
 	return state
 }
 
-// initUI creates the UI for this state
-func (s *RomListState) initUI() {
-	// Create root container
+func (s *romList) initUI() {
 	s.root = widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(
 			image.NewNineSliceColor(colornames.Gainsboro),
@@ -85,8 +80,8 @@ func (s *RomListState) initUI() {
 		),
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
 			const romPath = "/home/aurelien/dev/roms/nes/all.nes.roms.goodnes/USA/Super Mario Bros. + Duck Hunt (U) [!].nes"
-			if err := s.app.LaunchEmulator(romPath); err == nil {
-				s.app.ChangeState(s.app.GetState(StateRomRunning))
+			if err := s.Application.runRom(romPath); err == nil {
+				s.Application.setState("running")
 			}
 		}),
 	)
@@ -115,7 +110,7 @@ func (s *RomListState) initUI() {
 			widget.WidgetOpts.MinSize(180, 48),
 		),
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.app.ChangeState(s.app.GetState(StateConfig))
+			s.Application.setState("config")
 		}),
 	)
 
@@ -126,27 +121,10 @@ func (s *RomListState) initUI() {
 	s.ui = &ebitenui.UI{Container: s.root}
 }
 
-// Enter implements State interface
-func (s *RomListState) Enter(prevState State) {
-	// Nothing to do on enter
-}
-
-// Exit implements State interface
-func (s *RomListState) Exit(nextState State) {
-	// Nothing to do on exit
-}
-
-// Update implements State interface
-func (s *RomListState) Update() {
+func (s *romList) Update() {
 	s.ui.Update()
 }
 
-// Draw implements State interface
-func (s *RomListState) Draw(screen *ebiten.Image) {
+func (s *romList) Draw(screen *ebiten.Image) {
 	s.ui.Draw(screen)
-}
-
-// ID implements State interface
-func (s *RomListState) ID() StateID {
-	return StateRomList
 }

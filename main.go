@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"runtime/debug"
 	"runtime/pprof"
 	"slices"
@@ -113,21 +115,17 @@ func main() {
 		return
 	}
 
-	var romPath = "" // empty -> starts gui
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
 
 	switch fs.NArg() {
 	case 0:
+		checkf(ui.StartUI(ctx, cfg), "failed to start ui")
 	case 1:
-		romPath = fs.Arg(0) // run that ROM
+		checkf(ui.StartROM(ctx, cfg, fs.Arg(0)), "failed to start rom")
 	default:
 		usage()
 		os.Exit(1)
-	}
-
-	if romPath == "" {
-		checkf(ui.StartUI(cfg), "can't start ui")
-	} else {
-		checkf(ui.StartROM(cfg, romPath), "can't start rom")
 	}
 
 	// if args.RAMFile != "" {

@@ -244,7 +244,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			switch {
 			case framesBeforeReset == 0:
 				t.Log("pressing RESET...")
-				nes.Reset(true)
+				nes.reset(true)
 				framesBeforeReset = -1
 			case framesBeforeReset > 0:
 				framesBeforeReset--
