@@ -79,13 +79,13 @@ func (s *running) initUI() {
 func (s *running) pause() {
 	modUI.InfoZ("Pause emulator").End()
 	s.paused = true
-	s.emulator.SetPause(true)
+	s.emulator.Block()
 }
 
 func (s *running) resume() {
 	modUI.InfoZ("Resume emulator").End()
 	s.paused = false
-	s.emulator.SetPause(false)
+	s.emulator.Resume()
 }
 
 func (s *running) Update() {

@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync/atomic"
-	"time"
 
 	"nestor/emu/log"
 	"nestor/hw/input"
@@ -58,6 +57,8 @@ type Emulator struct {
 	reset   atomic.Bool
 	restart atomic.Bool
 
+	blockch chan struct{}
+
 	tmpdir string
 }
 
@@ -78,9 +79,10 @@ func Launch(rom *ines.Rom, cfg Config, out *Output, inp *input.Provider) (*Emula
 	}
 
 	return &Emulator{
-		NES: nes,
-		out: out,
-		cfg: cfg.Emulation,
+		NES:     nes,
+		out:     out,
+		cfg:     cfg.Emulation,
+		blockch: make(chan struct{}, 1), // buffered to avoid deadlock the graphic goroutine
 	}, nil
 }
 
@@ -135,8 +137,7 @@ func (e *Emulator) Run() {
 	for e.out.Poll() {
 		// Handle pause.
 		if e.isPaused() {
-			// Don't burn cpu while paused.
-			time.Sleep(100 * time.Millisecond)
+			<-e.blockch
 		} else {
 			log.ModEmu.DebugZ("running one frame").End()
 			e.RunOneFrame()
@@ -168,16 +169,18 @@ func (e *Emulator) handleReset() {
 	}
 }
 
-// SetPause, Stop, Reset and Restart allows to control
+// Block, Resume, Reset, Restart and Stop allow to control
 // the emulator loop in a concurrent-safe way.
 
-func (e *Emulator) SetPause(pause bool) { e.paused.CompareAndSwap(!pause, pause) }
-func (e *Emulator) Reset()              { e.reset.Store(true) }
-func (e *Emulator) Restart()            { e.restart.Store(true) }
-func (e *Emulator) Stop()               { e.quit.Store(true) }
+func (e *Emulator) Block()  { e.paused.Store(true) }
+func (e *Emulator) Resume() { e.blockch <- struct{}{} }
+
+func (e *Emulator) Reset()   { e.reset.Store(true) }
+func (e *Emulator) Restart() { e.restart.Store(true) }
+func (e *Emulator) Stop()    { e.quit.Store(true) }
 
 func (e *Emulator) isPaused() bool {
-	return e.paused.Load()
+	return e.paused.CompareAndSwap(true, false)
 }
 
 func (e *Emulator) shouldStop() bool {
