@@ -12,14 +12,6 @@ const (
 	DPCM
 )
 
-type FrameType uint8
-
-const (
-	NoFrame FrameType = iota
-	QuarterFrame
-	HalfFrame
-)
-
 type cpu interface {
 	SetIRQSource(src hwdefs.IRQSource)
 	HasIRQSource(src hwdefs.IRQSource) bool

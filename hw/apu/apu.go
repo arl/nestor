@@ -137,14 +137,14 @@ func (a *APU) ReadDAC2(val uint8) uint8 {
 	return a.DMC.output()
 }
 
-func (a *APU) FrameCounterTick(ftyp FrameType) {
+func (a *APU) FrameCounterTick(ftyp frameType) {
 	// Quarter & half frame clock envelope & linear counter
 	a.Square1.tickEnvelope()
 	a.Square2.tickEnvelope()
 	a.Triangle.tickLinearCounter()
 	a.Noise.tickEnvelope()
 
-	if ftyp == HalfFrame {
+	if ftyp == halfFrame {
 		// Half frames clock length counter & sweep
 		a.Square1.tickLengthCounter()
 		a.Square2.tickLengthCounter()
