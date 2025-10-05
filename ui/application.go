@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"sync"
 	"sync/atomic"
 
 	"github.com/ebitengine/oto/v3"
@@ -89,22 +90,12 @@ func (app *Application) runRom(romPath string) error {
 	)
 
 	// init audio
-	op := oto.NewContextOptions{
-		SampleRate:   apu.MaxSampleRate,
-		ChannelCount: 2,
-		Format:       oto.FormatSignedInt16LE,
-	}
-
-	context, readyChan, err := oto.NewContext(&op)
-	if err != nil {
-		panic("oto.NewContext failed: " + err.Error())
-	}
-	<-readyChan
-
 	const audioBufferSize = 1024 // TODO: adjust based on latency.
-
 	app.samples = newSampleBuffer(audioBufferSize)
-	app.audioPlayer = context.NewPlayer(app.samples)
+	if app.audioPlayer != nil {
+		app.audioPlayer.Close()
+	}
+	app.audioPlayer = otoContext().NewPlayer(app.samples)
 	app.audioPlayer.SetVolume(1)
 	app.audioPlayer.SetBufferSize(8192)
 	app.audioPlayer.Play()
@@ -113,6 +104,19 @@ func (app *Application) runRom(romPath string) error {
 
 	return nil
 }
+
+var otoContext = sync.OnceValue(func() *oto.Context {
+	context, readyChan, err := oto.NewContext(&oto.NewContextOptions{
+		SampleRate:   apu.MaxSampleRate,
+		ChannelCount: 2,
+		Format:       oto.FormatSignedInt16LE,
+	})
+	if err != nil {
+		panic("oto.NewContext failed: " + err.Error())
+	}
+	<-readyChan
+	return context
+})
 
 func (app *Application) Update() error {
 	if app.quit.Load() {

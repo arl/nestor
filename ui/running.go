@@ -54,18 +54,20 @@ func (s *running) initUI() {
 	))
 
 	menu.AddChild(stdButton("Resume", func(_ *widget.ButtonClickedEventArgs) {
-		s.togglePause()
+		s.resume()
 	}))
 	menu.AddChild(stdButton("Reset", func(_ *widget.ButtonClickedEventArgs) {
-		s.togglePause()
+		s.resume()
 		s.emulator.Reset()
+		s.audioPlayer.Play()
 	}))
 	menu.AddChild(stdButton("Restart", func(_ *widget.ButtonClickedEventArgs) {
-		s.togglePause()
+		s.resume()
 		s.emulator.Restart()
+		s.audioPlayer.Play()
 	}))
 	menu.AddChild(stdButton("Stop", func(_ *widget.ButtonClickedEventArgs) {
-		s.togglePause()
+		s.resume()
 		s.emulator.Stop()
 		s.Application.setState("rom_list")
 	}))
@@ -74,28 +76,34 @@ func (s *running) initUI() {
 	s.pauseUI = &ebitenui.UI{Container: root}
 }
 
-func (s *running) togglePause() {
-	s.paused = !s.paused
-	modUI.InfoZ("Toggling pause").Bool("paused", s.paused).End()
-	s.emulator.SetPause(s.paused)
-	if s.paused {
-		s.audioPlayer.Pause()
-	} else {
-		s.audioPlayer.Play()
-	}
+func (s *running) pause() {
+	modUI.InfoZ("Pause emulator").End()
+	s.paused = true
+	s.emulator.SetPause(true)
+}
+
+func (s *running) resume() {
+	modUI.InfoZ("Resume emulator").End()
+	s.paused = false
+	s.emulator.SetPause(false)
 }
 
 func (s *running) Update() {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		if s.paused {
+			s.resume()
+			s.audioPlayer.Play()
+		} else {
+			s.pause()
+			s.audioPlayer.Pause()
+		}
+	}
 	if s.paused {
 		s.pauseUI.Update()
 		return
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		s.emulator.Reset()
-	}
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		s.togglePause()
 	}
 }
 
