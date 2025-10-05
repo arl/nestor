@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/arl/blip v0.2.2
+	github.com/ebitengine/oto/v3 v3.3.3
 	github.com/ebitenui/ebitenui v0.7.1
 	github.com/go-faster/jx v1.1.0
 	github.com/google/go-cmp v0.7.0
