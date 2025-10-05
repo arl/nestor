@@ -4,7 +4,6 @@ import (
 	"slices"
 
 	"github.com/arl/blip"
-	"github.com/veandco/go-sdl2/sdl"
 
 	"nestor/hw/hwdefs"
 	"nestor/hw/snapshot"
@@ -21,7 +20,6 @@ const cycleLength = 32768
 const _ uint32 = (cycleLength - (ntscClockRate / 60))
 
 const (
-	AudioFormat   = sdl.AUDIO_S16LSB
 	AudioChannels = 2 // stereo
 )
 
@@ -30,10 +28,6 @@ type AudioBuffer struct {
 }
 
 type Mixer struct {
-	// outbuf can probably be removed and replaced
-	// with the audio buffer passed to EndFrame.
-	// outbuf [maxSamplesPerFrame]int16
-
 	bufleft  *blip.Buffer
 	bufright *blip.Buffer
 

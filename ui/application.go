@@ -6,10 +6,12 @@ import (
 	"image"
 	"sync/atomic"
 
+	"github.com/ebitengine/oto/v3"
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"nestor/config"
 	"nestor/emu"
+	"nestor/hw/apu"
 	"nestor/hw/input"
 	"nestor/ines"
 )
@@ -18,10 +20,12 @@ type Application struct {
 	cfg  config.Config
 	quit atomic.Bool
 
-	emuctx   context.Context
 	emulator *emu.Emulator
 	framech  chan *emu.Frame
 	frameimg *ebiten.Image
+
+	samples     *sampleBuffer
+	audioPlayer *oto.Player
 
 	states       map[string]state
 	currentState state
@@ -55,7 +59,7 @@ func (app *Application) runRom(romPath string) error {
 
 	rom, err := ines.ReadROM(romPath)
 	if err != nil {
-		return fmt.Errorf("failed to read ROM: %w", err)
+		return fmt.Errorf("failed to read ROM: %s", err)
 	}
 
 	framech := make(chan *emu.Frame)
@@ -74,7 +78,7 @@ func (app *Application) runRom(romPath string) error {
 
 	emulator, err := emu.Launch(rom, app.cfg.Config, out, inputProvider)
 	if err != nil {
-		return fmt.Errorf("failed to launch emulator: %w", err)
+		return fmt.Errorf("failed to launch emulator: %s", err)
 	}
 
 	app.emulator = emulator
@@ -83,6 +87,27 @@ func (app *Application) runRom(romPath string) error {
 		image.Rect(0, 0, emu.NTSCWidth, emu.NTSCHeight),
 		&ebiten.NewImageOptions{Unmanaged: true},
 	)
+
+	// init audio
+	op := oto.NewContextOptions{
+		SampleRate:   apu.MaxSampleRate,
+		ChannelCount: 2,
+		Format:       oto.FormatSignedInt16LE,
+	}
+
+	context, readyChan, err := oto.NewContext(&op)
+	if err != nil {
+		panic("oto.NewContext failed: " + err.Error())
+	}
+	<-readyChan
+
+	const audioBufferSize = 1024 // TODO: adjust based on latency.
+
+	app.samples = newSampleBuffer(audioBufferSize)
+	app.audioPlayer = context.NewPlayer(app.samples)
+	app.audioPlayer.SetVolume(1)
+	app.audioPlayer.SetBufferSize(8192)
+	app.audioPlayer.Play()
 
 	go emulator.Run()
 

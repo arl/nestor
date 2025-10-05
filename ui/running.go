@@ -78,6 +78,11 @@ func (s *running) togglePause() {
 	s.paused = !s.paused
 	modUI.InfoZ("Toggling pause").Bool("paused", s.paused).End()
 	s.emulator.SetPause(s.paused)
+	if s.paused {
+		s.audioPlayer.Pause()
+	} else {
+		s.audioPlayer.Play()
+	}
 }
 
 func (s *running) Update() {
@@ -100,11 +105,29 @@ func (s *running) Draw(screen *ebiten.Image) {
 		return
 	}
 
+	// retrieve frame
 	frame := <-s.framech
+
+	// audio
+
+	// With audio and vsync enabled, we use vsync to enforce
+	// the correct emulation speed. In this case we want to
+	// avoid queueing too much audio as it would desync from
+	// video. So we send audio only if there's less than a
+	// frame's worth in the buffer.
+	if s.Application.samples.Len() < len(frame.Audio.Samples)/2 {
+		buf := byteSliceFromInt16(frame.Audio.Samples)
+		if _, err := s.samples.Write(buf); err != nil {
+			panic(err)
+		}
+	}
+
+	// video
 	s.Application.frameimg.WritePixels(frame.Video)
 
 	// TODO: precalculate screen bounds on resize only
 	s.drawFrame(screen, s.Application.frameimg, float64(screen.Bounds().Dx()), float64(screen.Bounds().Dy()))
+
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %f", ebiten.ActualFPS()))
 }
 

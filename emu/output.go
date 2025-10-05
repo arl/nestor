@@ -3,8 +3,6 @@ package emu
 import (
 	"image"
 
-	"github.com/veandco/go-sdl2/sdl"
-
 	"nestor/emu/log"
 	"nestor/hw/apu"
 )
@@ -40,7 +38,6 @@ type Output struct {
 	framech      chan *Frame
 
 	audioEnabled bool
-	audiodev     sdl.AudioDeviceID
 	audiobuf     [][]int16
 
 	cfg OutputConfig
