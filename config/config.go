@@ -52,9 +52,10 @@ var defaultConfig = Config{
 			},
 		},
 		Video: emu.VideoConfig{
-			DisableVSync: false,
-			Monitor:      0,
-			Shader:       "",
+			DisableVSync:    false,
+			StartFullscreen: false,
+			Monitor:         0,
+			Shader:          "",
 		},
 		Audio: emu.AudioConfig{
 			DisableAudio: false,

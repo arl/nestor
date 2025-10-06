@@ -89,6 +89,9 @@ func (s *running) resume() {
 }
 
 func (s *running) Update() {
+	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
+		ebiten.SetFullscreen(!ebiten.IsFullscreen())
+	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		if s.paused {
 			s.resume()

@@ -13,8 +13,8 @@ import (
 var modUI = log.NewModule("ui")
 
 const (
-	startWidth  = 640
-	startHeight = 480
+	minHeight = 640
+	minWidth  = 480
 )
 
 func StartUI(ctx context.Context, cfg config.Config) error {
@@ -26,15 +26,17 @@ func StartROM(ctx context.Context, cfg config.Config, romPath string) error {
 }
 
 func start(ctx context.Context, cfg config.Config, romPath string) error {
-	ebiten.SetWindowSize(startWidth, startHeight)
 	ebiten.SetWindowTitle("Nestor")
-	// ebiten.SetFullscreen(true) // add option
+	ebiten.SetWindowSize(minHeight, minWidth)
+	ebiten.SetWindowSizeLimits(minHeight, minWidth, -1, -1)
+	if cfg.Video.StartFullscreen {
+		ebiten.SetFullscreen(true)
+	}
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetTPS(ebiten.SyncWithFPS)
 	ebiten.SetVsyncEnabled(!cfg.Video.DisableVSync)
 	var options = &ebiten.RunGameOptions{
 		// SingleThread: true,
-
 	}
 
 	app := newApplication(ctx, cfg)
