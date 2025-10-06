@@ -72,7 +72,7 @@ var defaultConfig = Config{
 
 const dirMode = os.FileMode(0755)
 
-var ConfigDir = sync.OnceValue(func() string {
+var Dir = sync.OnceValue(func() string {
 	cfgdir, err := os.UserConfigDir()
 	if err != nil {
 		log.ModEmu.Fatalf("failed to get user config directory: %v", err)
@@ -88,7 +88,7 @@ var ConfigDir = sync.OnceValue(func() string {
 const cfgFilename = "config.toml"
 
 var configPath = sync.OnceValue(func() string {
-	return filepath.Join(ConfigDir(), cfgFilename)
+	return filepath.Join(Dir(), cfgFilename)
 })
 
 // LoadConfigOrDefault loads the configuration from the nestor config directory,
@@ -126,7 +126,7 @@ func saveConfig(cfg *Config) error {
 }
 
 var SaveRAMDir = sync.OnceValue(func() string {
-	dir := filepath.Join(ConfigDir(), "saveram")
+	dir := filepath.Join(Dir(), "saveram")
 	if err := os.MkdirAll(dir, dirMode); err != nil {
 		log.ModEmu.Fatalf("failed to create directory %s: %v", dir, err)
 	}
