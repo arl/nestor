@@ -2,12 +2,12 @@ package ui
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"golang.org/x/image/colornames"
 )
@@ -16,11 +16,13 @@ type running struct {
 	*Application
 	paused  bool
 	pauseUI *ebitenui.UI
+	elapsed int64 // elapsed seconds (for FPS display)
 }
 
 func newRunningState(app *Application) *running {
 	s := &running{
 		Application: app,
+		elapsed:     time.Now().Unix(),
 	}
 	s.initUI()
 	return s
@@ -77,12 +79,14 @@ func (s *running) initUI() {
 }
 
 func (s *running) pause() {
+	ebiten.SetWindowTitle("Nestor <paused>")
 	modUI.InfoZ("Pause emulator").End()
 	s.paused = true
 	s.emulator.Block()
 }
 
 func (s *running) resume() {
+	ebiten.SetWindowTitle("Nestor")
 	modUI.InfoZ("Resume emulator").End()
 	s.paused = false
 	s.emulator.Resume()
@@ -139,7 +143,10 @@ func (s *running) Draw(screen *ebiten.Image) {
 	// TODO: precalculate screen bounds on resize only
 	s.drawFrame(screen, s.Application.frameimg, float64(screen.Bounds().Dx()), float64(screen.Bounds().Dy()))
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %f", ebiten.ActualFPS()))
+	if now := time.Now().Unix(); now != s.elapsed {
+		s.elapsed = now
+		ebiten.SetWindowTitle(fmt.Sprintf("Nestor - FPS: %.1f", ebiten.ActualTPS()))
+	}
 }
 
 func (s *running) drawFrame(screen *ebiten.Image, frameImg *ebiten.Image, targetW, targetH float64) {
