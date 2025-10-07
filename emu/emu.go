@@ -88,8 +88,6 @@ func Launch(rom *ines.Rom, cfg Config, out *Output, inp *input.Provider) (*Emula
 }
 
 func (e *Emulator) RunOneFrame() {
-	log.ModEmu.DebugZ("frame").Uint32("number", e.NES.PPU.FrameCount).End()
-
 	if e.cfg.RunAheadFrames > 0 {
 		e.RunFrameWithRunAhead()
 	} else {
@@ -135,16 +133,12 @@ func (e *Emulator) RunFrameWithRunAhead() {
 }
 
 func (e *Emulator) Run() {
-	for e.out.Poll() {
+	for !e.shouldStop() {
 		// Handle pause.
 		if e.isPaused() {
 			<-e.blockch
 		} else {
-			log.ModEmu.DebugZ("running one frame").End()
 			e.RunOneFrame()
-		}
-		if e.shouldStop() {
-			break
 		}
 		e.handleReset()
 	}

@@ -3,7 +3,6 @@ package emu
 import (
 	"image"
 
-	"nestor/emu/log"
 	"nestor/hw/apu"
 )
 
@@ -97,15 +96,10 @@ func (out *Output) BeginFrame() Frame {
 
 func (out *Output) EndFrame(frame *Frame) {
 	out.framecounter++
-	log.ModEmu.DebugZ("end_frame").End()
 	if out.framech == nil {
 		return
 	}
 	out.framech <- frame
-}
-
-func (out *Output) Poll() bool {
-	return true
 }
 
 func (out *Output) Screenshot() *image.RGBA { return nil }
