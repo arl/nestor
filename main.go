@@ -131,6 +131,8 @@ func main() {
 		return
 	}
 
+	installStacktraceHandler()
+
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
