@@ -1,5 +1,5 @@
 <p align="center">
- <img src="./ui/logo.png" width="384" align="center">
+ <img src="./resource/logo.png" width="384" align="center">
 </p>
 
 # Nestor - NES emulator
