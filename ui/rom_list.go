@@ -4,6 +4,7 @@ import (
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
+	"golang.org/x/image/colornames"
 )
 
 type romList struct {
@@ -11,7 +12,6 @@ type romList struct {
 
 	winw, winh int
 	ui         *ebitenui.UI
-	root       *widget.Container
 	rrw        *recentRomsWidget
 }
 
@@ -29,23 +29,28 @@ func newRomListState(app *Application) *romList {
 
 // use a grid layout (look at the ebitenui demo example (grid layout))
 func (s *romList) initUI() {
-	rrw := newRecentROMsWidget(s.winw, s.winh, func(path string) {
-		s.onClickedROM(path)
-	})
+	s.ui = &ebitenui.UI{}
 
 	// Create a root container for the UI.
-	s.root = widget.NewContainer(
+	s.ui.Container = widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
-			widget.GridLayoutOpts.Padding(&widget.Insets{
-				Left:  25,
-				Right: 25,
-			}),
+			widget.GridLayoutOpts.Padding(&widget.Insets{}),
 			widget.GridLayoutOpts.Columns(1),
 			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{true}),
-			widget.GridLayoutOpts.Spacing(20, 0),
 		)))
-	s.root.AddChild(rrw.container)
-	s.ui = &ebitenui.UI{Container: s.root}
+
+	// Configure menu.
+	menu := newAppMenu(s.ui)
+	menu.quitButton.ClickedEvent.AddHandler(func(args any) {
+		s.Application.exit()
+	})
+
+	s.ui.Container.AddChild(menu.container)
+
+	fmt.Println("window size:", s.winw, s.winh)
+
+	s.ui.Container.AddChild(s.rrw.container)
+	s.rrw.initUI(s.winw, s.winh)
 }
 
 func (s *romList) onClickedROM(path string) {
@@ -67,5 +72,6 @@ func (s *romList) Update() {
 }
 
 func (s *romList) Draw(screen *ebiten.Image) {
+	screen.Fill(colornames.Lightcoral)
 	s.ui.Draw(screen)
 }

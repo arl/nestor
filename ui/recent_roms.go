@@ -190,15 +190,15 @@ func newRecentROMsWidget(width, height int, runROM func(path string)) *recentRom
 		run: runROM,
 	}
 
-	rr.recalc(width, height)
+	rr.initUI(width, height)
 	return rr
 }
 
-func (rr *recentRomsWidget) recalc(width, height int) {
-	const imgside = 250
-	const spacing = 10
-	numcols := width / (imgside + spacing)
-	maxrows := height / (imgside + spacing) // max rows to display
+func (rr *recentRomsWidget) initUI(width, height int) {
+	const imgside = 250    // side of the screenshot image (not exactly a square though)
+	const cellSpacing = 10 // space between cells (h+v)
+	numcols := width / (imgside + cellSpacing)
+	maxrows := height / (imgside + cellSpacing) // max rows to display
 	if maxrows == 0 {
 		maxrows = 1
 	}

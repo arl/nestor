@@ -17,11 +17,16 @@ import (
 	"nestor/ines"
 )
 
+type state interface {
+	Update()
+	Draw(screen *ebiten.Image)
+}
+
 type Application struct {
-	cfg  config.Config
-	quit atomic.Bool
+	cfg config.Config
 
 	emulator *emu.Emulator
+	quit     atomic.Bool
 	framech  chan *emu.Frame
 	frameimg *ebiten.Image
 
@@ -30,12 +35,16 @@ type Application struct {
 
 	states       map[string]state
 	currentState state
+
+	screenw, screenh int
 }
 
 func newApplication(ctx context.Context, cfg config.Config) *Application {
 	app := &Application{
-		cfg:    cfg,
-		states: make(map[string]state),
+		cfg:     cfg,
+		states:  make(map[string]state),
+		screenw: minWidth,
+		screenh: minHeight,
 	}
 
 	app.states["running"] = newRunningState(app)
@@ -44,15 +53,36 @@ func newApplication(ctx context.Context, cfg config.Config) *Application {
 
 	go func() {
 		<-ctx.Done()
-		app.quit.Store(true)
+		app.exit()
 	}()
 
 	return app
 }
 
+func (app *Application) exit() {
+	app.quit.Store(true)
+}
+
 func (app *Application) setState(name string) {
 	modUI.InfoZ("Switching to state").String("to", name).End()
 	app.currentState = app.states[name]
+}
+
+func (app *Application) Update() error {
+	if app.quit.Load() {
+		return ebiten.Termination
+	}
+	app.currentState.Update()
+	return nil
+}
+
+func (app *Application) Draw(screen *ebiten.Image) {
+	app.currentState.Draw(screen)
+}
+
+func (app *Application) Layout(outw, outh int) (screenw, screenh int) {
+	app.screenw, app.screenh = outw, outh
+	return outw, outh
 }
 
 func (app *Application) runRom(romPath string) error {
@@ -117,24 +147,3 @@ var otoContext = sync.OnceValue(func() *oto.Context {
 	<-readyChan
 	return context
 })
-
-func (app *Application) Update() error {
-	if app.quit.Load() {
-		return ebiten.Termination
-	}
-	app.currentState.Update()
-	return nil
-}
-
-func (app *Application) Draw(screen *ebiten.Image) {
-	app.currentState.Draw(screen)
-}
-
-func (app *Application) Layout(outw, outh int) (screenw, screenh int) {
-	return outw, outh
-}
-
-type state interface {
-	Update()
-	Draw(screen *ebiten.Image)
-}
