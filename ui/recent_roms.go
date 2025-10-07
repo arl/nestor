@@ -217,8 +217,6 @@ func (rr *recentRomsWidget) recalc(width, height int) {
 			widget.GridLayoutOpts.Stretch(colstretch, nil),
 			widget.GridLayoutOpts.Spacing(10, 10))))
 
-	font := loadFont(15)
-	_ = font
 	roms := loadRecentROMs()
 
 	for i := range roms {

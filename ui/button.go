@@ -1,49 +1,16 @@
 package ui
 
 import (
-	"bytes"
 	"image/color"
 	"math"
 
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"golang.org/x/image/colornames"
-	"golang.org/x/image/font/gofont/goregular"
 )
 
 var Transparent = color.RGBA{0, 0, 0, 0}
-
-func DefaultFont() *text.Face {
-	s, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
-	if err != nil {
-		panic(err)
-	}
-	var face text.Face = &text.GoTextFace{
-		Source: s,
-		Size:   20,
-	}
-	return &face
-}
-
-func TitleFont() *text.Face {
-	return DefaultFont()
-}
-
-func DefaultNineSlice(base color.Color) *image.NineSlice {
-	var size float32 = 64
-	var tiles float32 = 16
-	// var radius float32 = 8
-
-	tile := size / tiles
-	// facet := Mix(base, colornames.Gainsboro, 0.2)
-
-	img := ebiten.NewImage(int(size), int(size))
-	vector.DrawFilledRect(img, 0, 0, size, size, base, true)
-
-	return image.NewNineSliceBorder(img, int(tile*4))
-}
 
 func PressedNineSlice(base color.Color) *image.NineSlice {
 	var size float32 = 64

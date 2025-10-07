@@ -54,7 +54,8 @@ func (s *running) initUI() {
 		)),
 	)
 	menu.AddChild(widget.NewLabel(
-		widget.LabelOpts.Text("<paused>", TitleFont(), &widget.LabelColor{Idle: colornames.White}),
+		widget.LabelOpts.Text("<paused>", titleFont(), &widget.LabelColor{Idle: colornames.White}),
+		widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
 	))
 
 	menu.AddChild(stdButton("Resume", func(_ *widget.ButtonClickedEventArgs) {

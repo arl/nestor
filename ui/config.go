@@ -64,7 +64,7 @@ func (s *configState) initUI() {
 				HorizontalPosition: widget.GridLayoutPositionCenter,
 			}),
 		)),
-		widget.LabelOpts.Text("Configuration", TitleFont(), &widget.LabelColor{
+		widget.LabelOpts.Text("Configuration", titleFont(), &widget.LabelColor{
 			Idle:     colornames.Black,
 			Disabled: Mix(colornames.Black, colornames.White, 0.4),
 		}),
@@ -78,7 +78,7 @@ func (s *configState) initUI() {
 				MaxWidth: 600,
 			}),
 		)),
-		widget.LabelOpts.Text("Video Settings", DefaultFont(), &widget.LabelColor{
+		widget.LabelOpts.Text("Video Settings", defaultFont(), &widget.LabelColor{
 			Idle:     colornames.Black,
 			Disabled: Mix(colornames.Black, colornames.White, 0.4),
 		}),
@@ -87,7 +87,7 @@ func (s *configState) initUI() {
 
 	// Add back button
 	backButton := widget.NewButton(
-		widget.ButtonOpts.TextFace(DefaultFont()),
+		widget.ButtonOpts.TextFace(defaultFont()),
 		widget.ButtonOpts.TextColor(&widget.ButtonTextColor{
 			Idle:    colornames.Gainsboro,
 			Hover:   colornames.Gainsboro,

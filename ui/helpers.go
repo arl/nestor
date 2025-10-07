@@ -2,7 +2,6 @@ package ui
 
 import (
 	"bytes"
-	"fmt"
 	"image/color"
 	"sync"
 	"unsafe"
@@ -10,8 +9,7 @@ import (
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text/v2"
-	"golang.org/x/image/font/gofont/goregular"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 var buttonImage = sync.OnceValue(func() *widget.ButtonImage {
@@ -31,29 +29,20 @@ var buttonImage = sync.OnceValue(func() *widget.ButtonImage {
 	}
 })
 
-var fontFaces = map[float64]text.Face{}
+func DefaultNineSlice(base color.Color) *image.NineSlice {
+	var size float32 = 64
+	var tiles float32 = 16
 
-func loadFont(size float64) text.Face {
-	if face, ok := fontFaces[size]; ok {
-		return face
-	}
+	tile := size / tiles
 
-	s, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
-	if err != nil {
-		panic(fmt.Errorf("failed to load font: %s", err))
-	}
+	img := ebiten.NewImage(int(size), int(size))
+	vector.DrawFilledRect(img, 0, 0, size, size, base, true)
 
-	face := &text.GoTextFace{
-		Source: s,
-		Size:   size,
-	}
-	fontFaces[size] = face
-	return face
+	return image.NewNineSliceBorder(img, int(tile*4))
 }
 
 func stdButton(text string, onclick func(args *widget.ButtonClickedEventArgs)) *widget.Button {
 	var (
-		font   = loadFont(20)
 		button *widget.Button
 	)
 
@@ -65,7 +54,7 @@ func stdButton(text string, onclick func(args *widget.ButtonClickedEventArgs)) *
 			}),
 		),
 		widget.ButtonOpts.Image(buttonImage()),
-		widget.ButtonOpts.Text(text, &font, &widget.ButtonTextColor{
+		widget.ButtonOpts.Text(text, loadFont(20), &widget.ButtonTextColor{
 			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
 		}),
 		widget.ButtonOpts.TextProcessBBCode(false),
