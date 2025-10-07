@@ -17,6 +17,8 @@ type running struct {
 	paused  bool
 	pauseUI *ebitenui.UI
 	elapsed int64 // elapsed seconds (for FPS display)
+
+	shouldQuit bool
 }
 
 func newRunningState(app *Application) *running {
@@ -69,9 +71,7 @@ func (s *running) initUI() {
 		s.audioPlayer.Play()
 	}))
 	menu.AddChild(stdButton("Stop", func(_ *widget.ButtonClickedEventArgs) {
-		s.resume()
-		s.emulator.Stop()
-		s.Application.setState("rom_list")
+		s.shouldQuit = true
 	}))
 
 	root.AddChild(menu)
@@ -116,6 +116,15 @@ func (s *running) Update() {
 
 func (s *running) Draw(screen *ebiten.Image) {
 	if s.paused {
+		if s.shouldQuit {
+			s.paused = false
+			s.shouldQuit = false
+			s.emulator.Stop()
+			<-s.framech // discard frame
+			s.Application.setState("rom_list")
+			return
+		}
+
 		s.pauseUI.Draw(screen)
 		return
 	}
