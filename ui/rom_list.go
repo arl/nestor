@@ -9,10 +9,10 @@ import (
 type romList struct {
 	*Application
 
-	winw int
-	ui   *ebitenui.UI
-	root *widget.Container
-	rrw  *recentRomsWidget
+	winw, winh int
+	ui         *ebitenui.UI
+	root       *widget.Container
+	rrw        *recentRomsWidget
 }
 
 func newRomListState(app *Application) *romList {
@@ -29,7 +29,7 @@ func newRomListState(app *Application) *romList {
 
 // use a grid layout (look at the ebitenui demo example (grid layout))
 func (s *romList) initUI() {
-	rrw := newRecentROMsWidget(s.winw, func(path string) {
+	rrw := newRecentROMsWidget(s.winw, s.winh, func(path string) {
 		s.onClickedROM(path)
 	})
 
@@ -58,8 +58,9 @@ func (s *romList) onClickedROM(path string) {
 }
 
 func (s *romList) Update() {
-	if w, _ := ebiten.WindowSize(); w != s.winw {
+	if w, h := ebiten.WindowSize(); w != s.winw || h != s.winh {
 		s.winw = w
+		s.winh = h
 		s.initUI()
 	}
 	s.ui.Update()
@@ -68,99 +69,3 @@ func (s *romList) Update() {
 func (s *romList) Draw(screen *ebiten.Image) {
 	s.ui.Draw(screen)
 }
-
-/*
-	s.root = widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(
-			image.NewNineSliceColor(colornames.Gainsboro),
-		),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-	)
-
-	// Create center panel with buttons - change to grid layout
-	centerPanel := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(
-			image.NewNineSliceColor(colornames.Darkgray),
-		),
-		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-				StretchHorizontal: true,
-				StretchVertical:   true,
-			}),
-		),
-		// Change to grid layout with single column and proper spacing
-		widget.ContainerOpts.Layout(widget.NewGridLayout(
-			widget.GridLayoutOpts.Columns(1),
-			widget.GridLayoutOpts.Spacing(0, 20),
-			widget.GridLayoutOpts.Padding(&widget.Insets{
-				Top:    20,
-				Bottom: 20,
-			}),
-			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, false}),
-		)),
-	)
-
-	// Create start button - update to use grid layout data
-	startButton := widget.NewButton(
-		widget.ButtonOpts.TextFace(DefaultFont()),
-		widget.ButtonOpts.TextColor(&widget.ButtonTextColor{
-			Idle:    colornames.Gainsboro,
-			Hover:   colornames.Gainsboro,
-			Pressed: Mix(colornames.Gainsboro, colornames.Black, 0.4),
-		}),
-		widget.ButtonOpts.Image(&widget.ButtonImage{
-			Idle:         DefaultNineSlice(colornames.Darkslategray),
-			Hover:        DefaultNineSlice(Mix(colornames.Darkslategray, colornames.Mediumseagreen, 0.4)),
-			Disabled:     DefaultNineSlice(Mix(colornames.Darkslategray, colornames.Gainsboro, 0.8)),
-			Pressed:      PressedNineSlice(Mix(colornames.Darkslategray, colornames.Black, 0.4)),
-			PressedHover: PressedNineSlice(Mix(colornames.Darkslategray, colornames.Black, 0.4)),
-		}),
-		widget.ButtonOpts.TextLabel("Start ROM"),
-		widget.ButtonOpts.WidgetOpts(
-			// Update to use grid layout data
-			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
-				HorizontalPosition: widget.GridLayoutPositionCenter,
-			}),
-			widget.WidgetOpts.MinSize(180, 48),
-		),
-		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			const romPath = "/home/aurelien/dev/roms/nes/all.nes.roms.goodnes/USA/Super Mario Bros. + Duck Hunt (U) [!].nes"
-			if err := s.Application.runRom(romPath); err == nil {
-				s.Application.setState("running")
-			}
-		}),
-	)
-
-	// Create config button - update to use grid layout data
-	configButton := widget.NewButton(
-		widget.ButtonOpts.TextFace(DefaultFont()),
-		widget.ButtonOpts.TextColor(&widget.ButtonTextColor{
-			Idle:    colornames.Gainsboro,
-			Hover:   colornames.Gainsboro,
-			Pressed: Mix(colornames.Gainsboro, colornames.Black, 0.4),
-		}),
-		widget.ButtonOpts.Image(&widget.ButtonImage{
-			Idle:         DefaultNineSlice(colornames.Darkslategray),
-			Hover:        DefaultNineSlice(Mix(colornames.Darkslategray, colornames.Dodgerblue, 0.4)),
-			Disabled:     DefaultNineSlice(Mix(colornames.Darkslategray, colornames.Gainsboro, 0.8)),
-			Pressed:      PressedNineSlice(Mix(colornames.Darkslategray, colornames.Black, 0.4)),
-			PressedHover: PressedNineSlice(Mix(colornames.Darkslategray, colornames.Black, 0.4)),
-		}),
-		widget.ButtonOpts.TextLabel("Configuration"),
-		widget.ButtonOpts.WidgetOpts(
-			// Update to use grid layout data
-			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
-				HorizontalPosition: widget.GridLayoutPositionCenter,
-			}),
-			widget.WidgetOpts.MinSize(180, 48),
-		),
-		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.Application.setState("config")
-		}),
-	)
-
-	centerPanel.AddChild(startButton)
-	centerPanel.AddChild(configButton)
-
-	s.root.AddChild(centerPanel)
-*/

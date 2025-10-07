@@ -185,19 +185,23 @@ type recentRomsWidget struct {
 	container *widget.Container
 }
 
-func newRecentROMsWidget(width int, runROM func(path string)) *recentRomsWidget {
+func newRecentROMsWidget(width, height int, runROM func(path string)) *recentRomsWidget {
 	rr := &recentRomsWidget{
 		run: runROM,
 	}
 
-	rr.recalc(width)
+	rr.recalc(width, height)
 	return rr
 }
 
-func (rr *recentRomsWidget) recalc(width int) {
-	const imgside = 376
+func (rr *recentRomsWidget) recalc(width, height int) {
+	const imgside = 250
 	const spacing = 10
 	numcols := width / (imgside + spacing)
+	maxrows := height / (imgside + spacing) // max rows to display
+	if maxrows == 0 {
+		maxrows = 1
+	}
 
 	colstretch := make([]bool, numcols)
 	for i := range colstretch {
@@ -218,6 +222,11 @@ func (rr *recentRomsWidget) recalc(width int) {
 	roms := loadRecentROMs()
 
 	for i := range roms {
+		rowidx := i / numcols
+		if rowidx == maxrows {
+			break
+		}
+
 		img, _, err := image.Decode(bytes.NewReader(roms[i].Image))
 		if err != nil {
 			panic(err)
