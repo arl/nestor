@@ -4,12 +4,16 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"runtime/pprof"
 	"slices"
 	"strings"
+
+	"github.com/arl/statsviz"
 
 	"nestor/config"
 	"nestor/emu/log"
@@ -37,6 +41,7 @@ Options:
     -ramfile FILE      read 'save ram' from file [WIP/TODO].
 
     -cpuprofile FILE   write cpu profile to FILE.
+    -monitor HOST:PORT expose Go runtime real-time on HOST:PORT
     -trace FILE        write cpu trace log to FILE,
                        also accepts: stdout or stderr
     -v, --verbose      set log level to info (default: warning).
@@ -60,6 +65,7 @@ func main() {
 		ramfile    existingFile
 		logModules logModMask
 		verbose    bool
+		monitor    string
 	)
 
 	fs := flag.NewFlagSet("nestor", flag.ContinueOnError)
@@ -68,6 +74,7 @@ func main() {
 	fs.StringVar(&rominfos, "rom-infos", "", "print ROM information and exit")
 
 	fs.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
+	fs.StringVar(&monitor, "monitor", "", "expose Go runtime real-time on HOST:PORT")
 	fs.Var(&trace, "trace", "write cpu trace log to FILE|stdout|stderr")
 	fs.Var(&ramfile, "ramfile", "Read 'save ram' from file [WIP/TODO].")
 	fs.Var(&logModules, "log", "comma separated list of log modules to enable (or 'all' or 'no').")
@@ -106,6 +113,15 @@ func main() {
 			f.Close()
 			fmt.Fprintf(os.Stderr, "CPU profile written to %q", cpuprofile)
 		}()
+	}
+
+	if monitor != "" {
+		ss, err := statsviz.NewServer()
+		checkf(err, "statsviz")
+		ss.Register(http.DefaultServeMux)
+
+		fmt.Println("statsviz UI: point your browser to", prettyAddr(monitor)+"/debug/statsviz")
+		go http.ListenAndServe(monitor, nil)
 	}
 
 	if rominfos != "" {
@@ -201,4 +217,18 @@ func fatalf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "fatal error:")
 	fmt.Fprintf(os.Stderr, "\n\t%s\n", fmt.Sprintf(format, args...))
 	os.Exit(1)
+}
+
+func prettyAddr(addr string) string {
+	if addr == "" {
+		return "localhost"
+	}
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return addr
+	}
+	if host == "" {
+		host = "localhost"
+	}
+	return fmt.Sprintf("http://%s:%s", host, port)
 }
