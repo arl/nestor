@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/arl/blip v0.2.2
+	github.com/arl/statsviz v0.7.2
 	github.com/ebitengine/oto/v3 v3.3.3
 	github.com/ebitenui/ebitenui v0.7.1
 	github.com/go-faster/jx v1.1.0
@@ -24,6 +25,7 @@ require (
 	github.com/frustra/bbcode v0.0.0-20201127003707-6ef347fbe1c8 // indirect
 	github.com/go-faster/errors v0.6.1 // indirect
 	github.com/go-text/typesetting v0.3.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
 	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
