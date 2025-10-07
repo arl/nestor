@@ -13,8 +13,8 @@ import (
 var modUI = log.NewModule("ui")
 
 const (
-	minHeight = 640
-	minWidth  = 480
+	minHeight = 800
+	minWidth  = 600
 )
 
 func StartUI(ctx context.Context, cfg config.Config) error {
@@ -35,9 +35,7 @@ func start(ctx context.Context, cfg config.Config, romPath string) error {
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetTPS(ebiten.SyncWithFPS)
 	ebiten.SetVsyncEnabled(!cfg.Video.DisableVSync)
-	var options = &ebiten.RunGameOptions{
-		// SingleThread: true,
-	}
+	var options = &ebiten.RunGameOptions{}
 
 	app := newApplication(ctx, cfg)
 	if romPath == "" {

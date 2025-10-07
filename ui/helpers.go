@@ -9,6 +9,7 @@ import (
 
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"golang.org/x/image/font/gofont/goregular"
 )
@@ -116,4 +117,16 @@ func (s *sampleBuffer) Read(p []uint8) (int, error) {
 
 func byteSliceFromInt16(arr []int16) []uint8 {
 	return unsafe.Slice((*uint8)(unsafe.Pointer(unsafe.SliceData(arr))), len(arr)*2)
+}
+
+func resizeImage(src *ebiten.Image, w, h float64) *ebiten.Image {
+	sw, sh := src.Bounds().Dx(), src.Bounds().Dy()
+	scaleX := w / float64(sw)
+	scaleY := h / float64(sh)
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(scaleX, scaleY)
+	dst := ebiten.NewImage(int(w), int(h))
+	dst.DrawImage(src, op)
+	return dst
 }
