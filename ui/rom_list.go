@@ -36,7 +36,17 @@ func (s *romList) initUI() {
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Padding(&widget.Insets{}),
 			widget.GridLayoutOpts.Columns(1),
-			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{true}),
+			widget.GridLayoutOpts.Stretch(
+				// This is what contains our grid (1 column, 2 rows):
+				// [    menu     ]
+				// [ recent roms ]
+
+				[]bool{true}, // our column stretches horizontally:
+				[]bool{
+					false, // the menu height cell stays fixed
+					true,  // the recent roms cell streches vertically
+				},
+			),
 		)))
 
 	// Configure menu.
@@ -46,6 +56,7 @@ func (s *romList) initUI() {
 	})
 
 	s.ui.Container.AddChild(menu.container)
+	// const menuHeight = 20 // TODO: verify
 
 	fmt.Println("window size:", s.winw, s.winh)
 

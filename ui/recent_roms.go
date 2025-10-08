@@ -195,13 +195,15 @@ func newRecentROMsWidget(width, height int, runROM func(path string)) *recentRom
 }
 
 func (rr *recentRomsWidget) initUI(width, height int) {
-	const imgside = 250    // side of the screenshot image (not exactly a square though)
+	const romSide = 250    // side of the square in which we scale the screenshot.
 	const cellSpacing = 10 // space between cells (h+v)
-	numcols := width / (imgside + cellSpacing)
-	maxrows := height / (imgside + cellSpacing) // max rows to display
+	numcols := width / (romSide + cellSpacing)
+	maxrows := height / (romSide + cellSpacing) // max rows to display
 	if maxrows == 0 {
 		maxrows = 1
 	}
+
+	vertSpacing := (height - (maxrows * romSide)) / (numcols + 1)
 
 	colstretch := make([]bool, numcols)
 	for i := range colstretch {
@@ -215,7 +217,13 @@ func (rr *recentRomsWidget) initUI(width, height int) {
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(numcols),
 			widget.GridLayoutOpts.Stretch(colstretch, nil),
-			widget.GridLayoutOpts.Spacing(10, 10))))
+			widget.GridLayoutOpts.Spacing(10, vertSpacing/(numcols+1)),
+			// widget.GridLayoutOpts.Spacing(10, 10),
+			widget.GridLayoutOpts.Padding(&widget.Insets{
+				Top: 0, /* Bottom: vertSpacing / 2,*/
+			}),
+		)),
+	)
 
 	roms := loadRecentROMs()
 
@@ -231,7 +239,7 @@ func (rr *recentRomsWidget) initUI(width, height int) {
 		}
 
 		eimg := ebiten.NewImageFromImage(img)
-		eimg = resizeImage(eimg, imgside, imgside)
+		eimg = resizeImage(eimg, romSide, romSide)
 
 		btnimg := &widget.ButtonImage{
 			Idle:    uiimage.NewFixedNineSlice(eimg),
