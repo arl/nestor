@@ -6,6 +6,7 @@ import (
 	"cmp"
 	"fmt"
 	"image"
+	"image/color"
 	_ "image/png" // Import for decoding PNG screenshots
 	"io"
 	"io/fs"
@@ -234,34 +235,44 @@ func (rr *recentRomsWidget) initUI(width, height int) {
 			break
 		}
 
-		img, _, err := image.Decode(bytes.NewReader(roms[i].Image))
-		if err != nil {
-			panic(err)
-		}
-
-		eimg := ebiten.NewImageFromImage(img)
-		eimg = resizeImage(eimg, romSide, romSide)
-
-		btnimg := &widget.ButtonImage{
-			Idle:    uiimage.NewFixedNineSlice(eimg),
-			Pressed: uiimage.NewNineSliceSimple(eimg, 2, 2),
-		}
-
-		b := widget.NewButton(
-			widget.ButtonOpts.Image(btnimg),
-			widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-				rr.run(roms[i].Path)
-			}),
-			// widget.ButtonOpts.Text(roms[i].Name, &font, &widget.ButtonTextColor{
-			// 	Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
-			// }),
-			// widget.ButtonOpts.TextPadding(&widget.Insets{
-			// 	Top: 90,
-			// }),
-			// widget.ButtonOpts.TextPosition(widget.TextPositionCenter, widget.TextPositionEnd),
-		)
-		bc.AddChild(b)
+		btn := romButton(roms[i], romSide, func() {
+			rr.run(roms[i].Path)
+		})
+		bc.AddChild(btn)
 	}
 
 	rr.container = bc
+}
+
+func romButton(rom recentROM, side int, handler func()) *widget.Button {
+	img, _, err := image.Decode(bytes.NewReader(rom.Image))
+	if err != nil {
+		panic(err)
+	}
+
+	const borderWidth = 4
+
+	eimg := ebiten.NewImageFromImage(img)
+	eimg = resizeImage(eimg, float64(side-(borderWidth*2)), float64(side-(borderWidth*2)))
+
+	// 1
+	// btnimg := &widget.ButtonImage{
+	// 	Idle:    uiimage.NewFixedNineSlice(eimg),
+	// 	Pressed: uiimage.NewNineSliceSimple(eimg, 2, 2),
+	// }
+
+	// 2
+	btnimg := &widget.ButtonImage{
+		Idle:    uiimage.NewBorderedNineSliceImage(eimg, color.NRGBA{90, 90, 90, 255}, borderWidth),
+		Hover:   uiimage.NewBorderedNineSliceImage(eimg, color.NRGBA{70, 70, 70, 255}, borderWidth),
+		Pressed: uiimage.NewAdvancedNineSliceImage(eimg, uiimage.NewBorder(borderWidth, borderWidth-1, borderWidth-1, borderWidth-1, color.NRGBA{70, 70, 70, 255})),
+	}
+
+	b := widget.NewButton(
+		widget.ButtonOpts.Image(btnimg),
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			handler()
+		}),
+	)
+	return b
 }
