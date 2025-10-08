@@ -97,10 +97,11 @@ func main() {
 		log.SetLevel(log.InfoLevel)
 	}
 
-
-	if trace.name != "" {
-		cfg.TraceOut = &trace
-		defer trace.Close()
+	if rominfos != "" {
+		if err := printRomInfos(rominfos); err != nil {
+			fatalf("failed to print ROM infos: %v", err)
+		}
+		return
 	}
 
 	if cpuprofile != "" {
@@ -118,17 +119,14 @@ func main() {
 		ss, err := statsviz.NewServer()
 		checkf(err, "statsviz")
 		ss.Register(http.DefaultServeMux)
-
-		fmt.Println("statsviz UI: point your browser to", prettyAddr(monitor)+"/debug/statsviz")
+		fmt.Println("monitor: listening on", prettyAddr(monitor)+"/debug/statsviz")
 		go http.ListenAndServe(monitor, nil)
 	}
 
-	if rominfos != "" {
-		if err := printRomInfos(rominfos); err != nil {
-			fatalf("failed to print ROM infos: %v", err)
-		}
-		return
 	cfg := config.LoadOrDefault()
+	if trace.name != "" {
+		cfg.TraceOut = &trace
+		defer trace.Close()
 	}
 
 	installStacktraceHandler()
