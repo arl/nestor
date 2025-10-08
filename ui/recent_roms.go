@@ -195,10 +195,11 @@ func newRecentROMsWidget(width, height int, runROM func(path string)) *recentRom
 }
 
 func (rr *recentRomsWidget) initUI(width, height int) {
-	const romSide = 250    // side of the square in which we scale the screenshot.
-	const cellSpacing = 10 // space between cells (h+v)
-	numcols := width / (romSide + cellSpacing)
-	maxrows := height / (romSide + cellSpacing) // max rows to display
+	const romSide = 250       // side of the square in which we scale the screenshot.
+	const minCellSpacing = 10 // minimum space between cells (horizontally and vertically)
+
+	numcols := width / (romSide + minCellSpacing)
+	maxrows := height / (romSide + minCellSpacing) // max rows to display
 	if maxrows == 0 {
 		maxrows = 1
 	}
@@ -217,10 +218,10 @@ func (rr *recentRomsWidget) initUI(width, height int) {
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(numcols),
 			widget.GridLayoutOpts.Stretch(colstretch, nil),
-			widget.GridLayoutOpts.Spacing(10, vertSpacing/(numcols+1)),
-			// widget.GridLayoutOpts.Spacing(10, 10),
+			widget.GridLayoutOpts.Spacing(10, vertSpacing),
 			widget.GridLayoutOpts.Padding(&widget.Insets{
-				Top: 0, /* Bottom: vertSpacing / 2,*/
+				Top:  10,
+				Left: 10,
 			}),
 		)),
 	)
