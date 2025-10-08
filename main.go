@@ -97,7 +97,6 @@ func main() {
 		log.SetLevel(log.InfoLevel)
 	}
 
-	cfg := config.LoadConfigOrDefault()
 
 	if trace.name != "" {
 		cfg.TraceOut = &trace
@@ -129,6 +128,7 @@ func main() {
 			fatalf("failed to print ROM infos: %v", err)
 		}
 		return
+	cfg := config.LoadOrDefault()
 	}
 
 	installStacktraceHandler()

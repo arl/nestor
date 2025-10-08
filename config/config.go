@@ -13,13 +13,13 @@ import (
 	"nestor/hw/input"
 )
 
-type GeneralConfig struct {
+type General struct {
 	ShowSplash bool `toml:"show_splash"`
 }
 
 type Config struct {
 	emu.Config
-	General GeneralConfig `toml:"general"`
+	General General `toml:"general"`
 }
 
 var defaultConfig = Config{
@@ -65,7 +65,7 @@ var defaultConfig = Config{
 		},
 		TraceOut: nil,
 	},
-	General: GeneralConfig{
+	General: General{
 		ShowSplash: true,
 	},
 }
@@ -91,9 +91,9 @@ var configPath = sync.OnceValue(func() string {
 	return filepath.Join(Dir(), cfgFilename)
 })
 
-// LoadConfigOrDefault loads the configuration from the nestor config directory,
-// or provide a default one.
-func LoadConfigOrDefault() Config {
+// LoadOrDefault loads the configuration from the nestor config directory, or
+// provide a default one.
+func LoadOrDefault() Config {
 	// Create a config based on the default one.
 	cfg := defaultConfig
 
@@ -106,7 +106,7 @@ func LoadConfigOrDefault() Config {
 	// Apply post-load operations (fix invalid values, etc).
 	cfg.Input.PostLoad()
 	cfg.Video.Check()
-	log.ModEmu.Infof("Configuration loaded from %s", configPath())
+	log.ModEmu.InfoZ("loaded configuration").String("path", configPath()).End()
 	return cfg
 }
 
@@ -121,7 +121,7 @@ func saveConfig(cfg *Config) error {
 		return err
 	}
 
-	log.ModEmu.Infof("Configuration saved to %s", configPath())
+	log.ModEmu.Infof("configuration saved to %s", configPath())
 	return nil
 }
 
