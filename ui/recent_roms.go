@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"cmp"
 	"fmt"
-	"image/color"
 	_ "image/png" // Import for decoding PNG screenshots
 	"io"
 	"io/fs"
@@ -182,6 +181,7 @@ func loadRecentROMs() []recentROM {
 }
 
 type recentRomsWidget struct {
+	idxsel    int
 	run       func(string)
 	container *widget.Container
 }
@@ -247,17 +247,6 @@ func (rr *recentRomsWidget) initUI(width, height int) {
 }
 
 func createROMCell(rom recentROM, side int, handler func()) *widget.Container {
-	cell := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(uiimage.NewNineSliceColor(randomColor())),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-	)
-
-	btn := romButton(rom, side, handler)
-	cell.AddChild(btn)
-	return cell
-}
-
-func romButton(rom recentROM, side int, handler func()) *widget.Button {
 	img, err := decodeImage(bytes.NewReader(rom.Image))
 	if err != nil {
 		modUI.PanicZ("romButton").Error("err", err)
@@ -276,7 +265,7 @@ func romButton(rom recentROM, side int, handler func()) *widget.Button {
 		Hover:   uiimage.NewFixedNineSlice(frameImage(eimg, frameThickness, colornames.Darkgray)),
 	}
 
-	return widget.NewButton(
+	btn := widget.NewButton(
 		widget.ButtonOpts.Image(btnimg),
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
 			handler()
@@ -285,16 +274,36 @@ func romButton(rom recentROM, side int, handler func()) *widget.Button {
 			widget.AnchorLayoutData{
 				HorizontalPosition: widget.AnchorLayoutPositionCenter,
 				VerticalPosition:   widget.AnchorLayoutPositionStart,
-				Padding:            &widget.Insets{Top: 10},
+				Padding:            &widget.Insets{Top: padding},
 			},
 		)),
 	)
-}
 
-var colcount = 0
+	cell := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(uiimage.NewNineSliceColor(colornames.Lightcyan)),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
 
-func randomColor() color.Color {
-	col := colornames.Map[colornames.Names[colcount%len(colornames.Names)]]
-	colcount++
-	return col
+	cell.AddChild(btn)
+	label := widget.NewLabel(
+		widget.LabelOpts.Text(rom.Name, loadFont(14), &widget.LabelColor{Idle: colornames.Black}),
+		widget.LabelOpts.TextOpts(
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionEnd),
+			widget.TextOpts.MaxWidth(float64(side-2*padding)),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+					HorizontalPosition: widget.AnchorLayoutPositionCenter,
+					VerticalPosition:   widget.AnchorLayoutPositionEnd,
+					Padding: &widget.Insets{
+						Bottom: padding,
+						Left:   padding,
+					},
+					StretchHorizontal: true,
+				}),
+			),
+		),
+	)
+	cell.AddChild(label)
+
+	return cell
 }

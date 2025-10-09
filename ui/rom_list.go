@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -10,16 +12,23 @@ import (
 type romList struct {
 	*Application
 
+	rrw *recentRomsWidget
+
 	winw, winh int
 	ui         *ebitenui.UI
 }
 
 func newRomListState(app *Application) *romList {
-	winw, _ := ebiten.WindowSize()
 	state := &romList{
 		Application: app,
-		winw:        winw,
+		winw:        app.screenw,
+		winh:        app.screenh,
+		ui:          &ebitenui.UI{},
 	}
+
+	state.rrw = newRecentROMsWidget(app.screenw, app.screenh, func(path string) {
+		state.onClickedROM(path)
+	})
 
 	state.initUI()
 
@@ -28,8 +37,6 @@ func newRomListState(app *Application) *romList {
 
 // use a grid layout (look at the ebitenui demo example (grid layout))
 func (s *romList) initUI() {
-	s.ui = &ebitenui.UI{}
-
 	// Create a root container for the UI.
 	s.ui.Container = widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
@@ -39,14 +46,14 @@ func (s *romList) initUI() {
 				// This is what contains our grid (1 column, 2 rows):
 				// [    menu     ]
 				// [ recent roms ]
-
 				[]bool{true}, // our column stretches horizontally:
 				[]bool{
 					false, // the menu height cell stays fixed
 					true,  // the recent roms cell streches vertically
 				},
 			),
-		)))
+		)),
+	)
 
 	// Configure menu.
 	menu := newAppMenu(s.ui)
@@ -75,8 +82,10 @@ func (s *romList) Update() {
 	if w, h := ebiten.WindowSize(); w != s.winw || h != s.winh {
 		s.winw = w
 		s.winh = h
-		s.initUI()
+		fmt.Println("window resized:", s.winw, s.winh)
+		s.ui.Container.RequestRelayout()
 	}
+
 	s.ui.Update()
 }
 

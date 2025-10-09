@@ -13,8 +13,8 @@ import (
 var modUI = log.NewModule("ui")
 
 const (
-	minHeight = 800
-	minWidth  = 600
+	minWidth  = 800
+	minHeight = 600
 )
 
 func StartUI(ctx context.Context, cfg config.Config) error {
@@ -27,8 +27,8 @@ func StartROM(ctx context.Context, cfg config.Config, romPath string) error {
 
 func start(ctx context.Context, cfg config.Config, romPath string) error {
 	ebiten.SetWindowTitle("Nestor")
-	ebiten.SetWindowSize(minHeight, minWidth)
-	ebiten.SetWindowSizeLimits(minHeight, minWidth, -1, -1)
+	ebiten.SetWindowSize(minWidth, minHeight)
+	ebiten.SetWindowSizeLimits(minWidth, minHeight, -1, -1)
 	if cfg.Video.StartFullscreen {
 		ebiten.SetFullscreen(true)
 	}
