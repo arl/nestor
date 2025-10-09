@@ -1,9 +1,11 @@
 package ui
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ebitenui/ebitenui"
+	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -13,8 +15,9 @@ import (
 type romList struct {
 	*Application
 
-	rrw      *recentRomsWidget
-	selected int
+	selidx  int
+	numcols int
+	numrows int
 
 	winw, winh int
 	ui         *ebitenui.UI
@@ -27,10 +30,6 @@ func newRomListState(app *Application) *romList {
 		winh:        app.screenh,
 		ui:          &ebitenui.UI{},
 	}
-
-	state.rrw = newRecentROMsWidget(app.screenw, app.screenh, 0, func(path string) {
-		state.onClickedROM(path)
-	})
 
 	state.initUI()
 
@@ -48,7 +47,6 @@ func (s *romList) onClickedROM(path string) {
 
 // use a grid layout (look at the ebitenui demo example (grid layout))
 func (s *romList) initUI() {
-	// Create a root container for the UI.
 	s.ui.Container = widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Padding(&widget.Insets{}),
@@ -73,8 +71,58 @@ func (s *romList) initUI() {
 	})
 	s.ui.Container.AddChild(menu.container)
 
-	s.rrw.recreateUI(s.winw, s.winh, s.selected)
-	s.ui.Container.AddChild(s.rrw.container)
+	const screenshotSize = 200 // side of the screenshot square image.
+	const cellSpacing = 5      // minimum space between cells (horizontally and vertically)
+
+	s.numcols = s.winw / (screenshotSize + cellSpacing)
+	s.numrows = s.winh / (screenshotSize + cellSpacing) // max rows to display
+	if s.numrows == 0 {
+		s.numrows = 1
+	}
+
+	vertSpacing := (s.winh - (s.numrows * screenshotSize)) / (s.numcols + 1)
+
+	colstretch := make([]bool, s.numcols)
+	for i := range colstretch {
+		colstretch[i] = true
+	}
+	rowstrech := make([]bool, s.numrows)
+	for i := range rowstrech {
+		rowstrech[i] = true
+	}
+
+	bc := widget.NewContainer(
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true}),
+		),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(s.numcols),
+			widget.GridLayoutOpts.Stretch(colstretch, rowstrech),
+			widget.GridLayoutOpts.Spacing(10, vertSpacing),
+			widget.GridLayoutOpts.Padding(&widget.Insets{
+				Top: 10, Bottom: 10,
+				Left: 10, Right: 10,
+			}),
+		)),
+	)
+
+	roms := loadRecentROMs()
+
+	for i := range roms {
+		rowidx := i / s.numcols
+		if rowidx == s.numrows {
+			break
+		}
+
+		img := mustDecodeImage(bytes.NewReader(roms[i].Image))
+		selected := i == s.selidx
+		cell := createROMCell(img, roms[i].Name, screenshotSize, selected, func() {
+			s.onClickedROM(roms[i].Path)
+		})
+		bc.AddChild(cell)
+	}
+
+	s.ui.Container.AddChild(bc)
 }
 
 func (s *romList) Update() {
@@ -95,7 +143,7 @@ func (s *romList) Update() {
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		// TODO: continuer ici
 		roms := loadRecentROMs()
-		s.onClickedROM(roms[s.selected].Path)
+		s.onClickedROM(roms[s.selidx].Path)
 	}
 
 	s.ui.Update()
@@ -107,11 +155,11 @@ func (s *romList) Draw(screen *ebiten.Image) {
 }
 
 func (s *romList) up() {
-	fmt.Println("up", s.selected, "numcols", s.rrw.numcols, "numrows", s.rrw.numrows)
-	if s.selected < s.rrw.numcols {
+	fmt.Println("up", s.selidx, "numcols", s.numcols, "numrows", s.numrows)
+	if s.selidx < s.numcols {
 		return
 	}
-	s.selected -= s.rrw.numcols
+	s.selidx -= s.numcols
 	s.initUI()
 }
 
@@ -122,30 +170,91 @@ func (s *romList) up() {
 */
 
 func (s *romList) down() {
-	fmt.Println("down", s.selected, "numcols", s.rrw.numcols, "numrows", s.rrw.numrows)
-	tot := s.rrw.numrows * s.rrw.numcols
-	if s.selected >= tot-s.rrw.numcols {
+	fmt.Println("down", s.selidx, "numcols", s.numcols, "numrows", s.numrows)
+	tot := s.numrows * s.numcols
+	if s.selidx >= tot-s.numcols {
 		return
 	}
 
-	s.selected += s.rrw.numcols
+	s.selidx += s.numcols
 	s.initUI()
 }
 
 func (s *romList) left() {
-	fmt.Println("left", s.selected, "numcols", s.rrw.numcols, "numrows", s.rrw.numrows)
-	if s.selected%s.rrw.numcols == 0 {
+	fmt.Println("left", s.selidx, "numcols", s.numcols, "numrows", s.numrows)
+	if s.selidx%s.numcols == 0 {
 		return
 	}
-	s.selected--
+	s.selidx--
 	s.initUI()
 }
 
 func (s *romList) right() {
-	fmt.Println("right", s.selected, "numcols", s.rrw.numcols, "numrows", s.rrw.numrows)
-	if s.selected%s.rrw.numcols == s.rrw.numcols-1 {
+	fmt.Println("right", s.selidx, "numcols", s.numcols, "numrows", s.numrows)
+	if s.selidx%s.numcols == s.numcols-1 {
 		return
 	}
-	s.selected++
+	s.selidx++
 	s.initUI()
+}
+
+func createROMCell(img *ebiten.Image, name string, side int, selected bool, click func()) *widget.Container {
+	const frameThickness = 2
+	const padding = 20
+	const labelHeight = 40
+
+	imageSide := side - (labelHeight + padding*2)
+
+	img = resizeImage(img, float64(imageSide), float64(imageSide))
+	btnimg := &widget.ButtonImage{
+		Idle:    image.NewFixedNineSlice(img),
+		Pressed: image.NewFixedNineSlice(frameImage(img, frameThickness, colornames.Black)),
+		Hover:   image.NewFixedNineSlice(frameImage(img, frameThickness, colornames.Darkgray)),
+	}
+
+	btn := widget.NewButton(
+		widget.ButtonOpts.Image(btnimg),
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			click()
+		}),
+		widget.ButtonOpts.WidgetOpts(widget.WidgetOpts.LayoutData(
+			widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionStart,
+				Padding:            &widget.Insets{Top: padding},
+			},
+		)),
+	)
+
+	bgcol := colornames.Lightcyan
+	if selected {
+		bgcol = colornames.Yellow
+	}
+	cell := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(bgcol)),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+	cell.AddChild(btn)
+
+	label := widget.NewLabel(
+		widget.LabelOpts.Text(name, loadFont(14), &widget.LabelColor{Idle: colornames.Black}),
+		widget.LabelOpts.TextOpts(
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionEnd),
+			widget.TextOpts.MaxWidth(float64(side-2*padding)),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+					HorizontalPosition: widget.AnchorLayoutPositionCenter,
+					VerticalPosition:   widget.AnchorLayoutPositionEnd,
+					Padding: &widget.Insets{
+						Bottom: padding,
+						Left:   padding,
+					},
+					StretchHorizontal: true,
+				}),
+			),
+		),
+	)
+	cell.AddChild(label)
+
+	return cell
 }

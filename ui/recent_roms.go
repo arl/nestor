@@ -14,25 +14,15 @@ import (
 	"sync"
 	"time"
 
-	uiimage "github.com/ebitenui/ebitenui/image"
-	"github.com/ebitenui/ebitenui/widget"
-	"github.com/hajimehoshi/ebiten/v2"
-	"golang.org/x/image/colornames"
-
 	"nestor/config"
 )
-
-// --- Core Logic (Reused from recent_roms.go) ---
-// This section contains the UI-agnostic logic for finding, loading, and saving recent ROMs.
 
 const recentROMextension = ".nrr"
 
 var RecentROMsDir = sync.OnceValue(func() string {
 	dir := filepath.Join(config.Dir(), "recent-roms")
-	// Using 0755 for directory permissions
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		// In a real app, you'd use a proper logger.
-		fmt.Printf("failed to create directory %s: %v\n", dir, err)
+		modUI.ErrorZ("failed to create directory").String("path", dir).Error("err", err).End()
 	}
 	return dir
 })
@@ -178,139 +168,4 @@ func loadRecentROMs() []recentROM {
 	}
 
 	return roms
-}
-
-type recentRomsWidget struct {
-	run       func(string)
-	container *widget.Container
-
-	numcols, numrows int
-}
-
-func newRecentROMsWidget(width, height int, idxsel int, runROM func(path string)) *recentRomsWidget {
-	rr := &recentRomsWidget{
-		run: runROM,
-	}
-
-	rr.recreateUI(width, height, idxsel)
-	return rr
-}
-
-func (rr *recentRomsWidget) recreateUI(width, height, idxsel int) {
-	const romSide = 250       // side of the square in which we scale the screenshot.
-	const minCellSpacing = 20 // minimum space between cells (horizontally and vertically)
-
-	rr.numcols = width / (romSide + minCellSpacing)
-	rr.numrows = height / (romSide + minCellSpacing) // max rows to display
-	if rr.numrows == 0 {
-		rr.numrows = 1
-	}
-
-	vertSpacing := (height - (rr.numrows * romSide)) / (rr.numcols + 1)
-
-	colstretch := make([]bool, rr.numcols)
-	for i := range colstretch {
-		colstretch[i] = true
-	}
-	rowstrech := make([]bool, rr.numrows)
-	for i := range rowstrech {
-		rowstrech[i] = true
-	}
-
-	bc := widget.NewContainer(
-		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true}),
-		),
-		widget.ContainerOpts.Layout(widget.NewGridLayout(
-			widget.GridLayoutOpts.Columns(rr.numcols),
-			widget.GridLayoutOpts.Stretch(colstretch, rowstrech),
-			widget.GridLayoutOpts.Spacing(10, vertSpacing),
-			widget.GridLayoutOpts.Padding(&widget.Insets{
-				Top:  10,
-				Left: 10,
-			}),
-		)),
-	)
-
-	roms := loadRecentROMs()
-
-	for i := range roms {
-		rowidx := i / rr.numcols
-		if rowidx == rr.numrows {
-			break
-		}
-
-		cell := createROMCell(roms[i], romSide, i == idxsel, func() { rr.run(roms[i].Path) })
-		bc.AddChild(cell)
-	}
-
-	rr.container = bc
-
-	rr.container.RequestRelayout()
-}
-
-func createROMCell(rom recentROM, side int, selected bool, handler func()) *widget.Container {
-	img, err := decodeImage(bytes.NewReader(rom.Image))
-	if err != nil {
-		modUI.PanicZ("romButton").Error("err", err)
-	}
-
-	const frameThickness = 2
-	const padding = 20
-	const labelHeight = 40
-
-	imageSide := side - (labelHeight + padding*2)
-
-	eimg := resizeImage(ebiten.NewImageFromImage(img), float64(imageSide), float64(imageSide))
-	btnimg := &widget.ButtonImage{
-		Idle:    uiimage.NewFixedNineSlice(eimg),
-		Pressed: uiimage.NewFixedNineSlice(frameImage(eimg, frameThickness, colornames.Black)),
-		Hover:   uiimage.NewFixedNineSlice(frameImage(eimg, frameThickness, colornames.Darkgray)),
-	}
-
-	btn := widget.NewButton(
-		widget.ButtonOpts.Image(btnimg),
-		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			handler()
-		}),
-		widget.ButtonOpts.WidgetOpts(widget.WidgetOpts.LayoutData(
-			widget.AnchorLayoutData{
-				HorizontalPosition: widget.AnchorLayoutPositionCenter,
-				VerticalPosition:   widget.AnchorLayoutPositionStart,
-				Padding:            &widget.Insets{Top: padding},
-			},
-		)),
-	)
-
-	bgcol := colornames.Lightcyan
-	if selected {
-		bgcol = colornames.Yellow
-	}
-	cell := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(uiimage.NewNineSliceColor(bgcol)),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-	)
-	cell.AddChild(btn)
-
-	label := widget.NewLabel(
-		widget.LabelOpts.Text(rom.Name, loadFont(14), &widget.LabelColor{Idle: colornames.Black}),
-		widget.LabelOpts.TextOpts(
-			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionEnd),
-			widget.TextOpts.MaxWidth(float64(side-2*padding)),
-			widget.TextOpts.WidgetOpts(
-				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-					HorizontalPosition: widget.AnchorLayoutPositionCenter,
-					VerticalPosition:   widget.AnchorLayoutPositionEnd,
-					Padding: &widget.Insets{
-						Bottom: padding,
-						Left:   padding,
-					},
-					StretchHorizontal: true,
-				}),
-			),
-		),
-	)
-	cell.AddChild(label)
-
-	return cell
 }

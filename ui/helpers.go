@@ -2,7 +2,6 @@ package ui
 
 import (
 	"bytes"
-	"fmt"
 	goimage "image"
 	"image/color"
 	"io"
@@ -111,14 +110,14 @@ func resizeImage(src *ebiten.Image, w, h float64) *ebiten.Image {
 	return dst
 }
 
-// decodeImage decodes an image using registered decoders.
-func decodeImage(r io.Reader) (*ebiten.Image, error) {
+// mustDecodeImage decodes an image using registered decoders.
+func mustDecodeImage(r io.Reader) *ebiten.Image {
 	img, _, err := goimage.Decode(r)
 	if err != nil {
-		return nil, fmt.Errorf("can't decode image: %w", err)
+		modUI.PanicZ("can't decode image").Error("err", err).End()
 	}
 
-	return ebiten.NewImageFromImage(img), nil
+	return ebiten.NewImageFromImage(img)
 }
 
 // frameImage returns a new image of the same dimensions than src, that contains
