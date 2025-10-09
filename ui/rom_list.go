@@ -1,44 +1,49 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"golang.org/x/image/colornames"
 )
 
 type romList struct {
 	*Application
 
-	rrw *recentRomsWidget
+	rrw      *recentRomsWidget
+	selected int
 
 	winw, winh int
 	ui         *ebitenui.UI
 }
 
 func newRomListState(app *Application) *romList {
-	onClickedROM := func(path string) {
-		modUI.InfoZ("selected ROM").String("path", path).End()
-		if err := app.runRom(path); err == nil {
-			app.setState("running")
-		} else {
-			modUI.ErrorZ("failed to run ROM").String("path", path).Error("err", err).End()
-		}
-	}
-
 	state := &romList{
 		Application: app,
 		winw:        app.screenw,
 		winh:        app.screenh,
 		ui:          &ebitenui.UI{},
-		rrw: newRecentROMsWidget(app.screenw, app.screenh, func(path string) {
-			onClickedROM(path)
-		}),
 	}
+
+	state.rrw = newRecentROMsWidget(app.screenw, app.screenh, 0, func(path string) {
+		state.onClickedROM(path)
+	})
 
 	state.initUI()
 
 	return state
+}
+
+func (s *romList) onClickedROM(path string) {
+	modUI.InfoZ("selected ROM").String("path", path).End()
+	if err := s.runRom(path); err == nil {
+		s.setState("running")
+	} else {
+		modUI.ErrorZ("failed to run ROM").String("path", path).Error("err", err).End()
+	}
 }
 
 // use a grid layout (look at the ebitenui demo example (grid layout))
@@ -66,10 +71,9 @@ func (s *romList) initUI() {
 	menu.quitButton.ClickedEvent.AddHandler(func(args any) {
 		s.Application.exit()
 	})
-
 	s.ui.Container.AddChild(menu.container)
 
-	s.rrw.recreateUI(s.winw, s.winh)
+	s.rrw.recreateUI(s.winw, s.winh, s.selected)
 	s.ui.Container.AddChild(s.rrw.container)
 }
 
@@ -80,10 +84,68 @@ func (s *romList) Update() {
 		s.initUI()
 	}
 
+	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+		s.up()
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+		s.down()
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+		s.left()
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+		s.right()
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		// TODO: continuer ici
+		roms := loadRecentROMs()
+		s.onClickedROM(roms[s.selected].Path)
+	}
+
 	s.ui.Update()
 }
 
 func (s *romList) Draw(screen *ebiten.Image) {
 	screen.Fill(colornames.Lightcoral)
 	s.ui.Draw(screen)
+}
+
+func (s *romList) up() {
+	fmt.Println("up", s.selected, "numcols", s.rrw.numcols, "numrows", s.rrw.numrows)
+	if s.selected < s.rrw.numcols {
+		return
+	}
+	s.selected -= s.rrw.numcols
+	s.initUI()
+}
+
+/*
+  0   1   2   3
+  4   5   6   7
+  8   9   10  11
+*/
+
+func (s *romList) down() {
+	fmt.Println("down", s.selected, "numcols", s.rrw.numcols, "numrows", s.rrw.numrows)
+	tot := s.rrw.numrows * s.rrw.numcols
+	if s.selected >= tot-s.rrw.numcols {
+		return
+	}
+
+	s.selected += s.rrw.numcols
+	s.initUI()
+}
+
+func (s *romList) left() {
+	fmt.Println("left", s.selected, "numcols", s.rrw.numcols, "numrows", s.rrw.numrows)
+	if s.selected%s.rrw.numcols == 0 {
+		return
+	}
+	s.selected--
+	s.initUI()
+}
+
+func (s *romList) right() {
+	fmt.Println("right", s.selected, "numcols", s.rrw.numcols, "numrows", s.rrw.numrows)
+	if s.selected%s.rrw.numcols == s.rrw.numcols-1 {
+		return
+	}
+	s.selected++
+	s.initUI()
 }

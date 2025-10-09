@@ -181,37 +181,38 @@ func loadRecentROMs() []recentROM {
 }
 
 type recentRomsWidget struct {
-	idxsel    int
 	run       func(string)
 	container *widget.Container
+
+	numcols, numrows int
 }
 
-func newRecentROMsWidget(width, height int, runROM func(path string)) *recentRomsWidget {
+func newRecentROMsWidget(width, height int, idxsel int, runROM func(path string)) *recentRomsWidget {
 	rr := &recentRomsWidget{
 		run: runROM,
 	}
 
-	rr.recreateUI(width, height)
+	rr.recreateUI(width, height, idxsel)
 	return rr
 }
 
-func (rr *recentRomsWidget) recreateUI(width, height int) {
+func (rr *recentRomsWidget) recreateUI(width, height, idxsel int) {
 	const romSide = 250       // side of the square in which we scale the screenshot.
 	const minCellSpacing = 20 // minimum space between cells (horizontally and vertically)
 
-	numcols := width / (romSide + minCellSpacing)
-	maxrows := height / (romSide + minCellSpacing) // max rows to display
-	if maxrows == 0 {
-		maxrows = 1
+	rr.numcols = width / (romSide + minCellSpacing)
+	rr.numrows = height / (romSide + minCellSpacing) // max rows to display
+	if rr.numrows == 0 {
+		rr.numrows = 1
 	}
 
-	vertSpacing := (height - (maxrows * romSide)) / (numcols + 1)
+	vertSpacing := (height - (rr.numrows * romSide)) / (rr.numcols + 1)
 
-	colstretch := make([]bool, numcols)
+	colstretch := make([]bool, rr.numcols)
 	for i := range colstretch {
 		colstretch[i] = true
 	}
-	rowstrech := make([]bool, maxrows)
+	rowstrech := make([]bool, rr.numrows)
 	for i := range rowstrech {
 		rowstrech[i] = true
 	}
@@ -221,7 +222,7 @@ func (rr *recentRomsWidget) recreateUI(width, height int) {
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true}),
 		),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
-			widget.GridLayoutOpts.Columns(numcols),
+			widget.GridLayoutOpts.Columns(rr.numcols),
 			widget.GridLayoutOpts.Stretch(colstretch, rowstrech),
 			widget.GridLayoutOpts.Spacing(10, vertSpacing),
 			widget.GridLayoutOpts.Padding(&widget.Insets{
@@ -234,12 +235,12 @@ func (rr *recentRomsWidget) recreateUI(width, height int) {
 	roms := loadRecentROMs()
 
 	for i := range roms {
-		rowidx := i / numcols
-		if rowidx == maxrows {
+		rowidx := i / rr.numcols
+		if rowidx == rr.numrows {
 			break
 		}
 
-		cell := createROMCell(roms[i], romSide, func() { rr.run(roms[i].Path) })
+		cell := createROMCell(roms[i], romSide, i == idxsel, func() { rr.run(roms[i].Path) })
 		bc.AddChild(cell)
 	}
 
@@ -248,7 +249,7 @@ func (rr *recentRomsWidget) recreateUI(width, height int) {
 	rr.container.RequestRelayout()
 }
 
-func createROMCell(rom recentROM, side int, handler func()) *widget.Container {
+func createROMCell(rom recentROM, side int, selected bool, handler func()) *widget.Container {
 	img, err := decodeImage(bytes.NewReader(rom.Image))
 	if err != nil {
 		modUI.PanicZ("romButton").Error("err", err)
@@ -281,12 +282,16 @@ func createROMCell(rom recentROM, side int, handler func()) *widget.Container {
 		)),
 	)
 
+	bgcol := colornames.Lightcyan
+	if selected {
+		bgcol = colornames.Yellow
+	}
 	cell := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(uiimage.NewNineSliceColor(colornames.Lightcyan)),
+		widget.ContainerOpts.BackgroundImage(uiimage.NewNineSliceColor(bgcol)),
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 	)
-
 	cell.AddChild(btn)
+
 	label := widget.NewLabel(
 		widget.LabelOpts.Text(rom.Name, loadFont(14), &widget.LabelColor{Idle: colornames.Black}),
 		widget.LabelOpts.TextOpts(
