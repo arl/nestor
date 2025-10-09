@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -19,16 +17,24 @@ type romList struct {
 }
 
 func newRomListState(app *Application) *romList {
+	onClickedROM := func(path string) {
+		modUI.InfoZ("selected ROM").String("path", path).End()
+		if err := app.runRom(path); err == nil {
+			app.setState("running")
+		} else {
+			modUI.ErrorZ("failed to run ROM").String("path", path).Error("err", err).End()
+		}
+	}
+
 	state := &romList{
 		Application: app,
 		winw:        app.screenw,
 		winh:        app.screenh,
 		ui:          &ebitenui.UI{},
+		rrw: newRecentROMsWidget(app.screenw, app.screenh, func(path string) {
+			onClickedROM(path)
+		}),
 	}
-
-	state.rrw = newRecentROMsWidget(app.screenw, app.screenh, func(path string) {
-		state.onClickedROM(path)
-	})
 
 	state.initUI()
 
@@ -63,27 +69,15 @@ func (s *romList) initUI() {
 
 	s.ui.Container.AddChild(menu.container)
 
-	fmt.Println("window size:", s.winw, s.winh)
-
+	s.rrw.recreateUI(s.winw, s.winh)
 	s.ui.Container.AddChild(s.rrw.container)
-	s.rrw.initUI(s.winw, s.winh)
-}
-
-func (s *romList) onClickedROM(path string) {
-	modUI.InfoZ("selected ROM").String("path", path).End()
-	if err := s.Application.runRom(path); err == nil {
-		s.Application.setState("running")
-	} else {
-		modUI.ErrorZ("failed to run ROM").String("path", path).Error("err", err).End()
-	}
 }
 
 func (s *romList) Update() {
 	if w, h := ebiten.WindowSize(); w != s.winw || h != s.winh {
 		s.winw = w
 		s.winh = h
-		fmt.Println("window resized:", s.winw, s.winh)
-		s.ui.Container.RequestRelayout()
+		s.initUI()
 	}
 
 	s.ui.Update()

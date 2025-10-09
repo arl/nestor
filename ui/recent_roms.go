@@ -191,11 +191,11 @@ func newRecentROMsWidget(width, height int, runROM func(path string)) *recentRom
 		run: runROM,
 	}
 
-	rr.initUI(width, height)
+	rr.recreateUI(width, height)
 	return rr
 }
 
-func (rr *recentRomsWidget) initUI(width, height int) {
+func (rr *recentRomsWidget) recreateUI(width, height int) {
 	const romSide = 250       // side of the square in which we scale the screenshot.
 	const minCellSpacing = 20 // minimum space between cells (horizontally and vertically)
 
@@ -244,6 +244,8 @@ func (rr *recentRomsWidget) initUI(width, height int) {
 	}
 
 	rr.container = bc
+
+	rr.container.RequestRelayout()
 }
 
 func createROMCell(rom recentROM, side int, handler func()) *widget.Container {
