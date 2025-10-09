@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"cmp"
 	"fmt"
+	"image/color"
 	_ "image/png" // Import for decoding PNG screenshots
 	"io"
 	"io/fs"
@@ -196,7 +197,7 @@ func newRecentROMsWidget(width, height int, runROM func(path string)) *recentRom
 
 func (rr *recentRomsWidget) initUI(width, height int) {
 	const romSide = 250       // side of the square in which we scale the screenshot.
-	const minCellSpacing = 10 // minimum space between cells (horizontally and vertically)
+	const minCellSpacing = 20 // minimum space between cells (horizontally and vertically)
 
 	numcols := width / (romSide + minCellSpacing)
 	maxrows := height / (romSide + minCellSpacing) // max rows to display
@@ -210,6 +211,10 @@ func (rr *recentRomsWidget) initUI(width, height int) {
 	for i := range colstretch {
 		colstretch[i] = true
 	}
+	rowstrech := make([]bool, maxrows)
+	for i := range rowstrech {
+		rowstrech[i] = true
+	}
 
 	bc := widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(
@@ -217,7 +222,7 @@ func (rr *recentRomsWidget) initUI(width, height int) {
 		),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(numcols),
-			widget.GridLayoutOpts.Stretch(colstretch, nil),
+			widget.GridLayoutOpts.Stretch(colstretch, rowstrech),
 			widget.GridLayoutOpts.Spacing(10, vertSpacing),
 			widget.GridLayoutOpts.Padding(&widget.Insets{
 				Top:  10,
@@ -234,30 +239,41 @@ func (rr *recentRomsWidget) initUI(width, height int) {
 			break
 		}
 
-		btn := romButton(roms[i], romSide, func() {
-			rr.run(roms[i].Path)
-		})
-		bc.AddChild(btn)
+		cell := createROMCell(roms[i], romSide, func() { rr.run(roms[i].Path) })
+		bc.AddChild(cell)
 	}
 
 	rr.container = bc
 }
 
+func createROMCell(rom recentROM, side int, handler func()) *widget.Container {
+	cell := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(uiimage.NewNineSliceColor(randomColor())),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	btn := romButton(rom, side, handler)
+	cell.AddChild(btn)
+	return cell
+}
+
 func romButton(rom recentROM, side int, handler func()) *widget.Button {
 	img, err := decodeImage(bytes.NewReader(rom.Image))
 	if err != nil {
-		modUI.ErrorZ("romButton").Error("err", err)
-		// TODO: this will panic upstack, returns a stock image?
-		return nil
+		modUI.PanicZ("romButton").Error("err", err)
 	}
 
-	const thickness = 2
+	const frameThickness = 2
+	const padding = 20
+	const labelHeight = 40
 
-	eimg := resizeImage(ebiten.NewImageFromImage(img), float64(side), float64(side))
+	imageSide := side - (labelHeight + padding*2)
+
+	eimg := resizeImage(ebiten.NewImageFromImage(img), float64(imageSide), float64(imageSide))
 	btnimg := &widget.ButtonImage{
 		Idle:    uiimage.NewFixedNineSlice(eimg),
-		Pressed: uiimage.NewFixedNineSlice(frameImage(eimg, thickness, colornames.Black)),
-		Hover:   uiimage.NewFixedNineSlice(frameImage(eimg, thickness, colornames.Darkgray)),
+		Pressed: uiimage.NewFixedNineSlice(frameImage(eimg, frameThickness, colornames.Black)),
+		Hover:   uiimage.NewFixedNineSlice(frameImage(eimg, frameThickness, colornames.Darkgray)),
 	}
 
 	return widget.NewButton(
@@ -265,5 +281,20 @@ func romButton(rom recentROM, side int, handler func()) *widget.Button {
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
 			handler()
 		}),
+		widget.ButtonOpts.WidgetOpts(widget.WidgetOpts.LayoutData(
+			widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionStart,
+				Padding:            &widget.Insets{Top: 10},
+			},
+		)),
 	)
+}
+
+var colcount = 0
+
+func randomColor() color.Color {
+	col := colornames.Map[colornames.Names[colcount%len(colornames.Names)]]
+	colcount++
+	return col
 }

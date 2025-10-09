@@ -37,7 +37,7 @@ func (s *running) initUI() {
 		),
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 	)
-	menu := widget.NewContainer(
+	buttonsGroup := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(
 			image.NewNineSliceColor(colornames.Gray),
 		),
@@ -53,29 +53,29 @@ func (s *running) initUI() {
 			widget.GridLayoutOpts.Columns(1),
 		)),
 	)
-	menu.AddChild(widget.NewLabel(
+	buttonsGroup.AddChild(widget.NewLabel(
 		widget.LabelOpts.Text("<paused>", titleFont(), &widget.LabelColor{Idle: colornames.White}),
 		widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
 	))
 
-	menu.AddChild(stdButton("Resume", func(_ *widget.ButtonClickedEventArgs) {
+	buttonsGroup.AddChild(stdButton("Resume", func(_ *widget.ButtonClickedEventArgs) {
 		s.resume()
 	}))
-	menu.AddChild(stdButton("Reset", func(_ *widget.ButtonClickedEventArgs) {
+	buttonsGroup.AddChild(stdButton("Reset", func(_ *widget.ButtonClickedEventArgs) {
 		s.resume()
 		s.emulator.Reset()
 		s.audioPlayer.Play()
 	}))
-	menu.AddChild(stdButton("Restart", func(_ *widget.ButtonClickedEventArgs) {
+	buttonsGroup.AddChild(stdButton("Restart", func(_ *widget.ButtonClickedEventArgs) {
 		s.resume()
 		s.emulator.Restart()
 		s.audioPlayer.Play()
 	}))
-	menu.AddChild(stdButton("Stop", func(_ *widget.ButtonClickedEventArgs) {
+	buttonsGroup.AddChild(stdButton("Stop", func(_ *widget.ButtonClickedEventArgs) {
 		s.shouldQuit = true
 	}))
 
-	root.AddChild(menu)
+	root.AddChild(buttonsGroup)
 	s.pauseUI = &ebitenui.UI{Container: root}
 }
 

@@ -55,7 +55,6 @@ func (s *romList) initUI() {
 	})
 
 	s.ui.Container.AddChild(menu.container)
-	// const menuHeight = 20 // TODO: verify
 
 	fmt.Println("window size:", s.winw, s.winh)
 
