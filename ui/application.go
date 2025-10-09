@@ -49,7 +49,6 @@ func newApplication(ctx context.Context, cfg config.Config) *Application {
 
 	app.states["running"] = newRunningState(app)
 	app.states["rom_list"] = newRomListState(app)
-	app.states["config"] = newConfigState(app)
 
 	go func() {
 		<-ctx.Done()
