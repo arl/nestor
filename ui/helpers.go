@@ -2,13 +2,17 @@ package ui
 
 import (
 	"bytes"
+	"fmt"
+	goimage "image"
 	"image/color"
+	"io"
 	"sync"
 	"unsafe"
 
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 var buttonImage = sync.OnceValue(func() *widget.ButtonImage {
@@ -105,4 +109,36 @@ func resizeImage(src *ebiten.Image, w, h float64) *ebiten.Image {
 	dst := ebiten.NewImage(int(w), int(h))
 	dst.DrawImage(src, op)
 	return dst
+}
+
+// decodeImage decodes an image using registered decoders.
+func decodeImage(r io.Reader) (*ebiten.Image, error) {
+	img, _, err := goimage.Decode(r)
+	if err != nil {
+		return nil, fmt.Errorf("can't decode image: %w", err)
+	}
+
+	return ebiten.NewImageFromImage(img), nil
+}
+
+// frameImage returns a new image of the same dimensions than src, that contains
+// src, just scaled down enough so that we can frame it inside a rect of
+// 'thickness' pixels, of the given color.
+//
+// TODO: doing this often is not efficient (dixit ebiten.NewImage), we should
+// instead clear an existing image. Ensure that's at least not leaking.
+func frameImage(src *ebiten.Image, thickness int, col color.Color) *ebiten.Image {
+	orgw := src.Bounds().Dx()
+	orgh := src.Bounds().Dy()
+	scalex := float64(orgw-thickness*2) / float64(orgw)
+	scaley := float64(orgh-thickness*2) / float64(orgh)
+
+	var op ebiten.DrawImageOptions
+	op.GeoM.Scale(scalex, scaley)
+	op.GeoM.Translate(float64(thickness), float64(thickness))
+
+	framed := ebiten.NewImage(orgw, orgh)
+	framed.DrawImage(src, &op)
+	vector.StrokeRect(framed, 0, 0, float32(orgw), float32(orgh), float32(thickness*2), col, true)
+	return framed
 }

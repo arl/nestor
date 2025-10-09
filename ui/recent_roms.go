@@ -5,8 +5,6 @@ import (
 	"bytes"
 	"cmp"
 	"fmt"
-	"image"
-	"image/color"
 	_ "image/png" // Import for decoding PNG screenshots
 	"io"
 	"io/fs"
@@ -19,6 +17,7 @@ import (
 	uiimage "github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
+	"golang.org/x/image/colornames"
 
 	"nestor/config"
 )
@@ -245,34 +244,26 @@ func (rr *recentRomsWidget) initUI(width, height int) {
 }
 
 func romButton(rom recentROM, side int, handler func()) *widget.Button {
-	img, _, err := image.Decode(bytes.NewReader(rom.Image))
+	img, err := decodeImage(bytes.NewReader(rom.Image))
 	if err != nil {
-		panic(err)
+		modUI.ErrorZ("romButton").Error("err", err)
+		// TODO: this will panic upstack, returns a stock image?
+		return nil
 	}
 
-	const borderWidth = 4
+	const thickness = 2
 
-	eimg := ebiten.NewImageFromImage(img)
-	eimg = resizeImage(eimg, float64(side-(borderWidth*2)), float64(side-(borderWidth*2)))
-
-	// 1
-	// btnimg := &widget.ButtonImage{
-	// 	Idle:    uiimage.NewFixedNineSlice(eimg),
-	// 	Pressed: uiimage.NewNineSliceSimple(eimg, 2, 2),
-	// }
-
-	// 2
+	eimg := resizeImage(ebiten.NewImageFromImage(img), float64(side), float64(side))
 	btnimg := &widget.ButtonImage{
-		Idle:    uiimage.NewBorderedNineSliceImage(eimg, color.NRGBA{90, 90, 90, 255}, borderWidth),
-		Hover:   uiimage.NewBorderedNineSliceImage(eimg, color.NRGBA{70, 70, 70, 255}, borderWidth),
-		Pressed: uiimage.NewAdvancedNineSliceImage(eimg, uiimage.NewBorder(borderWidth, borderWidth-1, borderWidth-1, borderWidth-1, color.NRGBA{70, 70, 70, 255})),
+		Idle:    uiimage.NewFixedNineSlice(eimg),
+		Pressed: uiimage.NewFixedNineSlice(frameImage(eimg, thickness, colornames.Black)),
+		Hover:   uiimage.NewFixedNineSlice(frameImage(eimg, thickness, colornames.Darkgray)),
 	}
 
-	b := widget.NewButton(
+	return widget.NewButton(
 		widget.ButtonOpts.Image(btnimg),
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
 			handler()
 		}),
 	)
-	return b
 }
