@@ -4,28 +4,12 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/ebitenui/ebitenui/image"
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
-	"golang.org/x/image/colornames"
 )
 
-var Transparent = color.RGBA{0, 0, 0, 0}
+var transparent = color.RGBA{0, 0, 0, 0}
 
-func PressedNineSlice(base color.Color) *image.NineSlice {
-	var size float32 = 64
-	var tiles float32 = 16
-
-	tile := size / tiles
-	facet := Mix(base, colornames.Gainsboro, 0.2)
-
-	img := ebiten.NewImage(int(size), int(size))
-	vector.DrawFilledRect(img, 0, 0, size, size, facet, true)
-
-	return image.NewNineSliceBorder(img, int(tile*4))
-}
-
-func Mix(a, b color.Color, percent float64) color.Color {
+func mixColors(a, b color.Color, percent float64) color.Color {
 	rgba := func(c color.Color) (r, g, b, a uint8) {
 		r16, g16, b16, a16 := c.RGBA()
 		return uint8(r16 >> 8), uint8(g16 >> 8), uint8(b16 >> 8), uint8(a16 >> 8)
@@ -44,7 +28,7 @@ func Mix(a, b color.Color, percent float64) color.Color {
 	}
 }
 
-func RoundedRectPath(x, y, w, h, tl, tr, br, bl float32) *vector.Path {
+func roundedRectPath(x, y, w, h, tl, tr, br, bl float32) *vector.Path {
 	path := &vector.Path{}
 
 	path.Arc(x+w-tr, y+tr, tr, 3*math.Pi/2, 0, vector.Clockwise)

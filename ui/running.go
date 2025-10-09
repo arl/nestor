@@ -33,7 +33,7 @@ func newRunningState(app *Application) *running {
 func (s *running) initUI() {
 	root := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(
-			image.NewNineSliceColor(Mix(colornames.Black, Transparent, 0.5)),
+			image.NewNineSliceColor(mixColors(colornames.Black, transparent, 0.5)),
 		),
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 	)

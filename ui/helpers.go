@@ -9,7 +9,6 @@ import (
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 var buttonImage = sync.OnceValue(func() *widget.ButtonImage {
@@ -28,18 +27,6 @@ var buttonImage = sync.OnceValue(func() *widget.ButtonImage {
 		),
 	}
 })
-
-func DefaultNineSlice(base color.Color) *image.NineSlice {
-	var size float32 = 64
-	var tiles float32 = 16
-
-	tile := size / tiles
-
-	img := ebiten.NewImage(int(size), int(size))
-	vector.DrawFilledRect(img, 0, 0, size, size, base, true)
-
-	return image.NewNineSliceBorder(img, int(tile*4))
-}
 
 func stdButton(text string, onclick func(args *widget.ButtonClickedEventArgs)) *widget.Button {
 	var (

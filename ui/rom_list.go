@@ -12,7 +12,6 @@ type romList struct {
 
 	winw, winh int
 	ui         *ebitenui.UI
-	rrw        *recentRomsWidget
 }
 
 func newRomListState(app *Application) *romList {
