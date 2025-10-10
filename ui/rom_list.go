@@ -3,6 +3,7 @@ package ui
 import (
 	"bytes"
 	"fmt"
+	"image/color"
 	"math"
 
 	"github.com/ebitenui/ebitenui"
@@ -22,6 +23,7 @@ type romList struct {
 
 	winw, winh int
 	ui         *ebitenui.UI
+	sc         *widget.ScrollContainer
 }
 
 func newRomListState(app *Application) *romList {
@@ -54,7 +56,7 @@ func (s *romList) initUI() {
 			widget.GridLayoutOpts.Padding(&widget.Insets{}),
 			widget.GridLayoutOpts.Columns(1),
 			widget.GridLayoutOpts.Stretch(
-				// This is what contains our grid (1 column, 2 rows):
+				// This is what contains the root container grid (1 column, 2 rows):
 				// [    menu     ]
 				// [ recent roms ]
 				[]bool{true}, // our column stretches horizontally:
@@ -111,19 +113,64 @@ func (s *romList) initUI() {
 		click := func() {
 			s.onClickedROM(s.roms[i].Path)
 		}
-		vscroll := func(down bool) {
-			if down {
-				s.down()
-			} else {
-				s.up()
-			}
-		}
 
-		cell := createROMCell(img, s.roms[i].Name, screenshotWidth, selected, click, vscroll)
+		cell := createROMCell(img, s.roms[i].Name, screenshotWidth, selected, click)
 		bc.AddChild(cell)
 	}
 
-	s.ui.Container.AddChild(bc)
+	scrollable := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{0x13, 0x1a, 0x22, 0xff})),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(2),
+			widget.GridLayoutOpts.Spacing(2, 0),
+			widget.GridLayoutOpts.Stretch([]bool{true, false}, []bool{true}),
+		)),
+	)
+
+	s.sc = widget.NewScrollContainer(
+		widget.ScrollContainerOpts.Content(bc),
+		widget.ScrollContainerOpts.StretchContentWidth(),
+		widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
+			Idle: image.NewNineSliceColor(color.NRGBA{0x13, 0x1a, 0x22, 0xff}),
+			Mask: image.NewNineSliceColor(color.NRGBA{0x13, 0x1a, 0x22, 0xff}),
+		}),
+	)
+
+	scrollable.AddChild(s.sc)
+
+	pageSizeFunc := func() int {
+		return int(math.Round(float64(s.sc.ViewRect().Dy())/float64(bc.GetWidget().Rect.Dy())*1000) / 3)
+	}
+
+	slider := widget.NewSlider(
+		widget.SliderOpts.Orientation(widget.DirectionVertical),
+		widget.SliderOpts.MinMax(0, 1000),
+		widget.SliderOpts.PageSizeFunc(pageSizeFunc),
+		widget.SliderOpts.ChangedHandler(func(args *widget.SliderChangedEventArgs) {
+			s.sc.ScrollTop = float64(args.Slider.Current) / 1000
+		}),
+		widget.SliderOpts.Images(
+			&widget.SliderTrackImage{
+				Idle:  image.NewNineSliceColor(color.NRGBA{100, 100, 100, 255}),
+				Hover: image.NewNineSliceColor(color.NRGBA{100, 100, 100, 255}),
+			},
+			&widget.ButtonImage{
+				Idle:    image.NewNineSliceColor(color.NRGBA{255, 100, 100, 255}),
+				Hover:   image.NewNineSliceColor(color.NRGBA{255, 100, 100, 255}),
+				Pressed: image.NewNineSliceColor(color.NRGBA{255, 100, 100, 255}),
+			},
+		),
+	)
+	// Set the slider's position if the scrollContainer is scrolled by other means than the slider
+	s.sc.GetWidget().ScrolledEvent.AddHandler(func(args any) {
+		if a, ok := args.(*widget.WidgetScrolledEventArgs); ok {
+			slider.Current -= int(math.Round(a.Y * float64(pageSizeFunc())))
+		}
+	})
+
+	scrollable.AddChild(slider)
+
+	s.ui.Container.AddChild(scrollable)
 }
 
 func (s *romList) Update() {
@@ -197,7 +244,7 @@ func (s *romList) right() {
 	s.initUI()
 }
 
-func createROMCell(img *ebiten.Image, name string, side int, selected bool, click func(), vscroll func(down bool)) *widget.Container {
+func createROMCell(img *ebiten.Image, name string, side int, selected bool, click func()) *widget.Container {
 	const padding = 10
 
 	cellbg := image.NewNineSliceColor(colornames.Darkgrey)
@@ -231,9 +278,6 @@ func createROMCell(img *ebiten.Image, name string, side int, selected bool, clic
 			}),
 			widget.WidgetOpts.MouseButtonClickedHandler(func(args *widget.WidgetMouseButtonClickedEventArgs) {
 				click()
-			}),
-			widget.WidgetOpts.ScrolledHandler(func(args *widget.WidgetScrolledEventArgs) {
-				vscroll(math.Signbit(args.Y))
 			}),
 		),
 	)
