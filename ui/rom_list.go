@@ -3,6 +3,7 @@ package ui
 import (
 	"bytes"
 	"fmt"
+	"math"
 
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/image"
@@ -17,7 +18,7 @@ type romList struct {
 
 	selidx  int
 	numcols int
-	numrows int
+	roms    []recentROM
 
 	winw, winh int
 	ui         *ebitenui.UI
@@ -29,6 +30,7 @@ func newRomListState(app *Application) *romList {
 		winw:        app.screenw,
 		winh:        app.screenh,
 		ui:          &ebitenui.UI{},
+		roms:        loadRecentROMs(),
 	}
 
 	state.initUI()
@@ -97,24 +99,27 @@ func (s *romList) initUI() {
 		)),
 	)
 
-	roms := loadRecentROMs()
+	for i := range s.roms {
+		img := mustDecodeImage(bytes.NewReader(s.roms[i].Image))
 
-	for i := range roms {
-		// rowidx := i / s.numcols
-		// if rowidx == s.numrows {
-		// 	break
-		// }
-
-		img := mustDecodeImage(bytes.NewReader(roms[i].Image))
-
-		const frameThickness = 3
+		const frameThickness = 2
 		img = fitImage(img, screenshotWidth)
-		img = frameImage(img, 3, colornames.Black)
+		img = frameImage(img, frameThickness, colornames.Black)
 
 		selected := i == s.selidx
-		cell := createROMCell(img, roms[i].Name, screenshotWidth, selected, func() {
-			s.onClickedROM(roms[i].Path)
-		})
+
+		click := func() {
+			s.onClickedROM(s.roms[i].Path)
+		}
+		vscroll := func(down bool) {
+			if down {
+				s.down()
+			} else {
+				s.up()
+			}
+		}
+
+		cell := createROMCell(img, s.roms[i].Name, screenshotWidth, selected, click, vscroll)
 		bc.AddChild(cell)
 	}
 
@@ -138,9 +143,7 @@ func (s *romList) Update() {
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
 		s.right()
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
-		// TODO: continuer ici
-		roms := loadRecentROMs()
-		s.onClickedROM(roms[s.selidx].Path)
+		s.onClickedROM(s.roms[s.selidx].Path)
 	}
 
 	s.ui.Update()
@@ -158,7 +161,7 @@ func (s *romList) Draw(screen *ebiten.Image) {
 */
 
 func (s *romList) up() {
-	fmt.Println("up", s.selidx, "numcols", s.numcols, "numrows", s.numrows)
+	fmt.Println("up", s.selidx, "numcols", s.numcols)
 	if s.selidx < s.numcols {
 		return
 	}
@@ -167,9 +170,8 @@ func (s *romList) up() {
 }
 
 func (s *romList) down() {
-	fmt.Println("down", s.selidx, "numcols", s.numcols, "numrows", s.numrows)
-	tot := s.numrows * s.numcols
-	if s.selidx >= tot-s.numcols {
+	fmt.Println("down", s.selidx, "numcols", s.numcols)
+	if s.selidx+s.numcols >= len(s.roms) {
 		return
 	}
 
@@ -178,8 +180,8 @@ func (s *romList) down() {
 }
 
 func (s *romList) left() {
-	fmt.Println("left", s.selidx, "numcols", s.numcols, "numrows", s.numrows)
-	if s.selidx%s.numcols == 0 {
+	fmt.Println("left", s.selidx, "numcols", s.numcols)
+	if s.selidx == 0 {
 		return
 	}
 	s.selidx--
@@ -187,32 +189,26 @@ func (s *romList) left() {
 }
 
 func (s *romList) right() {
-	fmt.Println("right", s.selidx, "numcols", s.numcols, "numrows", s.numrows)
-	if s.selidx%s.numcols == s.numcols-1 {
+	fmt.Println("right", s.selidx, "numcols", s.numcols)
+	if s.selidx == len(s.roms)-1 {
 		return
 	}
 	s.selidx++
 	s.initUI()
 }
 
-func createROMCell(img *ebiten.Image, name string, side int, selected bool, click func()) *widget.Container {
+func createROMCell(img *ebiten.Image, name string, side int, selected bool, click func(), vscroll func(down bool)) *widget.Container {
 	const padding = 10
-
-	screenshot := widget.NewGraphic(
-		widget.GraphicOpts.Image(img),
-		widget.GraphicOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(
-				widget.RowLayoutData{
-					Position: widget.RowLayoutPositionCenter,
-					Stretch:  false,
-				},
-			),
-		),
-	)
 
 	cellbg := image.NewNineSliceColor(colornames.Darkgrey)
 	cellhoverbg := image.NewNineSliceColor(colornames.Lightgrey)
 	cellpressedbg := image.NewNineSliceColor(colornames.Black)
+	selectedbg := image.NewNineSliceColor(colornames.Blue)
+	if selected {
+		cellbg = selectedbg
+		cellpressedbg = selectedbg
+		cellhoverbg = selectedbg
+	}
 
 	var cell *widget.Container
 	cell = widget.NewContainer(
@@ -236,11 +232,25 @@ func createROMCell(img *ebiten.Image, name string, side int, selected bool, clic
 			widget.WidgetOpts.MouseButtonClickedHandler(func(args *widget.WidgetMouseButtonClickedEventArgs) {
 				click()
 			}),
+			widget.WidgetOpts.ScrolledHandler(func(args *widget.WidgetScrolledEventArgs) {
+				vscroll(math.Signbit(args.Y))
+			}),
 		),
 	)
-	cell.AddChild(screenshot)
 
-	label := widget.NewLabel(
+	cell.AddChild(widget.NewGraphic(
+		widget.GraphicOpts.Image(img),
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(
+				widget.RowLayoutData{
+					Position: widget.RowLayoutPositionCenter,
+					Stretch:  false,
+				},
+			),
+		),
+	))
+
+	cell.AddChild(widget.NewLabel(
 		widget.LabelOpts.Text(name, loadFont(14), &widget.LabelColor{Idle: colornames.Black}),
 		widget.LabelOpts.TextOpts(
 			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionEnd),
@@ -252,8 +262,7 @@ func createROMCell(img *ebiten.Image, name string, side int, selected bool, clic
 				}),
 			),
 		),
-	)
-	cell.AddChild(label)
+	))
 
 	return cell
 }
