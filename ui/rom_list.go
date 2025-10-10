@@ -71,24 +71,15 @@ func (s *romList) initUI() {
 	})
 	s.ui.Container.AddChild(menu.container)
 
-	const screenshotSize = 200 // side of the screenshot square image.
-	const cellSpacing = 5      // minimum space between cells (horizontally and vertically)
+	const screenshotWidth = 180 // side of the screenshot square image.
+	const maxCellWidth = 200
+	const cellSpacing = 5 // minimum space between cells (horizontally and vertically)
 
-	s.numcols = s.winw / (screenshotSize + cellSpacing)
-	s.numrows = s.winh / (screenshotSize + cellSpacing) // max rows to display
-	if s.numrows == 0 {
-		s.numrows = 1
-	}
-
-	vertSpacing := (s.winh - (s.numrows * screenshotSize)) / (s.numcols + 1)
+	s.numcols = (s.winw - 2*cellSpacing) / maxCellWidth
 
 	colstretch := make([]bool, s.numcols)
 	for i := range colstretch {
 		colstretch[i] = true
-	}
-	rowstrech := make([]bool, s.numrows)
-	for i := range rowstrech {
-		rowstrech[i] = true
 	}
 
 	bc := widget.NewContainer(
@@ -97,8 +88,8 @@ func (s *romList) initUI() {
 		),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(s.numcols),
-			widget.GridLayoutOpts.Stretch(colstretch, rowstrech),
-			widget.GridLayoutOpts.Spacing(10, vertSpacing),
+			widget.GridLayoutOpts.Stretch(colstretch, nil),
+			widget.GridLayoutOpts.Spacing(10, 10),
 			widget.GridLayoutOpts.Padding(&widget.Insets{
 				Top: 10, Bottom: 10,
 				Left: 10, Right: 10,
@@ -109,14 +100,19 @@ func (s *romList) initUI() {
 	roms := loadRecentROMs()
 
 	for i := range roms {
-		rowidx := i / s.numcols
-		if rowidx == s.numrows {
-			break
-		}
+		// rowidx := i / s.numcols
+		// if rowidx == s.numrows {
+		// 	break
+		// }
 
 		img := mustDecodeImage(bytes.NewReader(roms[i].Image))
+
+		const frameThickness = 3
+		img = fitImage(img, screenshotWidth)
+		img = frameImage(img, 3, colornames.Black)
+
 		selected := i == s.selidx
-		cell := createROMCell(img, roms[i].Name, screenshotSize, selected, func() {
+		cell := createROMCell(img, roms[i].Name, screenshotWidth, selected, func() {
 			s.onClickedROM(roms[i].Path)
 		})
 		bc.AddChild(cell)
@@ -129,6 +125,7 @@ func (s *romList) Update() {
 	if w, h := ebiten.WindowSize(); w != s.winw || h != s.winh {
 		s.winw = w
 		s.winh = h
+		fmt.Println("updated window size", w, h)
 		s.initUI()
 	}
 
@@ -154,6 +151,12 @@ func (s *romList) Draw(screen *ebiten.Image) {
 	s.ui.Draw(screen)
 }
 
+/*
+  0   1   2   3
+  4   5   6   7
+  8   9   10  11
+*/
+
 func (s *romList) up() {
 	fmt.Println("up", s.selidx, "numcols", s.numcols, "numrows", s.numrows)
 	if s.selidx < s.numcols {
@@ -162,12 +165,6 @@ func (s *romList) up() {
 	s.selidx -= s.numcols
 	s.initUI()
 }
-
-/*
-  0   1   2   3
-  4   5   6   7
-  8   9   10  11
-*/
 
 func (s *romList) down() {
 	fmt.Println("down", s.selidx, "numcols", s.numcols, "numrows", s.numrows)
@@ -199,42 +196,49 @@ func (s *romList) right() {
 }
 
 func createROMCell(img *ebiten.Image, name string, side int, selected bool, click func()) *widget.Container {
-	const frameThickness = 2
-	const padding = 20
-	const labelHeight = 40
+	const padding = 10
 
-	imageSide := side - (labelHeight + padding*2)
+	screenshot := widget.NewGraphic(
+		widget.GraphicOpts.Image(img),
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(
+				widget.RowLayoutData{
+					Position: widget.RowLayoutPositionCenter,
+					Stretch:  false,
+				},
+			),
+		),
+	)
 
-	img = resizeImage(img, float64(imageSide), float64(imageSide))
-	btnimg := &widget.ButtonImage{
-		Idle:    image.NewFixedNineSlice(img),
-		Pressed: image.NewFixedNineSlice(frameImage(img, frameThickness, colornames.Black)),
-		Hover:   image.NewFixedNineSlice(frameImage(img, frameThickness, colornames.Darkgray)),
-	}
+	cellbg := image.NewNineSliceColor(colornames.Darkgrey)
+	cellhoverbg := image.NewNineSliceColor(colornames.Lightgrey)
+	cellpressedbg := image.NewNineSliceColor(colornames.Black)
 
-	btn := widget.NewButton(
-		widget.ButtonOpts.Image(btnimg),
-		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			click()
-		}),
-		widget.ButtonOpts.WidgetOpts(widget.WidgetOpts.LayoutData(
-			widget.AnchorLayoutData{
-				HorizontalPosition: widget.AnchorLayoutPositionCenter,
-				VerticalPosition:   widget.AnchorLayoutPositionStart,
-				Padding:            &widget.Insets{Top: padding},
-			},
+	var cell *widget.Container
+	cell = widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(cellbg),
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Padding(&widget.Insets{Top: padding}),
 		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.CursorEnterHandler(func(args *widget.WidgetCursorEnterEventArgs) {
+				cell.SetBackgroundImage(cellhoverbg)
+			}),
+			widget.WidgetOpts.CursorExitHandler(func(args *widget.WidgetCursorExitEventArgs) {
+				cell.SetBackgroundImage(cellbg)
+			}),
+			widget.WidgetOpts.MouseButtonPressedHandler(func(args *widget.WidgetMouseButtonPressedEventArgs) {
+				if args.Button == ebiten.MouseButtonLeft {
+					cell.SetBackgroundImage(cellpressedbg)
+				}
+			}),
+			widget.WidgetOpts.MouseButtonClickedHandler(func(args *widget.WidgetMouseButtonClickedEventArgs) {
+				click()
+			}),
+		),
 	)
-
-	bgcol := colornames.Lightcyan
-	if selected {
-		bgcol = colornames.Yellow
-	}
-	cell := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(bgcol)),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-	)
-	cell.AddChild(btn)
+	cell.AddChild(screenshot)
 
 	label := widget.NewLabel(
 		widget.LabelOpts.Text(name, loadFont(14), &widget.LabelColor{Idle: colornames.Black}),
@@ -242,14 +246,9 @@ func createROMCell(img *ebiten.Image, name string, side int, selected bool, clic
 			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionEnd),
 			widget.TextOpts.MaxWidth(float64(side-2*padding)),
 			widget.TextOpts.WidgetOpts(
-				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-					HorizontalPosition: widget.AnchorLayoutPositionCenter,
-					VerticalPosition:   widget.AnchorLayoutPositionEnd,
-					Padding: &widget.Insets{
-						Bottom: padding,
-						Left:   padding,
-					},
-					StretchHorizontal: true,
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+					Position: widget.RowLayoutPositionCenter,
+					Stretch:  false,
 				}),
 			),
 		),

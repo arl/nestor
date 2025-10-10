@@ -110,6 +110,19 @@ func resizeImage(src *ebiten.Image, w, h float64) *ebiten.Image {
 	return dst
 }
 
+// filImage ensures the returned image has the given width, scaling it if
+// necessary to fit. The height is adjusted to maintain the original aspect
+// ratio.
+func fitImage(src *ebiten.Image, width float64) *ebiten.Image {
+	sw, sh := src.Bounds().Dx(), src.Bounds().Dy()
+	scale := width / float64(sw)
+	dst := ebiten.NewImage(int(width), int(float64(sh)*scale))
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(scale, scale)
+	dst.DrawImage(src, op)
+	return dst
+}
+
 // mustDecodeImage decodes an image using registered decoders.
 func mustDecodeImage(r io.Reader) *ebiten.Image {
 	img, _, err := goimage.Decode(r)
