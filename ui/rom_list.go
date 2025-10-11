@@ -41,7 +41,8 @@ func newRomListState(app *Application) *romList {
 	return state
 }
 
-func (s *romList) onClickedROM(path string) {
+func (s *romList) startROM() {
+	path := s.roms[s.selidx].Path
 	modUI.InfoZ("selected ROM").String("path", path).End()
 	if err := s.runRom(path); err == nil {
 		s.setState("running")
@@ -110,11 +111,7 @@ func (s *romList) initUI() {
 		img = fitImage(img, screenshotWidth)
 		img = frameImage(img, frameThickness, colornames.Black)
 
-		click := func() {
-			s.onClickedROM(s.roms[i].Path)
-		}
-
-		cell := s.createROMCell(i, img, s.roms[i].Name, screenshotWidth, click)
+		cell := s.createROMCell(i, img, screenshotWidth)
 		s.cells = append(s.cells, cell)
 		grid.AddChild(cell)
 	}
@@ -162,6 +159,7 @@ func (s *romList) initUI() {
 			},
 		),
 	)
+
 	// Set the slider's position if the scrollContainer is scrolled by other
 	// means than the slider.
 	s.sc.GetWidget().ScrolledEvent.AddHandler(func(args any) {
@@ -171,8 +169,92 @@ func (s *romList) initUI() {
 	})
 
 	scrollable.AddChild(s.slider)
-
+	s.selectCell(s.selidx, true)
 	s.ui.Container.AddChild(scrollable)
+}
+
+var (
+	cellbg        = image.NewNineSliceColor(colornames.Darkgrey)
+	cellhoverbg   = image.NewNineSliceColor(colornames.Lightgrey)
+	cellpressedbg = image.NewNineSliceColor(colornames.Black)
+	selectedbg    = image.NewNineSliceColor(colornames.Blue)
+)
+
+func (s *romList) createROMCell(idx int, img *ebiten.Image, side int) *widget.Container {
+	const padding = 10
+
+	var cell *widget.Container
+	cell = widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Padding(&widget.Insets{Top: padding}),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.CursorEnterHandler(func(args *widget.WidgetCursorEnterEventArgs) {
+				if idx == s.selidx {
+					cell.SetBackgroundImage(selectedbg)
+				} else {
+					cell.SetBackgroundImage(cellhoverbg)
+				}
+			}),
+			widget.WidgetOpts.CursorExitHandler(func(args *widget.WidgetCursorExitEventArgs) {
+				if idx == s.selidx {
+					cell.SetBackgroundImage(selectedbg)
+				} else {
+					cell.SetBackgroundImage(cellbg)
+				}
+			}),
+			widget.WidgetOpts.MouseButtonPressedHandler(func(args *widget.WidgetMouseButtonPressedEventArgs) {
+				if args.Button == ebiten.MouseButtonLeft {
+					if idx == s.selidx {
+						cell.SetBackgroundImage(selectedbg)
+					} else {
+						cell.SetBackgroundImage(cellpressedbg)
+					}
+				}
+			}),
+			widget.WidgetOpts.MouseButtonClickedHandler(func(args *widget.WidgetMouseButtonClickedEventArgs) {
+				if args.Button == ebiten.MouseButtonLeft {
+					s.selectCell(idx, true)
+					s.startROM()
+				}
+			}),
+		),
+	)
+
+	if idx == s.selidx {
+		cell.SetBackgroundImage(selectedbg)
+	} else {
+		cell.SetBackgroundImage(cellbg)
+	}
+
+	cell.AddChild(widget.NewGraphic(
+		widget.GraphicOpts.Image(img),
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(
+				widget.RowLayoutData{
+					Position: widget.RowLayoutPositionCenter,
+					Stretch:  false,
+				},
+			),
+		),
+	))
+
+	cell.AddChild(widget.NewLabel(
+		widget.LabelOpts.Text(s.roms[idx].Name, loadFont(14), &widget.LabelColor{Idle: colornames.Black}),
+		widget.LabelOpts.TextOpts(
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionEnd),
+			widget.TextOpts.MaxWidth(float64(side-2*padding)),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+					Position: widget.RowLayoutPositionCenter,
+					Stretch:  false,
+				}),
+			),
+		),
+	))
+
+	return cell
 }
 
 func (s *romList) Update() {
@@ -191,12 +273,11 @@ func (s *romList) Update() {
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
 		s.right()
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
-		s.onClickedROM(s.roms[s.selidx].Path)
+		s.startROM()
 	}
 
 	s.ui.Update()
 }
-
 func (s *romList) Draw(screen *ebiten.Image) {
 	screen.Fill(colornames.Lightcoral)
 	s.ui.Draw(screen)
@@ -249,85 +330,4 @@ func (s *romList) selectCell(idx int, alignTop bool) {
 		}
 		s.slider.Current = int(s.sc.ScrollTop * 1000)
 	}
-}
-
-var (
-	cellbg        = image.NewNineSliceColor(colornames.Darkgrey)
-	cellhoverbg   = image.NewNineSliceColor(colornames.Lightgrey)
-	cellpressedbg = image.NewNineSliceColor(colornames.Black)
-	selectedbg    = image.NewNineSliceColor(colornames.Blue)
-)
-
-func (s *romList) createROMCell(idx int, img *ebiten.Image, name string, side int, click func()) *widget.Container {
-	const padding = 10
-
-	var cell *widget.Container
-	cell = widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Padding(&widget.Insets{Top: padding}),
-		)),
-		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.CursorEnterHandler(func(args *widget.WidgetCursorEnterEventArgs) {
-				if idx == s.selidx {
-					cell.SetBackgroundImage(selectedbg)
-				} else {
-					cell.SetBackgroundImage(cellhoverbg)
-				}
-			}),
-			widget.WidgetOpts.CursorExitHandler(func(args *widget.WidgetCursorExitEventArgs) {
-				if idx == s.selidx {
-					cell.SetBackgroundImage(selectedbg)
-				} else {
-					cell.SetBackgroundImage(cellbg)
-				}
-			}),
-			widget.WidgetOpts.MouseButtonPressedHandler(func(args *widget.WidgetMouseButtonPressedEventArgs) {
-				if args.Button == ebiten.MouseButtonLeft {
-					if idx == s.selidx {
-						cell.SetBackgroundImage(selectedbg)
-					} else {
-						cell.SetBackgroundImage(cellpressedbg)
-					}
-				}
-			}),
-			widget.WidgetOpts.MouseButtonClickedHandler(func(args *widget.WidgetMouseButtonClickedEventArgs) {
-				click()
-			}),
-		),
-	)
-
-	if idx == s.selidx {
-		cell.SetBackgroundImage(selectedbg)
-	} else {
-		cell.SetBackgroundImage(cellbg)
-	}
-
-	cell.AddChild(widget.NewGraphic(
-		widget.GraphicOpts.Image(img),
-		widget.GraphicOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(
-				widget.RowLayoutData{
-					Position: widget.RowLayoutPositionCenter,
-					Stretch:  false,
-				},
-			),
-		),
-	))
-
-	cell.AddChild(widget.NewLabel(
-		widget.LabelOpts.Text(name, loadFont(14), &widget.LabelColor{Idle: colornames.Black}),
-		widget.LabelOpts.TextOpts(
-			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionEnd),
-			widget.TextOpts.MaxWidth(float64(side-2*padding)),
-			widget.TextOpts.WidgetOpts(
-				widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-					Position: widget.RowLayoutPositionCenter,
-					Stretch:  false,
-				}),
-			),
-		),
-	))
-
-	return cell
 }
