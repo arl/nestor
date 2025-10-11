@@ -2,7 +2,6 @@ package ui
 
 import (
 	"bytes"
-	"fmt"
 	"image/color"
 	"math"
 
@@ -24,6 +23,8 @@ type romList struct {
 	winw, winh int
 	ui         *ebitenui.UI
 	sc         *widget.ScrollContainer
+	slider     *widget.Slider
+	cells      []*widget.Container
 }
 
 func newRomListState(app *Application) *romList {
@@ -86,7 +87,7 @@ func (s *romList) initUI() {
 		colstretch[i] = true
 	}
 
-	bc := widget.NewContainer(
+	grid := widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true}),
 		),
@@ -101,6 +102,7 @@ func (s *romList) initUI() {
 		)),
 	)
 
+	s.cells = s.cells[:0]
 	for i := range s.roms {
 		img := mustDecodeImage(bytes.NewReader(s.roms[i].Image))
 
@@ -108,14 +110,13 @@ func (s *romList) initUI() {
 		img = fitImage(img, screenshotWidth)
 		img = frameImage(img, frameThickness, colornames.Black)
 
-		selected := i == s.selidx
-
 		click := func() {
 			s.onClickedROM(s.roms[i].Path)
 		}
 
-		cell := createROMCell(img, s.roms[i].Name, screenshotWidth, selected, click)
-		bc.AddChild(cell)
+		cell := s.createROMCell(i, img, s.roms[i].Name, screenshotWidth, click)
+		s.cells = append(s.cells, cell)
+		grid.AddChild(cell)
 	}
 
 	scrollable := widget.NewContainer(
@@ -128,7 +129,7 @@ func (s *romList) initUI() {
 	)
 
 	s.sc = widget.NewScrollContainer(
-		widget.ScrollContainerOpts.Content(bc),
+		widget.ScrollContainerOpts.Content(grid),
 		widget.ScrollContainerOpts.StretchContentWidth(),
 		widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
 			Idle: image.NewNineSliceColor(color.NRGBA{0x13, 0x1a, 0x22, 0xff}),
@@ -139,10 +140,10 @@ func (s *romList) initUI() {
 	scrollable.AddChild(s.sc)
 
 	pageSizeFunc := func() int {
-		return int(math.Round(float64(s.sc.ViewRect().Dy())/float64(bc.GetWidget().Rect.Dy())*1000) / 3)
+		return int(math.Round(float64(s.sc.ViewRect().Dy())/float64(grid.GetWidget().Rect.Dy())*1000) / 3)
 	}
 
-	slider := widget.NewSlider(
+	s.slider = widget.NewSlider(
 		widget.SliderOpts.Orientation(widget.DirectionVertical),
 		widget.SliderOpts.MinMax(0, 1000),
 		widget.SliderOpts.PageSizeFunc(pageSizeFunc),
@@ -161,14 +162,15 @@ func (s *romList) initUI() {
 			},
 		),
 	)
-	// Set the slider's position if the scrollContainer is scrolled by other means than the slider
+	// Set the slider's position if the scrollContainer is scrolled by other
+	// means than the slider.
 	s.sc.GetWidget().ScrolledEvent.AddHandler(func(args any) {
 		if a, ok := args.(*widget.WidgetScrolledEventArgs); ok {
-			slider.Current -= int(math.Round(a.Y * float64(pageSizeFunc())))
+			s.slider.Current -= int(math.Round(a.Y * float64(pageSizeFunc())))
 		}
 	})
 
-	scrollable.AddChild(slider)
+	scrollable.AddChild(s.slider)
 
 	s.ui.Container.AddChild(scrollable)
 }
@@ -177,7 +179,6 @@ func (s *romList) Update() {
 	if w, h := ebiten.WindowSize(); w != s.winw || h != s.winh {
 		s.winw = w
 		s.winh = h
-		fmt.Println("updated window size", w, h)
 		s.initUI()
 	}
 
@@ -201,79 +202,93 @@ func (s *romList) Draw(screen *ebiten.Image) {
 	s.ui.Draw(screen)
 }
 
-/*
-  0   1   2   3
-  4   5   6   7
-  8   9   10  11
-*/
-
 func (s *romList) up() {
-	fmt.Println("up", s.selidx, "numcols", s.numcols)
 	if s.selidx < s.numcols {
 		return
 	}
-	s.selidx -= s.numcols
-	s.initUI()
+	s.selectCell(s.selidx-s.numcols, true)
 }
 
 func (s *romList) down() {
-	fmt.Println("down", s.selidx, "numcols", s.numcols)
 	if s.selidx+s.numcols >= len(s.roms) {
 		return
 	}
-
-	s.selidx += s.numcols
-	s.initUI()
+	s.selectCell(s.selidx+s.numcols, false)
 }
 
 func (s *romList) left() {
-	fmt.Println("left", s.selidx, "numcols", s.numcols)
 	if s.selidx == 0 {
 		return
 	}
-	s.selidx--
-	s.initUI()
+	s.selectCell(s.selidx-1, true)
 }
 
 func (s *romList) right() {
-	fmt.Println("right", s.selidx, "numcols", s.numcols)
 	if s.selidx == len(s.roms)-1 {
 		return
 	}
-	s.selidx++
-	s.initUI()
+	s.selectCell(s.selidx+1, false)
 }
 
-func createROMCell(img *ebiten.Image, name string, side int, selected bool, click func()) *widget.Container {
-	const padding = 10
-
-	cellbg := image.NewNineSliceColor(colornames.Darkgrey)
-	cellhoverbg := image.NewNineSliceColor(colornames.Lightgrey)
-	cellpressedbg := image.NewNineSliceColor(colornames.Black)
-	selectedbg := image.NewNineSliceColor(colornames.Blue)
-	if selected {
-		cellbg = selectedbg
-		cellpressedbg = selectedbg
-		cellhoverbg = selectedbg
+func (s *romList) selectCell(idx int, alignTop bool) {
+	if idx < 0 || idx >= len(s.cells) {
+		return
 	}
+	s.cells[s.selidx].SetBackgroundImage(cellbg)
+	s.selidx = idx
+	s.cells[s.selidx].SetBackgroundImage(selectedbg)
+
+	cellrect := s.cells[s.selidx].GetWidget().Rect
+	viewrect := s.sc.ViewRect()
+	if !cellrect.In(viewrect) {
+		contentRect := s.sc.ContentRect()
+		if alignTop {
+			s.sc.ScrollTop = float64(cellrect.Min.Y-contentRect.Min.Y) / float64(contentRect.Dy()-viewrect.Dy())
+		} else {
+			s.sc.ScrollTop = float64(cellrect.Max.Y-contentRect.Min.Y-viewrect.Dy()) / float64(contentRect.Dy()-viewrect.Dy())
+		}
+		s.slider.Current = int(s.sc.ScrollTop * 1000)
+	}
+}
+
+var (
+	cellbg        = image.NewNineSliceColor(colornames.Darkgrey)
+	cellhoverbg   = image.NewNineSliceColor(colornames.Lightgrey)
+	cellpressedbg = image.NewNineSliceColor(colornames.Black)
+	selectedbg    = image.NewNineSliceColor(colornames.Blue)
+)
+
+func (s *romList) createROMCell(idx int, img *ebiten.Image, name string, side int, click func()) *widget.Container {
+	const padding = 10
 
 	var cell *widget.Container
 	cell = widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(cellbg),
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
 			widget.RowLayoutOpts.Padding(&widget.Insets{Top: padding}),
 		)),
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.CursorEnterHandler(func(args *widget.WidgetCursorEnterEventArgs) {
-				cell.SetBackgroundImage(cellhoverbg)
+				if idx == s.selidx {
+					cell.SetBackgroundImage(selectedbg)
+				} else {
+					cell.SetBackgroundImage(cellhoverbg)
+				}
 			}),
 			widget.WidgetOpts.CursorExitHandler(func(args *widget.WidgetCursorExitEventArgs) {
-				cell.SetBackgroundImage(cellbg)
+				if idx == s.selidx {
+					cell.SetBackgroundImage(selectedbg)
+				} else {
+					cell.SetBackgroundImage(cellbg)
+				}
 			}),
 			widget.WidgetOpts.MouseButtonPressedHandler(func(args *widget.WidgetMouseButtonPressedEventArgs) {
 				if args.Button == ebiten.MouseButtonLeft {
-					cell.SetBackgroundImage(cellpressedbg)
+					if idx == s.selidx {
+						cell.SetBackgroundImage(selectedbg)
+					} else {
+						cell.SetBackgroundImage(cellpressedbg)
+					}
 				}
 			}),
 			widget.WidgetOpts.MouseButtonClickedHandler(func(args *widget.WidgetMouseButtonClickedEventArgs) {
@@ -281,6 +296,12 @@ func createROMCell(img *ebiten.Image, name string, side int, selected bool, clic
 			}),
 		),
 	)
+
+	if idx == s.selidx {
+		cell.SetBackgroundImage(selectedbg)
+	} else {
+		cell.SetBackgroundImage(cellbg)
+	}
 
 	cell.AddChild(widget.NewGraphic(
 		widget.GraphicOpts.Image(img),
