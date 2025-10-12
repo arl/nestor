@@ -135,11 +135,10 @@ func (s *running) Draw(screen *ebiten.Image) {
 
 	// audio
 
-	// With audio and vsync enabled, we use vsync to enforce
-	// the correct emulation speed. In this case we want to
-	// avoid queueing too much audio as it would desync from
-	// video. So we send audio only if there's less than a
-	// frame's worth in the buffer.
+	// With audio and vsync enabled, we use vsync to enforce the correct
+	// emulation speed. In this case we want to avoid queueing too much audio as
+	// it would desync from video. So we send audio only if there's less than a
+	// frame's worth of audio samples already queued in the buffer.
 	if s.Application.samples.Len() < len(frame.Audio.Samples)/2 {
 		buf := byteSliceFromInt16(frame.Audio.Samples)
 		if _, err := s.samples.Write(buf); err != nil {

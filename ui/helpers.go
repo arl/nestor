@@ -79,19 +79,37 @@ func stdButton(text string, onclick func(args *widget.ButtonClickedEventArgs)) *
 // sampleBuffer is a wrapper around bytes.Buffer that returns nil instead of
 // EOF, since returning EOF would stop the audio playback.
 type sampleBuffer struct {
-	*bytes.Buffer
+	mu  sync.Mutex
+	buf bytes.Buffer
 }
 
 func newSampleBuffer(size int) *sampleBuffer {
-	return &sampleBuffer{bytes.NewBuffer(make([]byte, 0, size))}
+	return &sampleBuffer{}
 }
 
 func (s *sampleBuffer) Read(p []uint8) (int, error) {
-	n, _ := s.Buffer.Read(p)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	n, _ := s.buf.Read(p)
 	if n == 0 {
 		return 0, nil
 	}
 	return n, nil
+}
+
+func (s *sampleBuffer) Write(p []byte) (n int, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.buf.Write(p)
+}
+
+func (s *sampleBuffer) Len() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.buf.Len()
 }
 
 func byteSliceFromInt16(arr []int16) []uint8 {
