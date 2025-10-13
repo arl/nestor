@@ -46,7 +46,6 @@ func start(ctx context.Context, cfg config.Config, romPath string) error {
 			return fmt.Errorf("can't run rom: %w", err)
 		}
 	}
-
 	if err := ebiten.RunGameWithOptions(app, options); err != nil {
 		return fmt.Errorf("ui failure: %w", err)
 	}

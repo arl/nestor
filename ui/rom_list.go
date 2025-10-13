@@ -20,23 +20,20 @@ type romList struct {
 	numcols int
 	roms    []recentROM
 
-	winw, winh int
-	ui         *ebitenui.UI
-	sc         *widget.ScrollContainer
-	slider     *widget.Slider
-	cells      []*widget.Container
+	ui     *ebitenui.UI
+	sc     *widget.ScrollContainer
+	slider *widget.Slider
+	cells  []*widget.Container
 }
 
 func newRomListState(app *Application) *romList {
 	state := &romList{
 		Application: app,
-		winw:        app.screenw,
-		winh:        app.screenh,
 		ui:          &ebitenui.UI{},
 		roms:        loadRecentROMs(),
 	}
 
-	state.initUI()
+	state.createUI()
 
 	return state
 }
@@ -51,8 +48,7 @@ func (s *romList) startROM() {
 	}
 }
 
-// use a grid layout (look at the ebitenui demo example (grid layout))
-func (s *romList) initUI() {
+func (s *romList) createUI() {
 	s.ui.Container = widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Padding(&widget.Insets{}),
@@ -81,7 +77,7 @@ func (s *romList) initUI() {
 	const maxCellWidth = 200
 	const cellSpacing = 5 // minimum space between cells (horizontally and vertically)
 
-	s.numcols = (s.winw - 2*cellSpacing) / maxCellWidth
+	s.numcols = (s.screenw - 2*cellSpacing) / maxCellWidth
 
 	colstretch := make([]bool, s.numcols)
 	for i := range colstretch {
@@ -257,13 +253,7 @@ func (s *romList) createROMCell(idx int, img *ebiten.Image, side int) *widget.Co
 	return cell
 }
 
-func (s *romList) Update() {
-	if w, h := ebiten.WindowSize(); w != s.winw || h != s.winh {
-		s.winw = w
-		s.winh = h
-		s.initUI()
-	}
-
+func (s *romList) update() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		s.up()
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
@@ -278,7 +268,8 @@ func (s *romList) Update() {
 
 	s.ui.Update()
 }
-func (s *romList) Draw(screen *ebiten.Image) {
+
+func (s *romList) draw(screen *ebiten.Image) {
 	screen.Fill(colornames.Lightcoral)
 	s.ui.Draw(screen)
 }

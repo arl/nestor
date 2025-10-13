@@ -9,6 +9,7 @@ import (
 
 	"github.com/ebitengine/oto/v3"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
 	"nestor/config"
 	"nestor/emu"
@@ -18,8 +19,9 @@ import (
 )
 
 type state interface {
-	Update()
-	Draw(screen *ebiten.Image)
+	createUI()
+	update()
+	draw(screen *ebiten.Image)
 }
 
 type Application struct {
@@ -65,22 +67,49 @@ func (app *Application) exit() {
 func (app *Application) setState(name string) {
 	modUI.InfoZ("Switching to state").String("to", name).End()
 	app.currentState = app.states[name]
+	app.currentState.createUI()
 }
 
 func (app *Application) Update() error {
 	if app.quit.Load() {
 		return ebiten.Termination
 	}
-	app.currentState.Update()
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyF11) {
+		enable := !ebiten.IsFullscreen()
+		ebiten.SetFullscreen(enable)
+	}
+
+	if ebiten.IsFullscreen() {
+		neww, newh := ebiten.Monitor().Size()
+		if neww != app.screenw || newh != app.screenh {
+			app.screenw, app.screenh = ebiten.Monitor().Size()
+			app.currentState.createUI()
+		}
+	} else {
+		neww, newh := ebiten.WindowSize()
+		if neww != app.screenw || newh != app.screenh {
+			app.screenw, app.screenh = ebiten.WindowSize()
+			app.currentState.createUI()
+		}
+	}
+
+	app.currentState.update()
 	return nil
 }
 
 func (app *Application) Draw(screen *ebiten.Image) {
-	app.currentState.Draw(screen)
+	app.currentState.draw(screen)
 }
 
 func (app *Application) Layout(outw, outh int) (screenw, screenh int) {
+	if app.screenw == outw && app.screenh == outh {
+		return outw, outh
+	}
+
 	app.screenw, app.screenh = outw, outh
+	app.currentState.createUI()
+
 	return outw, outh
 }
 

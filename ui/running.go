@@ -26,17 +26,18 @@ func newRunningState(app *Application) *running {
 		Application: app,
 		elapsed:     time.Now().Unix(),
 	}
-	s.initUI()
+	s.createUI()
 	return s
 }
 
-func (s *running) initUI() {
+func (s *running) createUI() {
 	root := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(
 			image.NewNineSliceColor(mixColors(colornames.Black, transparent, 0.5)),
 		),
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 	)
+
 	buttonsGroup := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(
 			image.NewNineSliceColor(colornames.Gray),
@@ -57,7 +58,6 @@ func (s *running) initUI() {
 		widget.LabelOpts.Text("<paused>", titleFont(), &widget.LabelColor{Idle: colornames.White}),
 		widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
 	))
-
 	buttonsGroup.AddChild(stdButton("Resume", func(_ *widget.ButtonClickedEventArgs) {
 		s.resume()
 	}))
@@ -93,10 +93,7 @@ func (s *running) resume() {
 	s.emulator.Resume()
 }
 
-func (s *running) Update() {
-	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
-		ebiten.SetFullscreen(!ebiten.IsFullscreen())
-	}
+func (s *running) update() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		if s.paused {
 			s.resume()
@@ -115,7 +112,7 @@ func (s *running) Update() {
 	}
 }
 
-func (s *running) Draw(screen *ebiten.Image) {
+func (s *running) draw(screen *ebiten.Image) {
 	if s.paused {
 		if s.shouldQuit {
 			s.paused = false
