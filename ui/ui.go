@@ -37,7 +37,7 @@ func start(ctx context.Context, cfg config.Config, romPath string) error {
 	ebiten.SetVsyncEnabled(!cfg.Video.DisableVSync)
 	var options = &ebiten.RunGameOptions{}
 
-	app := newApplication(ctx, cfg)
+	app := newApp(ctx, cfg)
 	if romPath == "" {
 		app.setState("rom_list")
 	} else {

@@ -24,7 +24,7 @@ type state interface {
 	draw(screen *ebiten.Image)
 }
 
-type Application struct {
+type app struct {
 	cfg config.Config
 
 	emulator *emu.Emulator
@@ -41,8 +41,8 @@ type Application struct {
 	screenw, screenh int
 }
 
-func newApplication(ctx context.Context, cfg config.Config) *Application {
-	app := &Application{
+func newApp(ctx context.Context, cfg config.Config) *app {
+	app := &app{
 		cfg:     cfg,
 		states:  make(map[string]state),
 		screenw: minWidth,
@@ -60,17 +60,17 @@ func newApplication(ctx context.Context, cfg config.Config) *Application {
 	return app
 }
 
-func (app *Application) exit() {
+func (app *app) exit() {
 	app.quit.Store(true)
 }
 
-func (app *Application) setState(name string) {
+func (app *app) setState(name string) {
 	modUI.InfoZ("Switching to state").String("to", name).End()
 	app.currentState = app.states[name]
 	app.currentState.createUI()
 }
 
-func (app *Application) Update() error {
+func (app *app) Update() error {
 	if app.quit.Load() {
 		return ebiten.Termination
 	}
@@ -98,11 +98,11 @@ func (app *Application) Update() error {
 	return nil
 }
 
-func (app *Application) Draw(screen *ebiten.Image) {
+func (app *app) Draw(screen *ebiten.Image) {
 	app.currentState.draw(screen)
 }
 
-func (app *Application) Layout(outw, outh int) (screenw, screenh int) {
+func (app *app) Layout(outw, outh int) (screenw, screenh int) {
 	if app.screenw == outw && app.screenh == outh {
 		return outw, outh
 	}
@@ -113,7 +113,7 @@ func (app *Application) Layout(outw, outh int) (screenw, screenh int) {
 	return outw, outh
 }
 
-func (app *Application) runRom(romPath string) error {
+func (app *app) runRom(romPath string) error {
 	inputProvider := input.NewProvider(app.cfg.Input)
 
 	rom, err := ines.ReadROM(romPath)

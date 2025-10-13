@@ -14,7 +14,7 @@ import (
 )
 
 type romList struct {
-	*Application
+	*app
 
 	selidx  int
 	numcols int
@@ -26,11 +26,11 @@ type romList struct {
 	cells  []*widget.Container
 }
 
-func newRomListState(app *Application) *romList {
+func newRomListState(app *app) *romList {
 	state := &romList{
-		Application: app,
-		ui:          &ebitenui.UI{},
-		roms:        loadRecentROMs(),
+		app:  app,
+		ui:   &ebitenui.UI{},
+		roms: loadRecentROMs(),
 	}
 
 	state.createUI()
@@ -69,7 +69,7 @@ func (s *romList) createUI() {
 	// Configure menu.
 	menu := newAppMenu(s.ui)
 	menu.quitButton.ClickedEvent.AddHandler(func(args any) {
-		s.Application.exit()
+		s.app.exit()
 	})
 	s.ui.Container.AddChild(menu.container)
 

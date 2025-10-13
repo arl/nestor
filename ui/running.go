@@ -13,7 +13,7 @@ import (
 )
 
 type running struct {
-	*Application
+	*app
 	paused  bool
 	pauseUI *ebitenui.UI
 	elapsed int64 // elapsed seconds (for FPS display)
@@ -21,10 +21,10 @@ type running struct {
 	shouldQuit bool
 }
 
-func newRunningState(app *Application) *running {
+func newRunningState(app *app) *running {
 	s := &running{
-		Application: app,
-		elapsed:     time.Now().Unix(),
+		app:     app,
+		elapsed: time.Now().Unix(),
 	}
 	s.createUI()
 	return s
@@ -119,7 +119,7 @@ func (s *running) draw(screen *ebiten.Image) {
 			s.shouldQuit = false
 			s.emulator.Stop()
 			<-s.framech // discard frame
-			s.Application.setState("rom_list")
+			s.app.setState("rom_list")
 			return
 		}
 
@@ -136,7 +136,7 @@ func (s *running) draw(screen *ebiten.Image) {
 	// emulation speed. In this case we want to avoid queueing too much audio as
 	// it would desync from video. So we send audio only if there's less than a
 	// frame's worth of audio samples already queued in the buffer.
-	if s.Application.samples.Len() < len(frame.Audio.Samples)/2 {
+	if s.app.samples.Len() < len(frame.Audio.Samples)/2 {
 		buf := byteSliceFromInt16(frame.Audio.Samples)
 		if _, err := s.samples.Write(buf); err != nil {
 			panic(err)
@@ -144,10 +144,10 @@ func (s *running) draw(screen *ebiten.Image) {
 	}
 
 	// video
-	s.Application.frameimg.WritePixels(frame.Video)
+	s.app.frameimg.WritePixels(frame.Video)
 
 	// TODO: precalculate screen bounds on resize only
-	s.drawFrame(screen, s.Application.frameimg, float64(screen.Bounds().Dx()), float64(screen.Bounds().Dy()))
+	s.drawFrame(screen, s.app.frameimg, float64(screen.Bounds().Dx()), float64(screen.Bounds().Dy()))
 
 	if now := time.Now().Unix(); now != s.elapsed {
 		s.elapsed = now
