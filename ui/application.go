@@ -32,6 +32,7 @@ type app struct {
 	framech  chan *emu.Frame
 	frameimg *ebiten.Image
 
+	audioctx    *oto.Context
 	samples     *sampleBuffer
 	audioPlayer *oto.Player
 
@@ -44,10 +45,12 @@ type app struct {
 func newApp(ctx context.Context, cfg config.Config) *app {
 	app := &app{
 		cfg:     cfg,
-		states:  make(map[string]state),
+		states:  map[string]state{},
 		screenw: minWidth,
 		screenh: minHeight,
 	}
+
+	app.initAudio()
 
 	app.states["running"] = newRunningState(app)
 	app.states["rom_list"] = newRomListState(app)
@@ -59,6 +62,37 @@ func newApp(ctx context.Context, cfg config.Config) *app {
 
 	return app
 }
+
+func (app *app) initAudio() {
+	// init audio
+	const audioBufferSize = 1024 // TODO: adjust based on latency.
+	app.samples = newSampleBuffer(audioBufferSize)
+
+	audioctx, readych, err := oto.NewContext(&oto.NewContextOptions{
+		SampleRate:   apu.MaxSampleRate,
+		ChannelCount: 2,
+		Format:       oto.FormatSignedInt16LE,
+	})
+	if err != nil {
+		panic("oto.NewContext failed: " + err.Error())
+	}
+	<-readych
+
+	app.audioctx = audioctx
+}
+
+var otoContext = sync.OnceValue(func() *oto.Context {
+	context, readyChan, err := oto.NewContext(&oto.NewContextOptions{
+		SampleRate:   apu.MaxSampleRate,
+		ChannelCount: 2,
+		Format:       oto.FormatSignedInt16LE,
+	})
+	if err != nil {
+		panic("oto.NewContext failed: " + err.Error())
+	}
+	<-readyChan
+	return context
+})
 
 func (app *app) exit() {
 	app.quit.Store(true)
@@ -147,31 +181,15 @@ func (app *app) runRom(romPath string) error {
 		&ebiten.NewImageOptions{Unmanaged: true},
 	)
 
-	// init audio
-	const audioBufferSize = 1024 // TODO: adjust based on latency.
-	app.samples = newSampleBuffer(audioBufferSize)
-	if app.audioPlayer != nil {
-		app.audioPlayer.Close()
-	}
-	app.audioPlayer = otoContext().NewPlayer(app.samples)
+	app.audioPlayer = app.audioctx.NewPlayer(app.samples)
 	app.audioPlayer.SetVolume(1)
 	app.audioPlayer.SetBufferSize(8192)
 	app.audioPlayer.Play()
 
-	go emulator.Run()
+	go func() {
+		emulator.Run()
+		app.audioPlayer.Close()
+	}()
 
 	return nil
 }
-
-var otoContext = sync.OnceValue(func() *oto.Context {
-	context, readyChan, err := oto.NewContext(&oto.NewContextOptions{
-		SampleRate:   apu.MaxSampleRate,
-		ChannelCount: 2,
-		Format:       oto.FormatSignedInt16LE,
-	})
-	if err != nil {
-		panic("oto.NewContext failed: " + err.Error())
-	}
-	<-readyChan
-	return context
-})
