@@ -5,7 +5,6 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -20,7 +19,6 @@ type romList struct {
 	numcols int
 	roms    []recentROM
 
-	ui     *ebitenui.UI
 	sc     *widget.ScrollContainer
 	slider *widget.Slider
 	cells  []*widget.Container
@@ -29,7 +27,6 @@ type romList struct {
 func newRomListState(app *app) *romList {
 	state := &romList{
 		app:  app,
-		ui:   &ebitenui.UI{},
 		roms: loadRecentROMs(),
 	}
 
@@ -67,7 +64,7 @@ func (s *romList) createUI() {
 	)
 
 	// Configure menu.
-	menu := newAppMenu(s.ui)
+	menu := newAppMenu(&s.ui)
 	menu.quitButton.ClickedEvent.AddHandler(func(args any) {
 		s.app.exit()
 	})

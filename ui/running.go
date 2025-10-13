@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -15,7 +14,6 @@ import (
 type running struct {
 	*app
 	paused  bool
-	pauseUI *ebitenui.UI
 	elapsed int64 // elapsed seconds (for FPS display)
 
 	shouldQuit bool
@@ -76,7 +74,7 @@ func (s *running) createUI() {
 	}))
 
 	root.AddChild(buttonsGroup)
-	s.pauseUI = &ebitenui.UI{Container: root}
+	s.ui.Container = root
 }
 
 func (s *running) pause() {
@@ -104,7 +102,7 @@ func (s *running) update() {
 		}
 	}
 	if s.paused {
-		s.pauseUI.Update()
+		s.ui.Update()
 		return
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
@@ -123,7 +121,7 @@ func (s *running) draw(screen *ebiten.Image) {
 			return
 		}
 
-		s.pauseUI.Draw(screen)
+		s.ui.Draw(screen)
 		return
 	}
 

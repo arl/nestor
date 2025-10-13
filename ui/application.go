@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/ebitengine/oto/v3"
+	"github.com/ebitenui/ebitenui"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
@@ -36,6 +37,7 @@ type app struct {
 	samples     *sampleBuffer
 	audioPlayer *oto.Player
 
+	ui           ebitenui.UI
 	states       map[string]state
 	currentState state
 
