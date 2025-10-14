@@ -44,6 +44,8 @@ type app struct {
 	screenw, screenh int
 }
 
+var res = newUIResources()
+
 func newApp(ctx context.Context, cfg config.Config) *app {
 	app := &app{
 		cfg:     cfg,

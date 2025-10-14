@@ -44,9 +44,7 @@ func stdButton(text string, onclick func(args *widget.ButtonClickedEventArgs)) *
 			}),
 		),
 		widget.ButtonOpts.Image(buttonImage()),
-		widget.ButtonOpts.Text(text, loadFont(20), &widget.ButtonTextColor{
-			Idle: color.NRGBA{0xdf, 0xf4, 0xff, 0xff},
-		}),
+		widget.ButtonOpts.Text(text, res.button.face, res.button.text),
 		widget.ButtonOpts.TextProcessBBCode(false),
 		widget.ButtonOpts.TextPadding(&widget.Insets{
 			Left:   30,

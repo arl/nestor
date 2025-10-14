@@ -21,8 +21,6 @@ type appMenu struct {
 	loadButton *widget.Button
 }
 
-var menuFont = loadFont(15)
-
 func newAppMenu(ui *ebitenui.UI) *appMenu {
 	root := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Black)),
@@ -97,7 +95,7 @@ func newAppMenuButton(label string) *widget.Button {
 			Hover:   image.NewNineSliceColor(colornames.Darkgray),
 			Pressed: image.NewNineSliceColor(colornames.White),
 		}),
-		widget.ButtonOpts.Text(label, menuFont, &widget.ButtonTextColor{
+		widget.ButtonOpts.Text(label, res.fonts.face, &widget.ButtonTextColor{
 			Idle:     color.White,
 			Disabled: colornames.Gray,
 			Hover:    color.White,
@@ -120,7 +118,7 @@ func newAppMenuEntry(label string) *widget.Button {
 			Hover:   image.NewNineSliceColor(colornames.Darkgray),
 			Pressed: image.NewNineSliceColor(colornames.White),
 		}),
-		widget.ButtonOpts.Text(label, menuFont, &widget.ButtonTextColor{
+		widget.ButtonOpts.Text(label, res.fonts.face, &widget.ButtonTextColor{
 			Idle:     color.White,
 			Disabled: colornames.Gray,
 			Hover:    color.White,

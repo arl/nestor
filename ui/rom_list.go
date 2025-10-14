@@ -234,7 +234,7 @@ func (s *romList) createROMCell(idx int, img *ebiten.Image, side int) *widget.Co
 	))
 
 	cell.AddChild(widget.NewLabel(
-		widget.LabelOpts.Text(s.roms[idx].Name, loadFont(14), &widget.LabelColor{Idle: colornames.Black}),
+		widget.LabelOpts.Text(s.roms[idx].Name, res.fonts.face, &widget.LabelColor{Idle: colornames.Black}),
 		widget.LabelOpts.TextOpts(
 			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionEnd),
 			widget.TextOpts.MaxWidth(float64(side-2*padding)),

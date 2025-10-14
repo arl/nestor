@@ -53,7 +53,7 @@ func (s *running) createUI() {
 		)),
 	)
 	buttonsGroup.AddChild(widget.NewLabel(
-		widget.LabelOpts.Text("<paused>", titleFont(), &widget.LabelColor{Idle: colornames.White}),
+		widget.LabelOpts.Text("<paused>", res.fonts.titleFace, &widget.LabelColor{Idle: colornames.White}),
 		widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
 	))
 	buttonsGroup.AddChild(stdButton("Resume", func(_ *widget.ButtonClickedEventArgs) {
