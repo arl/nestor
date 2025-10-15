@@ -8,35 +8,22 @@ import (
 	"golang.org/x/image/colornames"
 )
 
-type pausedState struct {
-	*app
-
-	shouldQuit bool
-}
+type pausedState struct{ *app }
 
 func newPausedState(app *app) *pausedState {
-	s := &pausedState{
-		app: app,
-	}
+	s := &pausedState{app: app}
 	s.createUI()
 	return s
 }
 
 func (s *pausedState) enter() {
 	ebiten.SetWindowTitle("Nestor <paused>")
-	modUI.InfoZ("Pause emulator").End()
+	modUI.InfoZ("Blocking emulator").End()
 	s.emulator.Block()
 	s.audioPlayer.Pause()
 }
 
-func (s *pausedState) resume() {
-	ebiten.SetWindowTitle("Nestor")
-	modUI.InfoZ("Resume emulator").End()
-}
-
-func (s *pausedState) exit() {
-	s.audioPlayer.Play()
-}
+func (s *pausedState) exit() {}
 
 func (s *pausedState) update() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
@@ -49,16 +36,7 @@ func (s *pausedState) update() {
 }
 
 func (s *pausedState) draw(screen *ebiten.Image) {
-	if s.shouldQuit {
-		s.shouldQuit = false
-		s.emulator.Stop()
-		<-s.framech // discard frame
-		s.app.setState("rom_list")
-		return
-	}
-
 	s.ui.Draw(screen)
-	return
 }
 
 func (s *pausedState) createUI() {
@@ -92,19 +70,24 @@ func (s *pausedState) createUI() {
 	buttonsGroup.AddChild(stdButton("Resume", func(_ *widget.ButtonClickedEventArgs) {
 		s.emulator.Resume()
 		s.app.setState("running")
+		s.audioPlayer.Play()
 	}))
 	buttonsGroup.AddChild(stdButton("Reset", func(_ *widget.ButtonClickedEventArgs) {
 		s.emulator.Resume()
 		s.emulator.Reset()
 		s.app.setState("running")
+		s.audioPlayer.Play()
 	}))
 	buttonsGroup.AddChild(stdButton("Restart", func(_ *widget.ButtonClickedEventArgs) {
 		s.emulator.Resume()
 		s.emulator.Restart()
 		s.app.setState("running")
+		s.audioPlayer.Play()
 	}))
 	buttonsGroup.AddChild(stdButton("Stop", func(_ *widget.ButtonClickedEventArgs) {
-		s.shouldQuit = true
+		s.emulator.Stop()
+		<-s.framech // discard frame
+		s.app.setState("rom_list")
 	}))
 
 	root.AddChild(buttonsGroup)
