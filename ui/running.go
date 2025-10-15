@@ -58,6 +58,7 @@ func (s *running) createUI() {
 	))
 	buttonsGroup.AddChild(stdButton("Resume", func(_ *widget.ButtonClickedEventArgs) {
 		s.resume()
+		s.audioPlayer.Play()
 	}))
 	buttonsGroup.AddChild(stdButton("Reset", func(_ *widget.ButtonClickedEventArgs) {
 		s.resume()
