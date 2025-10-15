@@ -172,7 +172,6 @@ golang.org/x/exp/slices
 golang.org/x/image/ccitt
 golang.org/x/image/colornames
 golang.org/x/image/font
-golang.org/x/image/font/gofont/goregular
 golang.org/x/image/math/fixed
 golang.org/x/image/tiff
 golang.org/x/image/tiff/lzw
@@ -192,11 +191,15 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.29.0
 ## explicit; go 1.24.0
+golang.org/x/text/collate
+golang.org/x/text/internal/colltab
 golang.org/x/text/internal/language
 golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/tag
 golang.org/x/text/language
+golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
+golang.org/x/text/unicode/norm
 # golang.org/x/tools v0.37.0
 ## explicit; go 1.24.0
 golang.org/x/tools/cmd/stringer
