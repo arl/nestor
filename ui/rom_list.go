@@ -45,6 +45,79 @@ func (s *romList) startROM() {
 	}
 }
 
+func (s *romList) enter() {}
+func (s *romList) exit()  {}
+
+func (s *romList) update() {
+	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+		s.up()
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+		s.down()
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+		s.left()
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+		s.right()
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		s.startROM()
+	}
+
+	s.ui.Update()
+}
+
+func (s *romList) draw(screen *ebiten.Image) {
+	screen.Fill(colornames.Lightcoral)
+	s.ui.Draw(screen)
+}
+
+func (s *romList) up() {
+	if s.selidx < s.numcols {
+		return
+	}
+	s.selectCell(s.selidx-s.numcols, true)
+}
+
+func (s *romList) down() {
+	if s.selidx+s.numcols >= len(s.roms) {
+		return
+	}
+	s.selectCell(s.selidx+s.numcols, false)
+}
+
+func (s *romList) left() {
+	if s.selidx == 0 {
+		return
+	}
+	s.selectCell(s.selidx-1, true)
+}
+
+func (s *romList) right() {
+	if s.selidx == len(s.roms)-1 {
+		return
+	}
+	s.selectCell(s.selidx+1, false)
+}
+
+func (s *romList) selectCell(idx int, alignTop bool) {
+	if idx < 0 || idx >= len(s.cells) {
+		return
+	}
+	s.cells[s.selidx].SetBackgroundImage(cellbg)
+	s.selidx = idx
+	s.cells[s.selidx].SetBackgroundImage(selectedbg)
+
+	cellrect := s.cells[s.selidx].GetWidget().Rect
+	viewrect := s.sc.ViewRect()
+	if !cellrect.In(viewrect) {
+		contentRect := s.sc.ContentRect()
+		if alignTop {
+			s.sc.ScrollTop = float64(cellrect.Min.Y-contentRect.Min.Y) / float64(contentRect.Dy()-viewrect.Dy())
+		} else {
+			s.sc.ScrollTop = float64(cellrect.Max.Y-contentRect.Min.Y-viewrect.Dy()) / float64(contentRect.Dy()-viewrect.Dy())
+		}
+		s.slider.Current = int(s.sc.ScrollTop * 1000)
+	}
+}
+
 func (s *romList) createUI() {
 	s.ui.Container = widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
@@ -252,74 +325,4 @@ func (s *romList) createROMCell(idx int, img *ebiten.Image, side int) *widget.Co
 	))
 
 	return cell
-}
-
-func (s *romList) update() {
-	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
-		s.up()
-	} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
-		s.down()
-	} else if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
-		s.left()
-	} else if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
-		s.right()
-	} else if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
-		s.startROM()
-	}
-
-	s.ui.Update()
-}
-
-func (s *romList) draw(screen *ebiten.Image) {
-	screen.Fill(colornames.Lightcoral)
-	s.ui.Draw(screen)
-}
-
-func (s *romList) up() {
-	if s.selidx < s.numcols {
-		return
-	}
-	s.selectCell(s.selidx-s.numcols, true)
-}
-
-func (s *romList) down() {
-	if s.selidx+s.numcols >= len(s.roms) {
-		return
-	}
-	s.selectCell(s.selidx+s.numcols, false)
-}
-
-func (s *romList) left() {
-	if s.selidx == 0 {
-		return
-	}
-	s.selectCell(s.selidx-1, true)
-}
-
-func (s *romList) right() {
-	if s.selidx == len(s.roms)-1 {
-		return
-	}
-	s.selectCell(s.selidx+1, false)
-}
-
-func (s *romList) selectCell(idx int, alignTop bool) {
-	if idx < 0 || idx >= len(s.cells) {
-		return
-	}
-	s.cells[s.selidx].SetBackgroundImage(cellbg)
-	s.selidx = idx
-	s.cells[s.selidx].SetBackgroundImage(selectedbg)
-
-	cellrect := s.cells[s.selidx].GetWidget().Rect
-	viewrect := s.sc.ViewRect()
-	if !cellrect.In(viewrect) {
-		contentRect := s.sc.ContentRect()
-		if alignTop {
-			s.sc.ScrollTop = float64(cellrect.Min.Y-contentRect.Min.Y) / float64(contentRect.Dy()-viewrect.Dy())
-		} else {
-			s.sc.ScrollTop = float64(cellrect.Max.Y-contentRect.Min.Y-viewrect.Dy()) / float64(contentRect.Dy()-viewrect.Dy())
-		}
-		s.slider.Current = int(s.sc.ScrollTop * 1000)
-	}
 }

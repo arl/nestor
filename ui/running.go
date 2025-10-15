@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ebitenui/ebitenui/image"
-	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"golang.org/x/image/colornames"
 )
 
-type running struct {
+type runningState struct {
 	*app
 	paused  bool
 	elapsed int64 // elapsed seconds (for FPS display)
@@ -19,8 +16,8 @@ type running struct {
 	shouldQuit bool
 }
 
-func newRunningState(app *app) *running {
-	s := &running{
+func newRunningState(app *app) *runningState {
+	s := &runningState{
 		app:     app,
 		elapsed: time.Now().Unix(),
 	}
@@ -28,90 +25,20 @@ func newRunningState(app *app) *running {
 	return s
 }
 
-func (s *running) createUI() {
-	root := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(
-			image.NewNineSliceColor(mixColors(colornames.Black, transparent, 0.5)),
-		),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-	)
+func (s *runningState) createUI() {}
+func (s *runningState) enter()    {}
+func (s *runningState) exit()     {}
 
-	buttonsGroup := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(
-			image.NewNineSliceColor(colornames.Gray),
-		),
-		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-				HorizontalPosition: widget.AnchorLayoutPositionCenter,
-				VerticalPosition:   widget.AnchorLayoutPositionCenter,
-			}),
-		),
-		widget.ContainerOpts.Layout(widget.NewGridLayout(
-			widget.GridLayoutOpts.Padding(&widget.Insets{Top: 20, Left: 20, Right: 20, Bottom: 20}),
-			widget.GridLayoutOpts.Spacing(10, 10),
-			widget.GridLayoutOpts.Columns(1),
-		)),
-	)
-	buttonsGroup.AddChild(widget.NewLabel(
-		widget.LabelOpts.Text("<paused>", res.fonts.titleFace, &widget.LabelColor{Idle: colornames.White}),
-		widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
-	))
-	buttonsGroup.AddChild(stdButton("Resume", func(_ *widget.ButtonClickedEventArgs) {
-		s.resume()
-		s.audioPlayer.Play()
-	}))
-	buttonsGroup.AddChild(stdButton("Reset", func(_ *widget.ButtonClickedEventArgs) {
-		s.resume()
-		s.emulator.Reset()
-		s.audioPlayer.Play()
-	}))
-	buttonsGroup.AddChild(stdButton("Restart", func(_ *widget.ButtonClickedEventArgs) {
-		s.resume()
-		s.emulator.Restart()
-		s.audioPlayer.Play()
-	}))
-	buttonsGroup.AddChild(stdButton("Stop", func(_ *widget.ButtonClickedEventArgs) {
-		s.shouldQuit = true
-	}))
-
-	root.AddChild(buttonsGroup)
-	s.ui.Container = root
-}
-
-func (s *running) pause() {
-	ebiten.SetWindowTitle("Nestor <paused>")
-	modUI.InfoZ("Pause emulator").End()
-	s.paused = true
-	s.emulator.Block()
-}
-
-func (s *running) resume() {
-	ebiten.SetWindowTitle("Nestor")
-	modUI.InfoZ("Resume emulator").End()
-	s.paused = false
-	s.emulator.Resume()
-}
-
-func (s *running) update() {
+func (s *runningState) update() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		if s.paused {
-			s.resume()
-			s.audioPlayer.Play()
-		} else {
-			s.pause()
-			s.audioPlayer.Pause()
-		}
-	}
-	if s.paused {
-		s.ui.Update()
-		return
+		s.app.setState("paused")
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		s.emulator.Reset()
 	}
 }
 
-func (s *running) draw(screen *ebiten.Image) {
+func (s *runningState) draw(screen *ebiten.Image) {
 	if s.paused {
 		if s.shouldQuit {
 			s.paused = false
@@ -154,7 +81,7 @@ func (s *running) draw(screen *ebiten.Image) {
 	}
 }
 
-func (s *running) drawFrame(screen *ebiten.Image, frameImg *ebiten.Image, targetW, targetH float64) {
+func (s *runningState) drawFrame(screen *ebiten.Image, frameImg *ebiten.Image, targetW, targetH float64) {
 	// TODO: precalculate this on resize only
 
 	// Calculate scaling to fit the target area while preserving aspect ratio.

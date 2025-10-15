@@ -24,6 +24,18 @@ func newConfigState(app *app) *configState {
 	return state
 }
 
+func (s *configState) enter() {}
+func (s *configState) exit()  {}
+
+func (s *configState) update() {
+	s.ui.Update()
+}
+
+func (s *configState) draw(screen *ebiten.Image) {
+	screen.Fill(colornames.Lightcoral)
+	s.ui.Draw(screen)
+}
+
 var bgcolor = image.NewNineSliceColor(colornames.Blueviolet)
 
 func (s *configState) createUI() {
@@ -51,15 +63,6 @@ func (s *configState) createUI() {
 	rootContainer.AddChild(configContainer())
 
 	s.ui.Container = rootContainer
-}
-
-func (s *configState) update() {
-	s.ui.Update()
-}
-
-func (s *configState) draw(screen *ebiten.Image) {
-	screen.Fill(colornames.Lightcoral)
-	s.ui.Draw(screen)
 }
 
 func configContainer() widget.PreferredSizeLocateableWidget {

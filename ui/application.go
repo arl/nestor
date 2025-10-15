@@ -50,11 +50,11 @@ func start(ctx context.Context, cfg config.Config, romPath string) error {
 		SingleThread: true,
 	}
 
-	app := newApp(ctx, cfg)
+	var app *app
 	if romPath == "" {
-		app.setState("rom_list")
+		app = newApp(ctx, cfg, "rom_list")
 	} else {
-		app.setState("running")
+		app = newApp(ctx, cfg, "running")
 		if err := app.runRom(romPath); err != nil {
 			return fmt.Errorf("can't run rom: %w", err)
 		}
@@ -70,6 +70,8 @@ type appState interface {
 	createUI()
 	update()
 	draw(screen *ebiten.Image)
+	enter()
+	exit()
 }
 
 type app struct {
@@ -93,7 +95,7 @@ type app struct {
 
 var res = newUIResources()
 
-func newApp(ctx context.Context, cfg config.Config) *app {
+func newApp(ctx context.Context, cfg config.Config, initState string) *app {
 	app := &app{
 		cfg:     cfg,
 		states:  map[string]appState{},
@@ -104,8 +106,13 @@ func newApp(ctx context.Context, cfg config.Config) *app {
 	app.initAudio()
 
 	app.states["running"] = newRunningState(app)
+	app.states["paused"] = newPausedState(app)
 	app.states["rom_list"] = newRomListState(app)
 	app.states["config"] = newConfigState(app)
+
+	app.curstate = app.states[initState]
+	app.curstate.enter()
+	app.curstate.createUI()
 
 	go func() {
 		<-ctx.Done()
@@ -150,9 +157,13 @@ func (app *app) exit() {
 	app.quit.Store(true)
 }
 
+// setState defines the new application state, calling exit on the current and
+// enter on the new one. Not re-entrant.
 func (app *app) setState(name string) {
 	modUI.InfoZ("Switching to state").String("to", name).End()
+	app.curstate.exit()
 	app.curstate = app.states[name]
+	app.curstate.enter()
 	app.curstate.createUI()
 }
 
