@@ -1,12 +1,22 @@
 package ui
 
-/*
-type config struct {
+import (
+	"sort"
+
+	"github.com/ebitenui/ebitenui/image"
+	"github.com/ebitenui/ebitenui/widget"
+	"github.com/hajimehoshi/ebiten/v2"
+	"golang.org/x/image/colornames"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
+)
+
+type configPage struct {
 	*app
 }
 
-func newConfig(app *app) *config {
-	state := &config{
+func newConfig(app *app) *configPage {
+	state := &configPage{
 		app: app,
 	}
 
@@ -16,7 +26,7 @@ func newConfig(app *app) *config {
 
 var bgcolor = image.NewNineSliceColor(colornames.Blueviolet)
 
-func (s *config) createUI() {
+func (s *configPage) createUI() {
 	rootContainer := widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.TrackHover(false)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
@@ -36,11 +46,9 @@ func (s *config) createUI() {
 			widget.GridLayoutOpts.Spacing(0, 20))),
 		widget.ContainerOpts.BackgroundImage(bgcolor))
 
-	rootContainer.AddChild(headerContainer(res))
+	rootContainer.AddChild(headerContainer())
 
-	rootContainer.AddChild(demoContainer(res, func() *ebitenui.UI {
-		return s.ui
-	}))
+	rootContainer.AddChild(configContainer())
 
 	footerContainer := widget.NewContainer(widget.ContainerOpts.Layout(widget.NewRowLayout(
 		widget.RowLayoutOpts.Padding(&widget.Insets{
@@ -54,63 +62,14 @@ func (s *config) createUI() {
 		widget.TextOpts.Text("github.com/ebitenui/ebitenui", res.text.smallFace, res.text.disabledColor)))
 }
 
-func (s *config) draw(screen *ebiten.Image) {
+func (s *configPage) draw(screen *ebiten.Image) {
 	screen.Fill(colornames.Lightcoral)
 	s.ui.Draw(screen)
 }
 
-func headerContainer(res *uiResources) widget.PreferredSizeLocateableWidget {
-	c := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Spacing(15))),
-	)
+func configContainer() widget.PreferredSizeLocateableWidget {
 
-	c.AddChild(header("Ebiten UI Demo", res,
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-			Stretch: true,
-		})),
-	))
-
-	c2 := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Padding(&widget.Insets{
-				Left:  25,
-				Right: 25,
-			}),
-		)),
-	)
-	c.AddChild(c2)
-
-	c2.AddChild(widget.NewText(
-		widget.TextOpts.Text("This program is a showcase of Ebiten UI widgets and layouts.", res.text.face, res.text.idleColor)))
-
-	return c
-}
-
-func header(label string, res *uiResources, opts ...widget.ContainerOpt) widget.PreferredSizeLocateableWidget {
-	c := widget.NewContainer(append(opts, []widget.ContainerOpt{
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.TrackHover(false)),
-		widget.ContainerOpts.BackgroundImage(res.header.background),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout(widget.AnchorLayoutOpts.Padding(res.header.padding))),
-	}...)...)
-
-	c.AddChild(widget.NewText(
-		widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-			HorizontalPosition: widget.AnchorLayoutPositionStart,
-			VerticalPosition:   widget.AnchorLayoutPositionCenter,
-		})),
-		widget.TextOpts.Text(label, res.header.face, res.header.color),
-		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
-	))
-
-	return c
-}
-
-func demoContainer(res *uiResources, ui func() *ebitenui.UI) widget.PreferredSizeLocateableWidget {
-
-	demoContainer := widget.NewContainer(
+	container := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Padding(&widget.Insets{
 				Left:  25,
@@ -122,22 +81,24 @@ func demoContainer(res *uiResources, ui func() *ebitenui.UI) widget.PreferredSiz
 		)))
 
 	pages := []interface{}{
-		buttonPage(res),
-		checkboxPage(res),
-		listPage(res),
-		comboButtonPage(res),
-		tabBookPage(res),
-		gridLayoutPage(res),
-		rowLayoutPage(res),
-		sliderPage(res),
-		toolTipPage(res),
-		dragAndDropPage(res),
-		textInputPage(res),
-		radioGroupPage(res),
-		windowPage(res, ui),
-		anchorLayoutPage(res),
-		textAreaPage(res),
-		progressBarPage(res),
+
+		inputPage(),
+		// buttonPage(res),
+		// checkboxPage(res),
+		// listPage(res),
+		// comboButtonPage(res),
+		// tabBookPage(res),
+		// gridLayoutPage(res),
+		// rowLayoutPage(res),
+		// sliderPage(res),
+		// toolTipPage(res),
+		// dragAndDropPage(res),
+		// textInputPage(res),
+		// radioGroupPage(res),
+		// windowPage(res, ui),
+		// anchorLayoutPage(res),
+		// textAreaPage(res),
+		// progressBarPage(res),
 	}
 
 	collator := collate.New(language.English)
@@ -147,7 +108,7 @@ func demoContainer(res *uiResources, ui func() *ebitenui.UI) widget.PreferredSiz
 		return collator.CompareString(p1.title, p2.title) < 0
 	})
 
-	pageContainer := newPageContainer(res)
+	pageContainer := newPageContainer()
 
 	pageList := widget.NewList(
 		widget.ListOpts.Entries(pages),
@@ -169,12 +130,11 @@ func demoContainer(res *uiResources, ui func() *ebitenui.UI) widget.PreferredSiz
 		widget.ListOpts.EntrySelectedHandler(func(args *widget.ListEntrySelectedEventArgs) {
 			pageContainer.setPage(args.Entry.(*page))
 		}))
-	demoContainer.AddChild(pageList)
+	container.AddChild(pageList)
 
-	demoContainer.AddChild(pageContainer.widget)
+	container.AddChild(pageContainer.widget)
 
 	pageList.SetSelectedEntry(pages[0])
 
-	return demoContainer
+	return container
 }
-*/
