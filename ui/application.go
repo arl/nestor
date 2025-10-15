@@ -14,12 +14,59 @@ import (
 
 	"nestor/config"
 	"nestor/emu"
+	"nestor/emu/log"
 	"nestor/hw/apu"
 	"nestor/hw/input"
 	"nestor/ines"
 )
 
-type state interface {
+var modUI = log.NewModule("ui")
+
+const (
+	minWidth  = 800
+	minHeight = 600
+)
+
+func StartUI(ctx context.Context, cfg config.Config) error {
+	return start(ctx, cfg, "")
+}
+
+func StartROM(ctx context.Context, cfg config.Config, romPath string) error {
+	return start(ctx, cfg, romPath)
+}
+
+func start(ctx context.Context, cfg config.Config, romPath string) error {
+	ebiten.SetWindowTitle("Nestor")
+	ebiten.SetWindowSize(minWidth, minHeight)
+	ebiten.SetWindowSizeLimits(minWidth, minHeight, -1, -1)
+	ebiten.SetRunnableOnUnfocused(false)
+	if cfg.Video.StartFullscreen {
+		ebiten.SetFullscreen(true)
+	}
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	ebiten.SetTPS(ebiten.SyncWithFPS)
+	ebiten.SetVsyncEnabled(!cfg.Video.DisableVSync)
+	var options = &ebiten.RunGameOptions{
+		SingleThread: true,
+	}
+
+	app := newApp(ctx, cfg)
+	if romPath == "" {
+		app.setState("rom_list")
+	} else {
+		app.setState("running")
+		if err := app.runRom(romPath); err != nil {
+			return fmt.Errorf("can't run rom: %w", err)
+		}
+	}
+	if err := ebiten.RunGameWithOptions(app, options); err != nil {
+		return fmt.Errorf("ui failure: %w", err)
+	}
+
+	return nil
+}
+
+type appState interface {
 	createUI()
 	update()
 	draw(screen *ebiten.Image)
@@ -37,9 +84,9 @@ type app struct {
 	samples     *sampleBuffer
 	audioPlayer *oto.Player
 
-	ui           ebitenui.UI
-	states       map[string]state
-	currentState state
+	ui       ebitenui.UI
+	states   map[string]appState
+	curstate appState
 
 	screenw, screenh int
 }
@@ -49,7 +96,7 @@ var res = newUIResources()
 func newApp(ctx context.Context, cfg config.Config) *app {
 	app := &app{
 		cfg:     cfg,
-		states:  map[string]state{},
+		states:  map[string]appState{},
 		screenw: minWidth,
 		screenh: minHeight,
 	}
@@ -58,6 +105,7 @@ func newApp(ctx context.Context, cfg config.Config) *app {
 
 	app.states["running"] = newRunningState(app)
 	app.states["rom_list"] = newRomListState(app)
+	app.states["config"] = newConfigState(app)
 
 	go func() {
 		<-ctx.Done()
@@ -104,8 +152,8 @@ func (app *app) exit() {
 
 func (app *app) setState(name string) {
 	modUI.InfoZ("Switching to state").String("to", name).End()
-	app.currentState = app.states[name]
-	app.currentState.createUI()
+	app.curstate = app.states[name]
+	app.curstate.createUI()
 }
 
 func (app *app) Update() error {
@@ -122,22 +170,22 @@ func (app *app) Update() error {
 		neww, newh := ebiten.Monitor().Size()
 		if neww != app.screenw || newh != app.screenh {
 			app.screenw, app.screenh = ebiten.Monitor().Size()
-			app.currentState.createUI()
+			app.curstate.createUI()
 		}
 	} else {
 		neww, newh := ebiten.WindowSize()
 		if neww != app.screenw || newh != app.screenh {
 			app.screenw, app.screenh = ebiten.WindowSize()
-			app.currentState.createUI()
+			app.curstate.createUI()
 		}
 	}
 
-	app.currentState.update()
+	app.curstate.update()
 	return nil
 }
 
 func (app *app) Draw(screen *ebiten.Image) {
-	app.currentState.draw(screen)
+	app.curstate.draw(screen)
 }
 
 func (app *app) Layout(outw, outh int) (screenw, screenh int) {
@@ -146,7 +194,7 @@ func (app *app) Layout(outw, outh int) (screenw, screenh int) {
 	}
 
 	app.screenw, app.screenh = outw, outh
-	app.currentState.createUI()
+	app.curstate.createUI()
 
 	return outw, outh
 }

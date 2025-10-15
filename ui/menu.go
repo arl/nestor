@@ -12,13 +12,13 @@ import (
 )
 
 type appMenu struct {
-	container  *widget.Container
-	fileMenu   *widget.Button
-	editMenu   *widget.Button
-	helpButton *widget.Button
-	saveButton *widget.Button
-	quitButton *widget.Button
-	loadButton *widget.Button
+	container *widget.Container
+
+	fileQuit *widget.Button
+
+	settingsInput *widget.Button
+
+	help *widget.Button
 }
 
 func newAppMenu(ui *ebitenui.UI) *appMenu {
@@ -52,39 +52,26 @@ func newAppMenu(ui *ebitenui.UI) *appMenu {
 	root.AddChild(file)
 
 	//
-	// "Edit" menu
+	// "Settings" menu
 	// This is the same thing as the "File" menu, just with more entries.
 	//
-	edit := newAppMenuButton("Edit")
+	settings := newAppMenuButton("Settings")
 	var (
-		undo  = newAppMenuEntry("Undo")
-		redo  = newAppMenuEntry("Redo")
-		cut   = newAppMenuEntry("Cut")
-		copy  = newAppMenuEntry("Copy")
-		paste = newAppMenuEntry("Paste")
+		input = newAppMenuEntry("Input")
 	)
-	edit.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
-		openAppMenu(args.Button.GetWidget(), ui, undo, redo, cut, copy, paste)
+	settings.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
+		openAppMenu(args.Button.GetWidget(), ui, input)
 	}))
-	root.AddChild(edit)
+	root.AddChild(settings)
 
-	//
-	// "Help" button Unlike the "File" and "Edit" menu, this is just a regular
-	// button on the application menu - it does not open a menu. You can
-	// configure it to do something else when it's pressed, like opening a
-	// "Help" window.
-	//
 	help := newAppMenuButton("Help")
 	root.AddChild(help)
 
 	return &appMenu{
-		container:  root,
-		fileMenu:   file,
-		editMenu:   edit,
-		helpButton: help,
-		saveButton: save,
-		loadButton: load,
-		quitButton: quit,
+		container:     root,
+		fileQuit:      quit,
+		settingsInput: input,
+		help:          help,
 	}
 }
 
@@ -111,7 +98,6 @@ func newAppMenuButton(label string) *widget.Button {
 }
 
 func newAppMenuEntry(label string) *widget.Button {
-	// Create a button for a menu entry.
 	return widget.NewButton(
 		widget.ButtonOpts.Image(&widget.ButtonImage{
 			Idle:    image.NewNineSliceColor(color.Transparent),

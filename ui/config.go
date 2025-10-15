@@ -11,12 +11,12 @@ import (
 	"golang.org/x/text/language"
 )
 
-type configPage struct {
+type configState struct {
 	*app
 }
 
-func newConfig(app *app) *configPage {
-	state := &configPage{
+func newConfigState(app *app) *configState {
+	state := &configState{
 		app: app,
 	}
 
@@ -26,7 +26,7 @@ func newConfig(app *app) *configPage {
 
 var bgcolor = image.NewNineSliceColor(colornames.Blueviolet)
 
-func (s *configPage) createUI() {
+func (s *configState) createUI() {
 	rootContainer := widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.TrackHover(false)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
@@ -50,19 +50,14 @@ func (s *configPage) createUI() {
 
 	rootContainer.AddChild(configContainer())
 
-	footerContainer := widget.NewContainer(widget.ContainerOpts.Layout(widget.NewRowLayout(
-		widget.RowLayoutOpts.Padding(&widget.Insets{
-			Left:  25,
-			Right: 25,
-		}),
-	)))
-	rootContainer.AddChild(footerContainer)
-
-	footerContainer.AddChild(widget.NewText(
-		widget.TextOpts.Text("github.com/ebitenui/ebitenui", res.text.smallFace, res.text.disabledColor)))
+	s.ui.Container = rootContainer
 }
 
-func (s *configPage) draw(screen *ebiten.Image) {
+func (s *configState) update() {
+	s.ui.Update()
+}
+
+func (s *configState) draw(screen *ebiten.Image) {
 	screen.Fill(colornames.Lightcoral)
 	s.ui.Draw(screen)
 }
@@ -80,8 +75,7 @@ func configContainer() widget.PreferredSizeLocateableWidget {
 			widget.GridLayoutOpts.Spacing(20, 0),
 		)))
 
-	pages := []interface{}{
-
+	pages := []any{
 		inputPage(),
 		// buttonPage(res),
 		// checkboxPage(res),

@@ -65,9 +65,13 @@ func (s *romList) createUI() {
 
 	// Configure menu.
 	menu := newAppMenu(&s.ui)
-	menu.quitButton.ClickedEvent.AddHandler(func(args any) {
+	menu.fileQuit.ClickedEvent.AddHandler(func(args any) {
 		s.app.exit()
 	})
+	menu.settingsInput.ClickedEvent.AddHandler(func(args any) {
+		s.setState("config")
+	})
+
 	s.ui.Container.AddChild(menu.container)
 
 	const screenshotWidth = 180 // side of the screenshot square image.
