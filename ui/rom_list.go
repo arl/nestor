@@ -2,7 +2,6 @@ package ui
 
 import (
 	"bytes"
-	"image/color"
 	"math"
 
 	"github.com/ebitenui/ebitenui/image"
@@ -65,7 +64,6 @@ func (s *romList) update() {
 }
 
 func (s *romList) draw(screen *ebiten.Image) {
-	screen.Fill(colornames.Lightcoral)
 	s.ui.Draw(screen)
 }
 
@@ -187,7 +185,7 @@ func (s *romList) createUI() {
 	}
 
 	scrollable := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{0x13, 0x1a, 0x22, 0xff})),
+		widget.ContainerOpts.BackgroundImage(res.background),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(2),
 			widget.GridLayoutOpts.Spacing(2, 0),
@@ -199,8 +197,8 @@ func (s *romList) createUI() {
 		widget.ScrollContainerOpts.Content(grid),
 		widget.ScrollContainerOpts.StretchContentWidth(),
 		widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
-			Idle: image.NewNineSliceColor(color.NRGBA{0x13, 0x1a, 0x22, 0xff}),
-			Mask: image.NewNineSliceColor(color.NRGBA{0x13, 0x1a, 0x22, 0xff}),
+			Idle: res.background,
+			Mask: res.background,
 		}),
 	)
 
@@ -217,17 +215,7 @@ func (s *romList) createUI() {
 		widget.SliderOpts.ChangedHandler(func(args *widget.SliderChangedEventArgs) {
 			s.sc.ScrollTop = float64(args.Slider.Current) / 1000
 		}),
-		widget.SliderOpts.Images(
-			&widget.SliderTrackImage{
-				Idle:  image.NewNineSliceColor(color.NRGBA{100, 100, 100, 255}),
-				Hover: image.NewNineSliceColor(color.NRGBA{100, 100, 100, 255}),
-			},
-			&widget.ButtonImage{
-				Idle:    image.NewNineSliceColor(color.NRGBA{255, 100, 100, 255}),
-				Hover:   image.NewNineSliceColor(color.NRGBA{255, 100, 100, 255}),
-				Pressed: image.NewNineSliceColor(color.NRGBA{255, 100, 100, 255}),
-			},
-		),
+		widget.SliderOpts.Images(res.slider.trackImage, res.slider.handle),
 	)
 
 	// Set the slider's position if the scrollContainer is scrolled by other

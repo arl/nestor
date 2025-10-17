@@ -41,9 +41,6 @@ func (s *pausedState) draw(screen *ebiten.Image) {
 
 func (s *pausedState) createUI() {
 	root := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(
-			image.NewNineSliceColor(mixColors(colornames.Black, transparent, 0.5)),
-		),
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 	)
 
@@ -63,32 +60,79 @@ func (s *pausedState) createUI() {
 			widget.GridLayoutOpts.Columns(1),
 		)),
 	)
-	buttonsGroup.AddChild(widget.NewLabel(
-		widget.LabelOpts.Text("<paused>", res.fonts.titleFace, &widget.LabelColor{Idle: colornames.White}),
-		widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
-	))
-	buttonsGroup.AddChild(stdButton("Resume", func(_ *widget.ButtonClickedEventArgs) {
+
+	onResume := func(args *widget.ButtonClickedEventArgs) {
 		s.emulator.Resume()
 		s.app.setState("running")
 		s.audioPlayer.Play()
-	}))
-	buttonsGroup.AddChild(stdButton("Reset", func(_ *widget.ButtonClickedEventArgs) {
+	}
+
+	onReset := func(args *widget.ButtonClickedEventArgs) {
 		s.emulator.Resume()
 		s.emulator.Reset()
 		s.app.setState("running")
 		s.audioPlayer.Play()
-	}))
-	buttonsGroup.AddChild(stdButton("Restart", func(_ *widget.ButtonClickedEventArgs) {
+	}
+
+	onReload := func(args *widget.ButtonClickedEventArgs) {
 		s.emulator.Resume()
 		s.emulator.Restart()
 		s.app.setState("running")
 		s.audioPlayer.Play()
-	}))
-	buttonsGroup.AddChild(stdButton("Stop", func(_ *widget.ButtonClickedEventArgs) {
+	}
+
+	onStop := func(args *widget.ButtonClickedEventArgs) {
 		s.emulator.Stop()
 		<-s.framech // discard frame
 		s.app.setState("rom_list")
-	}))
+	}
+
+	buttonsGroup.AddChild(
+		widget.NewLabel(
+			widget.LabelOpts.Text("<paused>", res.fonts.titleFace, &widget.LabelColor{Idle: colornames.White}),
+			widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
+		),
+
+		widget.NewButton(
+			widget.ButtonOpts.Text("Resume", res.button.face, res.button.text),
+			widget.ButtonOpts.TextPadding(res.button.padding),
+			widget.ButtonOpts.ClickedHandler(onResume),
+			widget.ButtonOpts.Image(res.button.image),
+			widget.ButtonOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true}),
+			),
+		),
+
+		widget.NewButton(
+			widget.ButtonOpts.Text("Press Reset", res.button.face, res.button.text),
+			widget.ButtonOpts.TextPadding(res.button.padding),
+			widget.ButtonOpts.ClickedHandler(onReset),
+			widget.ButtonOpts.Image(res.button.image),
+			widget.ButtonOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true}),
+			),
+		),
+
+		widget.NewButton(
+			widget.ButtonOpts.Text("Reload ROM", res.button.face, res.button.text),
+			widget.ButtonOpts.TextPadding(res.button.padding),
+			widget.ButtonOpts.ClickedHandler(onReload),
+			widget.ButtonOpts.Image(res.button.image),
+			widget.ButtonOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true}),
+			),
+		),
+
+		widget.NewButton(
+			widget.ButtonOpts.Text("Stop", res.button.face, res.button.text),
+			widget.ButtonOpts.TextPadding(res.button.padding),
+			widget.ButtonOpts.ClickedHandler(onStop),
+			widget.ButtonOpts.Image(res.button.image),
+			widget.ButtonOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true}),
+			),
+		),
+	)
 
 	root.AddChild(buttonsGroup)
 	s.ui.Container = root

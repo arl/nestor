@@ -2,77 +2,15 @@ package ui
 
 import (
 	"bytes"
-	goimage "image"
+	"image"
 	"image/color"
 	"io"
 	"sync"
 	"unsafe"
 
-	"github.com/ebitenui/ebitenui/image"
-	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
-
-var buttonImage = sync.OnceValue(func() *widget.ButtonImage {
-	return &widget.ButtonImage{
-		Idle: image.NewBorderedNineSliceColor(
-			color.NRGBA{R: 170, G: 170, B: 180, A: 255},
-			color.NRGBA{90, 90, 90, 255},
-			3),
-		Hover: image.NewBorderedNineSliceColor(
-			color.NRGBA{R: 130, G: 130, B: 150, A: 255},
-			color.NRGBA{70, 70, 70, 255},
-			3),
-		Pressed: image.NewAdvancedNineSliceColor(
-			color.NRGBA{R: 130, G: 130, B: 150, A: 255},
-			image.NewBorder(3, 2, 2, 2, color.NRGBA{70, 70, 70, 255}),
-		),
-	}
-})
-
-func stdButton(text string, onclick func(args *widget.ButtonClickedEventArgs)) *widget.Button {
-	var (
-		button *widget.Button
-	)
-
-	button = widget.NewButton(
-		widget.ButtonOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-				HorizontalPosition: widget.AnchorLayoutPositionCenter,
-				VerticalPosition:   widget.AnchorLayoutPositionCenter,
-			}),
-		),
-		widget.ButtonOpts.Image(buttonImage()),
-		widget.ButtonOpts.Text(text, res.button.face, res.button.text),
-		widget.ButtonOpts.TextProcessBBCode(false),
-		widget.ButtonOpts.TextPadding(&widget.Insets{
-			Left:   30,
-			Right:  30,
-			Top:    5,
-			Bottom: 5,
-		}),
-		widget.ButtonOpts.PressedHandler(func(args *widget.ButtonPressedEventArgs) {
-			button.Text().SetPadding(&widget.Insets{Top: 1, Bottom: -1})
-			button.GetWidget().CustomData = true
-		}),
-		widget.ButtonOpts.ReleasedHandler(func(args *widget.ButtonReleasedEventArgs) {
-			button.Text().SetPadding(&widget.Insets{})
-			button.GetWidget().CustomData = false
-		}),
-		widget.ButtonOpts.CursorEnteredHandler(func(args *widget.ButtonHoverEventArgs) {
-			if button.GetWidget().CustomData == true {
-				button.Text().SetPadding(&widget.Insets{Top: 1, Bottom: -1})
-			}
-		}),
-		widget.ButtonOpts.CursorExitedHandler(func(args *widget.ButtonHoverEventArgs) {
-			button.Text().SetPadding(&widget.Insets{})
-		}),
-		widget.ButtonOpts.ClickedHandler(onclick),
-		widget.ButtonOpts.DisableDefaultKeys(),
-	)
-	return button
-}
 
 // sampleBuffer is a wrapper around bytes.Buffer that returns nil instead of
 // EOF, since returning EOF would stop the audio playback.
@@ -141,7 +79,7 @@ func fitImage(src *ebiten.Image, width float64) *ebiten.Image {
 
 // mustDecodeImage decodes an image using registered decoders.
 func mustDecodeImage(r io.Reader) *ebiten.Image {
-	img, _, err := goimage.Decode(r)
+	img, _, err := image.Decode(r)
 	if err != nil {
 		modUI.PanicZ("can't decode image").Error("err", err).End()
 	}

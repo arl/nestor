@@ -2,7 +2,6 @@ package ui
 
 import (
 	"image/color"
-	"strconv"
 
 	"nestor/assets"
 
@@ -14,30 +13,33 @@ import (
 )
 
 const (
-	backgroundColor = "131a22"
+	backgroundColor = 0x131a22 // rgb(19, 26, 34)
 
-	textIdleColor     = "dff4ff"
-	textDisabledColor = "5a7a91"
+	textIdleColor     = 0xdff4ff // rgb(223, 244, 255)
+	textDisabledColor = 0x5a7a91 // rgb(90, 122, 145)
 
 	labelIdleColor     = textIdleColor
 	labelDisabledColor = textDisabledColor
 
-	buttonIdleColor     = textIdleColor
-	buttonDisabledColor = labelDisabledColor
+	buttonTextIdleColor     = textIdleColor
+	buttonTextDisabledColor = labelDisabledColor
 
-	listSelectedBackground         = "4b687a"
-	listDisabledSelectedBackground = "2a3944"
+	listSelectedBackground         = 0x4b687a // rgb(75, 104, 122)
+	listDisabledSelectedBackground = 0x2a3944 // rgb(42, 57, 68)
 
-	listFocusedBackground = "2a3944"
+	listFocusedBackground = 0x2a3944 // rgb(42, 57, 68)
 
 	headerColor = textIdleColor
 
-	textInputCaretColor         = "e7c34b"
-	textInputDisabledCaretColor = "766326"
+	textInputCaretColor         = 0xe7c34b // rgb(231, 195, 75)
+	textInputDisabledCaretColor = 0x766326 // rgb(118, 99, 38)
 
 	toolTipColor = backgroundColor
 
 	separatorColor = listDisabledSelectedBackground
+
+	sliderBg       = 0x646464 // rgb(100, 100, 100)
+	sliderHandleBg = 0xff6464 // rgb(255, 100, 100)
 )
 
 type uiResources struct {
@@ -163,7 +165,7 @@ type toolTipResources struct {
 }
 
 func newUIResources() *uiResources {
-	background := image.NewNineSliceColor(hexToColor(backgroundColor))
+	background := image.NewNineSliceColor(hex2color(backgroundColor))
 
 	fonts := loadFonts()
 	button := newButtonResources(fonts)
@@ -195,10 +197,10 @@ func newUIResources() *uiResources {
 		textArea:       textArea,
 		progressBar:    progressBar,
 		background:     background,
-		separatorColor: hexToColor(separatorColor),
+		separatorColor: hex2color(separatorColor),
 		text: &textResources{
-			idleColor:     hexToColor(textIdleColor),
-			disabledColor: hexToColor(textDisabledColor),
+			idleColor:     hex2color(textIdleColor),
+			disabledColor: hex2color(textDisabledColor),
 			face:          fonts.face,
 			titleFace:     fonts.titleFace,
 			bigTitleFace:  fonts.bigTitleFace,
@@ -208,30 +210,43 @@ func newUIResources() *uiResources {
 }
 
 func newButtonResources(fonts *fonts) *buttonResources {
-	idle := must(loadImageNineSlice("graphics/button-idle.png", 12, 0))
-	hover := must(loadImageNineSlice("graphics/button-hover.png", 12, 0))
-	pressedHover := must(loadImageNineSlice("graphics/button-selected-hover.png", 12, 0))
-	pressed := must(loadImageNineSlice("graphics/button-pressed.png", 12, 0))
-	disabled := must(loadImageNineSlice("graphics/button-disabled.png", 12, 0))
+	const (
+		buttonIdleColor     = 0xaaaab4 // rgb(170, 170, 180)
+		buttonIdleBorder    = 0x5a5a5a // rgb(90, 90, 90)
+		buttonHoverColor    = 0x828296 // rgb(130, 130, 150)
+		buttonHoverBorder   = 0x464646 // rgb(70, 70, 70)
+		buttonPressedColor  = 0x828296 // rgb(130, 130, 150)
+		buttonPressedBorder = 0x464646 // rgb(70, 70, 70)
+	)
 
 	i := &widget.ButtonImage{
-		Idle:         idle,
-		Hover:        hover,
-		Pressed:      pressed,
-		PressedHover: pressedHover,
-		Disabled:     disabled,
+		Idle: image.NewBorderedNineSliceColor(
+			hex2color(buttonIdleColor),
+			hex2color(buttonIdleBorder),
+			3),
+		Hover: image.NewBorderedNineSliceColor(
+			hex2color(buttonIdleColor),
+			hex2color(buttonIdleBorder),
+			3,
+		),
+		Pressed: image.NewAdvancedNineSliceColor(
+			hex2color(buttonPressedColor),
+			image.NewBorder(3, 2, 2, 2, hex2color(buttonPressedBorder)),
+		),
 	}
 
 	return &buttonResources{
 		image: i,
 		text: &widget.ButtonTextColor{
-			Idle:     hexToColor(buttonIdleColor),
-			Disabled: hexToColor(buttonDisabledColor),
+			Idle:     hex2color(buttonTextDisabledColor),
+			Disabled: hex2color(buttonTextDisabledColor),
 		},
 		face: fonts.face,
 		padding: &widget.Insets{
-			Left:  30,
-			Right: 30,
+			Left:   30,
+			Right:  30,
+			Top:    5,
+			Bottom: 5,
 		},
 	}
 }
@@ -284,8 +299,8 @@ func newLabelResources(fonts *fonts) *labelResources {
 	return &labelResources{
 		face: fonts.face,
 		text: &widget.LabelColor{
-			Idle:     hexToColor(labelIdleColor),
-			Disabled: hexToColor(labelDisabledColor),
+			Idle:     hex2color(labelIdleColor),
+			Disabled: hex2color(labelDisabledColor),
 		},
 	}
 }
@@ -314,8 +329,8 @@ func newComboButtonResources(fonts *fonts) *comboButtonResources {
 			Right: 30,
 		},
 		text: &widget.ButtonTextColor{
-			Idle:     hexToColor(buttonIdleColor),
-			Disabled: hexToColor(buttonDisabledColor),
+			Idle:     hex2color(buttonTextIdleColor),
+			Disabled: hex2color(buttonTextDisabledColor),
 		},
 	}
 }
@@ -359,37 +374,40 @@ func newListResources(fonts *fonts) *listResources {
 		},
 		handleSize: constantutil.ConstantToPointer(5),
 		entry: &widget.ListEntryColor{
-			Unselected:                 hexToColor(textIdleColor),
-			DisabledUnselected:         hexToColor(textDisabledColor),
-			Selected:                   hexToColor(textIdleColor),
-			DisabledSelected:           hexToColor(textDisabledColor),
-			SelectedBackground:         hexToColor(listSelectedBackground),
-			DisabledSelectedBackground: hexToColor(listDisabledSelectedBackground),
-			FocusedBackground:          hexToColor(listFocusedBackground),
-			SelectedFocusedBackground:  hexToColor(listSelectedBackground),
+			Unselected:                 hex2color(textIdleColor),
+			DisabledUnselected:         hex2color(textDisabledColor),
+			Selected:                   hex2color(textIdleColor),
+			DisabledSelected:           hex2color(textDisabledColor),
+			SelectedBackground:         hex2color(listSelectedBackground),
+			DisabledSelectedBackground: hex2color(listDisabledSelectedBackground),
+			FocusedBackground:          hex2color(listFocusedBackground),
+			SelectedFocusedBackground:  hex2color(listSelectedBackground),
 		},
 	}
 }
 
 func newSliderResources() *sliderResources {
-	idle := must(newImageFromFile("graphics/slider-track-idle.png"))
-	disabled := must(newImageFromFile("graphics/slider-track-disabled.png"))
-	handleIdle := must(newImageFromFile("graphics/slider-handle-idle.png"))
-	handleHover := must(newImageFromFile("graphics/slider-handle-hover.png"))
-	handleDisabled := must(newImageFromFile("graphics/slider-handle-disabled.png"))
+	idle := image.NewNineSliceColor(hex2color(sliderBg))
+	hover := image.NewNineSliceColor(hex2color(sliderBg))
+	disabled := image.NewNineSliceColor(hex2color(sliderBg))
+
+	handleIdle := image.NewNineSliceColor(hex2color(sliderHandleBg))
+	handleHover := image.NewNineSliceColor(hex2color(sliderHandleBg))
+	handlePressed := image.NewNineSliceColor(hex2color(sliderHandleBg))
+	handleDisabled := image.NewNineSliceColor(hex2color(sliderHandleBg))
 
 	return &sliderResources{
 		handleSize: constantutil.ConstantToPointer(6),
 		handle: &widget.ButtonImage{
-			Idle:     image.NewNineSliceSimple(handleIdle, 0, 5),
-			Hover:    image.NewNineSliceSimple(handleHover, 0, 5),
-			Pressed:  image.NewNineSliceSimple(handleHover, 0, 5),
-			Disabled: image.NewNineSliceSimple(handleDisabled, 0, 5),
+			Idle:     handleIdle,
+			Hover:    handleHover,
+			Pressed:  handlePressed,
+			Disabled: handleDisabled,
 		},
 		trackImage: &widget.SliderTrackImage{
-			Idle:     image.NewNineSlice(idle, [3]int{0, 19, 0}, [3]int{6, 0, 0}),
-			Hover:    image.NewNineSlice(idle, [3]int{0, 19, 0}, [3]int{6, 0, 0}),
-			Disabled: image.NewNineSlice(disabled, [3]int{0, 19, 0}, [3]int{6, 0, 0}),
+			Idle:     idle,
+			Hover:    hover,
+			Disabled: disabled,
 		},
 	}
 }
@@ -433,8 +451,8 @@ func newTabBookResources(fonts *fonts) *tabBookResources {
 	return &tabBookResources{
 		buttonFace: fonts.face,
 		buttonText: &widget.ButtonTextColor{
-			Idle:     hexToColor(buttonIdleColor),
-			Disabled: hexToColor(buttonDisabledColor),
+			Idle:     hex2color(buttonTextIdleColor),
+			Disabled: hex2color(buttonTextDisabledColor),
 		},
 		buttonPadding: &widget.Insets{
 			Left:  30,
@@ -448,7 +466,7 @@ func newHeaderResources(fonts *fonts) *headerResources {
 
 	return &headerResources{
 		face:       fonts.bigTitleFace,
-		color:      hexToColor(headerColor),
+		color:      hex2color(headerColor),
 		background: bg,
 		padding: &widget.Insets{
 			Left:   25,
@@ -479,10 +497,10 @@ func newTextInputResources(fonts *fonts) *textInputResources {
 		face: fonts.face,
 
 		color: &widget.TextInputColor{
-			Idle:          hexToColor(textIdleColor),
-			Disabled:      hexToColor(textDisabledColor),
-			Caret:         hexToColor(textInputCaretColor),
-			DisabledCaret: hexToColor(textInputDisabledCaretColor),
+			Idle:          hex2color(textIdleColor),
+			Disabled:      hex2color(textDisabledColor),
+			Caret:         hex2color(textInputCaretColor),
+			DisabledCaret: hex2color(textInputDisabledCaretColor),
 		},
 	}
 }
@@ -538,7 +556,7 @@ func newToolTipResources(fonts *fonts) *toolTipResources {
 
 	return &toolTipResources{
 		face:       fonts.toolTipFace,
-		color:      hexToColor(toolTipColor),
+		color:      hex2color(toolTipColor),
 		background: image.NewNineSlice(bg, [3]int{19, 6, 13}, [3]int{19, 5, 13}),
 
 		padding: &widget.Insets{
@@ -550,16 +568,18 @@ func newToolTipResources(fonts *fonts) *toolTipResources {
 	}
 }
 
-func hexToColor(h string) color.Color {
-	u, err := strconv.ParseUint(h, 16, 0)
-	if err != nil {
-		panic(err)
+// accepts 0xrrggbb or 0xrrggbbaa
+func hex2color(val uint32) color.Color {
+	alpha := uint8(0xFF)
+	if val > 0xffffff {
+		alpha = uint8(val & 0xff)
+		val = val >> 8
 	}
 
 	return color.NRGBA{
-		R: uint8(u & 0xff0000 >> 16),
-		G: uint8(u & 0xff00 >> 8),
-		B: uint8(u & 0xff),
-		A: 255,
+		R: uint8(val & 0xff0000 >> 16),
+		G: uint8(val & 0xff00 >> 8),
+		B: uint8(val & 0xff),
+		A: alpha,
 	}
 }
