@@ -83,7 +83,7 @@ func Launch(rom *ines.Rom, cfg Config, out *Output, inp *input.Provider) (*Emula
 		NES:     nes,
 		out:     out,
 		cfg:     cfg.Emulation,
-		blockch: make(chan struct{}, 1), // buffered to avoid deadlock the graphic goroutine
+		blockch: make(chan struct{}, 1),
 	}, nil
 }
 
@@ -134,7 +134,6 @@ func (e *Emulator) RunFrameWithRunAhead() {
 
 func (e *Emulator) Run() {
 	for !e.shouldStop() {
-		// Handle pause.
 		if e.isPaused() {
 			<-e.blockch
 		} else {
@@ -167,15 +166,22 @@ func (e *Emulator) handleReset() {
 // Block, Resume, Reset, Restart and Stop allow to control
 // the emulator loop in a concurrent-safe way.
 
-func (e *Emulator) Block()  { e.paused.Store(true) }
-func (e *Emulator) Resume() { e.blockch <- struct{}{} }
-
+func (e *Emulator) Block()   { e.paused.Store(true) }
 func (e *Emulator) Reset()   { e.reset.Store(true) }
 func (e *Emulator) Restart() { e.restart.Store(true) }
 func (e *Emulator) Stop()    { e.quit.Store(true) }
 
+func (e *Emulator) Resume() {
+	e.paused.Store(false)
+	select {
+	case e.blockch <- struct{}{}:
+	default:
+		// avoid deadlock if we're not waiting blocked
+	}
+}
+
 func (e *Emulator) isPaused() bool {
-	return e.paused.CompareAndSwap(true, false)
+	return e.paused.Load()
 }
 
 func (e *Emulator) shouldStop() bool {
