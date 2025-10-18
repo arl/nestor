@@ -1,14 +1,9 @@
 package ui
 
 import (
-	"sort"
-
-	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
-	"golang.org/x/text/collate"
-	"golang.org/x/text/language"
 )
 
 type configState struct {
@@ -36,31 +31,41 @@ func (s *configState) draw(screen *ebiten.Image) {
 	s.ui.Draw(screen)
 }
 
-var bgcolor = image.NewNineSliceColor(colornames.Blueviolet)
-
 func (s *configState) createUI() {
 	rootContainer := widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.TrackHover(false)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
-			// It is using a GridLayout with a single column
 			widget.GridLayoutOpts.Columns(1),
-			// It uses the Stretch parameter to define how the rows will be layed out.
-			// - a fixed sized header
-			// - a content row that stretches to fill all remaining space
-			// - a fixed sized footer
-			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true, false}),
-			// Padding defines how much space to put around the outside of the grid.
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{true, false}),
 			widget.GridLayoutOpts.Padding(&widget.Insets{
 				Top:    20,
 				Bottom: 20,
 			}),
-			// Spacing defines how much space to put between each column and row
 			widget.GridLayoutOpts.Spacing(0, 20))),
-		widget.ContainerOpts.BackgroundImage(bgcolor))
-
-	rootContainer.AddChild(headerContainer())
+		widget.ContainerOpts.BackgroundImage(res.background))
 
 	rootContainer.AddChild(configContainer())
+
+	footer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	footer.AddChild(widget.NewButton(
+		widget.ButtonOpts.Text("Back to main menu", res.button.face, res.button.text),
+		widget.ButtonOpts.TextPadding(res.button.padding),
+		widget.ButtonOpts.Image(res.button.image),
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			s.app.setState("rom_list")
+		}),
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionCenter,
+			}),
+		),
+	))
+
+	rootContainer.AddChild(footer)
 
 	s.ui.Container = rootContainer
 }
@@ -98,18 +103,11 @@ func configContainer() widget.PreferredSizeLocateableWidget {
 		// progressBarPage(res),
 	}
 
-	collator := collate.New(language.English)
-	sort.Slice(pages, func(a int, b int) bool {
-		p1 := pages[a].(*page)
-		p2 := pages[b].(*page)
-		return collator.CompareString(p1.title, p2.title) < 0
-	})
-
 	pageContainer := newPageContainer()
 
 	pageList := widget.NewList(
 		widget.ListOpts.Entries(pages),
-		widget.ListOpts.EntryLabelFunc(func(e interface{}) string {
+		widget.ListOpts.EntryLabelFunc(func(e any) string {
 			return e.(*page).title
 		}),
 		widget.ListOpts.ScrollContainerImage(res.list.image),

@@ -48,55 +48,6 @@ func (p *pageContainer) setPage(page *page) {
 	p.flipBook.RequestRelayout()
 }
 
-func headerContainer() widget.PreferredSizeLocateableWidget {
-	c := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Spacing(15))),
-	)
-
-	c.AddChild(header("Ebiten UI Demo",
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-			Stretch: true,
-		})),
-	))
-
-	c2 := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Padding(&widget.Insets{
-				Left:  25,
-				Right: 25,
-			}),
-		)),
-	)
-	c.AddChild(c2)
-
-	c2.AddChild(widget.NewText(
-		widget.TextOpts.Text("This program is a showcase of Ebiten UI widgets and layouts.", res.text.face, res.text.idleColor)))
-
-	return c
-}
-
-func header(label string, opts ...widget.ContainerOpt) widget.PreferredSizeLocateableWidget {
-	c := widget.NewContainer(append(opts, []widget.ContainerOpt{
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.TrackHover(false)),
-		widget.ContainerOpts.BackgroundImage(res.header.background),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout(widget.AnchorLayoutOpts.Padding(res.header.padding))),
-	}...)...)
-
-	c.AddChild(widget.NewText(
-		widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-			HorizontalPosition: widget.AnchorLayoutPositionStart,
-			VerticalPosition:   widget.AnchorLayoutPositionCenter,
-		})),
-		widget.TextOpts.Text(label, res.header.face, res.header.color),
-		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
-	))
-
-	return c
-}
-
 func newPageContentContainer() *widget.Container {
 	return widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
