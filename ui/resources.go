@@ -13,10 +13,12 @@ import (
 )
 
 const (
-	backgroundColor = 0x131a22 // rgb(19, 26, 34)
+	backgroundColor = 0x131a22 // rgba(19, 26, 34, 1)
 
-	textIdleColor     = 0xdff4ff // rgb(223, 244, 255)
-	textDisabledColor = 0x5a7a91 // rgb(90, 122, 145)
+	panelColor = 0x192a3b // rgba(25, 42, 59, 1)
+
+	textIdleColor     = 0xdff4ff // rgba(242, 223, 255, 1)
+	textDisabledColor = 0x5a7a91 // rgba(90, 122, 145, 1)
 
 	labelIdleColor     = textIdleColor
 	labelDisabledColor = textDisabledColor
@@ -24,22 +26,22 @@ const (
 	buttonTextIdleColor     = textIdleColor
 	buttonTextDisabledColor = labelDisabledColor
 
-	listSelectedBackground         = 0x4b687a // rgb(75, 104, 122)
-	listDisabledSelectedBackground = 0x2a3944 // rgb(42, 57, 68)
+	listSelectedBackground         = 0x4b687a // rgba(75, 104, 122, 1)
+	listDisabledSelectedBackground = 0x2a3944 // rgba(42, 57, 68, 1)
 
-	listFocusedBackground = 0x2a3944 // rgb(42, 57, 68)
+	listFocusedBackground = 0x2a3944 // rgba(42, 57, 68, 1)
 
 	headerColor = textIdleColor
 
-	textInputCaretColor         = 0xe7c34b // rgb(231, 195, 75)
-	textInputDisabledCaretColor = 0x766326 // rgb(118, 99, 38)
+	textInputCaretColor         = 0xe7c34b // rgba(231, 195, 75, 1)
+	textInputDisabledCaretColor = 0x766326 // rgba(118, 99, 38, 1)
 
 	toolTipColor = backgroundColor
 
 	separatorColor = listDisabledSelectedBackground
 
-	sliderBg       = 0x646464 // rgb(100, 100, 100)
-	sliderHandleBg = 0xff6464 // rgb(255, 100, 100)
+	sliderBg       = 0x646464 // rgba(100, 100, 100, 1)
+	sliderHandleBg = 0xff6464 // rgba(255, 100, 100, 1)
 )
 
 type uiResources struct {
@@ -65,109 +67,11 @@ type uiResources struct {
 	toolTip     *toolTipResources
 }
 
-type textResources struct {
-	idleColor     color.Color
-	disabledColor color.Color
-	face          *text.Face
-	titleFace     *text.Face
-	bigTitleFace  *text.Face
-	smallFace     *text.Face
-}
-
-type buttonResources struct {
-	image   *widget.ButtonImage
-	text    *widget.ButtonTextColor
-	face    *text.Face
-	padding *widget.Insets
-}
-
-type checkboxResources struct {
-	image   *widget.CheckboxImage
-	spacing int
-}
-
-type labelResources struct {
-	text *widget.LabelColor
-	face *text.Face
-}
-
-type comboButtonResources struct {
-	image   *widget.ButtonImage
-	text    *widget.ButtonTextColor
-	face    *text.Face
-	graphic *widget.GraphicImage
-	padding *widget.Insets
-}
-
-type listResources struct {
-	image        *widget.ScrollContainerImage
-	track        *widget.SliderTrackImage
-	trackPadding *widget.Insets
-	handle       *widget.ButtonImage
-	handleSize   *int
-	face         *text.Face
-	entry        *widget.ListEntryColor
-	entryPadding *widget.Insets
-}
-
-type sliderResources struct {
-	trackImage *widget.SliderTrackImage
-	handle     *widget.ButtonImage
-	handleSize *int
-}
-
-type progressBarResources struct {
-	trackImage *widget.ProgressBarImage
-	fillImage  *widget.ProgressBarImage
-}
-
-type panelResources struct {
-	image    *image.NineSlice
-	titleBar *image.NineSlice
-	padding  *widget.Insets
-}
-
-type tabBookResources struct {
-	buttonFace    *text.Face
-	buttonText    *widget.ButtonTextColor
-	buttonPadding *widget.Insets
-}
-
-type headerResources struct {
-	background *image.NineSlice
-	padding    *widget.Insets
-	face       *text.Face
-	color      color.Color
-}
-
-type textInputResources struct {
-	image   *widget.TextInputImage
-	padding *widget.Insets
-	face    *text.Face
-	color   *widget.TextInputColor
-}
-
-type textAreaResources struct {
-	image        *widget.ScrollContainerImage
-	track        *widget.SliderTrackImage
-	trackPadding *widget.Insets
-	handle       *widget.ButtonImage
-	handleSize   *int
-	face         *text.Face
-	entryPadding *widget.Insets
-}
-
-type toolTipResources struct {
-	background *image.NineSlice
-	padding    *widget.Insets
-	face       *text.Face
-	color      color.Color
-}
-
 func newUIResources() *uiResources {
-	background := image.NewNineSliceColor(hex2color(backgroundColor))
+	background := ninesliceFromHex(backgroundColor)
 
 	fonts := loadFonts()
+	text := newTextResources(fonts)
 	button := newButtonResources(fonts)
 	checkbox := newCheckboxResources()
 	comboButton := newComboButtonResources(fonts)
@@ -198,15 +102,35 @@ func newUIResources() *uiResources {
 		progressBar:    progressBar,
 		background:     background,
 		separatorColor: hex2color(separatorColor),
-		text: &textResources{
-			idleColor:     hex2color(textIdleColor),
-			disabledColor: hex2color(textDisabledColor),
-			face:          fonts.face,
-			titleFace:     fonts.titleFace,
-			bigTitleFace:  fonts.bigTitleFace,
-			smallFace:     fonts.toolTipFace,
-		},
+		text:           text,
 	}
+}
+
+type textResources struct {
+	idleColor     color.Color
+	disabledColor color.Color
+	face          *text.Face
+	titleFace     *text.Face
+	bigTitleFace  *text.Face
+	smallFace     *text.Face
+}
+
+func newTextResources(fonts *fonts) *textResources {
+	return &textResources{
+		idleColor:     hex2color(textIdleColor),
+		disabledColor: hex2color(textDisabledColor),
+		face:          fonts.face,
+		titleFace:     fonts.titleFace,
+		bigTitleFace:  fonts.bigTitleFace,
+		smallFace:     fonts.toolTipFace,
+	}
+}
+
+type buttonResources struct {
+	image   *widget.ButtonImage
+	text    *widget.ButtonTextColor
+	face    *text.Face
+	padding *widget.Insets
 }
 
 func newButtonResources(fonts *fonts) *buttonResources {
@@ -249,6 +173,11 @@ func newButtonResources(fonts *fonts) *buttonResources {
 			Bottom: 5,
 		},
 	}
+}
+
+type checkboxResources struct {
+	image   *widget.CheckboxImage
+	spacing int
 }
 
 func newCheckboxResources() *checkboxResources {
@@ -295,6 +224,11 @@ func newCheckboxResources() *checkboxResources {
 	}
 }
 
+type labelResources struct {
+	text *widget.LabelColor
+	face *text.Face
+}
+
 func newLabelResources(fonts *fonts) *labelResources {
 	return &labelResources{
 		face: fonts.face,
@@ -303,6 +237,14 @@ func newLabelResources(fonts *fonts) *labelResources {
 			Disabled: hex2color(labelDisabledColor),
 		},
 	}
+}
+
+type comboButtonResources struct {
+	image   *widget.ButtonImage
+	text    *widget.ButtonTextColor
+	face    *text.Face
+	graphic *widget.GraphicImage
+	padding *widget.Insets
 }
 
 func newComboButtonResources(fonts *fonts) *comboButtonResources {
@@ -333,6 +275,17 @@ func newComboButtonResources(fonts *fonts) *comboButtonResources {
 			Disabled: hex2color(buttonTextDisabledColor),
 		},
 	}
+}
+
+type listResources struct {
+	image        *widget.ScrollContainerImage
+	track        *widget.SliderTrackImage
+	trackPadding *widget.Insets
+	handle       *widget.ButtonImage
+	handleSize   *int
+	face         *text.Face
+	entry        *widget.ListEntryColor
+	entryPadding *widget.Insets
 }
 
 func newListResources(fonts *fonts) *listResources {
@@ -386,15 +339,21 @@ func newListResources(fonts *fonts) *listResources {
 	}
 }
 
-func newSliderResources() *sliderResources {
-	idle := image.NewNineSliceColor(hex2color(sliderBg))
-	hover := image.NewNineSliceColor(hex2color(sliderBg))
-	disabled := image.NewNineSliceColor(hex2color(sliderBg))
+type sliderResources struct {
+	trackImage *widget.SliderTrackImage
+	handle     *widget.ButtonImage
+	handleSize *int
+}
 
-	handleIdle := image.NewNineSliceColor(hex2color(sliderHandleBg))
-	handleHover := image.NewNineSliceColor(hex2color(sliderHandleBg))
-	handlePressed := image.NewNineSliceColor(hex2color(sliderHandleBg))
-	handleDisabled := image.NewNineSliceColor(hex2color(sliderHandleBg))
+func newSliderResources() *sliderResources {
+	idle := ninesliceFromHex(sliderBg)
+	hover := ninesliceFromHex(sliderBg)
+	disabled := ninesliceFromHex(sliderBg)
+
+	handleIdle := ninesliceFromHex(sliderHandleBg)
+	handleHover := ninesliceFromHex(sliderHandleBg)
+	handlePressed := ninesliceFromHex(sliderHandleBg)
+	handleDisabled := ninesliceFromHex(sliderHandleBg)
 
 	return &sliderResources{
 		handleSize: constantutil.ConstantToPointer(6),
@@ -410,6 +369,11 @@ func newSliderResources() *sliderResources {
 			Disabled: disabled,
 		},
 	}
+}
+
+type progressBarResources struct {
+	trackImage *widget.ProgressBarImage
+	fillImage  *widget.ProgressBarImage
 }
 
 func newProgressBarResources() *progressBarResources {
@@ -432,12 +396,14 @@ func newProgressBarResources() *progressBarResources {
 	}
 }
 
+type panelResources struct {
+	image   *image.NineSlice
+	padding *widget.Insets
+}
+
 func newPanelResources() *panelResources {
-	i := must(loadImageNineSlice("graphics/panel-idle.png", 10, 10))
-	t := must(loadImageNineSlice("graphics/titlebar-idle.png", 10, 10))
 	return &panelResources{
-		image:    i,
-		titleBar: t,
+		image: ninesliceFromHex(panelColor),
 		padding: &widget.Insets{
 			Left:   30,
 			Right:  30,
@@ -445,6 +411,12 @@ func newPanelResources() *panelResources {
 			Bottom: 20,
 		},
 	}
+}
+
+type tabBookResources struct {
+	buttonFace    *text.Face
+	buttonText    *widget.ButtonTextColor
+	buttonPadding *widget.Insets
 }
 
 func newTabBookResources(fonts *fonts) *tabBookResources {
@@ -461,6 +433,13 @@ func newTabBookResources(fonts *fonts) *tabBookResources {
 	}
 }
 
+type headerResources struct {
+	background *image.NineSlice
+	padding    *widget.Insets
+	face       *text.Face
+	color      color.Color
+}
+
 func newHeaderResources(fonts *fonts) *headerResources {
 	bg := must(loadImageNineSlice("graphics/header.png", 446, 9))
 
@@ -475,6 +454,13 @@ func newHeaderResources(fonts *fonts) *headerResources {
 			Bottom: 4,
 		},
 	}
+}
+
+type textInputResources struct {
+	image   *widget.TextInputImage
+	padding *widget.Insets
+	face    *text.Face
+	color   *widget.TextInputColor
 }
 
 func newTextInputResources(fonts *fonts) *textInputResources {
@@ -503,6 +489,16 @@ func newTextInputResources(fonts *fonts) *textInputResources {
 			DisabledCaret: hex2color(textInputDisabledCaretColor),
 		},
 	}
+}
+
+type textAreaResources struct {
+	image        *widget.ScrollContainerImage
+	track        *widget.SliderTrackImage
+	trackPadding *widget.Insets
+	handle       *widget.ButtonImage
+	handleSize   *int
+	face         *text.Face
+	entryPadding *widget.Insets
 }
 
 func newTextAreaResources(fonts *fonts) *textAreaResources {
@@ -551,6 +547,13 @@ func newTextAreaResources(fonts *fonts) *textAreaResources {
 	}
 }
 
+type toolTipResources struct {
+	background *image.NineSlice
+	padding    *widget.Insets
+	face       *text.Face
+	color      color.Color
+}
+
 func newToolTipResources(fonts *fonts) *toolTipResources {
 	bg := must(newImageFromFile("graphics/tool-tip.png"))
 
@@ -565,21 +568,5 @@ func newToolTipResources(fonts *fonts) *toolTipResources {
 			Top:    10,
 			Bottom: 10,
 		},
-	}
-}
-
-// accepts 0xrrggbb or 0xrrggbbaa
-func hex2color(val uint32) color.Color {
-	alpha := uint8(0xFF)
-	if val > 0xffffff {
-		alpha = uint8(val & 0xff)
-		val = val >> 8
-	}
-
-	return color.NRGBA{
-		R: uint8(val & 0xff0000 >> 16),
-		G: uint8(val & 0xff00 >> 8),
-		B: uint8(val & 0xff),
-		A: alpha,
 	}
 }

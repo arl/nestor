@@ -1,9 +1,31 @@
 package ui
 
 import (
+	"image/color"
+
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 )
+
+// accepts 0xrrggbb or 0xaarrggbb
+func hex2color(val uint32) color.Color {
+	alpha := uint8(0xFF)
+	if val > 0xffffff {
+		alpha = uint8(val >> 24)
+		val &= 0xffffff
+	}
+
+	return color.NRGBA{
+		R: uint8(val & 0xff0000 >> 16),
+		G: uint8(val & 0xff00 >> 8),
+		B: uint8(val & 0xff),
+		A: alpha,
+	}
+}
+
+func ninesliceFromHex(val uint32) *image.NineSlice {
+	return image.NewNineSliceColor(hex2color(val))
+}
 
 type pageContainer struct {
 	widget    widget.PreferredSizeLocateableWidget

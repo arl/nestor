@@ -71,7 +71,6 @@ func (s *configState) createUI() {
 }
 
 func configContainer() widget.PreferredSizeLocateableWidget {
-
 	container := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Padding(&widget.Insets{
@@ -85,22 +84,6 @@ func configContainer() widget.PreferredSizeLocateableWidget {
 
 	pages := []any{
 		inputPage(),
-		// buttonPage(res),
-		// checkboxPage(res),
-		// listPage(res),
-		// comboButtonPage(res),
-		// tabBookPage(res),
-		// gridLayoutPage(res),
-		// rowLayoutPage(res),
-		// sliderPage(res),
-		// toolTipPage(res),
-		// dragAndDropPage(res),
-		// textInputPage(res),
-		// radioGroupPage(res),
-		// windowPage(res, ui),
-		// anchorLayoutPage(res),
-		// textAreaPage(res),
-		// progressBarPage(res),
 	}
 
 	pageContainer := newPageContainer()
@@ -125,11 +108,10 @@ func configContainer() widget.PreferredSizeLocateableWidget {
 		widget.ListOpts.EntrySelectedHandler(func(args *widget.ListEntrySelectedEventArgs) {
 			pageContainer.setPage(args.Entry.(*page))
 		}))
-	container.AddChild(pageList)
-
-	container.AddChild(pageContainer.widget)
-
 	pageList.SetSelectedEntry(pages[0])
+
+	container.AddChild(pageList)
+	container.AddChild(pageContainer.widget)
 
 	return container
 }
