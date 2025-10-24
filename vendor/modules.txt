@@ -37,7 +37,7 @@ github.com/ebitengine/purego/internal/cgo
 github.com/ebitengine/purego/internal/fakecgo
 github.com/ebitengine/purego/internal/strings
 github.com/ebitengine/purego/objc
-# github.com/ebitenui/ebitenui v0.7.1
+# github.com/ebitenui/ebitenui v0.7.2
 ## explicit; go 1.23.0
 github.com/ebitenui/ebitenui
 github.com/ebitenui/ebitenui/event

@@ -30,8 +30,6 @@ type Button struct {
 	IgnoreTransparentPixels bool
 	KeepPressedOnExit       bool
 	ToggleMode              bool
-	GraphicImage            *GraphicImage
-
 	// Allows the user to disable space bar and enter automatically triggering a focused button.
 	DisableDefaultKeys bool
 
@@ -67,11 +65,12 @@ type Button struct {
 type ButtonOpt func(b *Button)
 
 type ButtonImage struct {
-	Idle         *image.NineSlice
-	Hover        *image.NineSlice
-	Pressed      *image.NineSlice
-	PressedHover *image.NineSlice
-	Disabled     *image.NineSlice
+	Idle            *image.NineSlice
+	Hover           *image.NineSlice
+	Pressed         *image.NineSlice
+	PressedHover    *image.NineSlice
+	Disabled        *image.NineSlice
+	PressedDisabled *image.NineSlice
 }
 
 type ButtonTextColor struct {
@@ -391,13 +390,12 @@ func (o ButtonOptions) TextProcessBBCode(enabled bool) ButtonOpt {
 // TODO: add parameter for image position (start/end).
 func (o ButtonOptions) TextAndImage(label string, face *text.Face, image *GraphicImage, color *ButtonTextColor) ButtonOpt {
 	return func(b *Button) {
-		b.init.Append(func() {
-			b.autoUpdateTextAndGraphic = true
-			b.definedParams.TextFace = face
-			b.definedParams.TextColor = color
-			b.definedParams.GraphicImage = image
-			b.definedParams.TextColor = color
-		})
+		b.autoUpdateTextAndGraphic = true
+		b.textLabel = label
+		b.definedParams.TextFace = face
+		b.definedParams.TextColor = color
+		b.definedParams.GraphicImage = image
+		b.definedParams.TextColor = color
 	}
 }
 
@@ -671,24 +669,24 @@ func (b *Button) Render(screen *ebiten.Image) {
 			if b.text != nil && b.computedParams.TextColor.Disabled != nil {
 				b.text.SetColor(b.computedParams.TextColor.Disabled)
 			}
-			if b.GraphicImage != nil && b.GraphicImage.Disabled != nil {
-				b.graphic.Image = b.GraphicImage.Disabled
+			if b.computedParams.GraphicImage != nil && b.computedParams.GraphicImage.Disabled != nil {
+				b.graphic.Image = b.computedParams.GraphicImage.Disabled
 			}
 
-		case (b.pressing && (b.hovering || b.KeepPressedOnExit) || (b.ToggleMode && b.state == WidgetChecked) || b.justSubmitted):
+		case b.pressing && (b.hovering || b.KeepPressedOnExit) || (b.ToggleMode && b.state == WidgetChecked) || b.justSubmitted:
 			if b.text != nil && b.computedParams.TextColor.Pressed != nil {
 				b.text.SetColor(b.computedParams.TextColor.Pressed)
 			}
-			if b.GraphicImage != nil && b.GraphicImage.Pressed != nil {
-				b.graphic.Image = b.GraphicImage.Pressed
+			if b.computedParams.GraphicImage != nil && b.computedParams.GraphicImage.Pressed != nil {
+				b.graphic.Image = b.computedParams.GraphicImage.Pressed
 			}
 
-		case (b.hovering || b.focused):
+		case b.hovering || b.focused:
 			if b.computedParams.TextColor.Hover != nil {
 				b.text.SetColor(b.computedParams.TextColor.Hover)
 			}
 			if b.computedParams.GraphicImage != nil && b.computedParams.GraphicImage.Hover != nil {
-				b.graphic.Image = b.GraphicImage.Hover
+				b.graphic.Image = b.computedParams.GraphicImage.Hover
 			}
 		default:
 			b.text.SetColor(b.computedParams.TextColor.Idle)
@@ -717,14 +715,19 @@ func (b *Button) Update(updObj *UpdateObject) {
 
 func (b *Button) draw(screen *ebiten.Image) {
 	i := b.computedParams.Image.Idle
+	pressed := (b.pressing && (b.hovering || b.KeepPressedOnExit)) || (b.ToggleMode && b.state == WidgetChecked)
 	switch {
 	case b.widget.Disabled:
 		if b.computedParams.Image.Disabled != nil {
 			i = b.computedParams.Image.Disabled
 		}
-
+		if pressed {
+			if b.computedParams.Image.PressedDisabled != nil {
+				i = b.computedParams.Image.PressedDisabled
+			}
+		}
 	case b.focused, b.hovering:
-		if b.ToggleMode && b.state == WidgetChecked || b.pressing && (b.hovering || b.KeepPressedOnExit) {
+		if pressed {
 			if b.computedParams.Image.PressedHover != nil {
 				i = b.computedParams.Image.PressedHover
 			} else {
@@ -735,7 +738,7 @@ func (b *Button) draw(screen *ebiten.Image) {
 				i = b.computedParams.Image.Hover
 			}
 		}
-	case b.pressing && (b.hovering || b.KeepPressedOnExit) || (b.ToggleMode && b.state == WidgetChecked) || b.justSubmitted:
+	case pressed, b.justSubmitted:
 		if b.computedParams.Image.Pressed != nil {
 			i = b.computedParams.Image.Pressed
 		}
@@ -852,6 +855,44 @@ func (b *Button) Text() *Text {
 	return b.text
 }
 
+func (b *Button) SetText(text string) {
+	b.init.Do()
+	b.textLabel = text
+	if b.text != nil {
+		b.text.Label = text
+	}
+}
+
+// This returns the currently defined GraphicImage object.
+// This may be nil. Any changes to this reference will be reflected by the button
+// but may be overwritten if the button is re-validated.
+func (b *Button) GraphicImage() *GraphicImage {
+	b.init.Do()
+	return b.computedParams.GraphicImage
+}
+
+// Set the GraphicImage for this button.
+func (b *Button) SetGraphicImage(graphicImage *GraphicImage) {
+	b.init.Do()
+	b.definedParams.GraphicImage = graphicImage
+	b.computedParams.GraphicImage = graphicImage
+}
+
+// This returns the currently defined Image object.
+// This may be nil. Any changes to this reference will be reflected by the button
+// but may be overwritten if the button is re-validated.
+func (b *Button) Image() *ButtonImage {
+	b.init.Do()
+	return b.computedParams.Image
+}
+
+// Set the GraphicImage for this button.
+func (b *Button) SetImage(image *ButtonImage) {
+	b.init.Do()
+	b.definedParams.Image = image
+	b.computedParams.Image = image
+}
+
 func (b *Button) initWidget() {
 
 	if b.computedParams.MinSize != nil {
@@ -889,8 +930,8 @@ func (b *Button) initWidget() {
 	if b.computedParams.GraphicImage != nil {
 		c := NewContainer(
 			ContainerOpts.WidgetOpts(WidgetOpts.LayoutData(AnchorLayoutData{
-				StretchHorizontal: true,
-				StretchVertical:   true,
+				HorizontalPosition: AnchorLayoutPositionCenter,
+				VerticalPosition:   AnchorLayoutPositionCenter,
 			})),
 			ContainerOpts.Layout(NewRowLayout(
 				RowLayoutOpts.Spacing(10),
@@ -902,7 +943,8 @@ func (b *Button) initWidget() {
 		b.container.AddChild(c)
 		b.graphic = NewGraphic(
 			GraphicOpts.WidgetOpts(WidgetOpts.LayoutData(RowLayoutData{
-				Stretch: false,
+				Stretch:  false,
+				Position: RowLayoutPositionCenter,
 			})),
 			GraphicOpts.Image(b.computedParams.GraphicImage.Idle),
 		)

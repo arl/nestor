@@ -7,7 +7,7 @@ require (
 	github.com/arl/blip v0.2.2
 	github.com/arl/statsviz v0.7.2
 	github.com/ebitengine/oto/v3 v3.4.0
-	github.com/ebitenui/ebitenui v0.7.1
+	github.com/ebitenui/ebitenui v0.7.2
 	github.com/go-faster/jx v1.1.0
 	github.com/google/go-cmp v0.7.0
 	github.com/hajimehoshi/ebiten/v2 v2.9.1
