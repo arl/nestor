@@ -11,59 +11,90 @@ type page struct {
 	content widget.PreferredSizeLocateableWidget
 }
 
+/*
+|-----------------------------------------------------------------------------|
+| paddle 1: <Listbox selection preset> | paddle 2: <Listbox selection preset> |
+|-----------------------------------------------------------------------------|
+|         Click on a Paddle button to assign it                               |
+|                                                      |----------------------|
+|          |-----------------------------------|       |  button | assigned to|
+|          |                                   |       |----------------------|
+|          |     Interactive NES Paddle        |       | Select  |     F1     |
+|          |                                   |       | Start   |     F2     |
+|          |                                   |       |   B     |   space    |
+|          |-----------------------------------|       |   A     |            |
+|                                                      |  UP     |            |
+|                                                      |  DOWN   |            |
+|                                                      |  LEFT   |            |
+|        Currently configuring:                        |  RIGHT  |            |
+|        <Listbox selection preset>                    |         |            |
+|                                                      |         |            |
+*/
+
 func inputPage() *page {
 	c := newPageContentContainer()
 
-	bs := []*widget.Button{}
-	for i := 0; i < 3; i++ {
-		b := widget.NewButton(
-			widget.ButtonOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-				Stretch: true,
-			})),
-			widget.ButtonOpts.Image(res.button.image),
-			widget.ButtonOpts.Text(fmt.Sprintf("Button %d", i+1), res.button.face, res.button.text),
-			widget.ButtonOpts.TextPadding(res.button.padding),
-			widget.ButtonOpts.CursorEnteredHandler(func(args *widget.ButtonHoverEventArgs) { fmt.Println("Cursor Entered: " + args.Button.Text().Label) }),
-			widget.ButtonOpts.CursorExitedHandler(func(args *widget.ButtonHoverEventArgs) { fmt.Println("Cursor Exited: " + args.Button.Text().Label) }),
-		)
-		c.AddChild(b)
-		bs = append(bs, b)
+	c.SetBackgroundImage(ninesliceFromHex(0x0000ff))
+
+	root := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+			widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(40)),
+		)),
+		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(0x00ff00)),
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+			Position: widget.RowLayoutPositionEnd,
+			Stretch:  true,
+			MaxWidth: 1000,
+		})),
+	)
+
+	// Paddle preset selectors
+	presetsContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Spacing(20),
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(10)),
+		)),
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+			StretchHorizontal:  true,
+			StretchVertical:    true,
+			HorizontalPosition: widget.AnchorLayoutPositionCenter,
+		})),
+		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(0xff0000)),
+	)
+
+	var presets []string
+	for i := 1; i <= 8; i++ {
+		presets = append(presets, fmt.Sprintf("Preset %d", i))
 	}
 
-	c.AddChild(newSeparator(widget.RowLayoutData{Stretch: true}))
-
-	toggles := []*widget.Button{}
-	for i := 0; i < 3; i++ {
-		b := widget.NewButton(
-			widget.ButtonOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-				Stretch: true,
-			})),
-			widget.ButtonOpts.Image(res.button.image),
-			widget.ButtonOpts.Text(fmt.Sprintf("Toggle Button %d", i+1), res.button.face, res.button.text),
-			widget.ButtonOpts.TextPadding(res.button.padding),
-			widget.ButtonOpts.CursorEnteredHandler(func(args *widget.ButtonHoverEventArgs) { fmt.Println("Cursor Entered: " + args.Button.Text().Label) }),
-			widget.ButtonOpts.CursorExitedHandler(func(args *widget.ButtonHoverEventArgs) { fmt.Println("Cursor Exited: " + args.Button.Text().Label) }),
-		)
-		c.AddChild(b)
-		bs = append(bs, b)
-		toggles = append(toggles, b)
+	onSelectPreset := func(val string) {
+		fmt.Println("selected", val)
 	}
-	elements := []widget.RadioGroupElement{}
-	for _, cb := range toggles {
-		elements = append(elements, cb)
-	}
-	widget.NewRadioGroup(widget.RadioGroupOpts.Elements(elements...))
 
-	c.AddChild(newSeparator(widget.RowLayoutData{Stretch: true}))
+	presetPaddle1 := newCombobox(presets, widget.RowLayoutData{
+		Position: widget.RowLayoutPositionEnd,
+		Stretch:  true,
+	}, onSelectPreset)
+	presetPaddle2 := newCombobox(presets, widget.RowLayoutData{
+		Position: widget.RowLayoutPositionEnd,
+		Stretch:  true,
+	}, onSelectPreset)
 
-	c.AddChild(newCheckbox("Disabled", func(args *widget.CheckboxChangedEventArgs) {
-		for _, b := range bs {
-			b.GetWidget().Disabled = args.State == widget.WidgetChecked
-		}
-	}))
+	presetsContainer.AddChild(
+		widget.NewLabel(widget.LabelOpts.Text("paddle 1", res.label.face, res.label.text)),
+		presetPaddle1.Widget,
+		widget.NewLabel(widget.LabelOpts.Text("paddle 2", res.label.face, res.label.text)),
+		presetPaddle2.Widget,
+	)
+	presetsContainer.Validate()
+
+	root.AddChild(presetsContainer)
+
+	c.AddChild(root)
 
 	return &page{
-		title:   "Button",
+		title:   "Input",
 		content: c,
 	}
 }

@@ -15,6 +15,7 @@ const (
 )
 
 type fonts struct {
+	small        *text.Face
 	face         *text.Face
 	titleFace    *text.Face
 	bigTitleFace *text.Face
@@ -29,12 +30,14 @@ func must[T any](t T, err error) T {
 }
 
 func loadFonts() *fonts {
+	smallFace := must(loadFont(fontDejaVu, 12))
 	fontFace := must(loadFont(fontDejaVu, 14))
 	titleFontFace := must(loadFont(fontDejaVu, 24))
 	bigTitleFontFace := must(loadFont(fontDejaVu, 28))
 	toolTipFace := must(loadFont(fontDejaVu, 15))
 
 	return &fonts{
+		small:        &smallFace,
 		face:         &fontFace,
 		titleFace:    &titleFontFace,
 		bigTitleFace: &bigTitleFontFace,

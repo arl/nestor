@@ -67,43 +67,28 @@ type uiResources struct {
 	toolTip     *toolTipResources
 }
 
-func newUIResources() *uiResources {
-	background := ninesliceFromHex(backgroundColor)
+var res *uiResources
 
+func initResources() {
 	fonts := loadFonts()
-	text := newTextResources(fonts)
-	button := newButtonResources(fonts)
-	checkbox := newCheckboxResources()
-	comboButton := newComboButtonResources(fonts)
-	list := newListResources(fonts)
-	slider := newSliderResources()
-	progressBar := newProgressBarResources()
-	panel := newPanelResources()
-	tabBook := newTabBookResources(fonts)
-	header := newHeaderResources(fonts)
-	textInput := newTextInputResources(fonts)
-	textArea := newTextAreaResources(fonts)
-	toolTip := newToolTipResources(fonts)
 
-	return &uiResources{
-		fonts:          fonts,
-		button:         button,
-		label:          newLabelResources(fonts),
-		checkbox:       checkbox,
-		comboButton:    comboButton,
-		list:           list,
-		slider:         slider,
-		panel:          panel,
-		tabBook:        tabBook,
-		header:         header,
-		textInput:      textInput,
-		toolTip:        toolTip,
-		textArea:       textArea,
-		progressBar:    progressBar,
-		background:     background,
-		separatorColor: hex2color(separatorColor),
-		text:           text,
-	}
+	res = &uiResources{}
+	res.background = ninesliceFromHex(backgroundColor)
+	res.fonts = fonts
+	res.label = newLabelResources(fonts)
+	res.text = newTextResources(fonts)
+	res.button = newButtonResources(fonts)
+	res.checkbox = newCheckboxResources()
+	res.comboButton = newComboButtonResources(fonts)
+	res.list = newListResources(fonts)
+	res.slider = newSliderResources()
+	res.progressBar = newProgressBarResources()
+	res.panel = newPanelResources()
+	res.tabBook = newTabBookResources(fonts)
+	res.header = newHeaderResources(fonts)
+	res.textInput = newTextInputResources(fonts)
+	res.textArea = newTextAreaResources(fonts)
+	res.toolTip = newToolTipResources(fonts)
 }
 
 type textResources struct {
@@ -240,40 +225,16 @@ func newLabelResources(fonts *fonts) *labelResources {
 }
 
 type comboButtonResources struct {
-	image   *widget.ButtonImage
 	text    *widget.ButtonTextColor
 	face    *text.Face
-	graphic *widget.GraphicImage
 	padding *widget.Insets
 }
 
 func newComboButtonResources(fonts *fonts) *comboButtonResources {
-	idle := must(loadImageNineSlice("graphics/combo-button-idle.png", 12, 0))
-	hover := must(loadImageNineSlice("graphics/combo-button-hover.png", 12, 0))
-	pressed := must(loadImageNineSlice("graphics/combo-button-pressed.png", 12, 0))
-	disabled := must(loadImageNineSlice("graphics/combo-button-disabled.png", 12, 0))
-
-	i := &widget.ButtonImage{
-		Idle:     idle,
-		Hover:    hover,
-		Pressed:  pressed,
-		Disabled: disabled,
-	}
-
-	arrowDown := must(loadGraphicImages("graphics/arrow-down-idle.png", "graphics/arrow-down-disabled.png"))
-
 	return &comboButtonResources{
-		image:   i,
-		face:    fonts.face,
-		graphic: arrowDown,
-		padding: &widget.Insets{
-			Left:  30,
-			Right: 30,
-		},
-		text: &widget.ButtonTextColor{
-			Idle:     hex2color(buttonTextIdleColor),
-			Disabled: hex2color(buttonTextDisabledColor),
-		},
+		face:    fonts.small,
+		padding: res.button.padding,
+		text:    res.button.text,
 	}
 }
 

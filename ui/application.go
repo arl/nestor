@@ -93,8 +93,6 @@ type app struct {
 	screenw, screenh int
 }
 
-var res = newUIResources()
-
 func newApp(ctx context.Context, cfg config.Config, initState string) *app {
 	app := &app{
 		cfg:     cfg,
@@ -103,6 +101,7 @@ func newApp(ctx context.Context, cfg config.Config, initState string) *app {
 		screenh: minHeight,
 	}
 
+	initResources()
 	app.initAudio()
 
 	app.states["running"] = newRunningState(app)
