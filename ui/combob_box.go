@@ -7,7 +7,7 @@ import (
 )
 
 type Combobox struct {
-	Widget  *widget.ListComboButton
+	*widget.ListComboButton
 	items   []string
 	indices []any
 
@@ -47,7 +47,7 @@ func newCombobox(items []string, selidx int, layoutData any, selectHandler func(
 		combo.previdx = idx
 	}
 
-	combo.Widget = widget.NewListComboButton(
+	combo.ListComboButton = widget.NewListComboButton(
 		widget.ListComboButtonOpts.Entries(indices),
 		widget.ListComboButtonOpts.MaxContentHeight(150),
 		widget.ListComboButtonOpts.WidgetOpts(widget.WidgetOpts.LayoutData(layoutData)),
@@ -75,6 +75,6 @@ func newCombobox(items []string, selidx int, layoutData any, selectHandler func(
 		widget.ListComboButtonOpts.EntrySelectedHandler(handler),
 	)
 
-	combo.Widget.SetSelectedEntry(selidx)
+	combo.ListComboButton.SetSelectedEntry(selidx)
 	return combo
 }
