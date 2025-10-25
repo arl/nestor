@@ -37,49 +37,20 @@ const (
 
 func inputConfigPage(cfg *config.Config) *page {
 	c := newPageContentContainer()
+	c.SetBackgroundImage(res.background)
 
-	c.SetBackgroundImage(ninesliceFromHex(PURERED))
-
-	// Main vertical layout
-	// mainLayout := widget.NewContainer(
-	// 	widget.ContainerOpts.Layout(widget.NewRowLayout(
-	// 		widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-	// 		widget.RowLayoutOpts.Spacing(10),
-	// 	)),
-	// 	widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-	// 		Stretch: true,
-	// 	})),
-	// 	widget.ContainerOpts.BackgroundImage(ninesliceFromHex(PUREGREEN)),
-	// )
-
-	// Paddle preset selectors (top section)
-
-	presetsWrapper := widget.NewContainer(
+	presetsContainer := widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
 			Stretch: true,
 		})),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
-			widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(10)),
-		)),
-		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(PUREGREEN)),
-	)
 
-	presetsContainer := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Spacing(20),
-			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
-			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(10)),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(4),
+			widget.GridLayoutOpts.DefaultStretch(false, true),
+			widget.GridLayoutOpts.Spacing(10, 0),
 		)),
-		// widget.ContainerOpts.Layout(widget.NewAnchorLayout(
-		// 	widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(10)),
-		// )),
-
-		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(PUREBLUE)),
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-			HorizontalPosition: widget.AnchorLayoutPositionCenter,
-		})),
+		widget.ContainerOpts.BackgroundImage(res.background),
 	)
-	presetsWrapper.AddChild(presetsContainer)
 
 	var presets []string
 	for i := 1; i <= 8; i++ {
@@ -99,21 +70,41 @@ func inputConfigPage(cfg *config.Config) *page {
 		}
 	}
 
-	presetPad1 := newCombobox(presets, int(cfg.Input.Paddles[0].PaddlePreset),
-		widget.RowLayoutData{
-			Position: widget.RowLayoutPositionEnd,
-			Stretch:  true,
-		}, onPresetChanged(0))
-	presetPad2 := newCombobox(presets, int(cfg.Input.Paddles[1].PaddlePreset), widget.RowLayoutData{
-		Position: widget.RowLayoutPositionEnd,
-		Stretch:  true,
-	}, onPresetChanged(1))
-
 	presetsContainer.AddChild(
-		widget.NewLabel(widget.LabelOpts.Text("Paddle 1", res.label.face, res.label.text)),
-		presetPad1.Widget,
-		widget.NewLabel(widget.LabelOpts.Text("Paddle 2", res.label.face, res.label.text)),
-		presetPad2.Widget,
+		widget.NewLabel(
+			widget.LabelOpts.Text("Paddle 1", res.label.face, res.label.text),
+			widget.LabelOpts.LabelPadding(&widget.Insets{Top: 5, Left: 10}),
+			widget.LabelOpts.TextOpts(widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionEnd,
+					VerticalPosition:   widget.GridLayoutPositionCenter,
+				}),
+			)),
+		),
+		newCombobox(presets, int(cfg.Input.Paddles[0].PaddlePreset),
+			widget.GridLayoutData{
+				HorizontalPosition: widget.GridLayoutPositionStart,
+				MaxWidth:           200,
+			},
+			onPresetChanged(0),
+		),
+		widget.NewLabel(
+			widget.LabelOpts.Text("Paddle 2", res.label.face, res.label.text),
+			widget.LabelOpts.LabelPadding(&widget.Insets{Top: 5, Left: 10}),
+			widget.LabelOpts.TextOpts(widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionEnd,
+					VerticalPosition:   widget.GridLayoutPositionCenter,
+				}),
+			)),
+		),
+		newCombobox(presets, int(cfg.Input.Paddles[1].PaddlePreset),
+			widget.GridLayoutData{
+				HorizontalPosition: widget.GridLayoutPositionStart,
+				MaxWidth:           200,
+			},
+			onPresetChanged(1),
+		),
 	)
 
 	// Middle section: instruction label + paddle display + assignments table
@@ -168,17 +159,43 @@ func inputConfigPage(cfg *config.Config) *page {
 	)
 
 	// Table headers
-	tableContainer.AddChild(
-		widget.NewLabel(widget.LabelOpts.Text("Button", res.label.face, res.label.text)),
-		widget.NewLabel(widget.LabelOpts.Text("Assigned to", res.label.face, res.label.text)),
+	headerBtnLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Button", res.label.face, res.label.text),
+		widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
 	)
+	headerBtnContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(0x4a5f6f)),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+	headerBtnContainer.AddChild(headerBtnLabel)
+
+	headerAssignedLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Assigned to", res.label.face, res.label.text),
+		widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
+	)
+	headerAssignedContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(0x4a5f6f)),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+	headerAssignedContainer.AddChild(headerAssignedLabel)
+
+	tableContainer.AddChild(headerBtnContainer, headerAssignedContainer)
 
 	// Table rows for each NES button
 	buttons := []string{"Select", "Start", "B", "A", "UP", "DOWN", "LEFT", "RIGHT"}
 	for _, btn := range buttons {
+		buttonLbl := widget.NewLabel(
+			widget.LabelOpts.Text(btn, res.label.face, res.label.text),
+			widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter)),
+		)
+		assignLbl := widget.NewLabel(
+			widget.LabelOpts.Text("AAA", res.label.face, res.label.text),
+			widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter)),
+		)
+		assignLbl.GetWidget().Disabled = true
 		tableContainer.AddChild(
-			widget.NewLabel(widget.LabelOpts.Text(btn, res.label.face, res.label.text)),
-			widget.NewLabel(widget.LabelOpts.Text("", res.label.face, res.label.text)),
+			buttonLbl,
+			assignLbl,
 		)
 	}
 
@@ -204,11 +221,14 @@ func inputConfigPage(cfg *config.Config) *page {
 		modUI.InfoZ("changed current preset").Int("preset", idx).End()
 	})
 
-	bottomContainer.AddChild(currentlyConfiguringLabel, currentPresetCombo.Widget)
+	bottomContainer.AddChild(currentlyConfiguringLabel, currentPresetCombo)
 
 	// Add all sections to main layout
-	// mainLayout.AddChild(presetsContainer, middleContainer, bottomContainer)
-	c.AddChild(presetsWrapper /*presetsContainer,*/, middleContainer, bottomContainer)
+	c.AddChild(
+		presetsContainer,
+		middleContainer,
+		bottomContainer,
+	)
 
 	return &page{title: "Input", content: c}
 }
