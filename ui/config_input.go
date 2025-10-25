@@ -9,23 +9,24 @@ import (
 )
 
 /*
-|-----------------------------------------------------------------------------|
-| paddle 1: <Listbox selection preset> | paddle 2: <Listbox selection preset> |
-|-----------------------------------------------------------------------------|
-|         Click on a Paddle button to assign it                               |
-|                                                      |----------------------|
-|          |-----------------------------------|       |  button | assigned to|
-|          |                                   |       |----------------------|
-|          |     Interactive NES Paddle        |       | Select  |     F1     |
-|          |                                   |       | Start   |     F2     |
-|          |                                   |       |   B     |   space    |
-|          |-----------------------------------|       |   A     |            |
-|                                                      |  UP     |            |
-|                                                      |  DOWN   |            |
-|                                                      |  LEFT   |            |
-|        Currently configuring:                        |  RIGHT  |            |
-|        <Listbox selection preset>                    |         |            |
-|                                                      |         |            |
+|-------------------------------------------------------------------------------|
+| paddle 1: <Combobox selection preset> | paddle 2: <Combobox selection preset> |
+|-------------------------------------------------------------------------------|
+|         Currently configuring:           <Combobox preset>                    |
+|         Click on a Paddle button to assign it                                 |
+|                                                      |------------------------|
+|          |-----------------------------------|       |  button | assigned to  |
+|          |                                   |       |------------------------|
+|          |     Interactive NES Paddle        |       | Select  |     F1       |
+|          |                                   |       | Start   |     F2       |
+|          |                                   |       |   B     |   space      |
+|          |-----------------------------------|       |   A     |              |
+|                                                      |  UP     |              |
+|                                                      |  DOWN   |              |
+|                                                      |  LEFT   |              |
+|        Currently configuring:                        |  RIGHT  |              |
+|        <Combobox selection preset>                   |         |              |
+|                                                      |         |              |
 */
 
 const (
@@ -37,41 +38,48 @@ const (
 func inputConfigPage(cfg *config.Config) *page {
 	c := newPageContentContainer()
 
-	c.SetBackgroundImage(ninesliceFromHex(PUREBLUE))
-
-	root := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
-			widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(40)),
-		)),
-		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(PUREGREEN)),
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-			Position: widget.RowLayoutPositionEnd,
-			Stretch:  true,
-			MaxWidth: 1000,
-		})),
-	)
+	c.SetBackgroundImage(ninesliceFromHex(PURERED))
 
 	// Main vertical layout
-	mainLayout := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Spacing(10),
-		)),
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-			StretchHorizontal: true,
-			StretchVertical:   true,
-		})),
-	)
+	// mainLayout := widget.NewContainer(
+	// 	widget.ContainerOpts.Layout(widget.NewRowLayout(
+	// 		widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+	// 		widget.RowLayoutOpts.Spacing(10),
+	// 	)),
+	// 	widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+	// 		Stretch: true,
+	// 	})),
+	// 	widget.ContainerOpts.BackgroundImage(ninesliceFromHex(PUREGREEN)),
+	// )
 
 	// Paddle preset selectors (top section)
+
+	presetsWrapper := widget.NewContainer(
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+			Stretch: true,
+		})),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+			widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(10)),
+		)),
+		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(PUREGREEN)),
+	)
+
 	presetsContainer := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Spacing(20),
 			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
 			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(10)),
 		)),
-		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(PURERED)),
+		// widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+		// 	widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(10)),
+		// )),
+
+		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(PUREBLUE)),
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+			HorizontalPosition: widget.AnchorLayoutPositionCenter,
+		})),
 	)
+	presetsWrapper.AddChild(presetsContainer)
 
 	var presets []string
 	for i := 1; i <= 8; i++ {
@@ -82,17 +90,20 @@ func inputConfigPage(cfg *config.Config) *page {
 		return func(idx int) {
 			from := cfg.Input.Paddles[paddle].PaddlePreset
 			to := idx
-			modUI.InfoZ("changed paddle preset").Int("paddle", paddle).
-				String("from", presets[from]).String("to", presets[to]).
+			modUI.InfoZ("changed paddle preset").
+				Int("paddle", paddle).
+				String("from", presets[from]).
+				String("to", presets[to]).
 				End()
 			cfg.Input.Paddles[paddle].PaddlePreset = uint(to)
 		}
 	}
 
-	presetPad1 := newCombobox(presets, int(cfg.Input.Paddles[0].PaddlePreset), widget.RowLayoutData{
-		Position: widget.RowLayoutPositionEnd,
-		Stretch:  true,
-	}, onPresetChanged(0))
+	presetPad1 := newCombobox(presets, int(cfg.Input.Paddles[0].PaddlePreset),
+		widget.RowLayoutData{
+			Position: widget.RowLayoutPositionEnd,
+			Stretch:  true,
+		}, onPresetChanged(0))
 	presetPad2 := newCombobox(presets, int(cfg.Input.Paddles[1].PaddlePreset), widget.RowLayoutData{
 		Position: widget.RowLayoutPositionEnd,
 		Stretch:  true,
@@ -196,10 +207,8 @@ func inputConfigPage(cfg *config.Config) *page {
 	bottomContainer.AddChild(currentlyConfiguringLabel, currentPresetCombo.Widget)
 
 	// Add all sections to main layout
-	mainLayout.AddChild(presetsContainer, middleContainer, bottomContainer)
-	root.AddChild(mainLayout)
-
-	c.AddChild(root)
+	// mainLayout.AddChild(presetsContainer, middleContainer, bottomContainer)
+	c.AddChild(presetsWrapper /*presetsContainer,*/, middleContainer, bottomContainer)
 
 	return &page{title: "Input", content: c}
 }
