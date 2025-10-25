@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	goimage "image"
 
 	"github.com/ebitenui/ebitenui/widget"
@@ -11,9 +10,11 @@ type Combobox struct {
 	Widget  *widget.ListComboButton
 	items   []string
 	indices []any
+
+	previdx int
 }
 
-func newCombobox[T comparable](items []string, layoutData any, onSelect func(item T)) *Combobox {
+func newCombobox(items []string, selidx int, layoutData any, onSelect func(item int)) *Combobox {
 	indices := make([]any, 0, len(items))
 	for i := range items {
 		indices = append(indices, i)
@@ -27,7 +28,14 @@ func newCombobox[T comparable](items []string, layoutData any, onSelect func(ite
 		idx := e.(int)
 		return items[idx]
 	}
-	cbox := widget.NewListComboButton(
+
+	combo := &Combobox{
+		items:   items,
+		indices: indices,
+		previdx: selidx,
+	}
+
+	combo.Widget = widget.NewListComboButton(
 		widget.ListComboButtonOpts.Entries(indices),
 		widget.ListComboButtonOpts.MaxContentHeight(150),
 		widget.ListComboButtonOpts.WidgetOpts(
@@ -56,13 +64,17 @@ func newCombobox[T comparable](items []string, layoutData any, onSelect func(ite
 
 		widget.ListComboButtonOpts.EntryLabelFunc(fbtn, flist),
 		widget.ListComboButtonOpts.EntrySelectedHandler(func(args *widget.ListComboButtonEntrySelectedEventArgs) {
-			fmt.Println("in EntrySelectedHandler")
-			if onSelect != nil {
+			if onSelect == nil {
 				return
 			}
-			onSelect(args.Entry.(T))
+
+			// avoid spurious events.
+			if idx := args.Entry.(int); idx != combo.previdx {
+				onSelect(idx)
+				combo.previdx = idx
+			}
 		}))
 
-	cbox.SetSelectedEntry(0)
-	return &Combobox{Widget: cbox, items: items, indices: indices}
+	combo.Widget.SetSelectedEntry(selidx)
+	return combo
 }

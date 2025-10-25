@@ -22,7 +22,14 @@ func newConfigState(app *app) *configState {
 }
 
 func (s *configState) enter() {}
-func (s *configState) exit()  {}
+func (s *configState) exit() {
+	if err := config.Save(&s.app.cfg); err != nil {
+		modUI.ErrorZ("failed to save config").Error("err", err).End()
+		return
+	}
+
+	modUI.InfoZ("config saved").String("path", config.Path()).End()
+}
 
 func (s *configState) update() {
 	s.ui.Update()

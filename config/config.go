@@ -87,7 +87,7 @@ var Dir = sync.OnceValue(func() string {
 
 const cfgFilename = "config.toml"
 
-var configPath = sync.OnceValue(func() string {
+var Path = sync.OnceValue(func() string {
 	return filepath.Join(Dir(), cfgFilename)
 })
 
@@ -98,7 +98,7 @@ func LoadOrDefault() Config {
 	cfg := defaultConfig
 
 	// Load the config from the file, overwriting the default values.
-	_, err := toml.DecodeFile(configPath(), &cfg)
+	_, err := toml.DecodeFile(Path(), &cfg)
 	if err != nil {
 		log.ModEmu.Warnf("Failed to load config, using default: %v", err)
 	}
@@ -106,22 +106,22 @@ func LoadOrDefault() Config {
 	// Apply post-load operations (fix invalid values, etc).
 	cfg.Input.PostLoad()
 	cfg.Video.Check()
-	log.ModEmu.InfoZ("loaded configuration").String("path", configPath()).End()
+	log.ModEmu.InfoZ("loaded configuration").String("path", Path()).End()
 	return cfg
 }
 
-// saveConfig into nestor config directory.
-func saveConfig(cfg *Config) error {
+// Save saves configuration into the default nestor config path.
+func Save(cfg *Config) error {
 	buf, err := toml.Marshal(cfg)
 	if err != nil {
 		return err
 	}
 
-	if err := os.WriteFile(configPath(), buf, 0644); err != nil {
+	if err := os.WriteFile(Path(), buf, 0644); err != nil {
 		return err
 	}
 
-	log.ModEmu.Infof("configuration saved to %s", configPath())
+	log.ModEmu.Infof("configuration saved to %s", Path())
 	return nil
 }
 

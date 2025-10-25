@@ -65,33 +65,40 @@ func inputConfigPage(cfg *config.Config) *page {
 		presets = append(presets, fmt.Sprintf("Preset %d", i))
 	}
 
-	onSelectPreset := func(val string) {
-		fmt.Println("selected", val)
+	onPresetChanged := func(paddle int) func(int) {
+		return func(idx int) {
+			from := cfg.Input.Paddles[paddle].PaddlePreset
+			to := idx
+			modUI.InfoZ("changed paddle preset").Int("paddle", paddle).
+				String("from", presets[from]).String("to", presets[to]).
+				End()
+			cfg.Input.Paddles[paddle].PaddlePreset = uint(to)
+		}
 	}
 
-	presetPaddle1 := newCombobox(presets, widget.RowLayoutData{
+	presetPad1 := newCombobox(presets, int(cfg.Input.Paddles[0].PaddlePreset), widget.RowLayoutData{
 		Position: widget.RowLayoutPositionEnd,
 		Stretch:  true,
-	}, onSelectPreset)
-	presetPaddle2 := newCombobox(presets, widget.RowLayoutData{
+	}, onPresetChanged(0))
+	presetPad2 := newCombobox(presets, int(cfg.Input.Paddles[1].PaddlePreset), widget.RowLayoutData{
 		Position: widget.RowLayoutPositionEnd,
 		Stretch:  true,
-	}, onSelectPreset)
+	}, onPresetChanged(1))
 
 	presetsContainer.AddChild(
-		widget.NewLabel(widget.LabelOpts.Text("paddle 1", res.label.face, res.label.text)),
-		presetPaddle1.Widget,
-		widget.NewLabel(widget.LabelOpts.Text("paddle 2", res.label.face, res.label.text)),
-		presetPaddle2.Widget,
+		widget.NewLabel(widget.LabelOpts.Text("Paddle 1", res.label.face, res.label.text)),
+		presetPad1.Widget,
+		widget.NewLabel(widget.LabelOpts.Text("Paddle 2", res.label.face, res.label.text)),
+		presetPad2.Widget,
 	)
-	presetsContainer.Validate()
+
+	// XXX: seems to not be necessary anymore. For some reason, ebitenui crashed
+	// in input layer initialization before.
+	// presetsContainer.Validate()
 
 	root.AddChild(presetsContainer)
 
 	c.AddChild(root)
 
-	return &page{
-		title:   "Input",
-		content: c,
-	}
+	return &page{title: "Input", content: c}
 }

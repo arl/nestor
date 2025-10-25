@@ -7,8 +7,5 @@ func videoConfigPage(cfg *config.Config) *page {
 
 	c.SetBackgroundImage(ninesliceFromHex(0x0000ff))
 
-	return &page{
-		title:   "Video",
-		content: c,
-	}
+	return &page{title: "Video", content: c}
 }
