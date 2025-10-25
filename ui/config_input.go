@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 
+	"nestor/config"
+
 	"github.com/ebitenui/ebitenui/widget"
 )
 
@@ -26,7 +28,7 @@ import (
 |                                                      |         |            |
 */
 
-func inputConfigPage() *page {
+func inputConfigPage(cfg *config.Config) *page {
 	c := newPageContentContainer()
 
 	c.SetBackgroundImage(ninesliceFromHex(0x0000ff))

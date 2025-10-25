@@ -4,6 +4,8 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
+
+	"nestor/config"
 )
 
 type configState struct {
@@ -44,7 +46,7 @@ func (s *configState) createUI() {
 			widget.GridLayoutOpts.Spacing(0, 20))),
 		widget.ContainerOpts.BackgroundImage(res.background))
 
-	root.AddChild(configContainer())
+	root.AddChild(configContainer(&s.app.cfg))
 
 	// TODO: add a reset config button
 	footer := widget.NewContainer(
@@ -76,7 +78,7 @@ type page struct {
 	content widget.PreferredSizeLocateableWidget
 }
 
-func configContainer() widget.PreferredSizeLocateableWidget {
+func configContainer(cfg *config.Config) widget.PreferredSizeLocateableWidget {
 	container := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Padding(&widget.Insets{
@@ -89,8 +91,8 @@ func configContainer() widget.PreferredSizeLocateableWidget {
 		)))
 
 	pages := []any{
-		inputConfigPage(),
-		videoConfigPage(),
+		inputConfigPage(cfg),
+		videoConfigPage(cfg),
 	}
 
 	pageContainer := newPageContainer()
