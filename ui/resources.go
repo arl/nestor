@@ -6,7 +6,6 @@ import (
 	"nestor/assets"
 
 	"github.com/ebitenui/ebitenui/image"
-	"github.com/ebitenui/ebitenui/utilities/constantutil"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -316,7 +315,7 @@ func newSliderResources() *sliderResources {
 	handleDisabled := ninesliceFromHex(sliderHandleBg)
 
 	return &sliderResources{
-		handleSize: constantutil.ConstantToPointer(6),
+		handleSize: ptrTo(6),
 		handle: &widget.ButtonImage{
 			Idle:     handleIdle,
 			Hover:    handleHover,
@@ -464,7 +463,7 @@ type textAreaResources struct {
 func newTextAreaResources(fonts *fonts) *textAreaResources {
 	return &textAreaResources{
 		face:       fonts.face,
-		handleSize: constantutil.ConstantToPointer(5),
+		handleSize: ptrTo(5),
 		image:      res.base.scrollimg,
 		track:      res.slider.trackImage,
 		trackPadding: &widget.Insets{

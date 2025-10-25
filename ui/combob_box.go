@@ -3,9 +3,7 @@ package ui
 import (
 	"fmt"
 	goimage "image"
-	"image/color"
 
-	"github.com/ebitenui/ebitenui/utilities/constantutil"
 	"github.com/ebitenui/ebitenui/widget"
 )
 
@@ -47,20 +45,11 @@ func newCombobox[T comparable](items []string, layoutData any, onSelect func(ite
 			Slider: &widget.SliderParams{
 				TrackImage:    res.slider.trackImage,
 				HandleImage:   res.slider.handle,
-				MinHandleSize: constantutil.ConstantToPointer(5),
+				MinHandleSize: ptrTo(5),
 				TrackPadding:  widget.NewInsetsSimple(2),
 			},
-			EntryFace: res.fonts.small,
-			EntryColor: &widget.ListEntryColor{
-				Selected:                   color.NRGBA{254, 255, 255, 255},             //Foreground color for the unfocused selected entry
-				Unselected:                 color.NRGBA{254, 255, 255, 255},             //Foreground color for the unfocused unselected entry
-				SelectedBackground:         color.NRGBA{R: 130, G: 130, B: 200, A: 255}, //Background color for the unfocused selected entry
-				SelectedFocusedBackground:  color.NRGBA{R: 130, G: 130, B: 170, A: 255}, //Background color for the focused selected entry
-				FocusedBackground:          color.NRGBA{R: 170, G: 170, B: 180, A: 255}, //Background color for the focused unselected entry
-				DisabledUnselected:         color.NRGBA{100, 100, 100, 255},             //Foreground color for the disabled unselected entry
-				DisabledSelected:           color.NRGBA{100, 100, 100, 255},             //Foreground color for the disabled selected entry
-				DisabledSelectedBackground: color.NRGBA{100, 100, 100, 255},             //Background color for the disabled selected entry
-			},
+			EntryFace:        res.fonts.small,
+			EntryColor:       res.list.entry,
 			EntryTextPadding: widget.NewInsetsSimple(5),
 			MinSize:          &goimage.Point{200, 0},
 		}),

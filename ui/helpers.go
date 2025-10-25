@@ -108,3 +108,7 @@ func frameImage(src *ebiten.Image, thickness int, col color.Color) *ebiten.Image
 	vector.StrokeRect(framed, 0, 0, float32(orgw), float32(orgh), float32(thickness*2), col, true)
 	return framed
 }
+
+func ptrTo[T any](v T) *T {
+	return &v
+}
