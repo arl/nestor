@@ -47,7 +47,7 @@ func start(ctx context.Context, cfg config.Config, romPath string) error {
 	ebiten.SetTPS(ebiten.SyncWithFPS)
 	ebiten.SetVsyncEnabled(!cfg.Video.DisableVSync)
 	var options = &ebiten.RunGameOptions{
-		SingleThread: true,
+		SingleThread: false,
 	}
 
 	var app *app
@@ -63,6 +63,7 @@ func start(ctx context.Context, cfg config.Config, romPath string) error {
 		return fmt.Errorf("ui failure: %w", err)
 	}
 
+	modUI.InfoZ("ui terminated").End()
 	return nil
 }
 
