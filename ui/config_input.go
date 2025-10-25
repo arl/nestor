@@ -6,11 +6,6 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 )
 
-type page struct {
-	title   string
-	content widget.PreferredSizeLocateableWidget
-}
-
 /*
 |-----------------------------------------------------------------------------|
 | paddle 1: <Listbox selection preset> | paddle 2: <Listbox selection preset> |
@@ -31,7 +26,7 @@ type page struct {
 |                                                      |         |            |
 */
 
-func inputPage() *page {
+func inputConfigPage() *page {
 	c := newPageContentContainer()
 
 	c.SetBackgroundImage(ninesliceFromHex(0x0000ff))

@@ -14,11 +14,14 @@ import (
 
 const (
 	backgroundColor = 0x131a22 // rgba(19, 26, 34, 1)
+	panelColor      = 0x192a3b // rgba(25, 42, 59, 1)
 
-	panelColor = 0x192a3b // rgba(25, 42, 59, 1)
+	widgetDisabledColor = 0x5a7a91 // rgba(90, 122, 145, 1)
+	widgetIdleColor     = backgroundColor
+	widgetMaskColor     = 0xbb296d //  rgba(187, 41, 109, 1)
 
 	textIdleColor     = 0xdff4ff // rgba(242, 223, 255, 1)
-	textDisabledColor = 0x5a7a91 // rgba(90, 122, 145, 1)
+	textDisabledColor = widgetDisabledColor
 
 	labelIdleColor     = textIdleColor
 	labelDisabledColor = textDisabledColor
@@ -28,8 +31,7 @@ const (
 
 	listSelectedBackground         = 0x4b687a // rgba(75, 104, 122, 1)
 	listDisabledSelectedBackground = 0x2a3944 // rgba(42, 57, 68, 1)
-
-	listFocusedBackground = 0x2a3944 // rgba(42, 57, 68, 1)
+	listFocusedBackground          = 0x2a3944 // rgba(42, 57, 68, 1)
 
 	headerColor = textIdleColor
 
@@ -50,6 +52,8 @@ type uiResources struct {
 	background *image.NineSlice
 
 	separatorColor color.Color
+
+	base *baseResources
 
 	text        *textResources
 	button      *buttonResources
@@ -73,15 +77,17 @@ func initResources() {
 	fonts := loadFonts()
 
 	res = &uiResources{}
+	res.separatorColor = hex2color(separatorColor)
+	res.base = newBaseResources()
 	res.background = ninesliceFromHex(backgroundColor)
 	res.fonts = fonts
 	res.label = newLabelResources(fonts)
 	res.text = newTextResources(fonts)
 	res.button = newButtonResources(fonts)
 	res.checkbox = newCheckboxResources()
-	res.comboButton = newComboButtonResources(fonts)
-	res.list = newListResources(fonts)
 	res.slider = newSliderResources()
+	res.list = newListResources(fonts)
+	res.comboButton = newComboButtonResources(fonts)
 	res.progressBar = newProgressBarResources()
 	res.panel = newPanelResources()
 	res.tabBook = newTabBookResources(fonts)
@@ -89,6 +95,20 @@ func initResources() {
 	res.textInput = newTextInputResources(fonts)
 	res.textArea = newTextAreaResources(fonts)
 	res.toolTip = newToolTipResources(fonts)
+}
+
+type baseResources struct {
+	scrollimg *widget.ScrollContainerImage
+}
+
+func newBaseResources() *baseResources {
+	return &baseResources{
+		scrollimg: &widget.ScrollContainerImage{
+			Idle:     ninesliceFromHex(widgetIdleColor),
+			Disabled: ninesliceFromHex(widgetDisabledColor),
+			Mask:     ninesliceFromHex(widgetMaskColor),
+		},
+	}
 }
 
 type textResources struct {
@@ -250,14 +270,6 @@ type listResources struct {
 }
 
 func newListResources(fonts *fonts) *listResources {
-	idle := must(newImageFromFile("graphics/list-idle.png"))
-	disabled := must(newImageFromFile("graphics/list-disabled.png"))
-	mask := must(newImageFromFile("graphics/list-mask.png"))
-	trackIdle := must(newImageFromFile("graphics/list-track-idle.png"))
-	trackDisabled := must(newImageFromFile("graphics/list-track-disabled.png"))
-	handleIdle := must(newImageFromFile("graphics/slider-handle-idle.png"))
-	handleHover := must(newImageFromFile("graphics/slider-handle-hover.png"))
-
 	return &listResources{
 		face: fonts.face,
 		entryPadding: &widget.Insets{
@@ -266,27 +278,14 @@ func newListResources(fonts *fonts) *listResources {
 			Top:    2,
 			Bottom: 2,
 		},
-		image: &widget.ScrollContainerImage{
-			Idle:     image.NewNineSlice(idle, [3]int{25, 12, 22}, [3]int{25, 12, 25}),
-			Disabled: image.NewNineSlice(disabled, [3]int{25, 12, 22}, [3]int{25, 12, 25}),
-			Mask:     image.NewNineSlice(mask, [3]int{26, 10, 23}, [3]int{26, 10, 26}),
-		},
-		track: &widget.SliderTrackImage{
-			Idle:     image.NewNineSlice(trackIdle, [3]int{5, 0, 0}, [3]int{25, 12, 25}),
-			Hover:    image.NewNineSlice(trackIdle, [3]int{5, 0, 0}, [3]int{25, 12, 25}),
-			Disabled: image.NewNineSlice(trackDisabled, [3]int{0, 5, 0}, [3]int{25, 12, 25}),
-		},
+		image: res.base.scrollimg,
+		track: res.slider.trackImage,
 		trackPadding: &widget.Insets{
 			Top:    5,
 			Bottom: 24,
 		},
-		handle: &widget.ButtonImage{
-			Idle:     image.NewNineSliceSimple(handleIdle, 0, 5),
-			Hover:    image.NewNineSliceSimple(handleHover, 0, 5),
-			Pressed:  image.NewNineSliceSimple(handleHover, 0, 5),
-			Disabled: image.NewNineSliceSimple(handleIdle, 0, 5),
-		},
-		handleSize: constantutil.ConstantToPointer(5),
+		handle:     res.slider.handle,
+		handleSize: res.slider.handleSize,
 		entry: &widget.ListEntryColor{
 			Unselected:                 hex2color(textIdleColor),
 			DisabledUnselected:         hex2color(textDisabledColor),
@@ -463,42 +462,16 @@ type textAreaResources struct {
 }
 
 func newTextAreaResources(fonts *fonts) *textAreaResources {
-	idle := must(newImageFromFile("graphics/list-idle.png"))
-	disabled := must(newImageFromFile("graphics/list-disabled.png"))
-	mask := must(newImageFromFile("graphics/list-mask.png"))
-	trackIdle := must(newImageFromFile("graphics/list-track-idle.png"))
-	trackDisabled := must(newImageFromFile("graphics/list-track-disabled.png"))
-	handleIdle := must(newImageFromFile("graphics/slider-handle-idle.png"))
-	handleHover := must(newImageFromFile("graphics/slider-handle-hover.png"))
-
 	return &textAreaResources{
 		face:       fonts.face,
 		handleSize: constantutil.ConstantToPointer(5),
-
-		image: &widget.ScrollContainerImage{
-			Idle:     image.NewNineSlice(idle, [3]int{25, 12, 22}, [3]int{25, 12, 25}),
-			Disabled: image.NewNineSlice(disabled, [3]int{25, 12, 22}, [3]int{25, 12, 25}),
-			Mask:     image.NewNineSlice(mask, [3]int{26, 10, 23}, [3]int{26, 10, 26}),
-		},
-
-		track: &widget.SliderTrackImage{
-			Idle:     image.NewNineSlice(trackIdle, [3]int{5, 0, 0}, [3]int{25, 12, 25}),
-			Hover:    image.NewNineSlice(trackIdle, [3]int{5, 0, 0}, [3]int{25, 12, 25}),
-			Disabled: image.NewNineSlice(trackDisabled, [3]int{0, 5, 0}, [3]int{25, 12, 25}),
-		},
-
+		image:      res.base.scrollimg,
+		track:      res.slider.trackImage,
 		trackPadding: &widget.Insets{
 			Top:    5,
 			Bottom: 24,
 		},
-
-		handle: &widget.ButtonImage{
-			Idle:     image.NewNineSliceSimple(handleIdle, 0, 5),
-			Hover:    image.NewNineSliceSimple(handleHover, 0, 5),
-			Pressed:  image.NewNineSliceSimple(handleHover, 0, 5),
-			Disabled: image.NewNineSliceSimple(handleIdle, 0, 5),
-		},
-
+		handle: res.slider.handle,
 		entryPadding: &widget.Insets{
 			Left:   30,
 			Right:  30,

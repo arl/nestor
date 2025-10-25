@@ -32,7 +32,7 @@ func (s *configState) draw(screen *ebiten.Image) {
 }
 
 func (s *configState) createUI() {
-	rootContainer := widget.NewContainer(
+	root := widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.TrackHover(false)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(1),
@@ -44,8 +44,9 @@ func (s *configState) createUI() {
 			widget.GridLayoutOpts.Spacing(0, 20))),
 		widget.ContainerOpts.BackgroundImage(res.background))
 
-	rootContainer.AddChild(configContainer())
+	root.AddChild(configContainer())
 
+	// TODO: add a reset config button
 	footer := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 	)
@@ -65,9 +66,14 @@ func (s *configState) createUI() {
 		),
 	))
 
-	rootContainer.AddChild(footer)
+	root.AddChild(footer)
 
-	s.ui.Container = rootContainer
+	s.ui.Container = root
+}
+
+type page struct {
+	title   string
+	content widget.PreferredSizeLocateableWidget
 }
 
 func configContainer() widget.PreferredSizeLocateableWidget {
@@ -83,7 +89,8 @@ func configContainer() widget.PreferredSizeLocateableWidget {
 		)))
 
 	pages := []any{
-		inputPage(),
+		inputConfigPage(),
+		videoConfigPage(),
 	}
 
 	pageContainer := newPageContainer()
@@ -104,6 +111,7 @@ func configContainer() widget.PreferredSizeLocateableWidget {
 		widget.ListOpts.EntryFontFace(res.list.face),
 		widget.ListOpts.EntryTextPadding(res.list.entryPadding),
 		widget.ListOpts.HideHorizontalSlider(),
+		widget.ListOpts.HideVerticalSlider(),
 
 		widget.ListOpts.EntrySelectedHandler(func(args *widget.ListEntrySelectedEventArgs) {
 			pageContainer.setPage(args.Entry.(*page))
