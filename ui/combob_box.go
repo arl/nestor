@@ -14,7 +14,7 @@ type Combobox struct {
 	previdx int
 }
 
-func newCombobox(items []string, selidx int, layoutData any, onSelect func(item int)) *Combobox {
+func newCombobox(items []string, selidx int, layoutData any, selectHandler func(item int)) *Combobox {
 	indices := make([]any, 0, len(items))
 	for i := range items {
 		indices = append(indices, i)
@@ -35,12 +35,22 @@ func newCombobox(items []string, selidx int, layoutData any, onSelect func(item 
 		previdx: selidx,
 	}
 
+	handler := func(args *widget.ListComboButtonEntrySelectedEventArgs) {
+		idx := args.Entry.(int)
+		if selectHandler == nil ||
+			// avoid spurious events.
+			idx == combo.previdx {
+			return
+		}
+
+		selectHandler(idx)
+		combo.previdx = idx
+	}
+
 	combo.Widget = widget.NewListComboButton(
 		widget.ListComboButtonOpts.Entries(indices),
 		widget.ListComboButtonOpts.MaxContentHeight(150),
-		widget.ListComboButtonOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(layoutData),
-		),
+		widget.ListComboButtonOpts.WidgetOpts(widget.WidgetOpts.LayoutData(layoutData)),
 		widget.ListComboButtonOpts.ButtonParams(&widget.ButtonParams{
 			Image:       res.button.image,
 			TextPadding: res.comboButton.padding,
@@ -61,19 +71,9 @@ func newCombobox(items []string, selidx int, layoutData any, onSelect func(item 
 			EntryTextPadding: widget.NewInsetsSimple(5),
 			MinSize:          &goimage.Point{200, 0},
 		}),
-
 		widget.ListComboButtonOpts.EntryLabelFunc(fbtn, flist),
-		widget.ListComboButtonOpts.EntrySelectedHandler(func(args *widget.ListComboButtonEntrySelectedEventArgs) {
-			if onSelect == nil {
-				return
-			}
-
-			// avoid spurious events.
-			if idx := args.Entry.(int); idx != combo.previdx {
-				onSelect(idx)
-				combo.previdx = idx
-			}
-		}))
+		widget.ListComboButtonOpts.EntrySelectedHandler(handler),
+	)
 
 	combo.Widget.SetSelectedEntry(selidx)
 	return combo
