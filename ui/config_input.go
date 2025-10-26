@@ -141,16 +141,17 @@ func inputConfigPage(cfg *config.Config) *page {
 			})))
 
 	buttonsTable := newStaticTable(tableConfig{
-		headers: []string{"Button", "Assigned to"},
+		headers:  []string{"Button", "Assigned to"},
+		colAlign: []ColumnAlignment{CenterAlign, CenterAlign},
 		rows: [][]string{
 			{"Select", "F1"},
 			{"Start", "F2"},
 			{"B", "Space"},
 			{"A", ""},
-			{"UP", ""},
-			{"DOWN", ""},
-			{"LEFT", ""},
-			{"RIGHT", ""},
+			{"Up", ""},
+			{"Down", ""},
+			{"Left", ""},
+			{"Right", ""},
 		},
 		layoutData: widget.RowLayoutData{
 			Stretch: true,

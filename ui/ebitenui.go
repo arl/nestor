@@ -27,6 +27,14 @@ func ninesliceFromHex(val uint32) *image.NineSlice {
 	return image.NewNineSliceColor(hex2color(val))
 }
 
+func nineSliceBorderFromHex(width int, borderColor, bgColor uint32) *image.NineSlice {
+	return image.NewBorderedNineSliceColor(
+		hex2color(borderColor),
+		hex2color(bgColor),
+		width,
+	)
+}
+
 type pageContainer struct {
 	widget    widget.PreferredSizeLocateableWidget
 	titleText *widget.Text
