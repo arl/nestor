@@ -156,6 +156,8 @@ func inputConfigPage(cfg *config.Config) *page {
 		layoutData: widget.RowLayoutData{
 			Stretch: true,
 		},
+	}, func() {
+		c.RequestRelayout()
 	})
 
 	horizontalContainer.AddChild(paddleDisplay, buttonsTable)

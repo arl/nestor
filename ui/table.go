@@ -1,6 +1,10 @@
 package ui
 
-import "github.com/ebitenui/ebitenui/widget"
+import (
+	"fmt"
+
+	"github.com/ebitenui/ebitenui/widget"
+)
 
 type Table struct {
 	*widget.Container
@@ -29,7 +33,7 @@ type tableConfig struct {
 	layoutData any
 }
 
-func newStaticTable(cfg tableConfig) *Table {
+func newStaticTable(cfg tableConfig, relayout func()) *Table {
 	numcols := len(cfg.headers)
 	if len(cfg.colAlign) != numcols {
 		panic("number of column alignments does not match number of headers")
@@ -51,19 +55,34 @@ func newStaticTable(cfg tableConfig) *Table {
 		root.AddChild(headerCell(header))
 	}
 
-	for _, row := range cfg.rows {
-		for i, cell := range row {
-			align := widget.TextPosition(cfg.colAlign[i])
-			label := widget.NewLabel(
+	for irow, row := range cfg.rows {
+		for icell, cell := range row {
+			align := widget.TextPosition(cfg.colAlign[icell])
+
+			var container *widget.Container
+			var label *widget.Label
+
+			clickHandler := func(args *widget.WidgetMouseButtonClickedEventArgs) {
+				fmt.Printf("Clicked on cell: %d %d value: %s widget: %T %+v\n", irow, icell, cell, args.Widget, args.Widget)
+				label.Label = fmt.Sprintf("%s (clicked)", cell)
+				relayout()
+				relayout()
+				// root.RequestRelayout()
+			}
+
+			label = widget.NewLabel(
 				widget.LabelOpts.Text(cell, res.fonts.face, res.label.text),
 				widget.LabelOpts.TextOpts(
 					widget.TextOpts.Position(align, widget.TextPositionCenter),
-					widget.TextOpts.Padding(&widget.Insets{Top: 2, Bottom: 2, Left: 7, Right: 2})),
+					widget.TextOpts.Padding(&widget.Insets{Top: 2, Bottom: 2, Left: 7, Right: 2}),
+					widget.TextOpts.WidgetOpts(widget.WidgetOpts.MouseButtonClickedHandler(clickHandler)),
+				),
 			)
 
-			container := widget.NewContainer(
+			container = widget.NewContainer(
 				widget.ContainerOpts.BackgroundImage(nineSliceBorderFromHex(cellBorderWidth, cellBorderColor, tableCellColor)),
-				widget.ContainerOpts.Layout(widget.NewAnchorLayout()))
+				widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+				widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.MouseButtonClickedHandler(clickHandler)))
 
 			container.AddChild(label)
 			root.AddChild(container)
