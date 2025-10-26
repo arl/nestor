@@ -136,13 +136,12 @@ func inputConfigPage(cfg *config.Config) *page {
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.MinSize(400, 200),
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-				MaxWidth:  400,
+				MaxWidth:  300,
 				MaxHeight: 200,
 			})))
 
 	buttonsTable := newStaticTable(tableConfig{
-		headers:  []string{"Button", "Assigned to"},
-		colAlign: []ColumnAlignment{CenterAlign, CenterAlign},
+		headers: []string{"Button", "Assigned to"},
 		rows: [][]string{
 			{"Select", "F1"},
 			{"Start", "F2"},
@@ -153,11 +152,7 @@ func inputConfigPage(cfg *config.Config) *page {
 			{"Left", ""},
 			{"Right", ""},
 		},
-		layoutData: widget.RowLayoutData{
-			Stretch: true,
-		},
-	}, func() {
-		c.RequestRelayout()
+		layoutData: widget.RowLayoutData{Stretch: true},
 	})
 
 	horizontalContainer.AddChild(paddleDisplay, buttonsTable)

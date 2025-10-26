@@ -10,12 +10,12 @@ type Table struct {
 	*widget.Container
 }
 
-type ColumnAlignment widget.TextPosition
+type ColumnAlignment = widget.AnchorLayoutPosition
 
 const (
-	LeftAlign   ColumnAlignment = ColumnAlignment(widget.TextPositionStart)
-	CenterAlign ColumnAlignment = ColumnAlignment(widget.TextPositionCenter)
-	RightAlign  ColumnAlignment = ColumnAlignment(widget.TextPositionEnd)
+	LeftAlign   ColumnAlignment = widget.AnchorLayoutPositionStart
+	CenterAlign ColumnAlignment = widget.AnchorLayoutPositionCenter
+	RightAlign  ColumnAlignment = widget.AnchorLayoutPositionEnd
 )
 
 const (
@@ -26,18 +26,14 @@ const (
 )
 
 type tableConfig struct {
-	headers  []string
-	colAlign []ColumnAlignment
+	headers []string
 
 	rows       [][]string
 	layoutData any
 }
 
-func newStaticTable(cfg tableConfig, relayout func()) *Table {
+func newStaticTable(cfg tableConfig) *Table {
 	numcols := len(cfg.headers)
-	if len(cfg.colAlign) != numcols {
-		panic("number of column alignments does not match number of headers")
-	}
 	for _, row := range cfg.rows {
 		if len(row) != numcols {
 			panic("inconsistent number of columns in table rows")
@@ -45,9 +41,15 @@ func newStaticTable(cfg tableConfig, relayout func()) *Table {
 	}
 
 	root := widget.NewContainer(
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(cfg.layoutData)),
+		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(0xff0000)),
+
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(cfg.layoutData),
+			widget.WidgetOpts.MinSize(300, 0),
+		),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(numcols),
+			widget.GridLayoutOpts.DefaultStretch(true, false),
 			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(2)))))
 
 	// Table headers
@@ -57,52 +59,82 @@ func newStaticTable(cfg tableConfig, relayout func()) *Table {
 
 	for irow, row := range cfg.rows {
 		for icell, cell := range row {
-			align := widget.TextPosition(cfg.colAlign[icell])
-
-			var container *widget.Container
-			var label *widget.Label
-
-			clickHandler := func(args *widget.WidgetMouseButtonClickedEventArgs) {
-				fmt.Printf("Clicked on cell: %d %d value: %s widget: %T %+v\n", irow, icell, cell, args.Widget, args.Widget)
-				label.Label = fmt.Sprintf("%s (clicked)", cell)
-				relayout()
-				relayout()
-				// root.RequestRelayout()
+			handler := func(args *MouseClickArgs) {
+				textinput := args.Widget.CustomData.(*widget.TextInput)
+				textinput.SetText(fmt.Sprintf("(clicked) col %d row %d", icell, irow))
 			}
-
-			label = widget.NewLabel(
-				widget.LabelOpts.Text(cell, res.fonts.face, res.label.text),
-				widget.LabelOpts.TextOpts(
-					widget.TextOpts.Position(align, widget.TextPositionCenter),
-					widget.TextOpts.Padding(&widget.Insets{Top: 2, Bottom: 2, Left: 7, Right: 2}),
-					widget.TextOpts.WidgetOpts(widget.WidgetOpts.MouseButtonClickedHandler(clickHandler)),
-				),
-			)
-
-			container = widget.NewContainer(
-				widget.ContainerOpts.BackgroundImage(nineSliceBorderFromHex(cellBorderWidth, cellBorderColor, tableCellColor)),
-				widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-				widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.MouseButtonClickedHandler(clickHandler)))
-
-			container.AddChild(label)
-			root.AddChild(container)
+			root.AddChild(tableCell(cell, handler))
 		}
 	}
 
 	return &Table{Container: root}
 }
 
+func tableCell(text string, onclick func(*MouseClickArgs)) *widget.Container {
+	clickHandler := func(args *widget.WidgetMouseButtonClickedEventArgs) {
+		if onclick != nil {
+			onclick(args)
+		}
+	}
+
+	var textinput *widget.TextInput
+	textinput = widget.NewTextInput(
+		widget.TextInputOpts.Face(res.fonts.face),
+		widget.TextInputOpts.Padding(res.textInput.padding),
+		widget.TextInputOpts.Color(res.textInput.color),
+		widget.TextInputOpts.Placeholder("<unset>"),
+		widget.TextInputOpts.WidgetOpts(
+			widget.WidgetOpts.MouseButtonClickedHandler(clickHandler),
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				StretchHorizontal:  true,
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+			})))
+
+	textinput.SetText(text)
+	textinput.GetWidget().CustomData = textinput
+	textinput.GetWidget().Disabled = true
+
+	cellContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(nineSliceBorderFromHex(cellBorderWidth, cellBorderColor, tableCellColor)),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.WidgetOpts(
+			// widget.WidgetOpts.MouseButtonClickedHandler(clickHandler),
+			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+				HorizontalPosition: widget.GridLayoutPositionStart,
+				VerticalPosition:   widget.GridLayoutPositionCenter,
+			})))
+
+	cellContainer.AddChild(textinput)
+	return cellContainer
+}
+
 func headerCell(text string) *widget.Container {
+	padding := widget.Insets{Bottom: 10}
+
 	label := widget.NewLabel(
 		widget.LabelOpts.Text(text, res.fonts.boldFace, res.label.text),
+		widget.LabelOpts.LabelPadding(&padding),
 		widget.LabelOpts.TextOpts(
 			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-			widget.TextOpts.Padding(&widget.Insets{Top: 2, Bottom: 7, Left: 7, Right: 7})))
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+					StretchHorizontal:  true,
+					StretchVertical:    true,
+					HorizontalPosition: widget.AnchorLayoutPositionCenter,
+					VerticalPosition:   widget.AnchorLayoutPositionCenter,
+				}),
+			),
+		))
 
-	container := widget.NewContainer(
+	cellContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(nineSliceBorderFromHex(cellBorderWidth, cellBorderColor, headerCellColor)),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()))
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+			HorizontalPosition: widget.GridLayoutPositionCenter,
+			VerticalPosition:   widget.GridLayoutPositionCenter,
+		})),
+	)
 
-	container.AddChild(label)
-	return container
+	cellContainer.AddChild(label)
+	return cellContainer
 }
