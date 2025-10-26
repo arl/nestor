@@ -25,11 +25,9 @@ func newRunningState(app *app) *runningState {
 	return s
 }
 
-func (s *runningState) createUI() {}
-
-func (s *runningState) enter() {}
-
-func (s *runningState) exit() {}
+func (s *runningState) createUI()    {}
+func (s *runningState) enter(...any) {}
+func (s *runningState) exit()        {}
 
 func (s *runningState) update() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {

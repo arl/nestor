@@ -71,7 +71,7 @@ type appState interface {
 	createUI()
 	update()
 	draw(screen *ebiten.Image)
-	enter()
+	enter(...any)
 	exit()
 }
 
@@ -109,6 +109,7 @@ func newApp(ctx context.Context, cfg config.Config, initState string) *app {
 	app.states["paused"] = newPausedState(app)
 	app.states["rom_list"] = newRomListState(app)
 	app.states["config"] = newConfigState(app)
+	app.states["capture"] = newCaptureState(app)
 
 	app.curstate = app.states[initState]
 	app.curstate.enter()
@@ -158,12 +159,18 @@ func (app *app) exit() {
 }
 
 // setState defines the new application state, calling exit on the current and
-// enter on the new one. Not re-entrant.
-func (app *app) setState(name string) {
+// enter on the new one. Not re-entrant. Args are passed to the enter function
+// of the new state.
+func (app *app) setState(name string, args ...any) {
 	modUI.InfoZ("Switching to state").String("to", name).End()
 	app.curstate.exit()
-	app.curstate = app.states[name]
-	app.curstate.enter()
+	to, ok := app.states[name]
+	if !ok {
+		modUI.PanicZ("unknown state").String("state", name).End()
+		return
+	}
+	app.curstate = to
+	app.curstate.enter(args...)
 	app.curstate.createUI()
 }
 

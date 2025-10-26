@@ -3,8 +3,6 @@ package ui
 import (
 	"fmt"
 
-	"nestor/config"
-
 	"github.com/ebitenui/ebitenui/widget"
 )
 
@@ -35,7 +33,7 @@ const (
 	PUREBLUE  = 0x0000ff
 )
 
-func inputConfigPage(cfg *config.Config) *page {
+func (s *configState) inputConfigPage() *page {
 	c := newPageContentContainer()
 	c.SetBackgroundImage(res.background)
 
@@ -56,14 +54,14 @@ func inputConfigPage(cfg *config.Config) *page {
 
 	onPresetChanged := func(paddle int) func(int) {
 		return func(idx int) {
-			from := cfg.Input.Paddles[paddle].PaddlePreset
+			from := s.app.cfg.Input.Paddles[paddle].PaddlePreset
 			to := idx
 			modUI.InfoZ("changed paddle preset").
 				Int("paddle", paddle).
 				String("from", presets[from]).
 				String("to", presets[to]).
 				End()
-			cfg.Input.Paddles[paddle].PaddlePreset = uint(to)
+			s.app.cfg.Input.Paddles[paddle].PaddlePreset = uint(to)
 		}
 	}
 
@@ -77,7 +75,7 @@ func inputConfigPage(cfg *config.Config) *page {
 					VerticalPosition:   widget.GridLayoutPositionCenter,
 				}),
 			))),
-		newCombobox(presets, int(cfg.Input.Paddles[0].PaddlePreset),
+		newCombobox(presets, int(s.app.cfg.Input.Paddles[0].PaddlePreset),
 			widget.GridLayoutData{
 				HorizontalPosition: widget.GridLayoutPositionStart,
 				MaxWidth:           200,
@@ -93,7 +91,7 @@ func inputConfigPage(cfg *config.Config) *page {
 					VerticalPosition:   widget.GridLayoutPositionCenter,
 				}),
 			))),
-		newCombobox(presets, int(cfg.Input.Paddles[1].PaddlePreset),
+		newCombobox(presets, int(s.app.cfg.Input.Paddles[1].PaddlePreset),
 			widget.GridLayoutData{
 				HorizontalPosition: widget.GridLayoutPositionStart,
 				MaxWidth:           200,
@@ -140,7 +138,7 @@ func inputConfigPage(cfg *config.Config) *page {
 				MaxHeight: 200,
 			})))
 
-	buttonsTable := newStaticTable(tableConfig{
+	tablecfg := tableConfig{
 		headers: []string{"Button", "Assigned to"},
 		rows: [][]string{
 			{"Select", "F1"},
@@ -153,8 +151,14 @@ func inputConfigPage(cfg *config.Config) *page {
 			{"Right", ""},
 		},
 		layoutData: widget.RowLayoutData{Stretch: true},
-	})
+	}
 
+	assignButtonHandler := func(i, j int) {
+		fmt.Println("cell clicked", i, j)
+		s.app.setState("capture")
+	}
+
+	buttonsTable := newStaticTable(tablecfg, assignButtonHandler)
 	horizontalContainer.AddChild(paddleDisplay, buttonsTable)
 	middleContainer.AddChild(horizontalContainer)
 
@@ -171,7 +175,7 @@ func inputConfigPage(cfg *config.Config) *page {
 		widget.LabelOpts.Text("Currently configuring:", res.label.face, res.label.text),
 	)
 
-	currentPresetCombo := newCombobox(presets, int(cfg.Input.Paddles[0].PaddlePreset), widget.RowLayoutData{
+	currentPresetCombo := newCombobox(presets, int(s.app.cfg.Input.Paddles[0].PaddlePreset), widget.RowLayoutData{
 		MaxWidth: 200,
 	}, func(idx int) {
 		modUI.InfoZ("changed current preset").Int("preset", idx).End()

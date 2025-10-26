@@ -16,7 +16,7 @@ func newPausedState(app *app) *pausedState {
 	return s
 }
 
-func (s *pausedState) enter() {
+func (s *pausedState) enter(...any) {
 	ebiten.SetWindowTitle("Nestor <paused>")
 	modUI.InfoZ("Blocking emulator").End()
 	s.emulator.Block()

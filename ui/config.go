@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
@@ -21,7 +23,14 @@ func newConfigState(app *app) *configState {
 	return state
 }
 
-func (s *configState) enter() {}
+func (s *configState) enter(args ...any) {
+	if len(args) == 0 {
+		return
+	}
+
+	modUI.InfoZ("Config state entered with args").String("args", fmt.Sprintf("%+v", args)).End()
+}
+
 func (s *configState) exit() {
 	if err := config.Save(&s.app.cfg); err != nil {
 		modUI.ErrorZ("failed to save config").Error("err", err).End()
@@ -41,6 +50,7 @@ func (s *configState) draw(screen *ebiten.Image) {
 }
 
 func (s *configState) createUI() {
+	// root of the whole config UI.
 	root := widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.TrackHover(false)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
@@ -53,39 +63,7 @@ func (s *configState) createUI() {
 			widget.GridLayoutOpts.Spacing(0, 20))),
 		widget.ContainerOpts.BackgroundImage(res.background))
 
-	root.AddChild(configContainer(&s.app.cfg))
-
-	// TODO: add a reset config button
-	footer := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-	)
-
-	footer.AddChild(widget.NewButton(
-		widget.ButtonOpts.Text("Back to main menu", res.button.face, res.button.text),
-		widget.ButtonOpts.TextPadding(res.button.padding),
-		widget.ButtonOpts.Image(res.button.image),
-		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.app.setState("rom_list")
-		}),
-		widget.ButtonOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-				HorizontalPosition: widget.AnchorLayoutPositionCenter,
-				VerticalPosition:   widget.AnchorLayoutPositionCenter,
-			}),
-		),
-	))
-
-	root.AddChild(footer)
-
-	s.ui.Container = root
-}
-
-type page struct {
-	title   string
-	content widget.PreferredSizeLocateableWidget
-}
-
-func configContainer(cfg *config.Config) widget.PreferredSizeLocateableWidget {
+	// container for page list and page content.
 	container := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Padding(&widget.Insets{
@@ -94,12 +72,11 @@ func configContainer(cfg *config.Config) widget.PreferredSizeLocateableWidget {
 			}),
 			widget.GridLayoutOpts.Columns(2),
 			widget.GridLayoutOpts.Stretch([]bool{false, true}, []bool{true}),
-			widget.GridLayoutOpts.Spacing(20, 0),
-		)))
+			widget.GridLayoutOpts.Spacing(20, 0))))
 
 	pages := []any{
-		inputConfigPage(cfg),
-		videoConfigPage(cfg),
+		s.inputConfigPage(),
+		s.videoConfigPage(),
 	}
 
 	pageContainer := newPageContainer()
@@ -130,5 +107,33 @@ func configContainer(cfg *config.Config) widget.PreferredSizeLocateableWidget {
 	container.AddChild(pageList)
 	container.AddChild(pageContainer.widget)
 
-	return container
+	// TODO: add a reset config button
+	footer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	footer.AddChild(widget.NewButton(
+		widget.ButtonOpts.Text("Back to main menu", res.button.face, res.button.text),
+		widget.ButtonOpts.TextPadding(res.button.padding),
+		widget.ButtonOpts.Image(res.button.image),
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			s.app.setState("rom_list")
+		}),
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionCenter,
+			}),
+		),
+	))
+
+	root.AddChild(container)
+	root.AddChild(footer)
+
+	s.ui.Container = root
+}
+
+type page struct {
+	title   string
+	content widget.PreferredSizeLocateableWidget
 }

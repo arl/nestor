@@ -1,8 +1,6 @@
 package ui
 
-import "nestor/config"
-
-func videoConfigPage(cfg *config.Config) *page {
+func (s *configState) videoConfigPage() *page {
 	c := newPageContentContainer()
 
 	c.SetBackgroundImage(ninesliceFromHex(0x0000ff))

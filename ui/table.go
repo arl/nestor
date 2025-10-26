@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/ebitenui/ebitenui/widget"
 )
 
@@ -32,7 +30,7 @@ type tableConfig struct {
 	layoutData any
 }
 
-func newStaticTable(cfg tableConfig) *Table {
+func newStaticTable(cfg tableConfig, clickHandler func(i, j int)) *Table {
 	numcols := len(cfg.headers)
 	for _, row := range cfg.rows {
 		if len(row) != numcols {
@@ -60,8 +58,9 @@ func newStaticTable(cfg tableConfig) *Table {
 	for irow, row := range cfg.rows {
 		for icell, cell := range row {
 			handler := func(args *MouseClickArgs) {
-				textinput := args.Widget.CustomData.(*widget.TextInput)
-				textinput.SetText(fmt.Sprintf("(clicked) col %d row %d", icell, irow))
+				clickHandler(irow, icell)
+				// textinput := args.Widget.CustomData.(*widget.TextInput)
+				// textinput.SetText(fmt.Sprintf("(clicked) col %d row %d", icell, irow))
 			}
 			root.AddChild(tableCell(cell, handler))
 		}
@@ -98,7 +97,6 @@ func tableCell(text string, onclick func(*MouseClickArgs)) *widget.Container {
 		widget.ContainerOpts.BackgroundImage(nineSliceBorderFromHex(cellBorderWidth, cellBorderColor, tableCellColor)),
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 		widget.ContainerOpts.WidgetOpts(
-			// widget.WidgetOpts.MouseButtonClickedHandler(clickHandler),
 			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
 				HorizontalPosition: widget.GridLayoutPositionStart,
 				VerticalPosition:   widget.GridLayoutPositionCenter,

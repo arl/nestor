@@ -44,8 +44,8 @@ func (s *romList) startROM() {
 	}
 }
 
-func (s *romList) enter() {}
-func (s *romList) exit()  {}
+func (s *romList) enter(...any) {}
+func (s *romList) exit()        {}
 
 func (s *romList) update() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
