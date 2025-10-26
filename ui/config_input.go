@@ -43,14 +43,11 @@ func inputConfigPage(cfg *config.Config) *page {
 		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
 			Stretch: true,
 		})),
-
+		widget.ContainerOpts.BackgroundImage(res.background),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(4),
 			widget.GridLayoutOpts.DefaultStretch(false, true),
-			widget.GridLayoutOpts.Spacing(10, 0),
-		)),
-		widget.ContainerOpts.BackgroundImage(res.background),
-	)
+			widget.GridLayoutOpts.Spacing(10, 0))))
 
 	var presets []string
 	for i := 1; i <= 8; i++ {
@@ -79,8 +76,7 @@ func inputConfigPage(cfg *config.Config) *page {
 					HorizontalPosition: widget.GridLayoutPositionEnd,
 					VerticalPosition:   widget.GridLayoutPositionCenter,
 				}),
-			)),
-		),
+			))),
 		newCombobox(presets, int(cfg.Input.Paddles[0].PaddlePreset),
 			widget.GridLayoutData{
 				HorizontalPosition: widget.GridLayoutPositionStart,
@@ -96,8 +92,7 @@ func inputConfigPage(cfg *config.Config) *page {
 					HorizontalPosition: widget.GridLayoutPositionEnd,
 					VerticalPosition:   widget.GridLayoutPositionCenter,
 				}),
-			)),
-		),
+			))),
 		newCombobox(presets, int(cfg.Input.Paddles[1].PaddlePreset),
 			widget.GridLayoutData{
 				HorizontalPosition: widget.GridLayoutPositionStart,
@@ -138,68 +133,31 @@ func inputConfigPage(cfg *config.Config) *page {
 	// Interactive NES Paddle placeholder (white background, fixed size)
 	paddleDisplay := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(0xffffff)),
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-			MaxWidth:  400,
-			MaxHeight: 200,
-		})),
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.MinSize(400, 200)),
-	)
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.MinSize(400, 200),
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				MaxWidth:  400,
+				MaxHeight: 200,
+			})))
 
-	// Assignments table
-	tableContainer := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewGridLayout(
-			widget.GridLayoutOpts.Columns(2),
-			widget.GridLayoutOpts.Spacing(10, 5),
-			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(10)),
-		)),
-		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(0x333333)),
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+	buttonsTable := newStaticTable(tableConfig{
+		headers: []string{"Button", "Assigned to"},
+		rows: [][]string{
+			{"Select", "F1"},
+			{"Start", "F2"},
+			{"B", "Space"},
+			{"A", ""},
+			{"UP", ""},
+			{"DOWN", ""},
+			{"LEFT", ""},
+			{"RIGHT", ""},
+		},
+		layoutData: widget.RowLayoutData{
 			Stretch: true,
-		})),
-	)
+		},
+	})
 
-	// Table headers
-	headerBtnLabel := widget.NewLabel(
-		widget.LabelOpts.Text("Button", res.label.face, res.label.text),
-		widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
-	)
-	headerBtnContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(0x4a5f6f)),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-	)
-	headerBtnContainer.AddChild(headerBtnLabel)
-
-	headerAssignedLabel := widget.NewLabel(
-		widget.LabelOpts.Text("Assigned to", res.label.face, res.label.text),
-		widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
-	)
-	headerAssignedContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(0x4a5f6f)),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-	)
-	headerAssignedContainer.AddChild(headerAssignedLabel)
-
-	tableContainer.AddChild(headerBtnContainer, headerAssignedContainer)
-
-	// Table rows for each NES button
-	buttons := []string{"Select", "Start", "B", "A", "UP", "DOWN", "LEFT", "RIGHT"}
-	for _, btn := range buttons {
-		buttonLbl := widget.NewLabel(
-			widget.LabelOpts.Text(btn, res.label.face, res.label.text),
-			widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter)),
-		)
-		assignLbl := widget.NewLabel(
-			widget.LabelOpts.Text("AAA", res.label.face, res.label.text),
-			widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter)),
-		)
-		assignLbl.GetWidget().Disabled = true
-		tableContainer.AddChild(
-			buttonLbl,
-			assignLbl,
-		)
-	}
-
-	horizontalContainer.AddChild(paddleDisplay, tableContainer)
+	horizontalContainer.AddChild(paddleDisplay, buttonsTable)
 	middleContainer.AddChild(horizontalContainer)
 
 	// Bottom section: "Currently configuring" combobox
