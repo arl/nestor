@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"nestor/emu/log"
+	"nestor/hw"
 	"nestor/hw/input"
 	"nestor/ines"
 )
@@ -66,7 +67,7 @@ type Emulator struct {
 // Launch starts the various hardware subsystems, shows the window, setups the
 // video and audio streams and plugs controllers. It doesn't start the emulation
 // loop, call Run() for that.
-func Launch(rom *ines.Rom, cfg Config, out *Output, inp *input.Provider) (*Emulator, error) {
+func Launch(rom *ines.Rom, cfg Config, out *Output, inp hw.InputStateLoader) (*Emulator, error) {
 	nes, err := powerUp(rom)
 	if err != nil {
 		return nil, fmt.Errorf("power up failed: %s", err)

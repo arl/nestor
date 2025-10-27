@@ -6,81 +6,27 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
-// A PaddleButton identifies a button of a standard NES controller/paddle.
-type PaddleButton byte
-
-const (
-	PadA PaddleButton = iota
-	PadB
-	PadSelect
-	PadStart
-	PadUp
-	PadDown
-	PadLeft
-	PadRight
-
-	PadButtonCount
-)
-
-func (pd PaddleButton) String() string {
-	var buttonNames = [PadButtonCount]string{
-		"A", "B",
-		"Select", "Start",
-		"Up", "Down", "Left", "Right",
-	}
-	return buttonNames[pd]
-}
-
-// PaddlePreset holds the mapping configuration of a paddle.
-type PaddlePreset struct {
-	Buttons [PadButtonCount]Code `toml:"buttons"`
-}
-
-const numPresets = 8
-
-type Config struct {
-	Paddles [2]PaddleConfig          `toml:"paddles"`
-	Presets [numPresets]PaddlePreset `toml:"presets"`
-}
-
-func (cfg *Config) PostLoad() {
-	if cfg.Paddles[0].PaddlePreset >= numPresets {
-		cfg.Paddles[0].PaddlePreset = 0
-	}
-	if cfg.Paddles[1].PaddlePreset >= numPresets {
-		cfg.Paddles[1].PaddlePreset = 0
-	}
-	cfg.Paddles[0].Preset = &cfg.Presets[cfg.Paddles[0].PaddlePreset]
-	cfg.Paddles[1].Preset = &cfg.Presets[cfg.Paddles[1].PaddlePreset]
-}
-
-type PaddleConfig struct {
-	Plugged      bool          `toml:"plugged"`
-	PaddlePreset uint          `toml:"preset"`
-	Preset       *PaddlePreset `toml:"-"` // points to the current preset
-}
-
-type Provider struct {
+type EbitenInput struct {
 	keys [2][8]ebiten.Key
 
 	scratch [256]ebiten.Key
 	cfg     Config
 }
 
-func NewProvider(cfg Config) *Provider {
-	return &Provider{cfg: cfg}
+func NewEbitenInput(cfg Config) *EbitenInput {
+	return &EbitenInput{cfg: cfg}
 }
 
-func (ui *Provider) paddleState(idx int) uint8 {
-	padcfg := ui.cfg.Paddles[idx]
+func (ei *EbitenInput) state(idx int) uint8 {
+	padcfg := ei.cfg.Paddles[idx]
 	if !padcfg.Plugged {
 		// TODO: check this
 		return 0
 	}
 
-	preset := ui.cfg.Paddles[idx].Preset
+	preset := ei.cfg.Paddles[idx].Preset
 
-	keys := inpututil.AppendPressedKeys(ui.scratch[:0])
+	keys := inpututil.AppendPressedKeys(ei.scratch[:0])
 
 	state := uint8(0)
 	for i, code := range preset.Buttons {
@@ -109,6 +55,6 @@ func (ui *Provider) paddleState(idx int) uint8 {
 	return state
 }
 
-func (ui *Provider) LoadState() (uint8, uint8) {
-	return ui.paddleState(0), ui.paddleState(1)
+func (ei *EbitenInput) LoadState() (uint8, uint8) {
+	return ei.state(0), ei.state(1)
 }

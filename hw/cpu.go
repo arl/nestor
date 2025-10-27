@@ -7,7 +7,6 @@ import (
 	"nestor/hw/apu"
 	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
-	"nestor/hw/input"
 	"nestor/hw/snapshot"
 )
 
@@ -82,8 +81,8 @@ func (nopDebugger) WatchWrite(addr uint16, val uint16)         {}
 func (nopDebugger) Break(msg string)                           {}
 func (nopDebugger) FrameEnd()                                  {}
 
-func (c *CPU) PlugInputDevice(ip *input.Provider) {
-	c.input.provider = ip
+func (c *CPU) PlugInputDevice(ip InputStateLoader) {
+	c.input.loader = ip
 }
 
 func (c *CPU) InitBus() {

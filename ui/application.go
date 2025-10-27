@@ -218,7 +218,7 @@ func (app *app) Layout(outw, outh int) (screenw, screenh int) {
 }
 
 func (app *app) runRom(romPath string) error {
-	inputProvider := input.NewProvider(app.cfg.Input)
+	ebitenInput := input.NewEbitenInput(app.cfg.Input)
 
 	rom, err := ines.ReadROM(romPath)
 	if err != nil {
@@ -239,7 +239,7 @@ func (app *app) runRom(romPath string) error {
 		},
 	)
 
-	emulator, err := emu.Launch(rom, app.cfg.Config, out, inputProvider)
+	emulator, err := emu.Launch(rom, app.cfg.Config, out, ebitenInput)
 	if err != nil {
 		return fmt.Errorf("failed to launch emulator: %s", err)
 	}
@@ -258,7 +258,6 @@ func (app *app) runRom(romPath string) error {
 
 	go func() {
 		emulator.Run()
-		app.audioPlayer.Close()
 	}()
 
 	return nil
