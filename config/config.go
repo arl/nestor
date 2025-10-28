@@ -37,16 +37,15 @@ var defaultConfig = Config{
 			},
 			Presets: [8]input.PaddlePreset{
 				{
-					Buttons: [8]input.Code{
-						// TODO: change this to QWERTY layout?
-						{Scancode: ebiten.KeyW, Type: input.KeyboardCtrl},
-						{Scancode: ebiten.KeyQ, Type: input.KeyboardCtrl},
-						{Scancode: ebiten.KeyA, Type: input.KeyboardCtrl},
-						{Scancode: ebiten.KeyS, Type: input.KeyboardCtrl},
-						{Scancode: ebiten.KeyUp, Type: input.KeyboardCtrl},
-						{Scancode: ebiten.KeyDown, Type: input.KeyboardCtrl},
-						{Scancode: ebiten.KeyLeft, Type: input.KeyboardCtrl},
-						{Scancode: ebiten.KeyRight, Type: input.KeyboardCtrl},
+					Keyboard: &input.KeyboardMapping{
+						A:      ebiten.KeyS,
+						B:      ebiten.KeyA,
+						Select: ebiten.KeyQ,
+						Start:  ebiten.KeyW,
+						Up:     ebiten.KeyUp,
+						Down:   ebiten.KeyDown,
+						Left:   ebiten.KeyLeft,
+						Right:  ebiten.KeyRight,
 					},
 				},
 			},

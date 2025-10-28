@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 
+	"nestor/hw/input"
+
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -10,6 +12,8 @@ import (
 
 type captureState struct {
 	*app
+
+	gamepads []ebiten.GamepadID
 }
 
 func newCaptureState(app *app) *captureState {
@@ -25,13 +29,43 @@ func (s *captureState) enter(args ...any) {}
 func (s *captureState) exit()             {}
 
 func (s *captureState) update() {
+	// key press.
 	keys := inpututil.AppendJustPressedKeys(nil)
-
 	if len(keys) > 0 {
 		fmt.Println("keys:", keys)
-		s.app.setState("config", keys[0])
+		s.app.setState("config", input.Code{Type: input.KeyboardCtrl, Scancode: keys[0]})
+		return
 	}
-	// inpututil.AppendJustPressedGamepadButtons(id ebiten.GamepadID, buttons []ebiten.GamepadButton)
+
+	// pad button press.
+	numpads := len(s.gamepads)
+	s.gamepads = inpututil.AppendJustConnectedGamepadIDs(s.gamepads)
+	if len(s.gamepads) != numpads {
+		id := s.gamepads[len(s.gamepads)-1]
+		modUI.InfoZ("gamepad connected").
+			Int("id", int(id)).
+			String("name", ebiten.GamepadName(id)).
+			End()
+
+		fmt.Println("gamepad axis count:", ebiten.GamepadAxisCount(id))
+
+	}
+
+	for _, id := range s.gamepads {
+		buttons := inpututil.AppendJustPressedGamepadButtons(id, nil)
+		if len(buttons) > 0 {
+			btn := buttons[len(buttons)-1]
+			sdlid := ebiten.GamepadSDLID(id)
+
+			modUI.InfoZ("gamepad button pressed").
+				Int("gamepad_id", int(id)).
+				String("gamepad_sdlid", sdlid).
+				Int("button", int(btn)).
+				End()
+			s.app.setState("config", input.Code{Type: input.ButtonCtrl, GamepadSDLID: sdlid, GamepadButton: btn})
+			return
+		}
+	}
 
 	s.ui.Update()
 }

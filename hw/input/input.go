@@ -27,9 +27,10 @@ func (ei *EbitenInput) state(idx int) uint8 {
 	preset := ei.cfg.Paddles[idx].Preset
 
 	keys := inpututil.AppendPressedKeys(ei.scratch[:0])
+	buttons := preset.ToButtons()
 
 	state := uint8(0)
-	for i, code := range preset.Buttons {
+	for i, code := range buttons {
 		pressed := uint8(0)
 		switch code.Type {
 		case KeyboardCtrl:
