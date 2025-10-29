@@ -23,16 +23,21 @@ const (
 	cellBorderColor = 0x000000
 )
 
-type tableConfig struct {
-	headers []string
-
-	rows       [][]string
-	layoutData any
+type cell struct {
+	text      string
+	clickable bool
 }
 
-func newStaticTable(cfg tableConfig, clickHandler func(i, j int)) *Table {
+type tableConfig struct {
+	headers    []string
+	cells      [][]cell
+	layoutData any
+	onClick    func(i, j int)
+}
+
+func newStaticTable(cfg tableConfig) *Table {
 	numcols := len(cfg.headers)
-	for _, row := range cfg.rows {
+	for _, row := range cfg.cells {
 		if len(row) != numcols {
 			panic("inconsistent number of columns in table rows")
 		}
@@ -55,55 +60,19 @@ func newStaticTable(cfg tableConfig, clickHandler func(i, j int)) *Table {
 		root.AddChild(headerCell(header))
 	}
 
-	for irow, row := range cfg.rows {
+	for irow, row := range cfg.cells {
 		for icell, cell := range row {
-			handler := func(args *MouseClickArgs) {
-				clickHandler(irow, icell)
-				// textinput := args.Widget.CustomData.(*widget.TextInput)
-				// textinput.SetText(fmt.Sprintf("(clicked) col %d row %d", icell, irow))
+			var handler func(args *MouseClickArgs)
+			if cell.clickable && cfg.onClick != nil {
+				handler = func(args *MouseClickArgs) {
+					cfg.onClick(irow, icell)
+				}
 			}
-			root.AddChild(tableCell(cell, handler))
+			root.AddChild(tableCell(cell.text, handler))
 		}
 	}
 
 	return &Table{Container: root}
-}
-
-func tableCell(text string, onclick func(*MouseClickArgs)) *widget.Container {
-	clickHandler := func(args *widget.WidgetMouseButtonClickedEventArgs) {
-		if onclick != nil {
-			onclick(args)
-		}
-	}
-
-	var textinput *widget.TextInput
-	textinput = widget.NewTextInput(
-		widget.TextInputOpts.Face(res.fonts.face),
-		widget.TextInputOpts.Padding(res.textInput.padding),
-		widget.TextInputOpts.Color(res.textInput.color),
-		widget.TextInputOpts.Placeholder("<unset>"),
-		widget.TextInputOpts.WidgetOpts(
-			widget.WidgetOpts.MouseButtonClickedHandler(clickHandler),
-			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-				StretchHorizontal:  true,
-				HorizontalPosition: widget.AnchorLayoutPositionCenter,
-			})))
-
-	textinput.SetText(text)
-	textinput.GetWidget().CustomData = textinput
-	textinput.GetWidget().Disabled = true
-
-	cellContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(nineSliceBorderFromHex(cellBorderWidth, cellBorderColor, tableCellColor)),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
-				HorizontalPosition: widget.GridLayoutPositionStart,
-				VerticalPosition:   widget.GridLayoutPositionCenter,
-			})))
-
-	cellContainer.AddChild(textinput)
-	return cellContainer
 }
 
 func headerCell(text string) *widget.Container {
@@ -134,5 +103,42 @@ func headerCell(text string) *widget.Container {
 	)
 
 	cellContainer.AddChild(label)
+	return cellContainer
+}
+
+func tableCell(text string, onclick func(*MouseClickArgs)) *widget.Container {
+	widgetOpts := []widget.WidgetOpt{
+		widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+			StretchHorizontal:  true,
+			HorizontalPosition: widget.AnchorLayoutPositionCenter,
+		}),
+	}
+
+	if onclick != nil {
+		widgetOpts = append(widgetOpts, widget.WidgetOpts.MouseButtonClickedHandler(onclick))
+	}
+
+	var textinput *widget.TextInput
+	textinput = widget.NewTextInput(
+		widget.TextInputOpts.Face(res.fonts.face),
+		widget.TextInputOpts.Padding(res.textInput.padding),
+		widget.TextInputOpts.Color(res.textInput.color),
+		widget.TextInputOpts.Placeholder("<unset>"),
+		widget.TextInputOpts.WidgetOpts(widgetOpts...))
+
+	textinput.SetText(text)
+	textinput.GetWidget().CustomData = textinput
+	textinput.GetWidget().Disabled = true
+
+	cellContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(nineSliceBorderFromHex(cellBorderWidth, cellBorderColor, tableCellColor)),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+				HorizontalPosition: widget.GridLayoutPositionStart,
+				VerticalPosition:   widget.GridLayoutPositionCenter,
+			})))
+
+	cellContainer.AddChild(textinput)
 	return cellContainer
 }

@@ -13,7 +13,9 @@ import (
 type captureState struct {
 	*app
 
-	gamepads []ebiten.GamepadID
+	btn       input.PaddleButton // configured button
+	idxpreset int                // configured preset
+	gamepads  []ebiten.GamepadID
 }
 
 func newCaptureState(app *app) *captureState {
@@ -25,15 +27,25 @@ func newCaptureState(app *app) *captureState {
 	return state
 }
 
-func (s *captureState) enter(args ...any) {}
-func (s *captureState) exit()             {}
+func (s *captureState) enter(args ...any) {
+	s.btn = args[0].(input.PaddleButton)
+	s.idxpreset = args[1].(int)
+
+	modUI.InfoZ("Capture state entered").End()
+}
+
+func (s *captureState) exit() {}
 
 func (s *captureState) update() {
 	// key press.
 	keys := inpututil.AppendJustPressedKeys(nil)
 	if len(keys) > 0 {
 		fmt.Println("keys:", keys)
-		s.app.setState("config", input.Code{Type: input.KeyboardCtrl, Scancode: keys[0]})
+		var code *input.Code
+		if keys[0] != ebiten.KeyEscape {
+			code = &input.Code{Type: input.KeyboardCtrl, Scancode: keys[0]}
+		}
+		s.app.setState("config", s.btn, s.idxpreset, code)
 		return
 	}
 
@@ -48,7 +60,6 @@ func (s *captureState) update() {
 			End()
 
 		fmt.Println("gamepad axis count:", ebiten.GamepadAxisCount(id))
-
 	}
 
 	for _, id := range s.gamepads {

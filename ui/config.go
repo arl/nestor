@@ -8,6 +8,7 @@ import (
 	"golang.org/x/image/colornames"
 
 	"nestor/config"
+	"nestor/hw/input"
 )
 
 type configState struct {
@@ -27,6 +28,16 @@ func (s *configState) enter(args ...any) {
 	if len(args) == 0 {
 		return
 	}
+
+	btn := args[0].(input.PaddleButton)
+	idxpreset := args[1].(int)
+	code := args[2].(*input.Code)
+	if code == nil {
+		// do nothing
+		return
+	}
+
+	s.app.cfg.Input.Presets[idxpreset].AssignCode(btn, *code)
 
 	modUI.InfoZ("Config state entered with args").String("args", fmt.Sprintf("%+v", args)).End()
 }

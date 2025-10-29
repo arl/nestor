@@ -42,6 +42,7 @@ func (mc Code) Name() string {
 	case KeyboardCtrl:
 		return mc.Scancode.String()
 	case ButtonCtrl:
+		panic("TODO")
 		// TODO
 		// return sdl.GameControllerGetStringForButton(mc.CtrlButton)
 	}

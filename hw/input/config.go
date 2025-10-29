@@ -29,14 +29,35 @@ func (pd PaddleButton) String() string {
 }
 
 type KeyboardMapping struct {
-	A      ebiten.Key `toml:"a,omitempty"`
-	B      ebiten.Key `toml:"b,omitempty"`
-	Select ebiten.Key `toml:"select,omitempty"`
-	Start  ebiten.Key `toml:"start,omitempty"`
-	Up     ebiten.Key `toml:"up,omitempty"`
-	Down   ebiten.Key `toml:"down,omitempty"`
-	Left   ebiten.Key `toml:"left,omitempty"`
-	Right  ebiten.Key `toml:"right,omitempty"`
+	A      ebiten.Key `toml:"a"`
+	B      ebiten.Key `toml:"b"`
+	Select ebiten.Key `toml:"select"`
+	Start  ebiten.Key `toml:"start"`
+	Up     ebiten.Key `toml:"up"`
+	Down   ebiten.Key `toml:"down"`
+	Left   ebiten.Key `toml:"left"`
+	Right  ebiten.Key `toml:"right"`
+}
+
+func (km *KeyboardMapping) assign(btn PaddleButton, code Code) {
+	switch btn {
+	case PadA:
+		km.A = code.Scancode
+	case PadB:
+		km.B = code.Scancode
+	case PadSelect:
+		km.Select = code.Scancode
+	case PadStart:
+		km.Start = code.Scancode
+	case PadUp:
+		km.Up = code.Scancode
+	case PadDown:
+		km.Down = code.Scancode
+	case PadLeft:
+		km.Left = code.Scancode
+	case PadRight:
+		km.Right = code.Scancode
+	}
 }
 
 type GamepadMapping struct {
@@ -49,6 +70,27 @@ type GamepadMapping struct {
 	Down         ebiten.GamepadButton `toml:"down"`
 	Left         ebiten.GamepadButton `toml:"left"`
 	Right        ebiten.GamepadButton `toml:"right"`
+}
+
+func (km *GamepadMapping) assign(btn PaddleButton, code Code) {
+	switch btn {
+	case PadA:
+		km.A = code.GamepadButton
+	case PadB:
+		km.B = code.GamepadButton
+	case PadSelect:
+		km.Select = code.GamepadButton
+	case PadStart:
+		km.Start = code.GamepadButton
+	case PadUp:
+		km.Up = code.GamepadButton
+	case PadDown:
+		km.Down = code.GamepadButton
+	case PadLeft:
+		km.Left = code.GamepadButton
+	case PadRight:
+		km.Right = code.GamepadButton
+	}
 }
 
 type PaddlePreset struct {
@@ -82,6 +124,29 @@ func (p *PaddlePreset) ToButtons() [PadButtonCount]Code {
 	}
 
 	return btns
+}
+
+func (p *PaddlePreset) AssignCode(btn PaddleButton, code Code) {
+	switch code.Type {
+	case KeyboardCtrl:
+		if p.Keyboard == nil {
+			p.Keyboard = &KeyboardMapping{}
+		}
+		p.Keyboard.assign(btn, code)
+
+	case ButtonCtrl:
+		if p.Gamepad == nil {
+			p.Gamepad = &GamepadMapping{}
+			p.Gamepad.GamepadSDLID = code.GamepadSDLID
+		} else {
+			// do not mix gamepad ids so start anew if different
+			if p.Gamepad.GamepadSDLID != code.GamepadSDLID {
+				p.Gamepad = &GamepadMapping{}
+				p.Gamepad.GamepadSDLID = code.GamepadSDLID
+			}
+		}
+		p.Gamepad.assign(btn, code)
+	}
 }
 
 const numPresets = 8

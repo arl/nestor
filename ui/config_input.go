@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 
+	"nestor/hw/input"
+
 	"github.com/ebitenui/ebitenui/widget"
 )
 
@@ -138,27 +140,37 @@ func (s *configState) inputConfigPage() *page {
 				MaxHeight: 200,
 			})))
 
+	currentPresetCombo := newCombobox(presets, int(s.app.cfg.Input.Paddles[0].PaddlePreset), widget.RowLayoutData{
+		MaxWidth: 200,
+	}, func(idx int) {
+		modUI.InfoZ("changed current preset").Int("preset", idx).End()
+	})
+
+	idxpreset := currentPresetCombo.SelectedIndex()
+	codes := s.app.cfg.Input.Presets[idxpreset].ToButtons()
+
+	cells := [][]cell{
+		{{text: "A"}, {text: codes[input.PadA].Name(), clickable: true}},
+		{{text: "B"}, {text: codes[input.PadB].Name(), clickable: true}},
+		{{text: "Select"}, {text: codes[input.PadSelect].Name(), clickable: true}},
+		{{text: "Start"}, {text: codes[input.PadStart].Name(), clickable: true}},
+		{{text: "UP"}, {text: codes[input.PadUp].Name(), clickable: true}},
+		{{text: "DOWN"}, {text: codes[input.PadDown].Name(), clickable: true}},
+		{{text: "LEFT"}, {text: codes[input.PadLeft].Name(), clickable: true}},
+		{{text: "RIGHT"}, {text: codes[input.PadRight].Name(), clickable: true}},
+	}
+
 	tablecfg := tableConfig{
-		headers: []string{"Button", "Assigned to"},
-		rows: [][]string{
-			{"Select", "F1"},
-			{"Start", "F2"},
-			{"B", "Space"},
-			{"A", ""},
-			{"Up", ""},
-			{"Down", ""},
-			{"Left", ""},
-			{"Right", ""},
-		},
+		headers:    []string{"Button", "Assigned to"},
+		cells:      cells,
 		layoutData: widget.RowLayoutData{Stretch: true},
+		onClick: func(i, j int) {
+			fmt.Println("cell clicked", i, input.PaddleButton(i))
+			s.app.setState("capture", input.PaddleButton(i), idxpreset)
+		},
 	}
 
-	assignButtonHandler := func(i, j int) {
-		fmt.Println("cell clicked", i, j)
-		s.app.setState("capture")
-	}
-
-	buttonsTable := newStaticTable(tablecfg, assignButtonHandler)
+	buttonsTable := newStaticTable(tablecfg)
 	horizontalContainer.AddChild(paddleDisplay, buttonsTable)
 	middleContainer.AddChild(horizontalContainer)
 
@@ -174,12 +186,6 @@ func (s *configState) inputConfigPage() *page {
 	currentlyConfiguringLabel := widget.NewLabel(
 		widget.LabelOpts.Text("Currently configuring:", res.label.face, res.label.text),
 	)
-
-	currentPresetCombo := newCombobox(presets, int(s.app.cfg.Input.Paddles[0].PaddlePreset), widget.RowLayoutData{
-		MaxWidth: 200,
-	}, func(idx int) {
-		modUI.InfoZ("changed current preset").Int("preset", idx).End()
-	})
 
 	bottomContainer.AddChild(currentlyConfiguringLabel, currentPresetCombo)
 

@@ -11,7 +11,7 @@ type Combobox struct {
 	items   []string
 	indices []any
 
-	previdx int
+	idx int
 }
 
 func newCombobox(items []string, selidx int, layoutData any, selectHandler func(item int)) *Combobox {
@@ -32,19 +32,19 @@ func newCombobox(items []string, selidx int, layoutData any, selectHandler func(
 	combo := &Combobox{
 		items:   items,
 		indices: indices,
-		previdx: selidx,
+		idx:     selidx,
 	}
 
 	handler := func(args *widget.ListComboButtonEntrySelectedEventArgs) {
 		idx := args.Entry.(int)
 		if selectHandler == nil ||
 			// avoid spurious events.
-			idx == combo.previdx {
+			idx == combo.idx {
 			return
 		}
 
 		selectHandler(idx)
-		combo.previdx = idx
+		combo.idx = idx
 	}
 
 	combo.ListComboButton = widget.NewListComboButton(
@@ -77,4 +77,8 @@ func newCombobox(items []string, selidx int, layoutData any, selectHandler func(
 
 	combo.ListComboButton.SetSelectedEntry(selidx)
 	return combo
+}
+
+func (c *Combobox) SelectedIndex() int {
+	return c.idx
 }
