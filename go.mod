@@ -12,7 +12,6 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/hajimehoshi/ebiten/v2 v2.9.1
 	github.com/tinylib/msgp v1.3.0
-	github.com/veandco/go-sdl2 v0.5.0-alpha.6.0.20240902114001-f9a623944236
 	golang.org/x/image v0.31.0
 	golang.org/x/sync v0.17.0
 	gopkg.in/Sirupsen/logrus.v0 v0.11.5
