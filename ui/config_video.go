@@ -2,8 +2,7 @@ package ui
 
 func (s *configState) videoConfigPage() *page {
 	c := newPageContentContainer()
-
-	c.SetBackgroundImage(ninesliceFromHex(0x0000ff))
+	c.SetBackgroundImage(res.panel.image)
 
 	return &page{title: "Video", content: c}
 }

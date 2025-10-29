@@ -44,7 +44,7 @@ func newStaticTable(cfg tableConfig) *Table {
 	}
 
 	root := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(0xff0000)),
+		// widget.ContainerOpts.BackgroundImage(ninesliceFromHex(0xff0000)),
 
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(cfg.layoutData),

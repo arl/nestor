@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"fmt"
-
 	"nestor/hw/input"
 
 	"github.com/ebitenui/ebitenui/widget"
@@ -38,42 +36,47 @@ func (s *captureState) exit() {}
 
 func (s *captureState) update() {
 	// key press.
-	keys := inpututil.AppendJustPressedKeys(nil)
-	if len(keys) > 0 {
-		fmt.Println("keys:", keys)
-		var code *input.Code
-		if keys[0] != ebiten.KeyEscape {
-			code = &input.Code{Type: input.KeyboardCtrl, Scancode: keys[0]}
+	if keys := inpututil.AppendJustPressedKeys(nil); len(keys) > 0 {
+		if keys[0] == ebiten.KeyEscape {
+			s.app.setState("config", s.btn, s.idxpreset, nil)
+			return
 		}
-		s.app.setState("config", s.btn, s.idxpreset, code)
+
+		modUI.InfoZ("key pressed").
+			Int("code", int(keys[0])).
+			String("key", keys[0].String()).
+			End()
+
+		code := input.Code{
+			Type:     input.Keyboard,
+			Scancode: keys[0],
+		}
+		s.app.setState("config", s.btn, s.idxpreset, &code)
+
 		return
 	}
 
 	// pad button press.
-	numpads := len(s.gamepads)
-	s.gamepads = inpututil.AppendJustConnectedGamepadIDs(s.gamepads)
-	if len(s.gamepads) != numpads {
-		id := s.gamepads[len(s.gamepads)-1]
-		modUI.InfoZ("gamepad connected").
-			Int("id", int(id)).
-			String("name", ebiten.GamepadName(id)).
-			End()
-
-		fmt.Println("gamepad axis count:", ebiten.GamepadAxisCount(id))
-	}
-
+	s.gamepads = ebiten.AppendGamepadIDs(s.gamepads[:0])
 	for _, id := range s.gamepads {
-		buttons := inpututil.AppendJustPressedGamepadButtons(id, nil)
-		if len(buttons) > 0 {
-			btn := buttons[len(buttons)-1]
+		padbuttons := inpututil.AppendJustPressedGamepadButtons(id, nil)
+		if len(padbuttons) > 0 {
+			padbtn := padbuttons[len(padbuttons)-1]
 			sdlid := ebiten.GamepadSDLID(id)
 
 			modUI.InfoZ("gamepad button pressed").
-				Int("gamepad_id", int(id)).
-				String("gamepad_sdlid", sdlid).
-				Int("button", int(btn)).
+				Int("id", int(id)).
+				String("sdlid", sdlid).
+				Int("button", int(padbtn)).
 				End()
-			s.app.setState("config", input.Code{Type: input.ButtonCtrl, GamepadSDLID: sdlid, GamepadButton: btn})
+
+			code := input.Code{
+				Type:          input.PadButton,
+				GamepadSDLID:  sdlid,
+				GamepadButton: padbtn,
+			}
+			s.app.setState("config", s.btn, s.idxpreset, &code)
+
 			return
 		}
 	}

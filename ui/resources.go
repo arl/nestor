@@ -2,11 +2,13 @@ package ui
 
 import (
 	"image/color"
+	_ "image/png"
 
 	"nestor/assets"
 
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
@@ -52,7 +54,8 @@ type uiResources struct {
 
 	separatorColor color.Color
 
-	base *baseResources
+	base   *baseResources
+	images *imageResources
 
 	text        *textResources
 	button      *buttonResources
@@ -76,6 +79,7 @@ func initResources() {
 	fonts := loadFonts()
 
 	res = &uiResources{}
+	res.images = newImageResources()
 	res.separatorColor = hex2color(separatorColor)
 	res.base = newBaseResources()
 	res.background = ninesliceFromHex(backgroundColor)
@@ -94,6 +98,22 @@ func initResources() {
 	res.textInput = newTextInputResources(fonts)
 	res.textArea = newTextAreaResources(fonts)
 	res.toolTip = newToolTipResources(fonts)
+}
+
+type imageResources struct {
+	paddle    *image.NineSlice
+	paddleimg *ebiten.Image
+}
+
+func newImageResources() *imageResources {
+	paddleimg, _, err := ebitenutil.NewImageFromFileSystem(assets.FS, "graphics/nes-paddle.png")
+	if err != nil {
+		panic(err)
+	}
+	return &imageResources{
+		paddle:    image.NewFixedNineSlice(paddleimg),
+		paddleimg: paddleimg,
+	}
 }
 
 type baseResources struct {

@@ -33,7 +33,7 @@ func (ei *EbitenInput) state(idx int) uint8 {
 	for i, code := range buttons {
 		pressed := uint8(0)
 		switch code.Type {
-		case KeyboardCtrl:
+		case Keyboard:
 			for _, k := range keys {
 				if k == code.Scancode {
 					pressed = 1

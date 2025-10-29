@@ -56,7 +56,7 @@ func newCombobox(items []string, selidx int, layoutData any, selectHandler func(
 			TextPadding: res.comboButton.padding,
 			TextColor:   res.button.text,
 			TextFace:    res.comboButton.face,
-			MinSize:     &goimage.Point{200, 0},
+			MinSize:     &goimage.Point{150, 0},
 		}),
 		widget.ListComboButtonOpts.ListParams(&widget.ListParams{
 			ScrollContainerImage: res.list.image,
@@ -69,7 +69,7 @@ func newCombobox(items []string, selidx int, layoutData any, selectHandler func(
 			EntryFace:        res.fonts.small,
 			EntryColor:       res.list.entry,
 			EntryTextPadding: widget.NewInsetsSimple(5),
-			MinSize:          &goimage.Point{200, 0},
+			MinSize:          &goimage.Point{150, 0},
 		}),
 		widget.ListComboButtonOpts.EntryLabelFunc(fbtn, flist),
 		widget.ListComboButtonOpts.EntrySelectedHandler(handler),

@@ -13,6 +13,8 @@ import (
 
 type configState struct {
 	*app
+
+	presetidx int
 }
 
 func newConfigState(app *app) *configState {
