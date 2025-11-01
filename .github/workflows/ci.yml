@@ -28,20 +28,12 @@ jobs:
       - name: Dependencies
         run: >-
           sudo apt-get update &&
-          sudo apt-get install
-          gcc
-          libasound2-dev
-          libc6-dev
-          libgl1-mesa-dev
-          libxcursor-dev
-          libxi-dev
-          libxinerama-dev
-          libxrandr-dev
-          libxxf86vm-dev
-          pkg-config
+          sudo apt-get install libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
 
-      # Run tests, with export DISPLAY=:0
+      # Run tests
       - name: Run tests
         env:
-          DISPLAY: ":0"
-        run: go test -shuffle=on ./...
+          DISPLAY: ":99.0"
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          go test -shuffle=on ./...
