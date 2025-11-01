@@ -59,17 +59,17 @@ type PaddlePreset struct {
 	Gamepad  *GamepadMapping  `toml:"gamepad,omitempty"`
 }
 
-const unsetKey = ebiten.Key(-1)
+const UnsetKey = ebiten.Key(-1)
 
 var unsetKeyboardMapping = KeyboardMapping{
-	A:      unsetKey,
-	B:      unsetKey,
-	Select: unsetKey,
-	Start:  unsetKey,
-	Up:     unsetKey,
-	Down:   unsetKey,
-	Left:   unsetKey,
-	Right:  unsetKey,
+	A:      UnsetKey,
+	B:      UnsetKey,
+	Select: UnsetKey,
+	Start:  UnsetKey,
+	Up:     UnsetKey,
+	Down:   UnsetKey,
+	Left:   UnsetKey,
+	Right:  UnsetKey,
 }
 
 func ptrTo[T any](v T) *T {
@@ -148,6 +148,14 @@ func (p *PaddlePreset) AssignCode(btn PaddleButton, code Code) {
 			}
 		}
 		p.Gamepad.assign(btn, code)
+	case UnsetType:
+		// unassign mapping.
+		switch {
+		case p.Keyboard != nil:
+			p.Keyboard.assign(btn, code)
+		case p.Gamepad != nil:
+			p.Gamepad.assign(btn, code)
+		}
 	}
 }
 

@@ -29,7 +29,7 @@ type Code struct {
 func (mc Code) Name() string {
 	switch mc.Type {
 	case Keyboard:
-		if mc.Scancode != unsetKey {
+		if mc.Scancode != UnsetKey {
 			return "[ " + mc.Scancode.String() + " ]"
 		}
 	case PadButton:
@@ -48,7 +48,7 @@ func (mc Code) Name() string {
 func KeyFromString(s string) ebiten.Key {
 	var k ebiten.Key
 	if err := k.UnmarshalText([]byte(s)); err != nil {
-		return unsetKey
+		return UnsetKey
 	}
 
 	return k
