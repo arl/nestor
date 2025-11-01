@@ -37,22 +37,23 @@ func (s *captureState) exit() {}
 func (s *captureState) update() {
 	// key press.
 	if keys := inpututil.AppendJustPressedKeys(nil); len(keys) > 0 {
-		if keys[0] == ebiten.KeyEscape {
-			s.app.setState("config", s.btn, s.idxpreset, nil)
-			return
-		}
-
 		modUI.InfoZ("key pressed").
 			Int("code", int(keys[0])).
 			String("key", keys[0].String()).
 			End()
 
 		code := input.Code{
-			Type:     input.Keyboard,
-			Scancode: keys[0],
+			Type:     input.UnsetType,
+			Scancode: input.UnsetKey,
 		}
-		s.app.setState("config", s.btn, s.idxpreset, &code)
+		if keys[0] != ebiten.KeyEscape {
+			code = input.Code{
+				Type:     input.Keyboard,
+				Scancode: keys[0],
+			}
+		}
 
+		s.app.setState("config", s.btn, s.idxpreset, &code)
 		return
 	}
 
@@ -70,12 +71,11 @@ func (s *captureState) update() {
 				Int("button", int(padbtn)).
 				End()
 
-			code := input.Code{
+			s.app.setState("config", s.btn, s.idxpreset, &input.Code{
 				Type:          input.PadButton,
 				GamepadSDLID:  sdlid,
 				GamepadButton: padbtn,
-			}
-			s.app.setState("config", s.btn, s.idxpreset, &code)
+			})
 
 			return
 		}
@@ -94,7 +94,7 @@ func (s *captureState) createUI() {
 	)
 
 	root.AddChild(widget.NewLabel(
-		widget.LabelOpts.Text("Capture Mode - Press any key or button", res.fonts.boldFace, &widget.LabelColor{Idle: hex2color(0xFFFFFF)}),
+		widget.LabelOpts.Text("Capture Mode - Press any key or button", res.fonts.boldFace, res.label.text),
 		widget.LabelOpts.TextOpts(widget.TextOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
 				HorizontalPosition: widget.AnchorLayoutPositionCenter,
