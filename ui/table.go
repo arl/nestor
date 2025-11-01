@@ -44,11 +44,9 @@ func newStaticTable(cfg tableConfig) *Table {
 	}
 
 	root := widget.NewContainer(
-		// widget.ContainerOpts.BackgroundImage(ninesliceFromHex(0xff0000)),
-
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(cfg.layoutData),
-			widget.WidgetOpts.MinSize(300, 0),
+			widget.WidgetOpts.MinSize(280, 0),
 		),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(numcols),
@@ -99,8 +97,7 @@ func headerCell(text string) *widget.Container {
 		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.GridLayoutData{
 			HorizontalPosition: widget.GridLayoutPositionCenter,
 			VerticalPosition:   widget.GridLayoutPositionCenter,
-		})),
-	)
+		})))
 
 	cellContainer.AddChild(label)
 	return cellContainer
@@ -111,8 +108,7 @@ func tableCell(text string, onclick func(*MouseClickArgs)) *widget.Container {
 		widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
 			StretchHorizontal:  true,
 			HorizontalPosition: widget.AnchorLayoutPositionCenter,
-		}),
-	}
+		})}
 
 	if onclick != nil {
 		widgetOpts = append(widgetOpts, widget.WidgetOpts.MouseButtonClickedHandler(onclick))

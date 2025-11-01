@@ -45,19 +45,16 @@ func (s *configState) inputConfigPage() *page {
 	presetPaddlesBlock := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Spacing(spacing),
-		)))
+			widget.RowLayoutOpts.Spacing(spacing))))
 
 	line1.AddChild(
 		presetPaddlesBlock,
-		widget.NewGraphic(widget.GraphicOpts.Image(res.images.paddleimg)),
-	)
+		widget.NewGraphic(widget.GraphicOpts.Image(res.images.paddleimg)))
 
 	// selection preset paddle 1.
 	presetPaddle1 := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
-		)))
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal))))
 
 	presetPaddlesBlock.AddChild(presetPaddle1)
 
@@ -69,22 +66,18 @@ func (s *configState) inputConfigPage() *page {
 				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
 					HorizontalPosition: widget.GridLayoutPositionEnd,
 					VerticalPosition:   widget.GridLayoutPositionCenter,
-				}),
-			))),
+				})))),
 		newCombobox(presets, int(s.app.cfg.Input.Paddles[0].PaddlePreset),
 			widget.GridLayoutData{
 				HorizontalPosition: widget.GridLayoutPositionStart,
 				MaxWidth:           200,
 			},
-			onPresetChanged(0),
-		),
-	)
+			onPresetChanged(0)))
 
 	// selection preset paddle 2.
 	presetPaddle2 := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
-		)))
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal))))
 
 	presetPaddlesBlock.AddChild(presetPaddle2)
 
@@ -96,25 +89,21 @@ func (s *configState) inputConfigPage() *page {
 				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
 					HorizontalPosition: widget.GridLayoutPositionEnd,
 					VerticalPosition:   widget.GridLayoutPositionCenter,
-				}),
-			))),
+				})))),
 		newCombobox(presets, int(s.app.cfg.Input.Paddles[1].PaddlePreset),
 			widget.GridLayoutData{
 				HorizontalPosition: widget.GridLayoutPositionStart,
 				MaxWidth:           200,
 			},
-			onPresetChanged(1),
-		),
-	)
+			onPresetChanged(1)))
 
 	// 2nd line.
 	line2 := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
-			widget.RowLayoutOpts.Spacing(spacing*2),
-		)))
+			widget.RowLayoutOpts.Spacing(spacing*5))))
 
-	// currently configured preset..
+	// currently configured preset.
 	var currentPresetCombo *Combobox
 	currentPresetCombo = newCombobox(presets, s.presetidx, widget.RowLayoutData{
 		MaxWidth: 200,
@@ -137,8 +126,7 @@ func (s *configState) inputConfigPage() *page {
 				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
 					HorizontalPosition: widget.GridLayoutPositionEnd,
 					VerticalPosition:   widget.GridLayoutPositionCenter,
-				}),
-			))),
+				})))),
 		currentPresetCombo,
 	)
 
@@ -146,10 +134,10 @@ func (s *configState) inputConfigPage() *page {
 	codes := s.app.cfg.Input.Presets[s.presetidx].ToButtons()
 
 	cells := [][]cell{
-		{{text: "A"}, {text: codes[input.PadA].Name(), clickable: true}},
-		{{text: "B"}, {text: codes[input.PadB].Name(), clickable: true}},
 		{{text: "SELECT"}, {text: codes[input.PadSelect].Name(), clickable: true}},
 		{{text: "START"}, {text: codes[input.PadStart].Name(), clickable: true}},
+		{{text: "B"}, {text: codes[input.PadB].Name(), clickable: true}},
+		{{text: "A"}, {text: codes[input.PadA].Name(), clickable: true}},
 		{{text: "UP"}, {text: codes[input.PadUp].Name(), clickable: true}},
 		{{text: "DOWN"}, {text: codes[input.PadDown].Name(), clickable: true}},
 		{{text: "LEFT"}, {text: codes[input.PadLeft].Name(), clickable: true}},
@@ -171,7 +159,7 @@ func (s *configState) inputConfigPage() *page {
 
 	bottomlabel := widget.NewLabel(
 		widget.LabelOpts.Text("Click in the table to define mappings", res.label.face, res.label.text),
-		widget.LabelOpts.LabelPadding(&widget.Insets{Left: 220}))
+		widget.LabelOpts.LabelPadding(&widget.Insets{Left: 275}))
 
 	c.AddChild(
 		line1,

@@ -96,8 +96,8 @@ func newSeparator(ld any) widget.PreferredSizeLocateableWidget {
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
 			widget.RowLayoutOpts.Padding(&widget.Insets{
-				Top:    20,
-				Bottom: 20,
+				Top:    10,
+				Bottom: 10,
 			}))),
 		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(ld)))
 
