@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"nestor/config"
 	"nestor/hw/input"
 
 	"github.com/ebitenui/ebitenui/widget"
@@ -35,6 +36,8 @@ func (s *captureState) enter(args ...any) {
 func (s *captureState) exit() {}
 
 func (s *captureState) update() {
+	var code *input.Code
+
 	// key press.
 	if keys := inpututil.AppendJustPressedKeys(nil); len(keys) > 0 {
 		modUI.InfoZ("key pressed").
@@ -42,19 +45,17 @@ func (s *captureState) update() {
 			String("key", keys[0].String()).
 			End()
 
-		code := input.Code{
-			Type:     input.UnsetType,
-			Scancode: input.UnsetKey,
-		}
 		if keys[0] != ebiten.KeyEscape {
-			code = input.Code{
+			code = &input.Code{
 				Type:     input.Keyboard,
 				Scancode: keys[0],
 			}
+		} else {
+			code = &input.Code{
+				Type:     input.UnsetType,
+				Scancode: input.UnsetKey,
+			}
 		}
-
-		s.app.setState("config", s.btn, s.idxpreset, &code)
-		return
 	}
 
 	// pad button press.
@@ -71,17 +72,31 @@ func (s *captureState) update() {
 				Int("button", int(padbtn)).
 				End()
 
-			s.app.setState("config", s.btn, s.idxpreset, &input.Code{
+			code = &input.Code{
 				Type:          input.PadButton,
 				GamepadSDLID:  sdlid,
 				GamepadButton: padbtn,
-			})
+			}
 
-			return
 		}
 	}
 
+	if code != nil {
+		s.assign(s.btn, s.idxpreset, *code)
+
+		if err := config.Save(&s.app.cfg); err != nil {
+			modUI.ErrorZ("failed to save config").Error("err", err).End()
+		} else {
+			modUI.InfoZ("config saved").String("path", config.Path()).End()
+		}
+		s.app.setState("config")
+	}
+
 	s.ui.Update()
+}
+
+func (s *captureState) assign(btn input.PaddleButton, idxpreset int, code input.Code) {
+	s.app.cfg.Input.Presets[idxpreset].AssignCode(btn, code)
 }
 
 func (s *captureState) draw(screen *ebiten.Image) {

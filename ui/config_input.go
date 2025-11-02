@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	"nestor/hw/input"
 
@@ -133,15 +134,23 @@ func (s *configState) inputConfigPage() *page {
 	// Buttons assignment table
 	codes := s.app.cfg.Input.Presets[s.presetidx].ToButtons()
 
-	cells := [][]cell{
-		{{text: "SELECT"}, {text: codes[input.PadSelect].Name(), clickable: true}},
-		{{text: "START"}, {text: codes[input.PadStart].Name(), clickable: true}},
-		{{text: "B"}, {text: codes[input.PadB].Name(), clickable: true}},
-		{{text: "A"}, {text: codes[input.PadA].Name(), clickable: true}},
-		{{text: "UP"}, {text: codes[input.PadUp].Name(), clickable: true}},
-		{{text: "DOWN"}, {text: codes[input.PadDown].Name(), clickable: true}},
-		{{text: "LEFT"}, {text: codes[input.PadLeft].Name(), clickable: true}},
-		{{text: "RIGHT"}, {text: codes[input.PadRight].Name(), clickable: true}},
+	buttons := []input.PaddleButton{
+		input.PadSelect,
+		input.PadStart,
+		input.PadB,
+		input.PadA,
+		input.PadUp,
+		input.PadDown,
+		input.PadLeft,
+		input.PadRight,
+	}
+
+	cells := make([][]cell, len(buttons))
+	for i, btn := range buttons {
+		cells[i] = []cell{
+			{text: strings.ToUpper(btn.String())},
+			{text: codes[btn].Name(), clickable: true},
+		}
 	}
 
 	tablecfg := tableConfig{
@@ -149,7 +158,7 @@ func (s *configState) inputConfigPage() *page {
 		cells:      cells,
 		layoutData: widget.RowLayoutData{Stretch: true},
 		onClick: func(i, j int) {
-			s.app.setState("capture", input.PaddleButton(i), s.presetidx)
+			s.app.setState("capture", buttons[i], s.presetidx)
 		},
 	}
 

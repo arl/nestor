@@ -1,14 +1,9 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
-
-	"nestor/config"
-	"nestor/hw/input"
 )
 
 type configState struct {
@@ -26,28 +21,8 @@ func newConfigState(app *app) *configState {
 	return state
 }
 
-func (s *configState) enter(args ...any) {
-	if len(args) == 0 {
-		return
-	}
-
-	btn := args[0].(input.PaddleButton)
-	idxpreset := args[1].(int)
-	code := args[2].(*input.Code)
-
-	s.app.cfg.Input.Presets[idxpreset].AssignCode(btn, *code)
-
-	modUI.InfoZ("Config state entered with args").String("args", fmt.Sprintf("%+v", args)).End()
-}
-
-func (s *configState) exit() {
-	if err := config.Save(&s.app.cfg); err != nil {
-		modUI.ErrorZ("failed to save config").Error("err", err).End()
-		return
-	}
-
-	modUI.InfoZ("config saved").String("path", config.Path()).End()
-}
+func (s *configState) enter(args ...any) {}
+func (s *configState) exit()             {}
 
 func (s *configState) update() {
 	s.ui.Update()
