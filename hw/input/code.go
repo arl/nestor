@@ -11,7 +11,7 @@ type Type uint8
 const (
 	UnsetType Type = iota
 	Keyboard
-	PadButton
+	Joystick
 )
 
 // A Code describes the user input event (keyboard key, game controller
@@ -32,7 +32,7 @@ func (mc Code) Name() string {
 		if mc.Scancode != UnsetKey {
 			return "[ " + mc.Scancode.String() + " ]"
 		}
-	case PadButton:
+	case Joystick:
 		return fmt.Sprintf("Paddle %d", mc.GamepadButton)
 	case UnsetType:
 		return "<not set>"

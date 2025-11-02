@@ -73,7 +73,7 @@ func (s *captureState) update() {
 				End()
 
 			code = &input.Code{
-				Type:          input.PadButton,
+				Type:          input.Joystick,
 				GamepadSDLID:  sdlid,
 				GamepadButton: padbtn,
 			}

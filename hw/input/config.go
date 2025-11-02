@@ -98,14 +98,14 @@ func (p *PaddlePreset) ToButtons() [PadButtonCount]Code {
 
 	if p.Gamepad != nil {
 		return [PadButtonCount]Code{
-			Code{Type: PadButton, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.A},
-			Code{Type: PadButton, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.B},
-			Code{Type: PadButton, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Select},
-			Code{Type: PadButton, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Start},
-			Code{Type: PadButton, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Up},
-			Code{Type: PadButton, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Down},
-			Code{Type: PadButton, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Left},
-			Code{Type: PadButton, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Right},
+			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.A},
+			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.B},
+			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Select},
+			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Start},
+			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Up},
+			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Down},
+			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Left},
+			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Right},
 		}
 	}
 
@@ -126,7 +126,7 @@ func (p *PaddlePreset) AssignCode(btn PaddleButton, code Code) {
 			p.Keyboard = ptrTo(newKeyboardMapping())
 		}
 
-	case PadButton:
+	case Joystick:
 		p.Keyboard = nil
 
 		if p.Gamepad == nil || p.Gamepad.GamepadSDLID != code.GamepadSDLID {
@@ -139,7 +139,7 @@ func (p *PaddlePreset) AssignCode(btn PaddleButton, code Code) {
 	switch code.Type {
 	case Keyboard:
 		p.Keyboard.assign(btn, code)
-	case PadButton:
+	case Joystick:
 		p.Gamepad.assign(btn, code)
 	case UnsetType:
 		// unassign mapping.
