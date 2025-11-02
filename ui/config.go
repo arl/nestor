@@ -9,6 +9,7 @@ import (
 type configState struct {
 	*app
 
+	startPage int
 	presetidx int
 }
 
@@ -21,8 +22,19 @@ func newConfigState(app *app) *configState {
 	return state
 }
 
-func (s *configState) enter(args ...any) {}
-func (s *configState) exit()             {}
+func (s *configState) enter(args ...any) {
+	if len(args) >= 1 {
+		switch args[0] {
+		case "input":
+			s.startPage = 0
+		case "video":
+			s.startPage = 1
+		default:
+			s.startPage = 0
+		}
+	}
+}
+func (s *configState) exit() {}
 
 func (s *configState) update() {
 	s.ui.Update()
@@ -86,7 +98,7 @@ func (s *configState) createUI() {
 		widget.ListOpts.EntrySelectedHandler(func(args *widget.ListEntrySelectedEventArgs) {
 			pageContainer.setPage(args.Entry.(*page))
 		}))
-	pageList.SetSelectedEntry(pages[0])
+	pageList.SetSelectedEntry(pages[s.startPage])
 
 	container.AddChild(pageList)
 	container.AddChild(pageContainer.widget)

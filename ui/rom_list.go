@@ -140,7 +140,10 @@ func (s *romList) createUI() {
 		s.app.exit()
 	})
 	menu.settingsInput.ClickedEvent.AddHandler(func(args any) {
-		s.setState("config")
+		s.setState("config", "input")
+	})
+	menu.settingsVideo.ClickedEvent.AddHandler(func(args any) {
+		s.setState("config", "video")
 	})
 
 	s.ui.Container.AddChild(menu.container)

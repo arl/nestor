@@ -17,6 +17,7 @@ type appMenu struct {
 	fileQuit *widget.Button
 
 	settingsInput *widget.Button
+	settingsVideo *widget.Button
 
 	help *widget.Button
 }
@@ -58,9 +59,10 @@ func newAppMenu(ui *ebitenui.UI) *appMenu {
 	settings := newAppMenuButton("Settings")
 	var (
 		input = newAppMenuEntry("Input")
+		video = newAppMenuEntry("Video")
 	)
 	settings.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
-		openAppMenu(args.Button.GetWidget(), ui, input)
+		openAppMenu(args.Button.GetWidget(), ui, input, video)
 	}))
 	root.AddChild(settings)
 
@@ -71,6 +73,7 @@ func newAppMenu(ui *ebitenui.UI) *appMenu {
 		container:     root,
 		fileQuit:      quit,
 		settingsInput: input,
+		settingsVideo: video,
 		help:          help,
 	}
 }
