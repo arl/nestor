@@ -103,7 +103,7 @@ type GamepadMapping struct {
 	Right        ebiten.GamepadButton `toml:"right"`
 }
 
-func newKGamepadMapping() GamepadMapping {
+func newGamepadMapping() GamepadMapping {
 	return GamepadMapping{
 		GamepadSDLID: "",
 		A:            UnsetGamepadButton,
@@ -123,7 +123,39 @@ func (gm *GamepadMapping) UnmarshalTOML(data any) error {
 		return fmt.Errorf("invalid data format for 'input.presets.gamepad'")
 	}
 
-	fmt.Println(d)
+	setfield := func(field *ebiten.GamepadButton, v any) {
+		if btncode, ok := v.(int64); ok {
+			*field = ebiten.GamepadButton(btncode)
+		}
+	}
+
+	sdlid, ok := d["gamepad_sdlid"].(string)
+	if !ok || sdlid == "" {
+		return nil
+	}
+	gm.GamepadSDLID = sdlid
+
+	for k, v := range d {
+		switch k {
+		case "a":
+			setfield(&gm.A, v)
+		case "b":
+			setfield(&gm.B, v)
+		case "select":
+			setfield(&gm.Select, v)
+		case "start":
+			setfield(&gm.Start, v)
+		case "up":
+			setfield(&gm.Up, v)
+		case "down":
+			setfield(&gm.Down, v)
+		case "left":
+			setfield(&gm.Left, v)
+		case "right":
+			setfield(&gm.Right, v)
+		}
+	}
+
 	return nil
 }
 

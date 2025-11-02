@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"nestor/config"
 	"nestor/hw/input"
 
 	"github.com/ebitenui/ebitenui/widget"
@@ -83,12 +82,7 @@ func (s *captureState) update() {
 
 	if code != nil {
 		s.assign(s.btn, s.idxpreset, *code)
-
-		if err := config.Save(&s.app.cfg); err != nil {
-			modUI.ErrorZ("failed to save config").Error("err", err).End()
-		} else {
-			modUI.InfoZ("config saved").String("path", config.Path()).End()
-		}
+		s.app.savecfg()
 		s.app.setState("config")
 	}
 

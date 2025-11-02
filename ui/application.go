@@ -262,3 +262,11 @@ func (app *app) runRom(romPath string) error {
 
 	return nil
 }
+
+func (app *app) savecfg() {
+	if err := config.Save(&app.cfg); err != nil {
+		modUI.ErrorZ("failed to save config").Error("err", err).End()
+	} else {
+		modUI.InfoZ("config saved").String("path", config.Path()).End()
+	}
+}

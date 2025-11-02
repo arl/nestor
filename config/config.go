@@ -103,7 +103,6 @@ func LoadOrDefault() Config {
 	}
 
 	// Apply post-load operations (fix invalid values, etc).
-	cfg.Input.PostLoad()
 	cfg.Video.Check()
 	log.ModEmu.InfoZ("loaded configuration").String("path", Path()).End()
 	return cfg

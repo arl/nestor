@@ -35,21 +35,9 @@ type Config struct {
 	Presets [numPresets]PaddlePreset `toml:"presets"`
 }
 
-func (cfg *Config) PostLoad() {
-	if cfg.Paddles[0].PaddlePreset >= numPresets {
-		cfg.Paddles[0].PaddlePreset = 0
-	}
-	if cfg.Paddles[1].PaddlePreset >= numPresets {
-		cfg.Paddles[1].PaddlePreset = 0
-	}
-	cfg.Paddles[0].Preset = &cfg.Presets[cfg.Paddles[0].PaddlePreset]
-	cfg.Paddles[1].Preset = &cfg.Presets[cfg.Paddles[1].PaddlePreset]
-}
-
 type PaddleConfig struct {
-	Plugged      bool          `toml:"plugged"`
-	PaddlePreset uint          `toml:"preset"`
-	Preset       *PaddlePreset `toml:"-"` // TODO: remove
+	Plugged      bool `toml:"plugged"`
+	PaddlePreset uint `toml:"preset"`
 }
 
 type PaddlePreset struct {
@@ -72,7 +60,7 @@ func (pp *PaddlePreset) UnmarshalTOML(data any) error {
 		pp.Keyboard = ptrTo(newKeyboardMapping())
 		return pp.Keyboard.UnmarshalTOML(d["keyboard"])
 	case d["gamepad"] != nil:
-		pp.Gamepad = ptrTo(newKGamepadMapping())
+		pp.Gamepad = ptrTo(newGamepadMapping())
 		return pp.Gamepad.UnmarshalTOML(d["gamepad"])
 	default:
 		pp.Keyboard = nil
@@ -130,7 +118,7 @@ func (p *PaddlePreset) AssignCode(btn PaddleButton, code Code) {
 		p.Keyboard = nil
 
 		if p.Gamepad == nil || p.Gamepad.GamepadSDLID != code.GamepadSDLID {
-			p.Gamepad = ptrTo(newKGamepadMapping())
+			p.Gamepad = ptrTo(newGamepadMapping())
 			p.Gamepad.GamepadSDLID = code.GamepadSDLID
 		}
 	}

@@ -27,7 +27,18 @@ func (s *configState) inputConfigPage() *page {
 				String("from", presets[from]).
 				String("to", presets[idxpreset]).
 				End()
+
+			// swap presets if needed
+			other := 0
+			if paddle == 0 {
+				other = 1
+			}
+			if s.app.cfg.Input.Paddles[other].PaddlePreset == uint(idxpreset) {
+				s.app.cfg.Input.Paddles[other].PaddlePreset = from
+			}
+
 			s.app.cfg.Input.Paddles[paddle].PaddlePreset = uint(idxpreset)
+			s.app.savecfg()
 			s.presetidx = idxpreset
 			s.createUI()
 		}
