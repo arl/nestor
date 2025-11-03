@@ -1,8 +1,67 @@
 package ui
 
+import (
+	"strconv"
+
+	"github.com/ebitenui/ebitenui/utilities/mobile"
+	"github.com/ebitenui/ebitenui/widget"
+)
+
 func (s *configState) videoConfigPage() *page {
 	c := newPageContentContainer()
 	c.SetBackgroundImage(res.panel.image)
+
+	monitorBlock := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(20))))
+
+	onMonitorChange := func(args *widget.TextInputChangedEventArgs) {
+		var idxmon int
+		idxmon, err := strconv.Atoi(args.InputText)
+		if err != nil {
+			modUI.ErrorZ("monitor: unexpected input").String("txt", args.InputText).End()
+			return
+		}
+
+		s.app.cfg.Video.Monitor = uint(idxmon)
+		s.app.savecfg()
+	}
+
+	monitorInput := widget.NewTextInput(
+		widget.TextInputOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  true,
+			}),
+		),
+
+		widget.TextInputOpts.MobileInputMode(mobile.NUMERIC),
+		widget.TextInputOpts.Image(res.textInput.image),
+		widget.TextInputOpts.Face(res.textInput.face),
+		widget.TextInputOpts.Color(res.textInput.color),
+		widget.TextInputOpts.Padding(widget.NewInsetsSimple(5)),
+		widget.TextInputOpts.SubmitHandler(onMonitorChange),
+		widget.TextInputOpts.ChangedHandler(onMonitorChange),
+		widget.TextInputOpts.Validation(func(txt string) (bool, *string) {
+			if _, err := strconv.Atoi(txt); err != nil {
+				return false, nil
+			}
+			return true, nil
+		}),
+	)
+	monitorInput.SetText(strconv.Itoa(int(s.app.cfg.Video.Monitor)))
+
+	monitorBlock.AddChild(
+		widget.NewLabel(
+			widget.LabelOpts.Text("Monitor", res.label.face, res.label.text),
+			widget.LabelOpts.LabelPadding(&widget.Insets{Top: 5, Left: 10}),
+			widget.LabelOpts.TextOpts(widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionEnd,
+					VerticalPosition:   widget.GridLayoutPositionCenter,
+				})))),
+		monitorInput)
 
 	c.AddChild(
 		newCheckbox2States("Enable V-Sync", !s.app.cfg.Video.DisableVSync, func(enabled bool) {
@@ -13,6 +72,7 @@ func (s *configState) videoConfigPage() *page {
 			s.app.cfg.Video.StartFullscreen = enabled
 			s.app.savecfg()
 		}),
+		monitorBlock,
 	)
 	return &page{title: "Video", content: c}
 }
