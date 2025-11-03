@@ -87,9 +87,7 @@ func headerCell(text string) *widget.Container {
 					StretchVertical:    true,
 					HorizontalPosition: widget.AnchorLayoutPositionCenter,
 					VerticalPosition:   widget.AnchorLayoutPositionCenter,
-				}),
-			),
-		))
+				}))))
 
 	cellContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(nineSliceBorderFromHex(cellBorderWidth, cellBorderColor, headerCellColor)),
@@ -114,8 +112,7 @@ func tableCell(text string, onclick func(*MouseClickArgs)) *widget.Container {
 		widgetOpts = append(widgetOpts, widget.WidgetOpts.MouseButtonClickedHandler(onclick))
 	}
 
-	var textinput *widget.TextInput
-	textinput = widget.NewTextInput(
+	textinput := widget.NewTextInput(
 		widget.TextInputOpts.Face(res.fonts.face),
 		widget.TextInputOpts.Padding(res.textInput.padding),
 		widget.TextInputOpts.Color(res.textInput.color),

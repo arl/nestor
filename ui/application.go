@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"image"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -103,19 +102,6 @@ func initAudio() (*sampleBuffer, *oto.Context, error) {
 
 	return nil, nil, fmt.Errorf("audio context not ready after %s", timeout)
 }
-
-var otoContext = sync.OnceValue(func() *oto.Context {
-	context, readyChan, err := oto.NewContext(&oto.NewContextOptions{
-		SampleRate:   apu.MaxSampleRate,
-		ChannelCount: 2,
-		Format:       oto.FormatSignedInt16LE,
-	})
-	if err != nil {
-		panic("oto.NewContext failed: " + err.Error())
-	}
-	<-readyChan
-	return context
-})
 
 // Can't fail, always fallback to primary/default monitor.
 // Use 0 for primary monitor.
