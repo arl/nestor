@@ -19,10 +19,6 @@ type OutputConfig struct {
 	// Window scale factor (defaults to 2).
 	ScaleFactor int32
 
-	// Monitor on which to display the window.
-	// 0: primary monitor, 1: secondary monitor, etc.
-	Monitor int32
-
 	// Do not synchronize updates with vertical retrace (i.e immediate updates).
 	DisableVSync bool
 

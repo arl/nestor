@@ -29,7 +29,7 @@ type EmulationConfig struct {
 type VideoConfig struct {
 	DisableVSync    bool   `toml:"disable_vsync"`
 	StartFullscreen bool   `toml:"start_fullscreen"`
-	Monitor         int32  `toml:"monitor"`
+	Monitor         uint   `toml:"monitor"`
 	Shader          string `toml:"shader"`
 }
 

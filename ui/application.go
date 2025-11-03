@@ -46,6 +46,7 @@ func start(ctx context.Context, cfg config.Config, romPath string) error {
 	}
 
 	// Init video.
+	setMonitor(cfg.Video.Monitor)
 	ebiten.SetWindowTitle("Nestor")
 	ebiten.SetWindowSize(startwidth, startheight)
 	ebiten.SetWindowSizeLimits(startwidth, startheight, -1, -1)
@@ -115,6 +116,22 @@ var otoContext = sync.OnceValue(func() *oto.Context {
 	<-readyChan
 	return context
 })
+
+// Can't fail, always fallback to primary/default monitor.
+// Use 0 for primary monitor.
+func setMonitor(idxmon uint) {
+	monitors := ebiten.AppendMonitors(nil)
+	selidx := 0
+	for i, m := range monitors {
+		modUI.InfoZ("Detected monitor").Int("idx", i).String("name", m.Name()).End()
+		if i == int(idxmon) {
+			selidx = i
+		}
+	}
+
+	ebiten.SetMonitor(monitors[selidx])
+	modUI.InfoZ("Using monitor").Int("idx", selidx).String("name", monitors[selidx].Name()).End()
+}
 
 type appState interface {
 	createUI()
@@ -249,7 +266,6 @@ func (app *app) runRom(romPath string) error {
 			Title:          "Nestor",
 			ScaleFactor:    2,
 			DisableVSync:   app.cfg.Video.DisableVSync,
-			Monitor:        app.cfg.Video.Monitor,
 			Shader:         app.cfg.Video.Shader,
 		},
 	)
