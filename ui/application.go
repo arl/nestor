@@ -6,6 +6,7 @@ import (
 	"image"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/ebitengine/oto/v3"
 	"github.com/ebitenui/ebitenui"
@@ -23,8 +24,8 @@ import (
 var modUI = log.NewModule("ui")
 
 const (
-	minWidth  = 800
-	minHeight = 600
+	startwidth  = 800
+	startheight = 600
 )
 
 func StartUI(ctx context.Context, cfg config.Config) error {
@@ -36,9 +37,18 @@ func StartROM(ctx context.Context, cfg config.Config, romPath string) error {
 }
 
 func start(ctx context.Context, cfg config.Config, romPath string) error {
+	initResources()
+
+	// Init audio.
+	samples, audioctx, err := initAudio()
+	if err != nil {
+		return fmt.Errorf("initAudio failure: %s", err)
+	}
+
+	// Init video.
 	ebiten.SetWindowTitle("Nestor")
-	ebiten.SetWindowSize(minWidth, minHeight)
-	ebiten.SetWindowSizeLimits(minWidth, minHeight, -1, -1)
+	ebiten.SetWindowSize(startwidth, startheight)
+	ebiten.SetWindowSizeLimits(startwidth, startheight, -1, -1)
 	ebiten.SetRunnableOnUnfocused(false)
 	if cfg.Video.StartFullscreen {
 		ebiten.SetFullscreen(true)
@@ -50,22 +60,61 @@ func start(ctx context.Context, cfg config.Config, romPath string) error {
 		SingleThread: false,
 	}
 
-	var app *app
-	if romPath == "" {
-		app = newApp(ctx, cfg, "rom_list")
-	} else {
-		app = newApp(ctx, cfg, "running")
+	app := newApp(ctx, samples, audioctx, cfg)
+
+	if romPath != "" {
+		app.setState("running")
 		if err := app.runRom(romPath); err != nil {
 			return fmt.Errorf("can't run rom: %w", err)
 		}
+	} else {
+		app.setState("rom_list")
 	}
+
 	if err := ebiten.RunGameWithOptions(app, options); err != nil {
 		return fmt.Errorf("ui failure: %w", err)
 	}
 
-	modUI.InfoZ("ui terminated").End()
+	modUI.InfoZ("ui quitted").End()
 	return nil
 }
+
+func initAudio() (*sampleBuffer, *oto.Context, error) {
+	const audioBufferSize = 1024 // TODO: adjust based on latency.
+	samples := newSampleBuffer(audioBufferSize)
+
+	audioctx, readych, err := oto.NewContext(&oto.NewContextOptions{
+		SampleRate:   apu.MaxSampleRate,
+		ChannelCount: 2,
+		Format:       oto.FormatSignedInt16LE,
+	})
+	if err != nil {
+		panic("oto.NewContext failed: " + err.Error())
+	}
+
+	const timeout = 5 * time.Second
+	select {
+	case <-readych:
+		return samples, audioctx, nil
+	case <-time.After(timeout):
+		break
+	}
+
+	return nil, nil, fmt.Errorf("audio context not ready after %s", timeout)
+}
+
+var otoContext = sync.OnceValue(func() *oto.Context {
+	context, readyChan, err := oto.NewContext(&oto.NewContextOptions{
+		SampleRate:   apu.MaxSampleRate,
+		ChannelCount: 2,
+		Format:       oto.FormatSignedInt16LE,
+	})
+	if err != nil {
+		panic("oto.NewContext failed: " + err.Error())
+	}
+	<-readyChan
+	return context
+})
 
 type appState interface {
 	createUI()
@@ -94,26 +143,21 @@ type app struct {
 	screenw, screenh int
 }
 
-func newApp(ctx context.Context, cfg config.Config, initState string) *app {
+func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, cfg config.Config) *app {
 	app := &app{
-		cfg:     cfg,
-		states:  map[string]appState{},
-		screenw: minWidth,
-		screenh: minHeight,
+		cfg:      cfg,
+		states:   map[string]appState{},
+		screenw:  startwidth,
+		screenh:  startheight,
+		samples:  samples,
+		audioctx: audioctx,
 	}
-
-	initResources()
-	app.initAudio()
 
 	app.states["running"] = newRunningState(app)
 	app.states["paused"] = newPausedState(app)
 	app.states["rom_list"] = newRomListState(app)
 	app.states["config"] = newConfigState(app)
 	app.states["capture"] = newCaptureState(app)
-
-	app.curstate = app.states[initState]
-	app.curstate.enter()
-	app.curstate.createUI()
 
 	go func() {
 		<-ctx.Done()
@@ -122,37 +166,6 @@ func newApp(ctx context.Context, cfg config.Config, initState string) *app {
 
 	return app
 }
-
-func (app *app) initAudio() {
-	// init audio
-	const audioBufferSize = 1024 // TODO: adjust based on latency.
-	app.samples = newSampleBuffer(audioBufferSize)
-
-	audioctx, readych, err := oto.NewContext(&oto.NewContextOptions{
-		SampleRate:   apu.MaxSampleRate,
-		ChannelCount: 2,
-		Format:       oto.FormatSignedInt16LE,
-	})
-	if err != nil {
-		panic("oto.NewContext failed: " + err.Error())
-	}
-	<-readych
-
-	app.audioctx = audioctx
-}
-
-var otoContext = sync.OnceValue(func() *oto.Context {
-	context, readyChan, err := oto.NewContext(&oto.NewContextOptions{
-		SampleRate:   apu.MaxSampleRate,
-		ChannelCount: 2,
-		Format:       oto.FormatSignedInt16LE,
-	})
-	if err != nil {
-		panic("oto.NewContext failed: " + err.Error())
-	}
-	<-readyChan
-	return context
-})
 
 func (app *app) exit() {
 	app.quit.Store(true)
@@ -163,7 +176,9 @@ func (app *app) exit() {
 // of the new state.
 func (app *app) setState(name string, args ...any) {
 	modUI.InfoZ("Switching to state").String("to", name).End()
-	app.curstate.exit()
+	if app.curstate != nil {
+		app.curstate.exit()
+	}
 	to, ok := app.states[name]
 	if !ok {
 		modUI.PanicZ("unknown state").String("state", name).End()
