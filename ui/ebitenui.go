@@ -112,14 +112,24 @@ func newSeparator(ld any) widget.PreferredSizeLocateableWidget {
 	return c
 }
 
-func newCheckbox(label string, changedHandler widget.CheckboxChangedHandlerFunc) *widget.Checkbox {
+func newCheckbox2States(label string, initial bool, onchanged func(bool)) *widget.Checkbox {
 	return widget.NewCheckbox(
-		widget.CheckboxOpts.Spacing(res.checkbox.spacing),
 		widget.CheckboxOpts.Image(res.checkbox.image),
+		widget.CheckboxOpts.InitialState(bool2state(initial)),
+		widget.CheckboxOpts.Text(label, res.label.face, res.label.text),
 		widget.CheckboxOpts.StateChangedHandler(func(args *widget.CheckboxChangedEventArgs) {
-			if changedHandler != nil {
-				changedHandler(args)
-			}
+			onchanged(state2bool(args.State))
 		}),
-		widget.CheckboxOpts.Text(label, res.label.face, res.label.text))
+	)
+}
+
+func bool2state(b bool) widget.WidgetState {
+	if b {
+		return widget.WidgetChecked
+	}
+	return widget.WidgetUnchecked
+}
+
+func state2bool(s widget.WidgetState) bool {
+	return s == widget.WidgetChecked
 }
