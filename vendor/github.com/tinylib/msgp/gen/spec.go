@@ -268,6 +268,9 @@ func next(t traversal, e Elem) {
 
 // possibly-immutable method receiver
 func imutMethodReceiver(p Elem) string {
+	typeName := p.TypeName()
+	typeParams := p.TypeParams()
+
 	switch e := p.(type) {
 	case *Struct:
 		// TODO(HACK): actually do real math here.
@@ -277,19 +280,19 @@ func imutMethodReceiver(p Elem) string {
 					goto nope
 				}
 			}
-			return p.TypeName()
+			return typeName + typeParams.TypeParams
 		}
 	nope:
-		return "*" + p.TypeName()
+		return "*" + typeName + typeParams.TypeParams
 
 	// gets dereferenced automatically
 	case *Array:
-		return "*" + p.TypeName()
+		return "*" + typeName + typeParams.TypeParams
 
 	// everything else can be
 	// by-value.
 	default:
-		return p.TypeName()
+		return typeName + typeParams.TypeParams
 	}
 }
 
@@ -297,18 +300,21 @@ func imutMethodReceiver(p Elem) string {
 // so that its method receiver
 // is of the write type.
 func methodReceiver(p Elem) string {
+	typeName := p.TypeName()
+	typeParams := p.TypeParams()
+
 	switch p.(type) {
 
 	// structs and arrays are
 	// dereferenced automatically,
 	// so no need to alter varname
 	case *Struct, *Array:
-		return "*" + p.TypeName()
+		return "*" + typeName + typeParams.TypeParams
 	// set variable name to
 	// *varname
 	default:
 		p.SetVarname("(*" + p.Varname() + ")")
-		return "*" + p.TypeName()
+		return "*" + typeName + typeParams.TypeParams
 	}
 }
 
@@ -351,22 +357,64 @@ func (p *printer) resizeMap(size string, m *Map) {
 	p.closeblock()
 }
 
+// CanAutoShim contains the primitives that can be auto-shimmed.
+var CanAutoShim = map[Primitive]bool{Uint: true, Uint8: true, Uint16: true, Uint32: true, Uint64: true, Int: true, Int8: true, Int16: true, Int32: true, Int64: true, Bool: true, Float32: true, Float64: true, Byte: true}
+
 // assign key to value based on varnames
 func (p *printer) mapAssign(m *Map) {
 	if !p.ok() {
 		return
+	}
+
+	if key, ok := m.Key.(*BaseElem); ok {
+		fromBase := key.FromBase()
+		shimErr := key.ShimErrs
+		if m.AutoMapShims && CanAutoShim[key.Value] {
+			fromBase = "msgp.AutoShim{}.Parse" + key.Value.String()
+			shimErr = true
+		}
+		if !m.AllowBinMaps && fromBase != "" {
+			if key.Value == String && key.ShimFromBase != "" {
+				p.printf("\nvar %sTmp %s", m.Keyidx, key.TypeName())
+				if key.ShimErrs {
+					p.printf("\n%sTmp, err = %s(%s)", m.Keyidx, fromBase, m.Keyidx)
+					p.wrapErrCheck("\"shim: " + fromBase + "\"")
+				} else {
+					p.printf("\n%sTmp = %s(%s)", m.Keyidx, fromBase, m.Keyidx)
+				}
+				p.printf("\n%s[%sTmp] = %s", m.Varname(), m.Keyidx, m.Validx)
+				return
+			} else if key.Value == IDENT {
+				p.printf("\n%s[%s(%s)] = %s", m.Varname(), fromBase, m.Keyidx, m.Validx)
+				return
+			} else {
+				if shimErr {
+					p.printf("\nvar %sTmp %s", m.Keyidx, strings.ToLower(key.Value.String()))
+					p.printf("\n%sTmp, err = %s(%s)", m.Keyidx, fromBase, m.Keyidx)
+					p.wrapErrCheck("\"shim: " + m.Varname() + "\"")
+					p.printf("\n%s[%s(%sTmp)] = %s", m.Varname(), key.FromBase(), m.Keyidx, m.Validx)
+				} else {
+					p.printf("\n%s[%s(%s)] = %s", m.Varname(), fromBase, m.Keyidx, m.Validx)
+				}
+				return
+			}
+		}
 	}
 	p.printf("\n%s[%s] = %s", m.Varname(), m.Keyidx, m.Validx)
 }
 
 // clear map keys
 func (p *printer) clearMap(name string) {
-	p.printf("\nfor key := range %[1]s { delete(%[1]s, key) }", name)
+	p.printf("\nclear(%[1]s)", name)
 }
 
 func (p *printer) wrapErrCheck(ctx string) {
 	p.print("\nif err != nil {")
-	p.printf("\nerr = msgp.WrapError(err, %s)", ctx)
+	if ctx != "" {
+		p.printf("\nerr = msgp.WrapError(err, %s)", ctx)
+	} else {
+		p.print("\nerr = msgp.WrapError(err)")
+	}
 	p.printf("\nreturn")
 	p.print("\n}")
 }

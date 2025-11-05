@@ -93,6 +93,11 @@ const (
 	Duration   // time.Duration
 	Ext        // extension
 	JsonNumber // json.Number
+	AInt64
+	AUint64
+	AInt32
+	AUint32
+	ABool
 
 	IDENT // IDENT means an unrecognized identifier
 )
@@ -125,6 +130,11 @@ var primitives = map[string]Primitive{
 	"time.Duration":  Duration,
 	"msgp.Extension": Ext,
 	"json.Number":    JsonNumber,
+	"atomic.Int64":   AInt64,
+	"atomic.Uint64":  AUint64,
+	"atomic.Int32":   AInt32,
+	"atomic.Uint32":  AUint32,
+	"atomic.Bool":    ABool,
 }
 
 // types built into the library
@@ -139,14 +149,24 @@ var builtins = map[string]struct{}{
 type common struct {
 	vname, alias string
 	ptrRcv       bool
+	typeParams   GenericTypeParams // Generic type parameters, e.g., "[T]"
 }
 
-func (c *common) SetVarname(s string) { c.vname = s }
-func (c *common) Varname() string     { return c.vname }
-func (c *common) Alias(typ string)    { c.alias = typ }
-func (c *common) hidden()             {}
-func (c *common) AllowNil() bool      { return false }
-func (c *common) SetIsAllowNil(bool)  {}
+// GenericTypeParams is a struct that contains the generic type parameters for an element.
+type GenericTypeParams struct {
+	TypeParams   string
+	ToPointerMap map[string]string
+	isPtr        bool
+}
+
+func (c *common) SetVarname(s string)                { c.vname = s }
+func (c *common) Varname() string                    { return c.vname }
+func (c *common) Alias(typ string)                   { c.alias = typ }
+func (c *common) hidden()                            {}
+func (c *common) AllowNil() bool                     { return false }
+func (c *common) SetIsAllowNil(bool)                 {}
+func (c *common) SetTypeParams(tp GenericTypeParams) { c.typeParams = tp }
+func (c *common) TypeParams() GenericTypeParams      { return c.typeParams }
 func (c *common) AlwaysPtr(set *bool) bool {
 	if c != nil && set != nil {
 		c.ptrRcv = *set
@@ -218,6 +238,12 @@ type Elem interface {
 	// Note that this is NOT used by the `omitzero` feature.
 	IfZeroExpr() string
 
+	// SetTypeParams sets the generic type parameters for this element
+	SetTypeParams(tp GenericTypeParams)
+
+	// TypeParams returns the generic type parameters for this element
+	TypeParams() GenericTypeParams
+
 	hidden()
 }
 
@@ -255,11 +281,11 @@ ridx:
 }
 
 func (a *Array) TypeName() string {
-	if a.common.alias != "" {
-		return a.common.alias
+	if a.alias != "" {
+		return a.alias
 	}
-	a.common.Alias(fmt.Sprintf("[%s]%s", a.Size, a.Els.TypeName()))
-	return a.common.alias
+	a.Alias(fmt.Sprintf("[%s]%s", a.Size, a.Els.TypeName()))
+	return a.alias
 }
 
 func (a *Array) Copy() Elem {
@@ -282,10 +308,14 @@ func (a *Array) IfZeroExpr() string { return "" }
 // Map is a map[string]Elem
 type Map struct {
 	common
-	Keyidx     string // key variable name
-	Validx     string // value variable name
-	Value      Elem   // value element
-	isAllowNil bool
+	Keyidx        string // key variable name
+	Validx        string // value variable name
+	Key           Elem   // key element (if not string)
+	Value         Elem   // value element
+	AllowMapShims bool   // Allow map keys to be shimmed (default true)
+	AllowBinMaps  bool   // Allow maps with binary keys to be used (default false)
+	AutoMapShims  bool   // Automatically shim map keys of builtin types(default false)
+	isAllowNil    bool
 }
 
 func (m *Map) SetVarname(s string) {
@@ -303,17 +333,36 @@ ridx:
 }
 
 func (m *Map) TypeName() string {
-	if m.common.alias != "" {
-		return m.common.alias
+	if m.alias != "" {
+		return m.alias
 	}
-	m.common.Alias("map[string]" + m.Value.TypeName())
-	return m.common.alias
+	keyType := "string"
+	if m.Key != nil {
+		keyType = m.Key.TypeName()
+	}
+	m.Alias("map[" + keyType + "]" + m.Value.TypeName())
+	return m.alias
 }
 
 func (m *Map) Copy() Elem {
 	g := *m
 	g.Value = m.Value.Copy()
 	return &g
+}
+
+// readKey will read the key into the variable named by m.Keyidx.
+func (m *Map) readKey(ctx *Context, p printer, t traversal, assignAndCheck func(name string, base string)) {
+	if m.Key != nil && m.AllowBinMaps {
+		p.declare(m.Keyidx, m.Key.TypeName())
+		ctx.PushVar(m.Keyidx)
+		m.Key.SetVarname(m.Keyidx)
+		next(t, m.Key)
+		ctx.Pop()
+		return
+	}
+	// No key, so we assume the key as a string.
+	p.declare(m.Keyidx, "string")
+	assignAndCheck(m.Keyidx, stringTyp)
 }
 
 func (m *Map) Complexity() int {
@@ -352,11 +401,11 @@ func (s *Slice) SetVarname(a string) {
 }
 
 func (s *Slice) TypeName() string {
-	if s.common.alias != "" {
-		return s.common.alias
+	if s.alias != "" {
+		return s.alias
 	}
-	s.common.Alias("[]" + s.Els.TypeName())
-	return s.common.alias
+	s.Alias("[]" + s.Els.TypeName())
+	return s.alias
 }
 
 func (s *Slice) Copy() Elem {
@@ -429,11 +478,11 @@ func (s *Ptr) SetVarname(a string) {
 }
 
 func (s *Ptr) TypeName() string {
-	if s.common.alias != "" {
-		return s.common.alias
+	if s.alias != "" {
+		return s.alias
 	}
-	s.common.Alias("*" + s.Value.TypeName())
-	return s.common.alias
+	s.Alias("*" + s.Value.TypeName())
+	return s.alias
 }
 
 func (s *Ptr) Copy() Elem {
@@ -459,13 +508,14 @@ func (s *Ptr) IfZeroExpr() string { return s.Varname() + " == nil" }
 
 type Struct struct {
 	common
-	Fields  []StructField // field list
-	AsTuple bool          // write as an array instead of a map
+	Fields     []StructField // field list
+	AsTuple    bool          // write as an array instead of a map
+	AsVarTuple bool          // write as an array of variable length instead of a map
 }
 
 func (s *Struct) TypeName() string {
-	if s.common.alias != "" {
-		return s.common.alias
+	if s.alias != "" {
+		return s.alias
 	}
 	str := "struct{\n"
 	for i := range s.Fields {
@@ -474,8 +524,8 @@ func (s *Struct) TypeName() string {
 			" " + s.Fields[i].RawTag + ";\n"
 	}
 	str += "}"
-	s.common.Alias(str)
-	return s.common.alias
+	s.Alias(str)
+	return s.alias
 }
 
 func (s *Struct) SetVarname(a string) {
@@ -574,6 +624,7 @@ type BaseElem struct {
 	ShimMode     ShimMode  // Method used to shim
 	ShimToBase   string    // shim to base type, or empty
 	ShimFromBase string    // shim from base type, or empty
+	ShimErrs     bool      // ShimToBase has errors on function
 	Value        Primitive // Type of element
 	Convert      bool      // should we do an explicit conversion?
 	zerocopy     bool      // Allow zerocopy for byte slices in unmarshal.
@@ -625,11 +676,11 @@ func (s *BaseElem) SetVarname(a string) {
 // TypeName returns the syntactically correct Go
 // type name for the base element.
 func (s *BaseElem) TypeName() string {
-	if s.common.alias != "" {
-		return s.common.alias
+	if s.alias != "" {
+		return s.alias
 	}
 	s.common.Alias(s.BaseType())
-	return s.common.alias
+	return s.alias
 }
 
 // ToBase, used if Convert==true, is used as tmp = {{ToBase}}({{Varname}})
@@ -682,6 +733,17 @@ func (s *BaseElem) BaseType() string {
 		return "time.Duration"
 	case JsonNumber:
 		return "json.Number"
+	case AInt64:
+		return "atomic.Int64"
+	case AUint64:
+		return "atomic.Uint64"
+	case AInt32:
+		return "atomic.Int32"
+	case AUint32:
+		return "atomic.Uint32"
+	case ABool:
+		return "atomic.Bool"
+
 	case Ext:
 		return "msgp.Extension"
 
@@ -762,6 +824,12 @@ func (s *BaseElem) ZeroExpr() string {
 
 // IfZeroExpr returns the expression to compare to zero/empty.
 func (s *BaseElem) IfZeroExpr() string {
+	switch s.Value {
+	case AInt64, AUint64, AInt32, AUint32:
+		return fmt.Sprintf("%s.Load() == 0", s.Varname())
+	case ABool:
+		return fmt.Sprintf("!%s.Load()", s.Varname())
+	}
 	z := s.ZeroExpr()
 	if z == "" {
 		return ""
@@ -817,6 +885,16 @@ func (k Primitive) String() string {
 		return "Extension"
 	case JsonNumber:
 		return "json.Number"
+	case AInt64:
+		return "atomic.Int64"
+	case AUint64:
+		return "atomic.Uint64"
+	case AInt32:
+		return "atomic.Int32"
+	case AUint32:
+		return "atomic.Uint32"
+	case ABool:
+		return "atomic.Bool"
 	case IDENT:
 		return "Ident"
 	default:

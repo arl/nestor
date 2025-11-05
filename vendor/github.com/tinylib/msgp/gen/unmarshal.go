@@ -1,8 +1,10 @@
 package gen
 
 import (
+	"fmt"
 	"io"
 	"strconv"
+	"strings"
 )
 
 func unmarshal(w io.Writer) *unmarshalGen {
@@ -77,7 +79,11 @@ func (u *unmarshalGen) tuple(s *Struct) {
 	sz := randIdent()
 	u.p.declare(sz, u32)
 	u.assignAndCheck(sz, arrayHeader)
-	u.p.arrayCheck(strconv.Itoa(len(s.Fields)), sz)
+	if s.AsVarTuple {
+		u.p.printf("\nif %[1]s == 0 {\no = bts\nreturn\n}", sz)
+	} else {
+		u.p.arrayCheck(strconv.Itoa(len(s.Fields)), sz)
+	}
 	for i := range s.Fields {
 		if !u.p.ok() {
 			return
@@ -92,6 +98,7 @@ func (u *unmarshalGen) tuple(s *Struct) {
 		if s.Fields[i].HasTagPart("zerocopy") {
 			setRecursiveZC(fieldElem, true)
 		}
+		setTypeParams(fieldElem, s.typeParams)
 		next(u, fieldElem)
 		if s.Fields[i].HasTagPart("zerocopy") {
 			setRecursiveZC(fieldElem, false)
@@ -101,6 +108,12 @@ func (u *unmarshalGen) tuple(s *Struct) {
 		if anField {
 			u.p.printf("\n}")
 		}
+		if s.AsVarTuple {
+			u.p.printf("\nif %[1]s--; %[1]s == 0 {\no = bts\nreturn\n}", sz)
+		}
+	}
+	if s.AsVarTuple {
+		u.p.printf("\nfor ; %[1]s > 0; %[1]s-- {\nbts, err = msgp.Skip(bts)\nif err != nil {\nerr = msgp.WrapError(err)\nreturn\n}\n}", sz)
 	}
 }
 
@@ -162,6 +175,8 @@ func (u *unmarshalGen) mapstruct(s *Struct) {
 		if s.Fields[i].HasTagPart("zerocopy") {
 			setRecursiveZC(fieldElem, true)
 		}
+		setTypeParams(fieldElem, s.typeParams)
+
 		next(u, fieldElem)
 		if s.Fields[i].HasTagPart("zerocopy") {
 			setRecursiveZC(fieldElem, false)
@@ -228,6 +243,14 @@ func (u *unmarshalGen) gBase(b *BaseElem) {
 		if b.Convert {
 			lowered = b.ToBase() + "(" + lowered + ")"
 		}
+		dst := b.BaseType()
+		if b.typeParams.isPtr {
+			dst = "*" + dst
+		}
+		if remap := b.typeParams.ToPointerMap[dst]; remap != "" {
+			lowered = fmt.Sprintf(remap, lowered)
+		}
+
 		u.p.printf("\nbts, err = %s.UnmarshalMsg(bts)", lowered)
 	case Time:
 		if u.ctx.asUTC {
@@ -235,6 +258,13 @@ func (u *unmarshalGen) gBase(b *BaseElem) {
 		} else {
 			u.p.printf("\n%s, bts, err = msgp.Read%sBytes(bts)", refname, b.BaseName())
 		}
+	case AInt64, AInt32, AUint64, AUint32, ABool:
+		tmp := randIdent()
+		t := strings.TrimPrefix(b.BaseName(), "atomic.")
+		u.p.printf("\n var %s %s", tmp, strings.ToLower(t))
+		u.p.printf("\n%s, bts, err = msgp.Read%sBytes(bts)", tmp, t)
+		u.p.printf("\n%s.Store(%s)", strings.TrimPrefix(refname, "*"), tmp)
+
 	default:
 		u.p.printf("\n%s, bts, err = msgp.Read%sBytes(bts)", refname, b.BaseName())
 	}
@@ -247,7 +277,7 @@ func (u *unmarshalGen) gBase(b *BaseElem) {
 
 	// close 'tmp' block
 	if b.Convert && b.Value != IDENT {
-		if b.ShimMode == Cast {
+		if b.ShimMode == Cast && !b.ShimErrs {
 			u.p.printf("\n%s = %s(%s)\n", b.Varname(), b.FromBase(), refname)
 		} else {
 			u.p.printf("\n%s, err = %s(%s)\n", b.Varname(), b.FromBase(), refname)
@@ -274,6 +304,7 @@ func (u *unmarshalGen) gArray(a *Array) {
 	u.p.declare(sz, u32)
 	u.assignAndCheck(sz, arrayHeader)
 	u.p.arrayCheck(coerceArraySize(a.Size), sz)
+	setTypeParams(a.Els, a.typeParams)
 	u.p.rangeBlock(u.ctx, a.Index, a.Varname(), u, a.Els)
 }
 
@@ -289,6 +320,7 @@ func (u *unmarshalGen) gSlice(s *Slice) {
 	} else {
 		u.p.resizeSlice(sz, s)
 	}
+	setTypeParams(s.Els, s.typeParams)
 	u.p.rangeBlock(u.ctx, s.Index, s.Varname(), u, s.Els)
 }
 
@@ -309,10 +341,11 @@ func (u *unmarshalGen) gMap(m *Map) {
 
 	// loop and get key,value
 	u.p.printf("\nfor %s > 0 {", sz)
-	u.p.printf("\nvar %s string; var %s %s; %s--", m.Keyidx, m.Validx, m.Value.TypeName(), sz)
-	u.assignAndCheck(m.Keyidx, stringTyp)
+	u.p.printf("\nvar %s %s; %s--", m.Validx, m.Value.TypeName(), sz)
+	m.readKey(u.ctx, u.p, u, u.assignAndCheck)
 	u.ctx.PushVar(m.Keyidx)
 	m.Value.SetIsAllowNil(false)
+	setTypeParams(m.Value, m.typeParams)
 	next(u, m.Value)
 	u.ctx.Pop()
 	u.p.mapAssign(m)
@@ -322,6 +355,11 @@ func (u *unmarshalGen) gMap(m *Map) {
 func (u *unmarshalGen) gPtr(p *Ptr) {
 	u.p.printf("\nif msgp.IsNil(bts) { bts, err = msgp.ReadNilBytes(bts); if err != nil { return }; %s = nil; } else { ", p.Varname())
 	u.p.initPtr(p)
+	if p.typeParams.TypeParams != "" {
+		tp := p.typeParams
+		tp.isPtr = true
+		p.Value.SetTypeParams(tp)
+	}
 	next(u, p.Value)
 	u.p.closeblock()
 }

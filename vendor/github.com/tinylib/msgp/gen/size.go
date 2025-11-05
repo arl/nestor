@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
 	"github.com/tinylib/msgp/msgp"
 )
@@ -115,6 +116,7 @@ func (s *sizeGen) gStruct(st *Struct) {
 			if !s.p.ok() {
 				return
 			}
+			setTypeParams(st.Fields[i].FieldElem, st.typeParams)
 			next(s, st.Fields[i].FieldElem)
 		}
 	} else {
@@ -124,6 +126,7 @@ func (s *sizeGen) gStruct(st *Struct) {
 			data = data[:0]
 			data = msgp.AppendString(data, st.Fields[i].FieldTag)
 			s.addConstant(strconv.Itoa(len(data)))
+			setTypeParams(st.Fields[i].FieldElem, st.typeParams)
 			next(s, st.Fields[i].FieldElem)
 		}
 	}
@@ -132,6 +135,11 @@ func (s *sizeGen) gStruct(st *Struct) {
 func (s *sizeGen) gPtr(p *Ptr) {
 	s.state = add // inner must use add
 	s.p.printf("\nif %s == nil {\ns += msgp.NilSize\n} else {", p.Varname())
+	if p.typeParams.TypeParams != "" {
+		tp := p.typeParams
+		tp.isPtr = true
+		p.Value.SetTypeParams(tp)
+	}
 	next(s, p.Value)
 	s.state = add // closing block; reset to add
 	s.p.closeblock()
@@ -153,6 +161,7 @@ func (s *sizeGen) gSlice(sl *Slice) {
 	}
 
 	// add inside the range block, and immediately after
+	setTypeParams(sl.Els, sl.typeParams)
 	s.state = add
 	s.p.rangeBlock(s.ctx, sl.Index, sl.Varname(), s, sl.Els)
 	s.state = add
@@ -173,6 +182,7 @@ func (s *sizeGen) gArray(a *Array) {
 		return
 	}
 
+	setTypeParams(a.Els, a.typeParams)
 	s.state = add
 	s.p.rangeBlock(s.ctx, a.Index, a.Varname(), s, a.Els)
 	s.state = add
@@ -184,9 +194,28 @@ func (s *sizeGen) gMap(m *Map) {
 	s.p.printf("\nif %s != nil {", vn)
 	s.p.printf("\nfor %s, %s := range %s {", m.Keyidx, m.Validx, vn)
 	s.p.printf("\n_ = %s", m.Validx) // we may not use the value
-	s.p.printf("\ns += msgp.StringPrefixSize + len(%s)", m.Keyidx)
+	keyIdx := m.Keyidx
+	if key, ok := m.Key.(*BaseElem); ok {
+		switch key.Value {
+		case String, IDENT, Bytes:
+			if toBase := key.ToBase(); toBase != "" {
+				keyIdx = fmt.Sprintf("%s(%s)", toBase, keyIdx)
+				s.p.printf("\ns += msgp.StringPrefixSize + len(%s)", keyIdx)
+			} else if key.Value == IDENT && key.ShimToBase == "" && m.AllowBinMaps {
+				//TODO: Generic keys?
+				s.p.printf("\ns += %s.Msgsize()", keyIdx)
+			}
+		default:
+			// A bit clunky - we likely have a fixed size
+			s.p.printf("\n_ = %s", m.Keyidx) // we will not use the key
+			s.p.printf("\ns += %s", builtinSize(key.Value.String()))
+		}
+	} else {
+		s.p.printf("\ns += msgp.StringPrefixSize + len(%s)", keyIdx)
+	}
 	s.state = expr
 	s.ctx.PushVar(m.Keyidx)
+	setTypeParams(m.Value, m.typeParams)
 	next(s, m.Value)
 	s.ctx.Pop()
 	s.p.closeblock()
@@ -213,6 +242,13 @@ func (s *sizeGen) gBase(b *BaseElem) {
 		vname := b.Varname()
 		if b.Convert {
 			vname = tobaseConvert(b)
+		}
+		dst := b.BaseType()
+		if b.typeParams.isPtr {
+			dst = "*" + dst
+		}
+		if remap := b.typeParams.ToPointerMap[dst]; remap != "" {
+			vname = fmt.Sprintf(remap, vname)
 		}
 		s.addConstant(basesizeExpr(b.Value, vname, b.BaseName()))
 	}
@@ -253,7 +289,7 @@ func fixedsizeExpr(e Elem) (string, bool) {
 		}
 	case *BaseElem:
 		if fixedSize(e.Value) {
-			return builtinSize(e.BaseName()), true
+			return builtinSize(strings.TrimPrefix(e.BaseName(), "atomic.")), true
 		}
 	case *Struct:
 		var str string
@@ -294,6 +330,8 @@ func basesizeExpr(value Primitive, vname, basename string) string {
 		return "msgp.BytesPrefixSize + len(" + vname + ")"
 	case String:
 		return "msgp.StringPrefixSize + len(" + vname + ")"
+	case AInt64, AInt32, AUint64, AUint32, ABool:
+		return builtinSize(strings.TrimPrefix(basename, "atomic."))
 	default:
 		return builtinSize(basename)
 	}

@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/tinylib/msgp/msgp"
 )
@@ -104,9 +105,7 @@ func (m *marshalGen) tuple(s *Struct) {
 	data = msgp.AppendArrayHeader(data, uint32(len(s.Fields)))
 	m.p.printf("\n// array header, size %d", len(s.Fields))
 	m.Fuse(data)
-	if len(s.Fields) == 0 {
-		m.fuseHook()
-	}
+	m.fuseHook()
 	for i := range s.Fields {
 		if !m.p.ok() {
 			return
@@ -120,6 +119,7 @@ func (m *marshalGen) tuple(s *Struct) {
 		}
 		m.ctx.PushString(s.Fields[i].FieldName)
 		SetIsAllowNil(fieldElem, anField)
+		setTypeParams(fieldElem, s.typeParams)
 		next(m, fieldElem)
 		m.ctx.Pop()
 		if anField {
@@ -222,6 +222,7 @@ func (m *marshalGen) mapstruct(s *Struct) {
 		}
 		m.ctx.PushString(s.Fields[i].FieldName)
 		SetIsAllowNil(fieldElem, anField)
+		setTypeParams(fieldElem, s.typeParams)
 		next(m, fieldElem)
 		m.ctx.Pop()
 
@@ -251,9 +252,33 @@ func (m *marshalGen) gMap(s *Map) {
 	vname := s.Varname()
 	m.rawAppend(mapHeader, lenAsUint32, vname)
 	m.p.printf("\nfor %s, %s := range %s {", s.Keyidx, s.Validx, vname)
-	m.rawAppend(stringTyp, literalFmt, s.Keyidx)
+	// Shim key to base type if necessary.
+	if s.Key != nil {
+		if s.AllowBinMaps {
+			m.ctx.PushVar(s.Keyidx)
+			s.Key.SetVarname(s.Keyidx)
+			next(m, s.Key)
+			m.ctx.Pop()
+		} else {
+			keyIdx := s.Keyidx
+			if key, ok := s.Key.(*BaseElem); ok {
+				if s.AutoMapShims && CanAutoShim[key.Value] {
+					keyIdx = fmt.Sprintf("msgp.AutoShim{}.%sString(%s(%s))", key.Value.String(), strings.ToLower(key.Value.String()), keyIdx)
+				} else if key.Value == String {
+					keyIdx = fmt.Sprintf("%s(%s)", key.ToBase(), keyIdx)
+				} else if key.alias != "" {
+					keyIdx = fmt.Sprintf("string(%s)", keyIdx)
+				}
+			}
+			m.rawAppend(stringTyp, literalFmt, keyIdx)
+		}
+	} else {
+		m.rawAppend(stringTyp, literalFmt, s.Keyidx)
+	}
+
 	m.ctx.PushVar(s.Keyidx)
 	s.Value.SetIsAllowNil(false)
+	setTypeParams(s.Value, s.typeParams)
 	next(m, s.Value)
 	m.ctx.Pop()
 	m.p.closeblock()
@@ -265,6 +290,8 @@ func (m *marshalGen) gSlice(s *Slice) {
 	}
 	m.fuseHook()
 	vname := s.Varname()
+	setTypeParams(s.Els, s.typeParams)
+
 	m.rawAppend(arrayHeader, lenAsUint32, vname)
 	m.p.rangeBlock(m.ctx, s.Index, vname, m, s.Els)
 }
@@ -278,9 +305,18 @@ func (m *marshalGen) gArray(a *Array) {
 		m.rawAppend("Bytes", "(%s)[:]", a.Varname())
 		return
 	}
+	setTypeParams(a.Els, a.typeParams)
 
 	m.rawAppend(arrayHeader, literalFmt, coerceArraySize(a.Size))
 	m.p.rangeBlock(m.ctx, a.Index, a.Varname(), m, a.Els)
+}
+
+func setTypeParams(e Elem, tp GenericTypeParams) {
+	if e == nil {
+		return
+	}
+	tp.isPtr = false
+	e.SetTypeParams(tp)
 }
 
 func (m *marshalGen) gPtr(p *Ptr) {
@@ -289,6 +325,11 @@ func (m *marshalGen) gPtr(p *Ptr) {
 	}
 	m.fuseHook()
 	m.p.printf("\nif %s == nil {\no = msgp.AppendNil(o)\n} else {", p.Varname())
+	if p.typeParams.TypeParams != "" {
+		tp := p.typeParams
+		tp.isPtr = true
+		p.Value.SetTypeParams(tp)
+	}
 	next(m, p.Value)
 	m.p.closeblock()
 }
@@ -313,11 +354,22 @@ func (m *marshalGen) gBase(b *BaseElem) {
 	var echeck bool
 	switch b.Value {
 	case IDENT:
+		dst := b.BaseType()
+		if b.typeParams.isPtr {
+			dst = "*" + dst
+		}
+		if remap := b.typeParams.ToPointerMap[dst]; remap != "" {
+			vname = fmt.Sprintf(remap, vname)
+		}
 		echeck = true
 		m.p.printf("\no, err = %s.MarshalMsg(o)", vname)
 	case Intf, Ext, JsonNumber:
 		echeck = true
 		m.p.printf("\no, err = msgp.Append%s(o, %s)", b.BaseName(), vname)
+	case AInt64, AInt32, AUint64, AUint32, ABool:
+		t := strings.TrimPrefix(b.BaseName(), "atomic.")
+		echeck = false
+		m.p.printf("\no = msgp.Append%s(o, %s.Load())", t, strings.TrimPrefix(vname, "*"))
 	default:
 		m.rawAppend(b.BaseName(), literalFmt, vname)
 	}

@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/tinylib/msgp/msgp"
 )
@@ -97,9 +98,7 @@ func (e *encodeGen) tuple(s *Struct) {
 	data := msgp.AppendArrayHeader(nil, uint32(nfields))
 	e.p.printf("\n// array header, size %d", nfields)
 	e.Fuse(data)
-	if len(s.Fields) == 0 {
-		e.fuseHook()
-	}
+	e.fuseHook()
 	for i := range s.Fields {
 		if !e.p.ok() {
 			return
@@ -113,6 +112,7 @@ func (e *encodeGen) tuple(s *Struct) {
 		}
 		SetIsAllowNil(fieldElem, anField)
 		e.ctx.PushString(s.Fields[i].FieldName)
+		setTypeParams(s.Fields[i].FieldElem, s.typeParams)
 		next(e, s.Fields[i].FieldElem)
 		e.ctx.Pop()
 		if anField {
@@ -225,6 +225,7 @@ func (e *encodeGen) structmap(s *Struct) {
 		SetIsAllowNil(fieldElem, anField)
 
 		e.ctx.PushString(s.Fields[i].FieldName)
+		setTypeParams(s.Fields[i].FieldElem, s.typeParams)
 		next(e, s.Fields[i].FieldElem)
 		e.ctx.Pop()
 
@@ -246,9 +247,31 @@ func (e *encodeGen) gMap(m *Map) {
 	e.writeAndCheck(mapHeader, lenAsUint32, vname)
 
 	e.p.printf("\nfor %s, %s := range %s {", m.Keyidx, m.Validx, vname)
-	e.writeAndCheck(stringTyp, literalFmt, m.Keyidx)
+	if m.Key != nil {
+		if m.AllowBinMaps {
+			e.ctx.PushVar(m.Keyidx)
+			m.Key.SetVarname(m.Keyidx)
+			next(e, m.Key)
+			e.ctx.Pop()
+		} else {
+			keyIdx := m.Keyidx
+			if key, ok := m.Key.(*BaseElem); ok {
+				if m.AutoMapShims && CanAutoShim[key.Value] {
+					keyIdx = fmt.Sprintf("msgp.AutoShim{}.%sString(%s(%s))", key.Value.String(), strings.ToLower(key.Value.String()), keyIdx)
+				} else if key.Value == String {
+					keyIdx = fmt.Sprintf("%s(%s)", key.ToBase(), keyIdx)
+				} else if key.alias != "" {
+					keyIdx = fmt.Sprintf("string(%s)", keyIdx)
+				}
+			}
+			e.writeAndCheck(stringTyp, literalFmt, keyIdx)
+		}
+	} else {
+		e.writeAndCheck(stringTyp, literalFmt, m.Keyidx)
+	}
 	e.ctx.PushVar(m.Keyidx)
 	m.Value.SetIsAllowNil(false)
+	setTypeParams(m.Value, m.typeParams)
 	next(e, m.Value)
 	e.ctx.Pop()
 	e.p.closeblock()
@@ -260,6 +283,11 @@ func (e *encodeGen) gPtr(s *Ptr) {
 	}
 	e.fuseHook()
 	e.p.printf("\nif %s == nil { err = en.WriteNil(); if err != nil { return; } } else {", s.Varname())
+	if s.typeParams.TypeParams != "" {
+		tp := s.typeParams
+		tp.isPtr = true
+		s.Value.SetTypeParams(tp)
+	}
 	next(e, s.Value)
 	e.p.closeblock()
 }
@@ -270,6 +298,7 @@ func (e *encodeGen) gSlice(s *Slice) {
 	}
 	e.fuseHook()
 	e.writeAndCheck(arrayHeader, lenAsUint32, s.Varname())
+	setTypeParams(s.Els, s.typeParams)
 	e.p.rangeBlock(e.ctx, s.Index, s.Varname(), e, s.Els)
 }
 
@@ -286,6 +315,7 @@ func (e *encodeGen) gArray(a *Array) {
 	}
 
 	e.writeAndCheck(arrayHeader, literalFmt, coerceArraySize(a.Size))
+	setTypeParams(a.Els, a.typeParams)
 	e.p.rangeBlock(e.ctx, a.Index, a.Varname(), e, a.Els)
 }
 
@@ -305,11 +335,21 @@ func (e *encodeGen) gBase(b *BaseElem) {
 			e.p.wrapErrCheck(e.ctx.ArgsStr())
 		}
 	}
-
-	if b.Value == IDENT { // unknown identity
+	switch b.Value {
+	case AInt64, AInt32, AUint64, AUint32, ABool:
+		t := strings.TrimPrefix(b.BaseName(), "atomic.")
+		e.writeAndCheck(t, literalFmt, strings.TrimPrefix(vname, "*")+".Load()")
+	case IDENT: // unknown identity
+		dst := b.BaseType()
+		if b.typeParams.isPtr {
+			dst = "*" + dst
+		}
+		if remap := b.typeParams.ToPointerMap[dst]; remap != "" {
+			vname = fmt.Sprintf(remap, vname)
+		}
 		e.p.printf("\nerr = %s.EncodeMsg(en)", vname)
 		e.p.wrapErrCheck(e.ctx.ArgsStr())
-	} else { // typical case
+	default:
 		e.writeAndCheck(b.BaseName(), literalFmt, vname)
 	}
 }
