@@ -145,6 +145,9 @@ func (s *romList) createUI() {
 	menu.settingsVideo.ClickedEvent.AddHandler(func(args any) {
 		s.setState("config", "video")
 	})
+	menu.settingsEmulation.ClickedEvent.AddHandler(func(args any) {
+		s.setState("config", "emulation")
+	})
 
 	s.ui.Container.AddChild(menu.container)
 

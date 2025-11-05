@@ -29,6 +29,8 @@ func (s *configState) enter(args ...any) {
 			s.startPage = 0
 		case "video":
 			s.startPage = 1
+		case "emulation":
+			s.startPage = 2
 		default:
 			s.startPage = 0
 		}
@@ -73,6 +75,7 @@ func (s *configState) createUI() {
 	pages := []any{
 		s.inputConfigPage(),
 		s.videoConfigPage(),
+		s.emulationConfigPage(),
 	}
 
 	pageContainer := newPageContainer()

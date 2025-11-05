@@ -23,7 +23,12 @@ type Config struct {
 }
 
 type EmulationConfig struct {
-	RunAheadFrames int `toml:"run_ahead_frames"`
+	RunAheadFrames uint `toml:"run_ahead_frames"`
+}
+
+func (ecfg *EmulationConfig) Check() {
+	// Max out the number of run-ahead frames to 10.
+	ecfg.RunAheadFrames = min(ecfg.RunAheadFrames, 10)
 }
 
 type VideoConfig struct {
