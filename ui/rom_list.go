@@ -8,6 +8,7 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/sqweek/dialog"
 	"golang.org/x/image/colornames"
 )
 
@@ -136,6 +137,20 @@ func (s *romList) createUI() {
 
 	// Configure menu.
 	menu := newAppMenu(&s.ui)
+	menu.fileOpen.ClickedEvent.AddHandler(func(args any) {
+		dlg := dialog.File().Title("Open NES ROM").Filter("NES rom", "nes")
+		dlg.StartDir = s.app.cfg.General.FileLoadStartDir
+
+		name, err := dlg.Load()
+		if err != nil {
+			modUI.ErrorZ("dialog: failed to open").Error("err", err).End()
+			return
+		}
+
+		s.app.setState("running")
+		s.app.runRom(name)
+	})
+
 	menu.fileQuit.ClickedEvent.AddHandler(func(args any) {
 		s.app.exit()
 	})

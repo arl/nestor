@@ -14,7 +14,8 @@ import (
 )
 
 type General struct {
-	ShowSplash bool `toml:"show_splash"`
+	ShowSplash       bool   `toml:"show_splash"`
+	FileLoadStartDir string `toml:"file_load_start_dir"`
 }
 
 type Config struct {
