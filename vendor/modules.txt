@@ -2,6 +2,9 @@
 ## explicit; go 1.18
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
+# github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf
+## explicit
+github.com/TheTitanrain/w32
 # github.com/arl/blip v0.2.2
 ## explicit; go 1.22
 github.com/arl/blip
@@ -152,6 +155,10 @@ github.com/segmentio/asm/cpu/arm64
 github.com/segmentio/asm/cpu/cpuid
 github.com/segmentio/asm/cpu/x86
 github.com/segmentio/asm/internal/unsafebytes
+# github.com/sqweek/dialog v0.0.0-20240226140203-065105509627
+## explicit
+github.com/sqweek/dialog
+github.com/sqweek/dialog/cocoa
 # github.com/tinylib/msgp v1.5.0
 ## explicit; go 1.22
 github.com/tinylib/msgp
