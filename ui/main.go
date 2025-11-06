@@ -12,7 +12,7 @@ import (
 	"golang.org/x/image/colornames"
 )
 
-type romList struct {
+type mainState struct {
 	*app
 
 	selidx  int
@@ -24,8 +24,8 @@ type romList struct {
 	cells  []*widget.Container
 }
 
-func newRomListState(app *app) *romList {
-	state := &romList{
+func newMainState(app *app) *mainState {
+	state := &mainState{
 		app:  app,
 		roms: loadRecentROMs(),
 	}
@@ -35,7 +35,39 @@ func newRomListState(app *app) *romList {
 	return state
 }
 
-func (s *romList) startROM() {
+func buildMenu(app *app) *widget.Container {
+	menu := newAppMenu(&app.ui)
+	menu.fileOpen.ClickedEvent.AddHandler(func(args any) {
+		dlg := dialog.File().Title("Open NES ROM").Filter("NES rom", "nes")
+		dlg.StartDir = app.cfg.General.FileLoadStartDir
+
+		name, err := dlg.Load()
+		if err != nil {
+			modUI.ErrorZ("dialog: failed to open").Error("err", err).End()
+			return
+		}
+
+		app.setState("running")
+		app.runRom(name)
+	})
+
+	menu.fileQuit.ClickedEvent.AddHandler(func(args any) {
+		app.exit()
+	})
+	menu.settingsInput.ClickedEvent.AddHandler(func(args any) {
+		app.setState("config", "input")
+	})
+	menu.settingsVideo.ClickedEvent.AddHandler(func(args any) {
+		app.setState("config", "video")
+	})
+	menu.settingsEmulation.ClickedEvent.AddHandler(func(args any) {
+		app.setState("config", "emulation")
+	})
+
+	return menu.container
+}
+
+func (s *mainState) startROM() {
 	path := s.roms[s.selidx].Path
 	modUI.InfoZ("selected ROM").String("path", path).End()
 	if err := s.runRom(path); err == nil {
@@ -45,10 +77,10 @@ func (s *romList) startROM() {
 	}
 }
 
-func (s *romList) enter(...any) {}
-func (s *romList) exit()        {}
+func (s *mainState) enter(...any) {}
+func (s *mainState) exit()        {}
 
-func (s *romList) update() {
+func (s *mainState) update() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		s.up()
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
@@ -64,39 +96,39 @@ func (s *romList) update() {
 	s.ui.Update()
 }
 
-func (s *romList) draw(screen *ebiten.Image) {
+func (s *mainState) draw(screen *ebiten.Image) {
 	s.ui.Draw(screen)
 }
 
-func (s *romList) up() {
+func (s *mainState) up() {
 	if s.selidx < s.numcols {
 		return
 	}
 	s.selectCell(s.selidx-s.numcols, true)
 }
 
-func (s *romList) down() {
+func (s *mainState) down() {
 	if s.selidx+s.numcols >= len(s.roms) {
 		return
 	}
 	s.selectCell(s.selidx+s.numcols, false)
 }
 
-func (s *romList) left() {
+func (s *mainState) left() {
 	if s.selidx == 0 {
 		return
 	}
 	s.selectCell(s.selidx-1, true)
 }
 
-func (s *romList) right() {
+func (s *mainState) right() {
 	if s.selidx == len(s.roms)-1 {
 		return
 	}
 	s.selectCell(s.selidx+1, false)
 }
 
-func (s *romList) selectCell(idx int, alignTop bool) {
+func (s *mainState) selectCell(idx int, alignTop bool) {
 	if idx < 0 || idx >= len(s.cells) {
 		return
 	}
@@ -117,7 +149,7 @@ func (s *romList) selectCell(idx int, alignTop bool) {
 	}
 }
 
-func (s *romList) createUI() {
+func (s *mainState) createUI() {
 	s.ui.Container = widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Padding(&widget.Insets{}),
@@ -135,36 +167,7 @@ func (s *romList) createUI() {
 		)),
 	)
 
-	// Configure menu.
-	menu := newAppMenu(&s.ui)
-	menu.fileOpen.ClickedEvent.AddHandler(func(args any) {
-		dlg := dialog.File().Title("Open NES ROM").Filter("NES rom", "nes")
-		dlg.StartDir = s.app.cfg.General.FileLoadStartDir
-
-		name, err := dlg.Load()
-		if err != nil {
-			modUI.ErrorZ("dialog: failed to open").Error("err", err).End()
-			return
-		}
-
-		s.app.setState("running")
-		s.app.runRom(name)
-	})
-
-	menu.fileQuit.ClickedEvent.AddHandler(func(args any) {
-		s.app.exit()
-	})
-	menu.settingsInput.ClickedEvent.AddHandler(func(args any) {
-		s.setState("config", "input")
-	})
-	menu.settingsVideo.ClickedEvent.AddHandler(func(args any) {
-		s.setState("config", "video")
-	})
-	menu.settingsEmulation.ClickedEvent.AddHandler(func(args any) {
-		s.setState("config", "emulation")
-	})
-
-	s.ui.Container.AddChild(menu.container)
+	s.ui.Container.AddChild(buildMenu(s.app))
 
 	const screenshotWidth = 180 // side of the screenshot square image.
 	const maxCellWidth = 200
@@ -259,7 +262,7 @@ var (
 	selectedbg    = image.NewNineSliceColor(colornames.Blue)
 )
 
-func (s *romList) createROMCell(idx int, img *ebiten.Image, side int) *widget.Container {
+func (s *mainState) createROMCell(idx int, img *ebiten.Image, side int) *widget.Container {
 	const padding = 10
 
 	var cell *widget.Container

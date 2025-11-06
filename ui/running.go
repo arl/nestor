@@ -45,7 +45,7 @@ func (s *runningState) draw(screen *ebiten.Image) {
 			s.shouldQuit = false
 			s.emulator.Stop()
 			<-s.framech // discard frame
-			s.app.setState("rom_list")
+			s.app.setState("main")
 			return
 		}
 

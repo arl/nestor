@@ -60,7 +60,7 @@ func (s *pausedState) onReload() {
 func (s *pausedState) onStop() {
 	s.emulator.Stop()
 	<-s.framech // discard frame
-	s.app.setState("rom_list")
+	s.app.setState("main")
 }
 
 func (s *pausedState) createUI() {

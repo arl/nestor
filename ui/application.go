@@ -68,7 +68,7 @@ func start(ctx context.Context, cfg config.Config, romPath string) error {
 			return fmt.Errorf("can't run rom: %w", err)
 		}
 	} else {
-		app.setState("rom_list")
+		app.setState("main")
 	}
 
 	if err := ebiten.RunGameWithOptions(app, options); err != nil {
@@ -158,7 +158,7 @@ func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, c
 
 	app.states["running"] = newRunningState(app)
 	app.states["paused"] = newPausedState(app)
-	app.states["rom_list"] = newRomListState(app)
+	app.states["main"] = newMainState(app)
 	app.states["config"] = newConfigState(app)
 	app.states["capture"] = newCaptureState(app)
 

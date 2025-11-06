@@ -116,7 +116,7 @@ func (s *configState) createUI() {
 		widget.ButtonOpts.TextPadding(res.button.padding),
 		widget.ButtonOpts.Image(res.button.image),
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.app.setState("rom_list")
+			s.app.setState("main")
 		}),
 		widget.ButtonOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
