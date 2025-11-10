@@ -47,8 +47,12 @@ func buildMenu(app *app) *widget.Container {
 			return
 		}
 
+
+		if err := app.runRom(name); err != nil {
+			panic("handle error: " + err.Error())
+		}
+
 		app.setState("running")
-		app.runRom(name)
 	})
 
 	menu.fileQuit.ClickedEvent.AddHandler(func(args any) {

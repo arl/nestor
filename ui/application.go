@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"os"
+	"path/filepath"
 	"sync/atomic"
 	"time"
 
@@ -274,7 +276,28 @@ func (app *app) runRom(romPath string) error {
 	app.audioPlayer.Play()
 
 	go func() {
+		tmpdir, err := os.MkdirTemp("", "nestor-")
+		if err != nil {
+			modUI.WarnZ("failed to create temp dir").Error("err", err).End()
+		} else {
+			emulator.SetTempDir(tmpdir)
+		}
+
 		emulator.Run()
+
+		screenshot, err := os.ReadFile(filepath.Join(tmpdir, "screenshot.png"))
+		if err != nil {
+			modUI.WarnZ("failed to read screenshot").Error("err", err).End()
+		}
+
+		if err := addRecentROM(recentROM{
+			Path:     romPath,
+			Name:     filepath.Base(romPath),
+			Image:    screenshot,
+			LastUsed: time.Now(),
+		}); err != nil {
+			modUI.WarnZ("failed to add recent ROM").Error("err", err).End()
+		}
 	}()
 
 	return nil

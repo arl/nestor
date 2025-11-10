@@ -33,9 +33,8 @@ func (fs *FrameSaver) Drive(ctx context.Context, framech <-chan *Frame) {
 			return
 
 		case f := <-framech:
-
 			if framecounter == fs.SaveFrameNum {
-				img := FramebufImage(f.Video, fs.Width, fs.Height)
+				img := framebufImage(f.Video, fs.Width, fs.Height)
 				if err := SaveAsPNG(img, fs.framePath(false)); err != nil {
 					panic("failed to save frame: " + err.Error())
 				}

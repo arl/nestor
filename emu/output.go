@@ -98,4 +98,10 @@ func (out *Output) EndFrame(frame *Frame) {
 	out.framech <- frame
 }
 
-func (out *Output) Screenshot() *image.RGBA { return nil }
+func (out *Output) Screenshot() *image.RGBA {
+	fbidx := out.framebufidx - 1
+	if fbidx < 1 {
+		fbidx = out.cfg.NumBackBuffers - 1
+	}
+	return framebufImage(out.framebuf[fbidx], out.cfg.Width, out.cfg.Height)
+}

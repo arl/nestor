@@ -27,8 +27,8 @@ type Frame struct {
 	Audio apu.AudioBuffer
 }
 
-// FramebufImage returns an image.RGBA from a frame buffer.
-func FramebufImage(framebuf []byte, w, h int32) *image.RGBA {
+// framebufImage returns an image.RGBA from a frame buffer.
+func framebufImage(framebuf []byte, w, h int32) *image.RGBA {
 	return &image.RGBA{
 		Pix:    slices.Clone(framebuf),
 		Stride: 4 * int(w),

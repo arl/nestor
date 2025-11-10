@@ -69,9 +69,9 @@ func (r recentROM) save() error {
 	return nil
 }
 
-// AddRecentROM is the new entry point for saving a ROM to the recent list.
+// addRecentROM is the new entry point for saving a ROM to the recent list.
 // Call this function when you run a new ROM.
-func AddRecentROM(rom recentROM) error {
+func addRecentROM(rom recentROM) error {
 	if err := rom.save(); err != nil {
 		return fmt.Errorf("failed to save recent ROM: %w", err)
 	}
