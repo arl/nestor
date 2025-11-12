@@ -20,6 +20,7 @@ import (
 	"nestor/hw/apu"
 	"nestor/hw/input"
 	"nestor/ines"
+	"nestor/ui/shaders"
 )
 
 var modUI = log.NewModule("ui")
@@ -146,6 +147,7 @@ type app struct {
 	curstate appState
 
 	screenw, screenh int
+	shader           *ebiten.Shader
 }
 
 func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, cfg config.Config) *app {
@@ -274,6 +276,13 @@ func (app *app) runRom(romPath string) error {
 	app.audioPlayer.SetVolume(1)
 	app.audioPlayer.SetBufferSize(8192)
 	app.audioPlayer.Play()
+
+	const name = "basic-crt" // TODO: read from config
+	shader, err := shaders.Load(name)
+	if err != nil {
+		modUI.FatalZ("can't load shader").String("name", name).Error("err", err).End()
+	}
+	app.shader = shader
 
 	app.setState("running")
 

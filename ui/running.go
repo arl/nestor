@@ -21,6 +21,7 @@ func newRunningState(app *app) *runningState {
 		app:     app,
 		elapsed: time.Now().Unix(),
 	}
+
 	s.createUI()
 	return s
 }
@@ -93,9 +94,15 @@ func (s *runningState) drawFrame(screen *ebiten.Image, frameImg *ebiten.Image, t
 		scale = scaleY
 	}
 
-	// Draw the frame centered
-	op := &ebiten.DrawImageOptions{}
+	// Calculate the scaled dimensions
+	scaledW := fw * scale
+	scaledH := fh * scale
+
+	// Draw the frame centered and apply shader.
+	op := &ebiten.DrawRectShaderOptions{}
 	op.GeoM.Scale(scale, scale)
-	op.GeoM.Translate((targetW-fw*scale)/2, (targetH-fh*scale)/2)
-	screen.DrawImage(frameImg, op)
+	op.GeoM.Translate((targetW-scaledW)/2, (targetH-scaledH)/2)
+	op.Images[0] = frameImg
+
+	screen.DrawRectShader(int(fw), int(fh), s.shader, op)
 }
