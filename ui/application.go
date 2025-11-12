@@ -275,6 +275,8 @@ func (app *app) runRom(romPath string) error {
 	app.audioPlayer.SetBufferSize(8192)
 	app.audioPlayer.Play()
 
+	app.setState("running")
+
 	go func() {
 		tmpdir, err := os.MkdirTemp("", "nestor-")
 		if err != nil {

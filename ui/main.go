@@ -26,14 +26,19 @@ type mainState struct {
 
 func newMainState(app *app) *mainState {
 	state := &mainState{
-		app:  app,
-		roms: loadRecentROMs(),
+		app: app,
 	}
 
 	state.createUI()
 
 	return state
 }
+
+func (s *mainState) enter(...any) {
+	s.roms = loadRecentROMs()
+}
+
+func (s *mainState) exit() {}
 
 func buildMenu(app *app) *widget.Container {
 	menu := newAppMenu(&app.ui)
@@ -44,15 +49,14 @@ func buildMenu(app *app) *widget.Container {
 		name, err := dlg.Load()
 		if err != nil {
 			modUI.ErrorZ("dialog: failed to open").Error("err", err).End()
+			errorWindow(&app.ui, err)
 			return
 		}
 
-
 		if err := app.runRom(name); err != nil {
-			panic("handle error: " + err.Error())
+			modUI.ErrorZ("failed to run rom").Error("err", err).End()
+			errorWindow(&app.ui, err)
 		}
-
-		app.setState("running")
 	})
 
 	menu.fileQuit.ClickedEvent.AddHandler(func(args any) {
@@ -80,9 +84,6 @@ func (s *mainState) startROM() {
 		modUI.ErrorZ("failed to run ROM").String("path", path).Error("err", err).End()
 	}
 }
-
-func (s *mainState) enter(...any) {}
-func (s *mainState) exit()        {}
 
 func (s *mainState) update() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {

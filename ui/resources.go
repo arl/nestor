@@ -24,6 +24,8 @@ const (
 	textIdleColor     = 0xdff4ff // rgba(242, 223, 255, 1)
 	textDisabledColor = widgetDisabledColor
 
+	textErrorColor = widgetMaskColor
+
 	labelIdleColor     = textIdleColor
 	labelDisabledColor = textDisabledColor
 
