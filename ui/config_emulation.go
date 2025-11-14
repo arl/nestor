@@ -15,7 +15,7 @@ func (s *configState) emulationConfigPage() *page {
 
 	runaheadFrames.AddChild(
 		widget.NewLabel(
-			widget.LabelOpts.Text("Paddle 1", res.label.face, res.label.text),
+			widget.LabelOpts.Text("Run-ahead frames", res.label.face, res.label.text),
 			widget.LabelOpts.LabelPadding(&widget.Insets{Top: 5, Left: 10}),
 			widget.LabelOpts.TextOpts(widget.TextOpts.WidgetOpts(
 				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
@@ -29,7 +29,7 @@ func (s *configState) emulationConfigPage() *page {
 			},
 			func(idxpreset int) {
 				from := s.app.cfg.Emulation.RunAheadFrames
-				modUI.InfoZ("changed prun-ahead frames").
+				modUI.InfoZ("changed run-ahead frames").
 					Uint("from", from).
 					Uint("to", uint(idxpreset)).
 					End()
