@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"slices"
+
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
@@ -10,7 +12,7 @@ type configState struct {
 	*app
 
 	startPage int
-	presetidx int
+	presetidx int // TODO: we can probably remove this and place it in inputConfigPage
 }
 
 func newConfigState(app *app) *configState {
@@ -99,7 +101,11 @@ func (s *configState) createUI() {
 		widget.ListOpts.HideVerticalSlider(),
 
 		widget.ListOpts.EntrySelectedHandler(func(args *widget.ListEntrySelectedEventArgs) {
-			pageContainer.setPage(args.Entry.(*page))
+			// page index
+			page := args.Entry.(*page)
+			pageIdx := slices.Index(pages, any(page))
+			s.startPage = pageIdx
+			pageContainer.setPage(page)
 		}))
 	pageList.SetSelectedEntry(pages[s.startPage])
 
