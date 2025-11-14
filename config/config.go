@@ -55,7 +55,7 @@ var defaultConfig = Config{
 			DisableVSync:    false,
 			StartFullscreen: false,
 			Monitor:         0,
-			Shader:          "",
+			Shader:          "passthrough",
 		},
 		Audio: emu.AudioConfig{
 			DisableAudio: false,

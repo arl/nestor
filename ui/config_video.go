@@ -1,7 +1,10 @@
 package ui
 
 import (
+	"slices"
 	"strconv"
+
+	"nestor/ui/shader"
 
 	"github.com/ebitenui/ebitenui/utilities/mobile"
 	"github.com/ebitenui/ebitenui/widget"
@@ -63,6 +66,46 @@ func (s *configState) videoConfigPage() *page {
 				})))),
 		monitorInput)
 
+	// shader selection.
+	shaderNames := shader.Names()
+	idxshader := slices.Index(shaderNames, s.app.cfg.Video.Shader)
+	if idxshader < 0 {
+		idxshader = shader.DefaultIndex()
+	}
+
+	onShaderChanged := func(idxpreset int) {
+		from := s.app.cfg.Video.Shader
+		to := shaderNames[idxpreset]
+		modUI.InfoZ("changed shader").
+			String("from", from).
+			String("to", to).
+			End()
+
+		s.app.cfg.Video.Shader = to
+		s.app.savecfg()
+		s.createUI()
+	}
+
+	shaderBlock := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal))))
+
+	shaderBlock.AddChild(
+		widget.NewLabel(
+			widget.LabelOpts.Text("Shader", res.label.face, res.label.text),
+			widget.LabelOpts.LabelPadding(&widget.Insets{Top: 5, Left: 10}),
+			widget.LabelOpts.TextOpts(widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionEnd,
+					VerticalPosition:   widget.GridLayoutPositionCenter,
+				})))),
+		newCombobox(shaderNames, idxshader,
+			widget.GridLayoutData{
+				HorizontalPosition: widget.GridLayoutPositionStart,
+				MaxWidth:           200,
+			},
+			onShaderChanged))
+
 	c.AddChild(
 		newCheckbox2States("Enable V-Sync", !s.app.cfg.Video.DisableVSync, func(enabled bool) {
 			s.app.cfg.Video.DisableVSync = !enabled
@@ -73,6 +116,7 @@ func (s *configState) videoConfigPage() *page {
 			s.app.savecfg()
 		}),
 		monitorBlock,
+		shaderBlock,
 	)
 	return &page{title: "Video", content: c}
 }
