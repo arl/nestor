@@ -1,4 +1,4 @@
-package shaders
+package shader
 
 import "testing"
 
@@ -10,5 +10,13 @@ func TestLoadAll(t *testing.T) {
 			continue
 		}
 		shader.Deallocate()
+	}
+}
+
+func TestDefaultExists(t *testing.T) {
+	_, err := Load(Default)
+	if err != nil {
+		t.Errorf("failed to load default shader %q: %v", Default, err)
+
 	}
 }

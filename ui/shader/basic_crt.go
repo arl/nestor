@@ -1,8 +1,9 @@
-//+build ignore
+//go:build ignore
+// +build ignore
 
 //kage:unit pixels
 
-package shaders
+package shader
 
 const intensity = 0.05
 

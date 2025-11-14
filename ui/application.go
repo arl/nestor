@@ -20,7 +20,7 @@ import (
 	"nestor/hw/apu"
 	"nestor/hw/input"
 	"nestor/ines"
-	"nestor/ui/shaders"
+	"nestor/ui/shader"
 )
 
 var modUI = log.NewModule("ui")

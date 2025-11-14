@@ -2,7 +2,7 @@
 
 //kage:unit pixels
 
-package shaders
+package shader
 
 /*
  * gizmo98 crt shader

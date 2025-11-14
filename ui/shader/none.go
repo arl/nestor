@@ -2,7 +2,7 @@
 
 //kage:unit pixels
 
-package shaders
+package shader
 
 // Passthrough shader - returns the original texture color unchanged
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {

@@ -1,4 +1,4 @@
-package shaders
+package shader
 
 import (
 	_ "embed"
@@ -11,22 +11,28 @@ import (
 )
 
 //go:embed basic_crt.go
-var BasicCRT []byte
+var basicCRT []byte
 
-//go:embed passthrough.go
-var Passthrough []byte
+//go:embed none.go
+var none []byte
 
 //go:embed gizmo_crt.go
-var GizmoCRT []byte
+var gizmoCRT []byte
 
 var shaders = map[string][]byte{
-	"basic-crt":   BasicCRT,
-	"passthrough": Passthrough,
-	"gizmo-crt":   GizmoCRT,
+	"basic-crt": basicCRT,
+	"none":      none,
+	"gizmo-crt": gizmoCRT,
 }
 
 var Names = sync.OnceValue(func() []string {
 	return slices.Collect(maps.Keys(shaders))
+})
+
+var Default = "none"
+
+var DefaultIndex = sync.OnceValue(func() int {
+	return slices.Index(Names(), Default)
 })
 
 func Load(name string) (*ebiten.Shader, error) {
