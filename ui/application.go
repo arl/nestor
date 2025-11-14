@@ -277,7 +277,7 @@ func (app *app) runRom(romPath string) error {
 	app.audioPlayer.SetBufferSize(8192)
 	app.audioPlayer.Play()
 
-	const name = "basic-crt" // TODO: read from config
+	const name = "gizmo-crt" // TODO: read from config
 	shader, err := shaders.Load(name)
 	if err != nil {
 		modUI.FatalZ("can't load shader").String("name", name).Error("err", err).End()

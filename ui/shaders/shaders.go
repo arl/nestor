@@ -13,12 +13,16 @@ import (
 //go:embed basic_crt.go
 var BasicCRT []byte
 
-//go:embed pixel_art.go
-var PixelArt []byte
+//go:embed passthrough.go
+var Passthrough []byte
+
+//go:embed gizmo_crt.go
+var GizmoCRT []byte
 
 var shaders = map[string][]byte{
-	"basic-crt": BasicCRT,
-	"pixel-art": PixelArt,
+	"basic-crt":   BasicCRT,
+	"passthrough": Passthrough,
+	"gizmo-crt":   GizmoCRT,
 }
 
 var Names = sync.OnceValue(func() []string {
