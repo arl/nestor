@@ -1,0 +1,41 @@
+//go:build ignore
+
+//kage:unit pixels
+
+package shader
+
+/*
+ * Scanline shader
+ * Converted from scanline.slang to Kage format
+ *
+ * Creates CRT-like scanlines using sine wave modulation
+ */
+
+const (
+	PI                   = 3.141592654
+	SCANLINE_SINE_COMP_A = 0.0
+	SCANLINE_SINE_COMP_B = 0.15
+)
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	texColor := imageSrc0At(srcPos)
+	imgSize := imageSrc0Size()
+
+	// Normalize texture coordinates (0.0 to 1.0)
+	vTexCoord := srcPos / imgSize
+
+	// Calculate omega values for sine wave frequency
+	omegaX := PI * dstPos.z // Using destination width
+	omegaY := 1.999 * PI * imgSize.y
+
+	// Compute sine components
+	sineX := SCANLINE_SINE_COMP_A * sin(vTexCoord.x*omegaX)
+	sineY := SCANLINE_SINE_COMP_B * sin(vTexCoord.y*omegaY)
+	sineFactor := sineX + sineY
+
+	// Apply scanline effect
+	brightness := (1.0 - SCANLINE_SINE_COMP_B*0.5) + sineFactor
+	scanlineColor := texColor.rgb * brightness
+
+	return vec4(scanlineColor, 1.0)
+}
