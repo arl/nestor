@@ -1,0 +1,51 @@
+//go:build ignore
+
+//kage:unit pixels
+
+package shader
+
+/*
+ * CRT NES Mini shader
+ * Converted from crt-nes-mini.slang to Kage format
+ *
+ * Creates CRT scanlines similar to the NES Classic Mini console.
+ * Features adjustable scanline thickness, intensity, and brightness boost.
+ */
+
+const (
+	// Scanline Thickness: Controls the thickness of scanlines
+	// Original range: 2.0 to 4.0, default: 2.0
+	SCANTHICK = 2.0
+
+	// Scanline Intensity: Controls how dark the scanlines are
+	// Original range: 0.0 to 1.0, default: 0.15
+	INTENSITY = 0.15
+
+	// Luminance Boost: Brightens the overall image
+	// Original range: 0.0 to 1.0, default: 0.15
+	BRIGHTBOOST = 0.15
+)
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	// Sample the texture
+	texel := imageSrc0At(srcPos).rgb
+
+	// Calculate high and low pixel brightness
+	// High = brighter pixels (between scanlines)
+	// Low = darker pixels (scanlines themselves)
+	pixelHigh := ((1.0 + BRIGHTBOOST) - (0.2 * texel)) * texel
+	pixelLow := ((1.0 - INTENSITY) + (0.1 * texel)) * texel
+
+	// Determine if we're on a scanline or between scanlines
+	// Uses modulo to create alternating pattern based on Y coordinate
+	selectY := mod(srcPos.y*SCANTHICK, 2.0)
+
+	// selectHigh = 1.0 when we're on a bright line, 0.0 otherwise
+	selectHigh := step(1.0, selectY)
+	selectLow := 1.0 - selectHigh
+
+	// Blend between low and high based on position
+	pixelColor := (selectLow * pixelLow) + (selectHigh * pixelHigh)
+
+	return vec4(pixelColor, 1.0)
+}

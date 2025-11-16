@@ -22,11 +22,15 @@ var gizmoCRT []byte
 //go:embed scanline.go
 var scanline []byte
 
+//go:embed crt_nes_mini.go
+var crtNESMini []byte
+
 var shaders = map[string][]byte{
-	"none":      none,
-	"basic-crt": basicCRT,
-	"gizmo-crt": gizmoCRT,
-	"scanline":  scanline,
+	"none":         none,
+	"basic-crt":    basicCRT,
+	"gizmo-crt":    gizmoCRT,
+	"scanline":     scanline,
+	"crt-nes-mini": crtNESMini,
 }
 
 var Names = sync.OnceValue(func() []string {
