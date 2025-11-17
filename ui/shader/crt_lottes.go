@@ -1,0 +1,242 @@
+//go:build ignore
+
+//kage:unit pixels
+
+package shader
+
+/*
+ * CRT Lottes shader
+ * Converted from crt-lottes.cg to Kage format
+ * Original by Timothy Lottes (Public Domain)
+ *
+ * A CRT shader styled after a good CGA arcade monitor with RGB inputs.
+ * Features: screen curvature, shadow masks, bloom, and scanlines.
+ *
+ * This is a simplified version for Kage's single-pass architecture.
+ * Multi-tap filtering is reduced for performance.
+ */
+
+const (
+	// Scanline and pixel hardness
+	HARD_SCAN = -8.0 // Hardness of scanline (-20.0 to 0.0)
+	HARD_PIX  = -3.0 // Hardness of pixels in scanline (-20.0 to 0.0)
+
+	// Screen warp (curvature)
+	WARP_X = 0.031 // Horizontal curvature amount
+	WARP_Y = 0.041 // Vertical curvature amount
+
+	// Shadow mask
+	MASK_DARK   = 0.5 // Dark mask value
+	MASK_LIGHT  = 1.5 // Light mask value
+	SHADOW_MASK = 3.0 // Mask type: 0=none, 1=TV, 2=aperture, 3=VGA stretched, 4=VGA
+
+	// Brightness and bloom
+	BRIGHT_BOOST    = 1.0  // Brightness multiplier
+	HARD_BLOOM_PIX  = -1.5 // Bloom horizontal hardness
+	HARD_BLOOM_SCAN = -2.0 // Bloom vertical hardness
+	BLOOM_AMOUNT    = 0.15 // Amount of bloom
+
+	// Filter kernel shape
+	SHAPE = 2.0 // Gaussian shape parameter
+
+	// Gamma
+	SCALE_IN_LINEAR_GAMMA = 1.0 // Use linear gamma scaling
+)
+
+// sRGB to Linear conversion
+func toLinear1(c float) float {
+	if SCALE_IN_LINEAR_GAMMA == 0.0 {
+		return c
+	}
+	if c <= 0.04045 {
+		return c / 12.92
+	}
+	return pow((c+0.055)/1.055, 2.4)
+}
+
+func toLinear(c vec3) vec3 {
+	if SCALE_IN_LINEAR_GAMMA == 0.0 {
+		return c
+	}
+	return vec3(toLinear1(c.r), toLinear1(c.g), toLinear1(c.b))
+}
+
+// Linear to sRGB conversion
+func toSrgb1(c float) float {
+	if SCALE_IN_LINEAR_GAMMA == 0.0 {
+		return c
+	}
+	if c < 0.0031308 {
+		return c * 12.92
+	}
+	return 1.055*pow(c, 0.41666) - 0.055
+}
+
+func toSrgb(c vec3) vec3 {
+	if SCALE_IN_LINEAR_GAMMA == 0.0 {
+		return c
+	}
+	return vec3(toSrgb1(c.r), toSrgb1(c.g), toSrgb1(c.b))
+}
+
+// Fetch nearest emulated sample
+func fetch(pos vec2, off vec2, imgSize vec2) vec3 {
+	samplePos := (floor(pos*imgSize+off) + vec2(0.5)) / imgSize
+	sample := imageSrc0At(samplePos * imgSize)
+	return toLinear(BRIGHT_BOOST * sample.rgb)
+}
+
+// Distance in emulated pixels to nearest texel
+func dist(pos vec2, imgSize vec2) vec2 {
+	p := pos * imgSize
+	return -((p - floor(p)) - vec2(0.5))
+}
+
+// 1D Gaussian
+func gaus(pos float, scale float) float {
+	return exp2(scale * pow(abs(pos), SHAPE))
+}
+
+// 3-tap Gaussian filter along horizontal line
+func horz3(pos vec2, off float, imgSize vec2) vec3 {
+	b := fetch(pos, vec2(-1.0, off), imgSize)
+	c := fetch(pos, vec2(0.0, off), imgSize)
+	d := fetch(pos, vec2(1.0, off), imgSize)
+	dst := dist(pos, imgSize).x
+
+	scale := HARD_PIX
+	wb := gaus(dst-1.0, scale)
+	wc := gaus(dst, scale)
+	wd := gaus(dst+1.0, scale)
+
+	return (b*wb + c*wc + d*wd) / (wb + wc + wd)
+}
+
+// 5-tap Gaussian filter along horizontal line
+func horz5(pos vec2, off float, imgSize vec2) vec3 {
+	a := fetch(pos, vec2(-2.0, off), imgSize)
+	b := fetch(pos, vec2(-1.0, off), imgSize)
+	c := fetch(pos, vec2(0.0, off), imgSize)
+	d := fetch(pos, vec2(1.0, off), imgSize)
+	e := fetch(pos, vec2(2.0, off), imgSize)
+	dst := dist(pos, imgSize).x
+
+	scale := HARD_PIX
+	wa := gaus(dst-2.0, scale)
+	wb := gaus(dst-1.0, scale)
+	wc := gaus(dst, scale)
+	wd := gaus(dst+1.0, scale)
+	we := gaus(dst+2.0, scale)
+
+	return (a*wa + b*wb + c*wc + d*wd + e*we) / (wa + wb + wc + wd + we)
+}
+
+// Return scanline weight
+func scan(pos vec2, off float, imgSize vec2) float {
+	dst := dist(pos, imgSize).y
+	return gaus(dst+off, HARD_SCAN)
+}
+
+// Allow nearest three lines to affect pixel
+func tri(pos vec2, imgSize vec2) vec3 {
+	a := horz3(pos, -1.0, imgSize)
+	b := horz5(pos, 0.0, imgSize)
+	c := horz3(pos, 1.0, imgSize)
+	wa := scan(pos, -1.0, imgSize)
+	wb := scan(pos, 0.0, imgSize)
+	wc := scan(pos, 1.0, imgSize)
+	return a*wa + b*wb + c*wc
+}
+
+// Screen curvature/warp
+func warp(pos vec2) vec2 {
+	p := pos*2.0 - 1.0
+	p *= vec2(1.0+(p.y*p.y)*WARP_X, 1.0+(p.x*p.x)*WARP_Y)
+	return p*0.5 + 0.5
+}
+
+// Shadow mask implementation
+func mask(pos vec2) vec3 {
+	maskColor := vec3(MASK_DARK)
+
+	if SHADOW_MASK == 0.0 {
+		// No mask
+		return vec3(1.0)
+	} else if SHADOW_MASK == 1.0 {
+		// Very compressed TV style shadow mask
+		maskLine := MASK_LIGHT
+		odd := 0.0
+		if mod(floor(pos.x/6.0), 2.0) < 1.0 {
+			odd = 1.0
+		}
+		if mod(floor((pos.y+odd)/2.0), 2.0) < 1.0 {
+			maskLine = MASK_DARK
+		}
+
+		posX := mod(pos.x, 3.0)
+		if posX < 1.0 {
+			maskColor.r = MASK_LIGHT
+		} else if posX < 2.0 {
+			maskColor.g = MASK_LIGHT
+		} else {
+			maskColor.b = MASK_LIGHT
+		}
+		maskColor *= maskLine
+	} else if SHADOW_MASK == 2.0 {
+		// Aperture-grille
+		posX := mod(pos.x, 3.0)
+		if posX < 1.0 {
+			maskColor.r = MASK_LIGHT
+		} else if posX < 2.0 {
+			maskColor.g = MASK_LIGHT
+		} else {
+			maskColor.b = MASK_LIGHT
+		}
+	} else if SHADOW_MASK == 3.0 {
+		// Stretched VGA style shadow mask
+		posX := pos.x + pos.y*3.0
+		posX = mod(posX, 6.0)
+		if posX < 2.0 {
+			maskColor.r = MASK_LIGHT
+		} else if posX < 4.0 {
+			maskColor.g = MASK_LIGHT
+		} else {
+			maskColor.b = MASK_LIGHT
+		}
+	} else if SHADOW_MASK == 4.0 {
+		// VGA style shadow mask
+		posX := floor(pos.x) + floor(pos.y*0.5)*3.0
+		posX = mod(posX, 6.0)
+		if posX < 2.0 {
+			maskColor.r = MASK_LIGHT
+		} else if posX < 4.0 {
+			maskColor.g = MASK_LIGHT
+		} else {
+			maskColor.b = MASK_LIGHT
+		}
+	}
+
+	return maskColor
+}
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	imgSize := imageSrc0Size()
+	texCoord := srcPos / imgSize
+
+	// Apply screen warp
+	pos := warp(texCoord)
+
+	// Get main CRT output with scanlines
+	outColor := tri(pos, imgSize)
+
+	// Apply shadow mask
+	if SHADOW_MASK > 0.0 {
+		maskPos := floor(dstPos.xy) + vec2(0.5)
+		outColor *= mask(maskPos)
+	}
+
+	// Convert back to sRGB
+	outColor = toSrgb(outColor)
+
+	return vec4(outColor, 1.0)
+}
