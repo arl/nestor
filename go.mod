@@ -20,6 +20,7 @@ require (
 
 require (
 	github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf // indirect
+	github.com/ebitengine/debugui v0.2.0 // indirect
 	github.com/ebitengine/gomobile v0.0.0-20250923094054-ea854a63cce1 // indirect
 	github.com/ebitengine/hideconsole v1.0.0 // indirect
 	github.com/ebitengine/purego v0.9.0 // indirect
@@ -27,8 +28,10 @@ require (
 	github.com/go-faster/errors v0.6.1 // indirect
 	github.com/go-text/typesetting v0.3.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/hajimehoshi/bitmapfont/v4 v4.1.0 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
+	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
