@@ -2,8 +2,13 @@ package ui
 
 import (
 	"fmt"
+	"image"
+	"slices"
 	"time"
 
+	"nestor/ui/shader"
+
+	"github.com/ebitengine/debugui"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -12,6 +17,8 @@ type runningState struct {
 	*app
 	paused  bool
 	elapsed int64 // elapsed seconds (for FPS display)
+
+	debugui debugui.DebugUI
 
 	shouldQuit bool
 }
@@ -30,7 +37,41 @@ func (s *runningState) createUI()    {}
 func (s *runningState) enter(...any) {}
 func (s *runningState) exit()        {}
 
+const debugShader = true
+
+func (s *runningState) shaderUI() {
+	shaders := shader.Names()
+	idx := slices.Index(shaders, s.cfg.Video.Shader)
+	_, err := s.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Shader", image.Rect(10, 10, 210, 110), func(layout debugui.ContainerLayout) {
+			ctx.Text(fmt.Sprintf("%d/%d: %s", idx+1, len(shaders), shaders[idx]))
+			ctx.SetGridLayout([]int{-1, -1}, nil)
+			dec := func() {
+				idx += len(shaders) - 1
+				idx %= len(shaders)
+				s.cfg.Video.Shader = shaders[idx]
+				s.app.setShader(shaders[idx])
+			}
+			ctx.Button("Prev").On(dec)
+			inc := func() {
+				idx++
+				idx %= len(shaders)
+				s.cfg.Video.Shader = shaders[idx]
+				s.app.setShader(shaders[idx])
+			}
+			ctx.Button("Next").On(inc)
+		})
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (s *runningState) update() {
+	if debugShader {
+		s.shaderUI()
+	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		s.app.setState("paused")
 	}
@@ -79,6 +120,10 @@ func (s *runningState) draw(screen *ebiten.Image) {
 	if now := time.Now().Unix(); now != s.elapsed {
 		s.elapsed = now
 		ebiten.SetWindowTitle(fmt.Sprintf("Nestor - FPS: %.1f", ebiten.ActualTPS()))
+	}
+
+	if debugShader {
+		s.debugui.Draw(screen)
 	}
 }
 

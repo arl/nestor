@@ -277,15 +277,7 @@ func (app *app) runRom(romPath string) error {
 	app.audioPlayer.SetBufferSize(8192)
 	app.audioPlayer.Play()
 
-	shader, err := shader.Load(app.cfg.Video.Shader)
-	if err != nil {
-		modUI.FatalZ("can't load shader").String("name", app.cfg.Video.Shader).Error("err", err).End()
-	}
-	if app.shader != nil {
-		app.shader.Deallocate()
-	}
-	app.shader = shader
-
+	app.setShader(app.cfg.Video.Shader)
 	app.setState("running")
 
 	go func() {
@@ -314,6 +306,17 @@ func (app *app) runRom(romPath string) error {
 	}()
 
 	return nil
+}
+
+func (app *app) setShader(name string) {
+	shader, err := shader.Load(name)
+	if err != nil {
+		modUI.FatalZ("can't load shader").String("name", name).Error("err", err).End()
+	}
+	if app.shader != nil {
+		app.shader.Deallocate()
+	}
+	app.shader = shader
 }
 
 func (app *app) savecfg() {
