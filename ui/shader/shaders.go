@@ -34,19 +34,31 @@ var crtEasymode []byte
 //go:embed crt_lottes.go
 var crtLottes []byte
 
+//go:embed film_grain.go
+var filmGrain []byte
+
+//go:embed ntsc_simple.go
+var ntscSimple []byte
+
+//go:embed sharp_bilinear_scanlines.go
+var sharpBilinearScanlines []byte
+
 var shaders = map[string][]byte{
-	"none":         none,
-	"basic-crt":    basicCRT,
-	"gizmo-crt":    gizmoCRT,
-	"scanline":     scanline,
-	"crt-nes-mini": crtNESMini,
-	"crt-aperture": crtAperture,
-	"crt-easymode": crtEasymode,
-	"crt-lottes":   crtLottes,
+	"basic-crt":                basicCRT,
+	"crt-aperture":             crtAperture,
+	"crt-easymode":             crtEasymode,
+	"crt-lottes":               crtLottes,
+	"crt-nes-mini":             crtNESMini,
+	"film-grain":               filmGrain,
+	"gizmo-crt":                gizmoCRT,
+	"none":                     none,
+	"ntsc-simple":              ntscSimple,
+	"scanline":                 scanline,
+	"sharp-bilinear-scanlines": sharpBilinearScanlines,
 }
 
 var Names = sync.OnceValue(func() []string {
-	return slices.Collect(maps.Keys(shaders))
+	return slices.Sorted(maps.Keys(shaders))
 })
 
 var Default = "none"
