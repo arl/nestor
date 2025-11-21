@@ -8,7 +8,7 @@ github.com/TheTitanrain/w32
 # github.com/arl/blip v0.2.2
 ## explicit; go 1.22
 github.com/arl/blip
-# github.com/arl/statsviz v0.7.2
+# github.com/arl/statsviz v0.8.0
 ## explicit; go 1.23.0
 github.com/arl/statsviz
 github.com/arl/statsviz/internal/plot
