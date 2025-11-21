@@ -59,9 +59,7 @@ func start(ctx context.Context, cfg config.Config, romPath string) error {
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetTPS(ebiten.SyncWithFPS)
 	ebiten.SetVsyncEnabled(!cfg.Video.DisableVSync)
-	var options = &ebiten.RunGameOptions{
-		SingleThread: false,
-	}
+	ebiten.SetRunnableOnUnfocused(true)
 
 	app := newApp(ctx, samples, audioctx, cfg)
 
@@ -74,6 +72,9 @@ func start(ctx context.Context, cfg config.Config, romPath string) error {
 		app.setState("main")
 	}
 
+	options := &ebiten.RunGameOptions{
+		SingleThread: false,
+	}
 	if err := ebiten.RunGameWithOptions(app, options); err != nil {
 		return fmt.Errorf("ui failure: %w", err)
 	}
