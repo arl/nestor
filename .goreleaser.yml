@@ -1,0 +1,44 @@
+version: 2
+project_name: nestor
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: nestor
+    binary: nestor
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - GOOS_PLACEHOLDER
+    goarch:
+      - GOARCH_PLACEHOLDER
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    files:
+      - LICENSE.md
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
