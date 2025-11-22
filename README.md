@@ -1,5 +1,5 @@
 <p align="center">
- <img src="./ui/logo.png" width="384" align="center">
+ <img src="./resource/logo.png" width="384" align="center">
 </p>
 
 # Nestor - NES emulator
@@ -17,10 +17,7 @@ Nestor is a NES/Famicom emulator written in Go.
     - [Implemented mappers](#implemented-mappers)
   - [Installation](#installation)
     - [MacOS - homebrew](#macos---homebrew)
-    - [MacOS - build from source](#macos---build-from-source)
-    - [Linux - build from source](#linux---build-from-source)
-      - [Install dependencies](#install-dependencies)
-      - [Build](#build)
+    - [Build from source](#build-from-source)
   - [Usage](#usage)
   - [UI Screenshots](#ui-screenshots)
   - [Thanks](#thanks)
@@ -68,72 +65,31 @@ brew tap arl/arl
 brew install nestor
 ```
 
+### Build from source
 
-### MacOS - build from source
+ 1. Install Go, following installation instructions at https://go.dev/doc/install (>= go1.25 is required).
+ 2. Nestor uses the Ebitengine library, which requires some dependencies to be installed first. Follow the [Ebitengine installation instructions](https://ebitengine.org/en/documents/install.html) for your platform.
+ 3. Clone github.com/arl/nestor
+ 4. Run `go build` in the repository folder.
 
-Install the dependencies with homebrew:
-
-```
-brew install go gtk+3 sdl2 sdl2_ttf
-```
-
-Clone this repository and build it from source with go1.24+:
-```
-go build
-```
-
-
-### Linux - build from source
-
-#### Install dependencies
-
- - Debian-based (e.g Ubuntu, Mint)
-
-```
-sudo apt-get update &&
-sudo apt-get install \
-  gcc \
-  pkg-config \
-  libsdl2-dev \
-  libgtk-3-dev \
-  libglib2.0-dev \
-  libgdk-pixbuf-2.0-dev \
-  libsdl2-image-dev \
-  libsdl2-mixer-dev \
-  libsdl2-ttf-dev \
-  libsdl2-gfx-dev
-```
-
- - Other distributions, please refer to:
-   - [github.com/gotk3/gotk3](https://github.com/gotk3/gotk3)
-   - [github.com/veandco/go-sdl2](https://github.com/veandco/go-sdl2)
-
-#### Build
-
-Requires go1.24+
-
-Then you can close the directory and run `go build`
-Or else directly download, build and install `nestor` in your $PATH with:
-
-```
-go install github.com/arl/nestor@main
-```
 
 ## Usage
 
 You can either directly run a rom file with:
 
 ```
-$ nestor run /path/to/rom.nes
+$ ./nestor /path/to/rom.nes
 ```
 
-or use the Graphical User Interface (GUI) mode:
+or start the Graphical User Interface (GUI) mode:
 
 ```
-$ nestor
+$ ./nestor
 ```
 
-Run `nestor --help` for more information.
+Run `nestor --help` for more options.
+
+
 
 ## UI Screenshots
 

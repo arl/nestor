@@ -14,7 +14,7 @@ type cpuState struct {
 
 	Clock    int64
 	PPUCycle uint32
-	Scanline int
+	Scanline int16
 }
 
 type disasmer interface {

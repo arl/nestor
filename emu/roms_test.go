@@ -12,7 +12,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"nestor/emu/log"
-	"nestor/hw"
 	"nestor/hw/hwio"
 	"nestor/ines"
 	"nestor/tests"
@@ -33,7 +32,11 @@ func TestNestest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	println("nestest log:", flog.Name())
+	t.Cleanup(func() { flog.Close() })
+
+	if testing.Verbose() {
+		println("nestest log:", flog.Name())
+	}
 
 	nes, err := powerUp(rom)
 	if err != nil {
@@ -56,23 +59,26 @@ func TestNestest(t *testing.T) {
 	nes.APU.Square2.Timer.Value = 0x40
 	nes.APU.Square2.Length.Value = 0x40
 
+	// For some reason we need this to match nestest output.
+	nes.PPU.Cycle--
+
 	// Configure a headless testing output.
-	cfg := TestingOutputConfig{
-		Height: hw.NTSCHeight,
-		Width:  hw.NTSCWidth,
+	cfg := OutputConfig{
+		Height: NTSCHeight,
+		Width:  NTSCWidth,
 	}
+
 	e := Emulator{
 		NES: nes,
-		out: newTestingOutput(cfg),
+		out: NewOutput(nil, cfg),
 	}
+
 	e.Run()
 
 	result := nes.CPU.Read16(0x02)
 	if result != 0 {
 		t.Fatalf("nestest CPU tests failed with result 0x%04x (check nestest.txt)", result)
 	}
-
-	flog.Close()
 
 	want := filepath.Join("testdata", "nestest.mesen.log")
 	CompareFileWithGolden(t, flog.Name(), want, false)
@@ -83,6 +89,7 @@ func TestNestest(t *testing.T) {
 
 // Various tests from blargg's test roms. They're easy to automate since
 // they write to a specific memory location to signal the test status.
+
 func TestBlarggRoms(t *testing.T) {
 	if !testing.Verbose() {
 		log.Disable()
@@ -198,9 +205,9 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 		var result uint8
 
 		// Configure a headless testing output.
-		out := newTestingOutput(TestingOutputConfig{
-			Height: hw.NTSCHeight,
-			Width:  hw.NTSCWidth,
+		out := NewOutput(nil, OutputConfig{
+			Height: NTSCHeight,
+			Width:  NTSCWidth,
 		})
 
 		// When reset is required, it needs to be pressed 100ms later, so we
@@ -237,7 +244,7 @@ func runBlarggTestRom(path string) func(t *testing.T) {
 			switch {
 			case framesBeforeReset == 0:
 				t.Log("pressing RESET...")
-				nes.Reset(true)
+				nes.reset(true)
 				framesBeforeReset = -1
 			case framesBeforeReset > 0:
 				framesBeforeReset--
@@ -257,9 +264,9 @@ func readString(t *hwio.Table, addr uint16, maxlen int) string {
 	if maxlen == -1 {
 		maxlen = math.MaxUint16
 	}
-	for i := 0; ; i++ {
+	for i := range maxlen {
 		val := t.Peek8(addr + uint16(i))
-		if val == 0 || i >= maxlen {
+		if val == 0 {
 			break
 		}
 		sb.WriteByte(val)
@@ -301,9 +308,9 @@ func TestSpriteOverflow(t *testing.T) {
 
 	roms := []string{
 		"1.Basics.nes",
-		// "2.Details.nes", // failed #9
-		// "3.Timing.nes",
-		// "4.Obscure.nes",
+		"2.Details.nes",
+		"3.Timing.nes",
+		"4.Obscure.nes",
 		"5.Emulator.nes",
 	}
 
@@ -324,7 +331,7 @@ func TestDMCDMADuringRead(t *testing.T) {
 		"dma_2007_read.nes",
 		"dma_2007_write.nes",
 		"dma_4016_read.nes",
-		// "double_2007_read.nes",
+		"double_2007_read.nes",
 		"read_write_2007.nes",
 	}
 
@@ -530,18 +537,24 @@ func runAndCompareFrame(t *testing.T, romPath, frameDir, framePath string, frame
 		t.Fatal(err)
 	}
 
-	out := newTestingOutput(
-		TestingOutputConfig{
-			Height:        hw.NTSCHeight,
-			Width:         hw.NTSCWidth,
-			SaveFrameDir:  frameDir,
-			SaveFrameFile: framePath,
-			SaveFrameNum:  frame,
-		},
-	)
+	framech := make(chan *Frame)
+	out := NewOutput(framech, OutputConfig{
+		Height: NTSCHeight,
+		Width:  NTSCWidth,
+	})
 
 	e := Emulator{NES: nes, out: out}
-	e.Run()
+	go e.Run()
 
-	out.CompareFrame(t)
+	fs := FrameSaver{
+		Width:         NTSCWidth,
+		Height:        NTSCHeight,
+		SaveFrameNum:  frame,
+		SaveFrameFile: framePath,
+		SaveFrameDir:  frameDir,
+	}
+
+	fs.Drive(t.Context(), framech)
+
+	fs.CompareFrame(t)
 }

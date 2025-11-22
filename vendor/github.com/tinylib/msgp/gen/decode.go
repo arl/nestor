@@ -1,8 +1,10 @@
 package gen
 
 import (
+	"fmt"
 	"io"
 	"strconv"
+	"strings"
 )
 
 func decode(w io.Writer) *decodeGen {
@@ -73,12 +75,14 @@ func (d *decodeGen) assignAndCheck(name string, typ string) {
 }
 
 func (d *decodeGen) structAsTuple(s *Struct) {
-	nfields := len(s.Fields)
-
 	sz := randIdent()
 	d.p.declare(sz, u32)
 	d.assignAndCheck(sz, arrayHeader)
-	d.p.arrayCheck(strconv.Itoa(nfields), sz)
+	if s.AsVarTuple {
+		d.p.printf("\nif %[1]s == 0 { return }", sz)
+	} else {
+		d.p.arrayCheck(strconv.Itoa(len(s.Fields)), sz)
+	}
 	for i := range s.Fields {
 		if !d.p.ok() {
 			return
@@ -93,11 +97,18 @@ func (d *decodeGen) structAsTuple(s *Struct) {
 		}
 		SetIsAllowNil(fieldElem, anField)
 		d.ctx.PushString(s.Fields[i].FieldName)
+		setTypeParams(fieldElem, s.typeParams)
 		next(d, fieldElem)
 		d.ctx.Pop()
 		if anField {
 			d.p.printf("\n}") // close if statement
 		}
+		if s.AsVarTuple {
+			d.p.printf("\nif %[1]s--; %[1]s == 0 { return }", sz)
+		}
+	}
+	if s.AsVarTuple {
+		d.p.printf("\nfor ; %[1]s > 0; %[1]s-- {\nif err = dc.Skip(); err != nil {\nerr = msgp.WrapError(err)\nreturn\n}\n}", sz)
 	}
 }
 
@@ -138,6 +149,7 @@ func (d *decodeGen) structAsMap(s *Struct) {
 			d.p.printf("\n%s = nil\n} else {", fieldElem.Varname())
 		}
 		SetIsAllowNil(fieldElem, anField)
+		setTypeParams(fieldElem, s.typeParams)
 		next(d, fieldElem)
 		if oeCount > 0 && (s.Fields[i].HasTagPart("omitempty") || s.Fields[i].HasTagPart("omitzero")) {
 			d.p.printf("\n%s", bm.setStmt(len(oeEmittedIdx)))
@@ -209,14 +221,30 @@ func (d *decodeGen) gBase(b *BaseElem) {
 			checkNil = vname
 		}
 	case IDENT:
+		dst := b.BaseType()
+		if b.typeParams.isPtr {
+			dst = "*" + dst
+		}
 		if b.Convert {
+			if remap := b.typeParams.ToPointerMap[dst]; remap != "" {
+				vname = fmt.Sprintf(remap, vname)
+			}
 			lowered := b.ToBase() + "(" + vname + ")"
 			d.p.printf("\nerr = %s.DecodeMsg(dc)", lowered)
 		} else {
+			if remap := b.typeParams.ToPointerMap[dst]; remap != "" {
+				vname = fmt.Sprintf(remap, vname)
+			}
 			d.p.printf("\nerr = %s.DecodeMsg(dc)", vname)
 		}
 	case Ext:
 		d.p.printf("\nerr = dc.ReadExtension(%s)", vname)
+	case AInt64, AInt32, AUint64, AUint32, ABool:
+		tmp := randIdent()
+		t := strings.TrimPrefix(b.BaseName(), "atomic.")
+		d.p.printf("\n var %s %s", tmp, strings.ToLower(t))
+		d.p.printf("\n%s, err = dc.Read%s()", tmp, t)
+		d.p.printf("\n%s.Store(%s)", strings.TrimPrefix(vname, "*"), tmp)
 	default:
 		if b.Value == Time && d.ctx.asUTC {
 			bname += "UTC"
@@ -236,7 +264,7 @@ func (d *decodeGen) gBase(b *BaseElem) {
 
 	// close block for 'tmp'
 	if b.Convert && b.Value != IDENT {
-		if b.ShimMode == Cast {
+		if b.ShimMode == Cast && !b.ShimErrs {
 			d.p.printf("\n%s = %s(%s)\n}", vname, b.FromBase(), tmp)
 		} else {
 			d.p.printf("\n%s, err = %s(%s)\n}", vname, b.FromBase(), tmp)
@@ -260,11 +288,11 @@ func (d *decodeGen) gMap(m *Map) {
 	// pair and assign
 	d.needsField()
 	d.p.printf("\nfor %s > 0 {\n%s--", sz, sz)
-	d.p.declare(m.Keyidx, "string")
+	m.readKey(d.ctx, d.p, d, d.assignAndCheck)
 	d.p.declare(m.Validx, m.Value.TypeName())
-	d.assignAndCheck(m.Keyidx, stringTyp)
 	d.ctx.PushVar(m.Keyidx)
 	m.Value.SetIsAllowNil(false)
+	setTypeParams(m.Value, m.typeParams)
 	next(d, m.Value)
 	d.p.mapAssign(m)
 	d.ctx.Pop()
@@ -283,6 +311,7 @@ func (d *decodeGen) gSlice(s *Slice) {
 	} else {
 		d.p.resizeSlice(sz, s)
 	}
+	setTypeParams(s.Els, s.typeParams)
 	d.p.rangeBlock(d.ctx, s.Index, s.Varname(), d, s.Els)
 }
 
@@ -301,6 +330,7 @@ func (d *decodeGen) gArray(a *Array) {
 	d.p.declare(sz, u32)
 	d.assignAndCheck(sz, arrayHeader)
 	d.p.arrayCheck(coerceArraySize(a.Size), sz)
+	setTypeParams(a.Els, a.typeParams)
 	d.p.rangeBlock(d.ctx, a.Index, a.Varname(), d, a.Els)
 }
 
@@ -313,6 +343,11 @@ func (d *decodeGen) gPtr(p *Ptr) {
 	d.p.wrapErrCheck(d.ctx.ArgsStr())
 	d.p.printf("\n%s = nil\n} else {", p.Varname())
 	d.p.initPtr(p)
+	if p.typeParams.TypeParams != "" {
+		tp := p.typeParams
+		tp.isPtr = true
+		p.Value.SetTypeParams(tp)
+	}
 	next(d, p.Value)
 	d.p.closeblock()
 }

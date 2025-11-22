@@ -2,28 +2,16 @@ package emu
 
 import (
 	"fmt"
-	"image"
 	"io"
 	"os"
 	"path/filepath"
-	"slices"
 	"sync/atomic"
-	"time"
 
 	"nestor/emu/log"
 	"nestor/hw"
 	"nestor/hw/input"
-	"nestor/hw/shaders"
 	"nestor/ines"
 )
-
-type Output interface {
-	BeginFrame() hw.Frame
-	EndFrame(*hw.Frame)
-	Poll() bool
-	Close()
-	Screenshot() *image.RGBA
-}
 
 type Config struct {
 	Input     input.Config    `toml:"input"`
@@ -35,24 +23,30 @@ type Config struct {
 }
 
 type EmulationConfig struct {
-	RunAheadFrames int `toml:"run_ahead_frames"`
+	RunAheadFrames uint `toml:"run_ahead_frames"`
+}
+
+func (ecfg *EmulationConfig) Check() {
+	// Max out the number of run-ahead frames to 10.
+	ecfg.RunAheadFrames = min(ecfg.RunAheadFrames, 10)
 }
 
 type VideoConfig struct {
-	DisableVSync bool   `toml:"disable_vsync"`
-	Monitor      int32  `toml:"monitor"`
-	Shader       string `toml:"shader"`
+	DisableVSync    bool   `toml:"disable_vsync"`
+	StartFullscreen bool   `toml:"start_fullscreen"`
+	Monitor         uint   `toml:"monitor"`
+	Shader          string `toml:"shader"`
 }
 
 func (vcfg *VideoConfig) Check() {
-	// Ensure we have a valid shader.
-	if vcfg.Shader == "" {
-		vcfg.Shader = shaders.DefaultName
-	}
-	if !slices.Contains(shaders.Names(), vcfg.Shader) {
-		log.ModEmu.Warnf("Invalid shader name %q, fallback to %q", vcfg.Shader, shaders.DefaultName)
-		vcfg.Shader = shaders.DefaultName
-	}
+	// TODO: Ensure we have a valid shader.
+	// if vcfg.Shader == "" {
+	// 	vcfg.Shader = shaders.DefaultName
+	// }
+	// if !slices.Contains(shaders.Names(), vcfg.Shader) {
+	// 	log.ModEmu.Warnf("Invalid shader name %q, fallback to %q", vcfg.Shader, shaders.DefaultName)
+	// 	vcfg.Shader = shaders.DefaultName
+	// }
 }
 
 type AudioConfig struct {
@@ -61,7 +55,7 @@ type AudioConfig struct {
 
 type Emulator struct {
 	NES *NES
-	out Output
+	out *Output
 	cfg EmulationConfig
 
 	// These are accessed concurrently by the emulator loop and the UI.
@@ -70,44 +64,21 @@ type Emulator struct {
 	reset   atomic.Bool
 	restart atomic.Bool
 
+	blockch chan struct{}
+
 	tmpdir string
 }
 
 // Launch starts the various hardware subsystems, shows the window, setups the
 // video and audio streams and plugs controllers. It doesn't start the emulation
 // loop, call Run() for that.
-func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
+func Launch(rom *ines.Rom, cfg Config, out *Output, inp hw.InputStateLoader) (*Emulator, error) {
 	nes, err := powerUp(rom)
 	if err != nil {
 		return nil, fmt.Errorf("power up failed: %s", err)
 	}
 
-	// Output setup.
-	out := hw.NewOutput(hw.OutputConfig{
-		Width:          hw.NTSCWidth,
-		Height:         hw.NTSCHeight,
-		NumBackBuffers: 4,
-		Title:          "Nestor",
-		ScaleFactor:    2,
-		DisableVSync:   cfg.Video.DisableVSync,
-		Monitor:        cfg.Video.Monitor,
-		Shader:         cfg.Video.Shader,
-	})
-	if err := out.EnableVideo(true); err != nil {
-		return nil, err
-	}
-
-	if cfg.Audio.DisableAudio {
-		log.ModEmu.WarnZ("Audio disabled").End()
-	} else {
-		if err := out.EnableAudio(true); err != nil {
-			return nil, err
-		}
-		log.ModEmu.InfoZ("Audio enabled").End()
-	}
-
-	inprov := input.NewProvider(cfg.Input)
-	nes.CPU.PlugInputDevice(inprov)
+	nes.CPU.PlugInputDevice(inp)
 
 	// CPU execution trace setup.
 	if cfg.TraceOut != nil {
@@ -115,15 +86,14 @@ func Launch(rom *ines.Rom, cfg Config) (*Emulator, error) {
 	}
 
 	return &Emulator{
-		NES: nes,
-		out: out,
-		cfg: cfg.Emulation,
+		NES:     nes,
+		out:     out,
+		cfg:     cfg.Emulation,
+		blockch: make(chan struct{}, 1),
 	}, nil
 }
 
 func (e *Emulator) RunOneFrame() {
-	log.ModEmu.DebugZ("frame").Uint32("number", e.NES.PPU.FrameCount).End()
-
 	if e.cfg.RunAheadFrames > 0 {
 		e.RunFrameWithRunAhead()
 	} else {
@@ -168,38 +138,60 @@ func (e *Emulator) RunFrameWithRunAhead() {
 	e.NES.isRunAheadFrame = false
 }
 
-func (e *Emulator) loop() {
-	for e.out.Poll() {
-		// Handle pause.
+func (e *Emulator) Run() {
+	for !e.shouldStop() {
 		if e.isPaused() {
-			// Don't burn cpu while paused.
-			time.Sleep(100 * time.Millisecond)
+			<-e.blockch
 		} else {
 			e.RunOneFrame()
-		}
-		if e.shouldStop() {
-			break
 		}
 		e.handleReset()
 	}
 
-	e.out.Close()
-}
-
-// RaiseWindow raises the emulator window above others and sets the input focus.
-func (e *Emulator) RaiseWindow() {
-	if hwout, ok := e.out.(*hw.Output); ok {
-		hwout.FocusWindow()
-	}
-}
-
-func (e *Emulator) Run() {
-	e.loop()
 	log.ModEmu.InfoZ("Emulation loop exited").End()
 
 	if e.tmpdir != "" {
 		e.save()
 	}
+}
+
+func (e *Emulator) handleReset() {
+	if e.reset.CompareAndSwap(true, false) {
+		log.ModEmu.InfoZ("Performing soft reset").End()
+		frame := e.out.BeginFrame()
+		e.NES.RunResetFrame(&frame, true)
+		e.out.EndFrame(&frame)
+	} else if e.restart.CompareAndSwap(true, false) {
+		log.ModEmu.InfoZ("Performing hard reset").End()
+		frame := e.out.BeginFrame()
+		e.NES.RunResetFrame(&frame, false)
+		e.out.EndFrame(&frame)
+	}
+}
+
+// Block, Resume, Reset, Restart and Stop allow to control
+// the emulator loop in a concurrent-safe way.
+
+func (e *Emulator) Block()   { e.paused.Store(true) }
+func (e *Emulator) Reset()   { e.reset.Store(true) }
+func (e *Emulator) Restart() { e.restart.Store(true) }
+func (e *Emulator) Stop()    { e.quit.Store(true) }
+
+func (e *Emulator) Resume() {
+	e.paused.Store(false)
+	select {
+	case e.blockch <- struct{}{}:
+	default:
+		// avoid deadlock if we're not waiting blocked
+	}
+}
+
+func (e *Emulator) isPaused() bool {
+	return e.paused.Load()
+}
+
+func (e *Emulator) shouldStop() bool {
+	return e.quit.Load() || e.NES.CPU.IsHalted()
 }
 
 func (e *Emulator) save() {
@@ -215,7 +207,7 @@ func (e *Emulator) save() {
 
 	path := filepath.Join(e.tmpdir, "screenshot.png")
 
-	if err := hw.SaveAsPNG(e.out.Screenshot(), path); err != nil {
+	if err := SaveAsPNG(e.out.Screenshot(), path); err != nil {
 		log.ModEmu.WarnZ("Error while saving screenshot").String("path", path).End()
 	} else {
 		log.ModEmu.DebugZ("Saved screenshot").String("path", path).End()
@@ -232,29 +224,3 @@ func (e *Emulator) save() {
 }
 
 func (e *Emulator) SetTempDir(path string) { e.tmpdir = path }
-
-// SetPause, Stop, Reset and Restart allows to control
-// the emulator loop in a concurrent-safe way.
-
-func (e *Emulator) SetPause(pause bool) { e.paused.CompareAndSwap(!pause, pause) }
-func (e *Emulator) Reset()              { e.reset.Store(true) }
-func (e *Emulator) Restart()            { e.restart.Store(true) }
-func (e *Emulator) Stop()               { e.quit.Store(true) }
-
-func (e *Emulator) isPaused() bool {
-	return e.paused.Load()
-}
-
-func (e *Emulator) shouldStop() bool {
-	return e.quit.Load() || e.NES.CPU.IsHalted()
-}
-
-func (e *Emulator) handleReset() {
-	if e.reset.CompareAndSwap(true, false) {
-		log.ModEmu.InfoZ("Performing soft reset").End()
-		e.NES.Reset(true)
-	} else if e.restart.CompareAndSwap(true, false) {
-		log.ModEmu.InfoZ("Performing hard reset").End()
-		e.NES.Reset(false)
-	}
-}

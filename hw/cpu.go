@@ -7,7 +7,6 @@ import (
 	"nestor/hw/apu"
 	"nestor/hw/hwdefs"
 	"nestor/hw/hwio"
-	"nestor/hw/input"
 	"nestor/hw/snapshot"
 )
 
@@ -82,14 +81,9 @@ func (nopDebugger) WatchWrite(addr uint16, val uint16)         {}
 func (nopDebugger) Break(msg string)                           {}
 func (nopDebugger) FrameEnd()                                  {}
 
-func (c *CPU) PlugInputDevice(ip *input.Provider) {
-	c.input.provider = ip
+func (c *CPU) PlugInputDevice(ip InputStateLoader) {
+	c.input.loader = ip
 }
-
-// Forward to PPU memory map handlers.
-func (c *CPU) ReadPPUMMAP(addr uint16) uint8       { return c.PPU.Read8(addr) }
-func (c *CPU) PeekPPUMMAP(addr uint16) uint8       { return c.PPU.Peek8(addr) }
-func (c *CPU) WritePPUMMAP(addr uint16, val uint8) { c.PPU.Write8(addr, val) }
 
 func (c *CPU) InitBus() {
 	hwio.MustInitRegs(c)
@@ -136,6 +130,11 @@ type reg4017 struct {
 func (r *reg4017) Peek4017(old uint8) uint8 { return r.Peek(old) }
 func (r *reg4017) Read4017(old uint8) uint8 { return r.Read(old) }
 func (r *reg4017) Write4017(old, val uint8) { r.Write(old, val) }
+
+// Forward to PPU memory map handlers.
+func (c *CPU) ReadPPUMMAP(addr uint16) uint8       { return c.PPU.Read8(addr) }
+func (c *CPU) PeekPPUMMAP(addr uint16) uint8       { return c.PPU.Peek8(addr) }
+func (c *CPU) WritePPUMMAP(addr uint16, val uint8) { c.PPU.Write8(addr, val) }
 
 func (c *CPU) Reset(soft bool) {
 	if soft {
@@ -460,7 +459,7 @@ func (c *CPU) traceOp() {
 			PC:    c.PC,
 		}
 		if c.PPU != nil {
-			state.PPUCycle = c.PPU.Cycle
+			state.PPUCycle = uint32(c.PPU.Cycle)
 			state.Scanline = c.PPU.Scanline
 		}
 		c.tracer.write(state)

@@ -1,0 +1,49 @@
+//kage:unit pixels
+
+package shader
+
+/*
+ * Sharp Bilinear Scanlines
+ * License: Public Domain
+ * Source: https://github.com/libretro/slang-shaders/blob/master/pixel-art-scaling/shaders/sharp-bilinear-scanlines.slang
+ *
+ * Sharp bilinear interpolation with scanlines.
+ */
+
+const (
+	SCANLINE_BASE_BRIGHTNESS       = 0.60
+	SCANLINE_HORIZONTAL_MODULATION = 0.0
+	SCANLINE_VERTICAL_MODULATION   = 0.75
+	PI                             = 3.141592654
+)
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	srcSize := imageSrc0Size()
+	dstSize := imageDstSize()
+
+	// Vertex shader calculations
+	// omega = vec2(2.0 * pi * params.SourceSize.x, 2.0 * pi * params.SourceSize.y);
+	// precalc_scale = max(floor(params.OutputSize.xy / params.SourceSize.xy), vec2(1.0, 1.0));
+	// precalc_texel = vTexCoord * params.SourceSize.xy; -> srcPos
+
+	scale := max(floor(dstSize/srcSize), vec2(1.0))
+
+	texel := srcPos
+	texel_floored := floor(texel)
+	s := fract(texel)
+	region_range := 0.5 - 0.5/scale
+
+	center_dist := s - 0.5
+	f := (center_dist-clamp(center_dist, -region_range, region_range))*scale + 0.5
+	mod_texel := texel_floored + f
+
+	// texture(Source, mod_texel / params.SourceSize.xy)
+	// In Kage, imageSrc0At takes pixel coords.
+	res := imageSrc0At(mod_texel).rgb
+
+	sine_comp := vec2(SCANLINE_HORIZONTAL_MODULATION, SCANLINE_VERTICAL_MODULATION)
+	// sin(vTexCoord * omega) -> sin(srcPos * 2 * PI)
+	scanline := res * (SCANLINE_BASE_BRIGHTNESS + dot(sine_comp*sin(srcPos*2.0*PI), vec2(1.0)))
+
+	return vec4(scanline, 1.0)
+}

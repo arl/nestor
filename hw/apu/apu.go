@@ -101,12 +101,12 @@ func (a *APU) ReadSTATUS(val uint8) uint8 {
 	// Reading $4015 clears the Frame Counter interrupt flag.
 	a.cpu.ClearIRQSource(hwdefs.FrameCounter)
 
-	log.ModSound.InfoZ("read status").Uint8("status", status).End()
+	log.ModSound.DebugZ("read status").Uint8("status", status).End()
 	return status
 }
 
 func (a *APU) WriteSTATUS(old, val uint8) {
-	log.ModSound.InfoZ("write status").Uint8("val", val).End()
+	log.ModSound.DebugZ("write status").Uint8("val", val).End()
 
 	a.Run()
 
@@ -137,14 +137,14 @@ func (a *APU) ReadDAC2(val uint8) uint8 {
 	return a.DMC.output()
 }
 
-func (a *APU) FrameCounterTick(ftyp FrameType) {
+func (a *APU) FrameCounterTick(ftyp frameType) {
 	// Quarter & half frame clock envelope & linear counter
 	a.Square1.tickEnvelope()
 	a.Square2.tickEnvelope()
 	a.Triangle.tickLinearCounter()
 	a.Noise.tickEnvelope()
 
-	if ftyp == HalfFrame {
+	if ftyp == halfFrame {
 		// Half frames clock length counter & sweep
 		a.Square1.tickLengthCounter()
 		a.Square2.tickLengthCounter()
@@ -221,7 +221,7 @@ func (a *APU) Run() {
 }
 
 func (a *APU) Enabled() bool           { return a.enabled }
-func (a *APU) setEnabled(enabled bool) { a.enabled = enabled }
+func (a *APU) SetEnabled(enabled bool) { a.enabled = enabled }
 func (a *APU) SetNeedToRun()           { a.needToRun_ = true }
 
 func (a *APU) needToRun(curCycle uint32) bool {

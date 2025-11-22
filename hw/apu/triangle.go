@@ -91,7 +91,7 @@ func (tc *triangleChannel) WriteLINEAR(_, val uint8) {
 
 	tc.lenCounter.init(tc.linearCtrl)
 
-	log.ModSound.InfoZ("write triangle linear").
+	log.ModSound.DebugZ("write triangle linear").
 		Uint8("reg", val).
 		Bool("ctrl", tc.linearCtrl).
 		Uint8("reload", val).
@@ -108,7 +108,7 @@ func (tc *triangleChannel) WriteTIMER(_, val uint8) {
 	period := (tc.timer.period & 0xFF00) | uint16(val)
 	tc.timer.period = period
 
-	log.ModSound.InfoZ("write triangle timer").
+	log.ModSound.DebugZ("write triangle timer").
 		Uint8("reg", val).
 		Uint8("period", val).
 		End()
@@ -124,7 +124,7 @@ func (tc *triangleChannel) WriteLENGTH(_, val uint8) {
 
 	// Sets the linear counter reload flag (side effect).
 	tc.linearReload = true
-	log.ModSound.InfoZ("write triangle length").
+	log.ModSound.DebugZ("write triangle length").
 		Uint8("reg", val).
 		Uint16("period", period).
 		Uint8("length", val>>3).

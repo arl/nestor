@@ -62,33 +62,3 @@ func TestMapper000(t *testing.T) {
 	nes.PPU.Bus.Write8(0x3F1F, 0x23)
 	checkedRead8(t, nes.PPU.Bus, 0x3F1F, 0x23)
 }
-
-func TestPPURegisterMapping(t *testing.T) {
-	// Check that PPU registers are correctly mapped
-	// and mirrored into the CPU memory space.
-
-	romPath := filepath.Join(tests.RomsPath(t), "other", "nestest.nes")
-	rom, err := ines.ReadROM(romPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	nes, err := powerUp(rom)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	nes.CPU.Bus.Write8(0x2000, 0x27)
-	if nes.PPU.PPUCTRL != 0x27 {
-		t.Errorf("PPUCTRL should be 0x27, got 0x%02X", nes.PPU.PPUCTRL)
-	}
-
-	nes.CPU.Bus.Write8(0x3001, 0x18)
-	if nes.PPU.PPUMASK != 0x18 {
-		t.Errorf("PPUMASK should be 0x18, got 0x%02X", nes.PPU.PPUMASK)
-	}
-
-	nes.CPU.Bus.Write8(0x3F02, 0xF5) // PPUSTATUS is readonly
-	if nes.PPU.PPUSTATUS != 0x00 {
-		t.Errorf("PPUSTATUS should be 0x00, got 0x%02X", nes.PPU.PPUSTATUS)
-	}
-}

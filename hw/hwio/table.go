@@ -83,9 +83,9 @@ func (t *Table) Reset() {
 	t.table8 = radixTree{}
 }
 
-// Map a register bank (that is, a structure containing mulitple IoReg* fields).
-// For this function to work, registers must have a struct tag "hwio", containing
-// the following fields:
+// MapBank map a register bank (that is, a structure containing mulitple IoReg*
+// fields). For this function to work, registers must have a struct tag "hwio",
+// containing the following fields:
 //
 //	offset=0x12     Byte-offset within the register bank at which this
 //	                register is mapped. There is no default value: if this

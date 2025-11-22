@@ -1,0 +1,184 @@
+//kage:unit pixels
+
+package shader
+
+/*
+ * NTSC Simple
+ * License: Unknown
+ * Source: https://github.com/libretro/slang-shaders/blob/master/ntsc/shaders/ntsc-simple.slang
+ *
+ * Simulates NTSC/PAL signal artifacts like dot crawl and rainbow effects.
+ */
+
+var Time float
+var FrameCount float
+
+const (
+	PI  = 3.14159265358979323846
+	TAU = 6.28318530717958647693
+
+	NTSC   = 3.579545
+	NES256 = 0.6666
+	MD320  = 0.5333
+	PCE320 = 0.5
+
+	// Parameters
+	U_MODE  = 0.0 // SNES, MD/PS1, PCE (-1.0 to 2.0)
+	U_PAL   = 0.0 // PAL (0.0 or 1.0)
+	U_CABLE = 1.0 // RF=0.0, Composite=1.0, S-Video=2.0
+	L_BW    = 2.4 // Luma Bandwidth (0.0 to 5.0)
+	C_BW    = 0.6 // Chroma Bandwidth (0.0 to 4.0)
+	U_GAIN  = 1.5 // Chroma Gain (0.0 to 3.0)
+)
+
+func rgb2yiq(rgb vec3) vec3 {
+	Y := dot(rgb, vec3(0.299, 0.587, 0.114))
+	I := dot(rgb, vec3(0.596, -0.274, -0.322))
+	Q := dot(rgb, vec3(0.211, -0.523, 0.312))
+	return vec3(Y, I, Q)
+}
+
+func yiq2rgb(yiq vec3) vec3 {
+	r := dot(yiq, vec3(1.000, 0.956, 0.621))
+	g := dot(yiq, vec3(1.000, -0.272, -0.647))
+	b := dot(yiq, vec3(1.000, -1.106, 1.703))
+	return vec3(r, g, b)
+}
+
+func blackman(n, N, bw float) float {
+	return (0.5 - bw) - (0.5 * cos((TAU*n)/N)) + (bw * cos((2.0*TAU*n)/N))
+}
+
+func rand(co vec2) float {
+	return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453)
+}
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	imgSize := imageSrc0Size()
+
+	// Calculate cycles based on mode and resolution
+	// Original logic:
+	// cycles = PI * (u_mode == 0.0 ? nes256 \
+	//           : u_mode == 1.0 ? OriginalSize.x < 300.0 ? nes256 : md320 \
+	//           : u_mode == 2.0 ? OriginalSize.x < 300.0 ? nes256 : pce320  \
+	//           : ntsc);
+
+	// Simplified logic for Kage (assuming NES resolution mostly for this emulator)
+	cycles := PI * NES256
+	if U_MODE == 1.0 {
+		if imgSize.x >= 300.0 {
+			cycles = PI * MD320
+		}
+	} else if U_MODE == 2.0 {
+		if imgSize.x >= 300.0 {
+			cycles = PI * PCE320
+		}
+	} else if U_MODE == -1.0 {
+		cycles = PI * NTSC
+	}
+
+	secs := FrameCount / 60.0
+
+	// RF drift calculation
+	rfDrift := 0.0
+	if U_CABLE == 0.0 {
+		rfDrift = sin(secs*0.8) * 0.002 * 0.2
+	}
+
+	// Apply drift to texture coordinates
+	texCoord := srcPos / imgSize
+	texCoord.x += rfDrift * sin(texCoord.y*120.0+secs*5.0)
+
+	// Recalculate srcPos based on drifted texCoord
+	driftedSrcPos := texCoord * imgSize
+
+	totalLuma := 0.0
+	totalChroma := 0.0
+	col := vec3(0.0)
+
+	line := 0.0
+	if U_MODE == 0.0 {
+		line = floor(driftedSrcPos.y) * cycles
+	} else if U_PAL == 1.0 {
+		line = mod(floor(driftedSrcPos.y), 2.0) * PI
+	}
+
+	timer := 0.0
+	if U_MODE == 0.0 {
+		if U_CABLE != 0.0 {
+			timer = mod(FrameCount, 2.0) * PI
+		} else {
+			timer = mod(FrameCount, 3.0) * PI
+		}
+	}
+
+	// Radius calculation
+	radius := 9.0
+	if U_CABLE == 0.0 {
+		radius = 13.0
+	} else if U_CABLE == 1.0 {
+		radius = 11.0
+	}
+
+	// Chroma loop
+	// Kage requires constant loop bounds, so we use the max radius (13)
+	// and handle the actual radius inside
+	for n := 0.0; n < 13.0; n += 1.0 {
+		if n >= radius {
+			break
+		}
+
+		offset := n - (radius-1.0)/2.0
+
+		rfJitter := 0.0
+		if U_CABLE == 0.0 {
+			rfJitter = (rand(vec2(texCoord.y, secs+offset)) - 0.5) * 0.2
+		}
+
+		weight := blackman(n, radius, C_BW/10.0)
+		totalChroma += weight
+
+		// Sample texture
+		samplePos := driftedSrcPos + vec2(offset, 0.0)
+		// Clamp to image bounds
+		samplePos = clamp(samplePos, vec2(0.0), imgSize-vec2(1.0))
+		res := rgb2yiq(imageSrc0At(samplePos).rgb)
+
+		phase := (floor(driftedSrcPos.x)+offset+rfJitter)*cycles + line + timer
+		cs := cos(phase)
+		sn := sin(phase)
+		burst := vec2(cs, sn)
+
+		res.g *= burst.x
+		res.b *= burst.y
+
+		signal := 0.0
+		if U_CABLE != 2.0 {
+			signal = dot(vec3(1.0), res)
+		} else {
+			signal = dot(vec2(1.0), vec2(res.g, res.b))
+		}
+
+		col.g += signal * weight * burst.x * U_GAIN
+		col.b += signal * weight * burst.y * U_GAIN
+
+		weightY := blackman(n, radius, L_BW/10.0)
+		totalLuma += weightY
+
+		if U_CABLE != 2.0 {
+			col.r += signal * weightY
+		} else {
+			col.r += res.r * weightY
+		}
+	}
+
+	if totalLuma > 0.0 {
+		col.r /= totalLuma
+	}
+	if totalChroma > 0.0 {
+		col.g /= totalChroma
+		col.b /= totalChroma
+	}
+
+	return vec4(yiq2rgb(col), 1.0)
+}

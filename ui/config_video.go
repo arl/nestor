@@ -1,37 +1,122 @@
 package ui
 
 import (
-	"github.com/gotk3/gotk3/gtk"
+	"slices"
+	"strconv"
 
-	"nestor/emu"
-	"nestor/hw/shaders"
+	"nestor/ui/shader"
+
+	"github.com/ebitenui/ebitenui/utilities/mobile"
+	"github.com/ebitenui/ebitenui/widget"
 )
 
-type videoConfigPage struct {
-	parent *gtk.Dialog
-	cfg    *emu.VideoConfig
-}
+func (s *configState) videoConfigPage() *page {
+	c := newPageContentContainer()
+	c.SetBackgroundImage(res.panel.image)
 
-func buildVideoConfigPage(parent *gtk.Dialog, cfg *emu.VideoConfig, builder *gtk.Builder) *videoConfigPage {
-	page := &videoConfigPage{
-		parent: parent,
-		cfg:    cfg,
+	monitorBlock := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(20))))
+
+	onMonitorChange := func(args *widget.TextInputChangedEventArgs) {
+		var idxmon int
+		idxmon, err := strconv.Atoi(args.InputText)
+		if err != nil {
+			modUI.ErrorZ("monitor: unexpected input").String("txt", args.InputText).End()
+			return
+		}
+
+		s.app.cfg.Video.Monitor = uint(idxmon)
+		s.app.savecfg()
 	}
 
-	shaderList := build[gtk.ComboBoxText](builder, "shaders_combo")
-	for _, name := range shaders.Names() {
-		shaderList.Append(name, name)
+	monitorInput := widget.NewTextInput(
+		widget.TextInputOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  true,
+			}),
+		),
+
+		widget.TextInputOpts.MobileInputMode(mobile.NUMERIC),
+		widget.TextInputOpts.Image(res.textInput.image),
+		widget.TextInputOpts.Face(res.textInput.face),
+		widget.TextInputOpts.Color(res.textInput.color),
+		widget.TextInputOpts.Padding(widget.NewInsetsSimple(5)),
+		widget.TextInputOpts.SubmitHandler(onMonitorChange),
+		widget.TextInputOpts.ChangedHandler(onMonitorChange),
+		widget.TextInputOpts.Validation(func(txt string) (bool, *string) {
+			if _, err := strconv.Atoi(txt); err != nil {
+				return false, nil
+			}
+			return true, nil
+		}),
+	)
+	monitorInput.SetText(strconv.Itoa(int(s.app.cfg.Video.Monitor)))
+
+	monitorBlock.AddChild(
+		widget.NewLabel(
+			widget.LabelOpts.Text("Monitor", res.label.face, res.label.text),
+			widget.LabelOpts.LabelPadding(&widget.Insets{Top: 5, Left: 10}),
+			widget.LabelOpts.TextOpts(widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionEnd,
+					VerticalPosition:   widget.GridLayoutPositionCenter,
+				})))),
+		monitorInput)
+
+	// shader selection.
+	shaderNames := shader.Names()
+	idxshader := slices.Index(shaderNames, s.app.cfg.Video.Shader)
+	if idxshader < 0 {
+		idxshader = shader.DefaultIndex()
 	}
-	shaderList.SetActiveID(cfg.Shader)
-	shaderList.Connect("changed", func(combo *gtk.ComboBoxText) {
-		cfg.Shader = combo.GetActiveID()
-	})
 
-	vsync := build[gtk.Switch](builder, "vsync_switch")
-	vsync.SetActive(!cfg.DisableVSync)
-	vsync.Connect("state-set", func(_ *gtk.Switch, state bool) {
-		cfg.DisableVSync = !state
-	})
+	onShaderChanged := func(idxpreset int) {
+		from := s.app.cfg.Video.Shader
+		to := shaderNames[idxpreset]
+		modUI.InfoZ("changed shader").
+			String("from", from).
+			String("to", to).
+			End()
 
-	return page
+		s.app.cfg.Video.Shader = to
+		s.app.savecfg()
+		s.createUI()
+	}
+
+	shaderBlock := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal))))
+
+	shaderBlock.AddChild(
+		widget.NewLabel(
+			widget.LabelOpts.Text("Shader", res.label.face, res.label.text),
+			widget.LabelOpts.LabelPadding(&widget.Insets{Top: 5, Left: 10}),
+			widget.LabelOpts.TextOpts(widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionEnd,
+					VerticalPosition:   widget.GridLayoutPositionCenter,
+				})))),
+		newCombobox(shaderNames, idxshader,
+			widget.GridLayoutData{
+				HorizontalPosition: widget.GridLayoutPositionStart,
+				MaxWidth:           200,
+			},
+			onShaderChanged))
+
+	c.AddChild(
+		newCheckbox2States("Enable V-Sync", !s.app.cfg.Video.DisableVSync, func(enabled bool) {
+			s.app.cfg.Video.DisableVSync = !enabled
+			s.app.savecfg()
+		}),
+		newCheckbox2States("Start in fullscreen", s.app.cfg.Video.StartFullscreen, func(enabled bool) {
+			s.app.cfg.Video.StartFullscreen = enabled
+			s.app.savecfg()
+		}),
+		monitorBlock,
+		shaderBlock,
+	)
+	return &page{title: "Video", content: c}
 }

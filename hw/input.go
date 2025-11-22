@@ -5,7 +5,8 @@ import (
 	"nestor/hw/snapshot"
 )
 
-type inputStateLoader interface {
+// A InputStateLoader is anything that can provide input state.
+type InputStateLoader interface {
 	LoadState() (uint8, uint8)
 }
 
@@ -14,7 +15,7 @@ type inputStateLoader interface {
 type InputPorts struct {
 	In hwio.Reg8 `hwio:"offset=0x16,pcb,rcb,wcb"`
 
-	provider           inputStateLoader
+	loader             InputStateLoader
 	prevStrobe, strobe bool     // to observe strobe falling edge.
 	state              [2]uint8 // state shift registers.
 }
@@ -46,14 +47,14 @@ func (ip *InputPorts) regvalPeek(port uint8) uint8 {
 
 // capture state of all connected input devices.
 func (ip *InputPorts) loadstate() {
-	if ip.provider == nil {
+	if ip.loader == nil {
 		// No controller is connected.
 		ip.state[0] = 0x00
 		ip.state[1] = 0x00
 		return
 	}
 
-	ip.state[0], ip.state[1] = ip.provider.LoadState()
+	ip.state[0], ip.state[1] = ip.loader.LoadState()
 }
 
 // In: $4016

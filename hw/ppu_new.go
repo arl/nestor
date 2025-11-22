@@ -1,0 +1,1415 @@
+package hw
+
+import (
+	"fmt"
+	"os"
+	"unsafe"
+
+	"nestor/hw/hwio"
+	"nestor/hw/snapshot"
+)
+
+type ConsoleRegion int
+
+const (
+	NTSC ConsoleRegion = iota
+	PAL
+	Dendy
+	Auto
+)
+
+type ppureg uint16
+
+const (
+	PPUCTRL   ppureg = 0x00
+	PPUMASK   ppureg = 0x01
+	PPUSTATUS ppureg = 0x02
+	OAMADDR   ppureg = 0x03
+	OAMDATA   ppureg = 0x04
+	PPUSCROLL ppureg = 0x05
+	PPUADDR   ppureg = 0x06
+	PPUDATA   ppureg = 0x07
+
+	OAMDMA ppureg = 0x4014
+)
+
+type ppuctrl struct {
+	VerticalWrite         bool
+	SpritePatternAddr     uint16
+	BackgroundPatternAddr uint16
+	LargeSprites          bool
+	Slave                 bool
+	NMI                   bool
+}
+
+type ppumask struct {
+	Gray              bool
+	BGMask            bool
+	SpriteMask        bool
+	BackgroundEnabled bool
+	SpritesEnabled    bool
+	IntensifyRed      bool
+	IntensifyGreen    bool
+	IntensifyBlue     bool
+}
+
+type ppustatus struct {
+	SpriteOverflow bool
+	Sprite0Hit     bool
+	VBlank         bool
+}
+
+type tileInfo struct {
+	LowByte       uint8
+	HighByte      uint8
+	PaletteOffset uint8
+	TileAddr      uint16
+}
+
+type spriteInfo struct {
+	SpriteX            uint8
+	LowByte            uint8
+	HighByte           uint8
+	PaletteOffset      uint8
+	HorizontalMirror   bool
+	BackgroundPriority bool
+}
+
+type PPU struct {
+	CPU *CPU
+
+	// Clocking
+	masterClock uint64
+	Cycle       uint32
+	Scanline    int16
+
+	masterClockDivider uint8
+
+	// RGBA Frame Buffer
+	framebuf []uint32
+
+	// Memory
+	// The PPU addresses a 14-bit (16kB) address space, $0000-$3FFF, completely
+	// separate from the CPU's address bus. It is either directly accessed by
+	// the PPU itself, or via the CPU with memory mapped registers at $2006 and
+	// $2007.
+	Bus *hwio.Table
+
+	// $3F00-$3F1F	$0020	Palette RAM indexes
+	// $3F20-$3FFF	$00E0	Mirrors of $3F00-$3F1F
+	Palette            hwio.Mem `hwio:"offset=0x3F00,size=0x20,vsize=0x100,wcb"`
+	spriteRam          [0x100]uint8
+	secondarySpriteRam [0x20]uint8
+	memoryReadBuffer   uint8
+
+	// PPU Registers state
+	control      ppuctrl
+	mask         ppumask
+	status       ppustatus
+	vramAddr     uint16 // 'v'
+	vramAddrTemp uint16 // 't'
+	xscroll      uint8  // fine x
+	writelatch   bool
+	oamaddr      uint8
+	busaddr      uint16
+	openbus      uint8
+	openbusDecay [8]int32
+
+	// Rendering state
+	FrameCount            uint32
+	renderingON           bool
+	prevRenderingON       bool
+	lobitShift            uint16
+	hibitShift            uint16
+	tile                  tileInfo
+	curTilePalette        uint8
+	prevTilePalette       uint8
+	needStateUpdate       bool
+	needVRAMIncr          bool
+	ignoreVRAMRead        int
+	updateVRAMAddrDelay   uint8
+	updateVRAMAddr        uint16
+	preventVBlank         bool
+	fullAccessON          bool
+	paletteRamMask        uint16
+	minDrawCycleBG        uint16
+	minDrawCycleSprite    uint16
+	minDrawCycleSpriteStd uint16
+
+	// Sprite evaluation state
+	spriteTiles            [64]spriteInfo // max possible sprites
+	hasSprite              [257]bool
+	spriteCount            int
+	secondaryOamAddr       uint8
+	idxSprite              int
+	spriteInRange          bool
+	oamCopybuffer          uint8
+	oamCopyDone            bool
+	spriteAddrH            uint8
+	spriteAddrL            uint8
+	sprite0Added           bool
+	sprite0Visible         bool
+	lastSprite             *spriteInfo
+	overflowBugCounter     uint8
+	firstVisibleSpriteAddr uint32
+	lastVisibleSpriteAddr  uint32
+
+	// OAM Corruption
+	corruptOamRow [32]bool
+
+	// Region-specific timings
+	region                ConsoleRegion
+	nmiScanline           int16
+	vblankEnd             int16
+	stdNMIScanline        int16
+	stdVBlankEnd          int16
+	palSpriteEvalScanline int16
+
+	// Misc
+	lastUpdatedPixel int32
+}
+
+// NewPPU creates and initializes a new NesPpu instance.
+func NewPPU() *PPU {
+	p := &PPU{
+		Bus: hwio.NewTable("ppu"),
+		// Throwaway frame buffer for the first PPU cycles,
+		// before one is provided for the frame.
+		framebuf: make([]uint32, 256*240),
+	}
+
+	hwio.MustInitRegs(p)
+	p.Bus.MapBank(0x0000, p, 0)
+
+	p.masterClock = 0
+	p.masterClockDivider = 4
+
+	copy(p.Palette.Data[:], []byte{
+		0x09, 0x01, 0x00, 0x01, 0x00, 0x02, 0x02, 0x0D, 0x08, 0x10, 0x08, 0x24, 0x00, 0x00, 0x04, 0x2C,
+		0x09, 0x01, 0x34, 0x03, 0x00, 0x04, 0x00, 0x14, 0x08, 0x3A, 0x00, 0x02, 0x00, 0x20, 0x2C, 0x08,
+	})
+
+	p.vramAddr = 0
+
+	p.updateTimings(NTSC)
+	p.Reset(false)
+
+	return p
+}
+
+func (p *PPU) BeginFrame(framebuf []byte) {
+	// Received frame buffer is RGBA8.
+	p.framebuf = unsafe.Slice((*uint32)(unsafe.Pointer(&framebuf[0])), len(framebuf)/4)
+}
+
+// Reset resets the PPU to a startup or post-reset state.
+func (p *PPU) Reset(softReset bool) {
+	Log("reset ppu %d\n", bto8(softReset))
+
+	p.masterClock = 0
+
+	p.preventVBlank = false
+	p.needStateUpdate = false
+	p.prevRenderingON = false
+	p.renderingON = false
+	p.ignoreVRAMRead = 0
+	p.openbus = 0
+	p.openbusDecay = [8]int32{}
+	p.vramAddrTemp = 0
+	p.hibitShift = 0
+	p.lobitShift = 0
+	p.oamaddr = 0
+	p.xscroll = 0
+	p.writelatch = false
+	p.control = ppuctrl{}
+	p.mask = ppumask{}
+
+	if !softReset {
+		p.status = ppustatus{}
+		p.status.VBlank = false
+	}
+
+	p.tile = tileInfo{}
+	p.curTilePalette = 0
+	p.prevTilePalette = 0
+	p.busaddr = 0
+	p.paletteRamMask = 0x3F
+	p.lastUpdatedPixel = -1
+	p.lastSprite = nil
+	p.oamCopybuffer = 0
+	p.spriteInRange = false
+	p.sprite0Added = false
+	p.spriteAddrH = 0
+	p.spriteAddrL = 0
+	p.oamCopyDone = false
+	p.hasSprite = [257]bool{}
+	p.spriteTiles = [64]spriteInfo{}
+	p.spriteCount = 0
+	p.secondaryOamAddr = 0
+	p.sprite0Visible = false
+	p.idxSprite = 0
+	p.Scanline = -1
+	p.Cycle = 340
+	p.FrameCount = 1
+	p.memoryReadBuffer = 0
+	p.overflowBugCounter = 0
+	p.updateVRAMAddrDelay = 0
+	p.updateVRAMAddr = 0
+	p.firstVisibleSpriteAddr = 0
+	p.lastVisibleSpriteAddr = 0
+	p.fullAccessON = false
+
+	p.updateMinDrawCycle()
+}
+
+func (p *PPU) updateMinDrawCycle() {
+	switch {
+	case !p.mask.BackgroundEnabled:
+		p.minDrawCycleBG = 300
+	case !p.mask.BGMask:
+		p.minDrawCycleBG = 8
+	default:
+		p.minDrawCycleBG = 0
+	}
+
+	switch {
+	case !p.mask.SpritesEnabled:
+		p.minDrawCycleSprite = 300
+		p.minDrawCycleSpriteStd = 300
+	case !p.mask.SpriteMask:
+		p.minDrawCycleSprite = 8
+		p.minDrawCycleSpriteStd = 8
+	default:
+		p.minDrawCycleSprite = 0
+		p.minDrawCycleSpriteStd = 0
+	}
+}
+
+// updateTimings sets PPU timing constants based on the console region.
+func (p *PPU) updateTimings(region ConsoleRegion) {
+	p.region = region
+
+	switch p.region {
+	case NTSC:
+		p.nmiScanline = 241
+		p.vblankEnd = 260
+		p.stdNMIScanline = 241
+		p.stdVBlankEnd = 260
+		p.masterClockDivider = 4
+	case PAL:
+		p.nmiScanline = 241
+		p.vblankEnd = 310
+		p.stdNMIScanline = 241
+		p.stdVBlankEnd = 310
+		p.masterClockDivider = 5
+	case Dendy:
+		p.nmiScanline = 291
+		p.vblankEnd = 310
+		p.stdNMIScanline = 291
+		p.stdVBlankEnd = 310
+		p.masterClockDivider = 5
+	default:
+		panic("nes region should be set here")
+	case Auto:
+		panic("nes region shouldn't be auto here")
+	}
+
+	p.palSpriteEvalScanline = p.nmiScanline + 24
+}
+
+func (p *PPU) readPalette(addr uint16) uint8 {
+	addr &= 0x1F
+	if addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1C {
+		addr &^= 0x10
+	}
+	return p.Palette.Data[addr]
+}
+
+func (p *PPU) WritePALETTE(addr uint16, val uint8) {
+	val &= 0x3F
+	addr &= 0x1F
+	switch addr {
+	case 0x00, 0x10:
+		p.Palette.Data[0x00] = val
+		p.Palette.Data[0x10] = val
+	case 0x04, 0x14:
+		p.Palette.Data[0x04] = val
+		p.Palette.Data[0x14] = val
+	case 0x08, 0x18:
+		p.Palette.Data[0x08] = val
+		p.Palette.Data[0x18] = val
+	case 0x0C, 0x1C:
+		p.Palette.Data[0x0C] = val
+		p.Palette.Data[0x1C] = val
+	default:
+		p.Palette.Data[addr] = val
+	}
+}
+
+// Peek8 reads a PPU register without causing side-effects.
+func (p *PPU) Peek8(addr uint16) uint8 {
+	openbusMask := uint8(0xFF)
+	var ret uint8
+
+	switch register(addr) {
+	case PPUSTATUS:
+		ret = bto8(p.status.SpriteOverflow)<<5 | bto8(p.status.Sprite0Hit)<<6 | bto8(p.status.VBlank)<<7
+		if p.Scanline == int16(p.nmiScanline) && p.Cycle < 3 {
+			ret &^= 0x80 // Clear vertical blank flag
+		}
+		openbusMask = 0x1F
+
+	case OAMDATA:
+		if p.Scanline <= 239 && p.isRenderingEnabled() {
+			if p.Cycle >= 257 && p.Cycle <= 320 {
+				step := (uint8(p.Cycle-257) % 8)
+				if step > 3 {
+					step = 3
+				}
+				oamAddr := uint8(p.Cycle-257)/8*4 + step
+				ret = p.secondarySpriteRam[oamAddr]
+			} else {
+				ret = p.oamCopybuffer
+			}
+		} else {
+			ret = p.spriteRam[p.oamaddr]
+		}
+		openbusMask = 0x00
+
+	case PPUDATA:
+		ret = p.memoryReadBuffer
+		if (p.vramAddr & 0x3FFF) >= 0x3F00 {
+			ret = p.readPalette(p.vramAddr)&uint8(p.paletteRamMask) | (p.openbus & 0xC0)
+			openbusMask = 0xC0
+		} else {
+			openbusMask = 0x00
+		}
+	}
+	return ret | (p.openbus & openbusMask)
+}
+
+// Read8 reads from a PPU register, with side-effects.
+func (p *PPU) Read8(addr uint16) uint8 {
+	openbusMask := uint8(0xFF)
+	var returnValue uint8
+
+	switch register(addr) {
+	case PPUSTATUS:
+		p.writelatch = false
+		returnValue = bto8(p.status.SpriteOverflow)<<5 | bto8(p.status.Sprite0Hit)<<6 | bto8(p.status.VBlank)<<7
+		p.updateStatusFlag()
+		openbusMask = 0x1F
+
+	case OAMDATA:
+		if p.Scanline <= 239 && p.isRenderingEnabled() {
+			if p.Cycle >= 257 && p.Cycle <= 320 {
+				step := (uint8(p.Cycle-257) % 8)
+				if step > 3 {
+					step = 3
+				}
+				p.secondaryOamAddr = uint8(p.Cycle-257)/8*4 + step
+				p.oamCopybuffer = p.secondarySpriteRam[p.secondaryOamAddr]
+			}
+			returnValue = p.oamCopybuffer
+		} else {
+			returnValue = p.readOAM(p.oamaddr)
+		}
+		openbusMask = 0x00
+
+	case PPUDATA:
+		if p.ignoreVRAMRead != 0 {
+			// 2 reads to $2007 in quick succession (2 consecutive CPU
+			// cycles) causes the 2nd read to be ignored (normally depends
+			// on PPU/CPU timing, but this is the simplest solution)
+			openbusMask = 0xFF
+		} else {
+			returnValue = p.memoryReadBuffer
+			p.memoryReadBuffer = p.readVRAM(p.busaddr & 0x3FFF)
+
+			if (p.busaddr & 0x3FFF) >= 0x3F00 {
+				returnValue = p.readPalette(p.busaddr)&uint8(p.paletteRamMask) | p.openbus&0xC0
+
+				// This is a palette read, they're immediate but they still overwrite
+				// the read buffer, on which we apply mirroring (ignor bit 12 of the
+				// vram address). (passes Blargg's vram_access test)
+				const mask uint16 = 1 << 12
+				p.memoryReadBuffer = p.Bus.Read8(p.busaddr & ^mask)
+
+				openbusMask = 0xC0
+			} else {
+				openbusMask = 0x00
+			}
+
+			p.ignoreVRAMRead = 6
+			p.needStateUpdate = true
+			p.needVRAMIncr = true
+		}
+	}
+	return p.applyOpenBus(openbusMask, returnValue)
+}
+
+// Write8 writes to a PPU register.
+func (p *PPU) Write8(addr uint16, value uint8) {
+	if addr != 0x4014 {
+		p.setOpenBus(0xFF, value)
+	}
+
+	switch register(addr) {
+	case PPUCTRL:
+		p.setControlRegister(value)
+	case PPUMASK:
+		p.setMaskRegister(value)
+	case OAMADDR:
+		p.oamaddr = value
+	case OAMDATA:
+		if (p.Scanline >= 240 && (p.region != PAL || p.Scanline < int16(p.palSpriteEvalScanline))) || !p.isRenderingEnabled() {
+			if (p.oamaddr & 0x03) == 0x02 {
+				value &= 0xE3
+			}
+			p.writeOAM(p.oamaddr, value)
+			p.oamaddr = (p.oamaddr + 1) & 0xFF
+		} else {
+			p.oamaddr = (p.oamaddr + 4) & 0xFF
+		}
+	case PPUSCROLL:
+		if p.writelatch {
+			p.vramAddrTemp = (p.vramAddrTemp & ^uint16(0x73E0)) | (uint16(value&0xF8) << 2) | (uint16(value&0x07) << 12)
+		} else {
+			p.xscroll = value & 0x07
+			newAddr := (p.vramAddrTemp & ^uint16(0x001F)) | (uint16(value) >> 3)
+			p.vramAddrTemp = newAddr
+		}
+		p.writelatch = !p.writelatch
+	case PPUADDR:
+		if p.writelatch {
+			p.vramAddrTemp = (p.vramAddrTemp & ^uint16(0x00FF)) | uint16(value)
+			p.needStateUpdate = true
+			p.updateVRAMAddrDelay = 3
+			p.updateVRAMAddr = p.vramAddrTemp
+		} else {
+			newAddr := (p.vramAddrTemp & ^uint16(0xFF00)) | (uint16(value&0x3F) << 8)
+			p.vramAddrTemp = newAddr
+		}
+		p.writelatch = !p.writelatch
+	case PPUDATA:
+		if (p.busaddr & 0x3FFF) >= 0x3F00 {
+			p.WritePALETTE(p.busaddr, value)
+		} else {
+			if p.Scanline >= 240 || !p.isRenderingEnabled() {
+				p.writeVram(p.busaddr&0x3FFF, value)
+			} else {
+				// During rendering, the value written is ignored, and instead the address' LSB is used (not confirmed, based on Visual NES)
+				p.writeVram(p.busaddr&0x3FFF, uint8(p.busaddr))
+			}
+		}
+		p.needStateUpdate = true
+		p.needVRAMIncr = true
+	}
+}
+
+func (p *PPU) writeVram(addr uint16, val uint8) {
+	p.Bus.Write8(addr, val)
+}
+
+func (p *PPU) Run(until uint64) {
+	for {
+		// Always need to run at least once, check condition at the end of the
+		// loop (slightly faster).
+		p.Tick()
+		p.masterClock += uint64(p.masterClockDivider)
+		if p.masterClock+uint64(p.masterClockDivider) > until {
+			break
+		}
+	}
+}
+
+// Tick executes a single PPU cycle.
+func (p *PPU) Tick() {
+	if p.Cycle < 340 {
+		p.Cycle++
+		switch {
+		case p.Scanline < 240:
+			p.processScanline()
+		case p.Cycle == 1 && p.Scanline == p.nmiScanline:
+			if !p.preventVBlank {
+				p.status.VBlank = true
+				p.beginVBlank()
+			}
+			p.preventVBlank = false
+		case p.region == PAL && p.Scanline >= p.palSpriteEvalScanline:
+			if p.Cycle <= 256 {
+				p.processSpriteEvaluation()
+			} else if p.Cycle >= 257 && p.Cycle < 320 {
+				p.oamaddr = 0
+			}
+		}
+	} else {
+		p.doScanline1stCycle()
+	}
+
+	if p.needStateUpdate {
+		p.updateState()
+	}
+}
+
+func (p *PPU) processScanline() {
+	// Only called for cycle 1+
+	switch {
+	case p.Cycle <= 256:
+		p.loadTileInfo()
+
+		if p.prevRenderingON && (p.Cycle&0x07) == 0 {
+			p.horzScroll()
+			if p.Cycle == 256 {
+				p.vertScroll()
+			}
+		}
+
+		if p.Scanline >= 0 {
+			p.drawPixel()
+			p.shiftTileRegisters()
+
+			// "Secondary OAM clear and sprite evaluation do not occur on the pre-render line".
+			p.processSpriteEvaluation()
+		} else if p.Cycle < 9 {
+			//Pre-render scanline logic
+			if p.Cycle == 1 {
+				p.status.VBlank = false
+				p.CPU.clearNMIflag()
+			}
+			if p.oamaddr >= 0x08 && p.isRenderingEnabled() {
+				// This should only be done if rendering is enabled (otherwise
+				// oam_stress test fails immediately):
+				//
+				//  If OAMADDR is not less than eight when rendering starts, the
+				//  eight bytes starting at OAMADDR & 0xF8 are copied to the
+				//  first eight bytes of OAM"
+				p.writeOAM(uint8(p.Cycle-1), p.readOAM((p.oamaddr&0xF8)+uint8(p.Cycle)-1))
+			}
+		}
+	case p.Cycle >= 257 && p.Cycle <= 320:
+		if p.Cycle == 257 {
+			p.idxSprite = 0
+			p.hasSprite = [257]bool{}
+			if p.prevRenderingON {
+				// Copy horizontal scrolling value from t.
+				p.vramAddr = (p.vramAddr & ^uint16(0x041F)) | (p.vramAddrTemp & 0x041F)
+			}
+		}
+		if p.isRenderingEnabled() {
+			//  "OAMADDR is set to 0 during each of ticks 257-320 (the sprite
+			//  tile loading interval) of the pre-render and visible scanlines."
+			//  (When rendering)
+			p.oamaddr = 0
+
+			switch (p.Cycle - 257) & 0x07 { // modulo 8
+			case 0:
+				// Garbage NT sprite fetch (257, 265, 273, etc.).
+				p.readVRAM(p.ntaddr())
+
+			case 2:
+				// Garbage AT sprite fetch.
+				p.readVRAM(p.ataddr())
+
+			case 4:
+				// Cycle 260, 268, etc.  This is an approximation (each tile is
+				// actually loaded in 8 steps (e.g from 257 to 264))
+				p.loadSpriteTileInfo()
+				break
+			}
+
+			if p.Scanline == -1 && p.Cycle >= 280 && p.Cycle <= 304 {
+				// copy vertical scrolling value from t
+				p.vramAddr = (p.vramAddr & ^uint16(0x7BE0)) | (p.vramAddrTemp & 0x7BE0)
+			}
+		}
+	case p.Cycle >= 321 && p.Cycle <= 336:
+		p.loadTileInfo()
+
+		if p.Cycle == 321 {
+			if p.isRenderingEnabled() {
+				p.oamCopybuffer = p.secondarySpriteRam[0]
+			}
+		} else if p.prevRenderingON && (p.Cycle == 328 || p.Cycle == 336) {
+			p.lobitShift <<= 8
+			p.hibitShift <<= 8
+			p.horzScroll()
+		}
+	case p.Cycle == 337 || p.Cycle == 339:
+		if p.isRenderingEnabled() {
+			p.tile.TileAddr = uint16(p.readVRAM(p.ntaddr()))
+
+			if p.Scanline == -1 && p.Cycle == 339 && (p.FrameCount&0x01) != 0 && p.region == NTSC {
+				// This behavior is NTSC-specific - PAL frames are always the
+				// same number of cycles.
+				//
+				// "With rendering enabled, each odd PPU frame is one PPU clock
+				// shorter than normal" (skip from 339 to 0, going over 340)
+				p.Cycle = 340
+			}
+		}
+	}
+}
+
+func (p *PPU) shiftTileRegisters() {
+	p.lobitShift <<= 1
+	p.hibitShift <<= 1
+}
+
+var plog *os.File
+
+const logEnabled = false
+
+func Log(format string, args ...any) {
+	if !logEnabled {
+		return
+	}
+	if plog == nil {
+		var err error
+		plog, err = os.Create("/tmp/nestor.log")
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	fmt.Fprintf(plog, format+"\n", args...)
+}
+
+func (p *PPU) loadSpriteTileInfo() {
+	sprite := p.secondarySpriteRam[p.idxSprite*4:]
+	Log("LoadSpriteTileInfo Cycle %d Scanline %d spriteY %d tileIndex %d attributes %d spriteX %d", p.Cycle, p.Scanline, sprite[0], sprite[1], sprite[2], sprite[3])
+
+	p.loadSprite(sprite[0], sprite[1], sprite[2], sprite[3])
+}
+
+func (p *PPU) loadSprite(spriteY, tileIndex, attributes, spriteX uint8) {
+	bgpriority := (attributes & 0x20) == 0x20
+	hmirror := (attributes & 0x40) == 0x40
+	vmirror := (attributes & 0x80) == 0x80
+
+	var lineoff uint8
+	if vmirror {
+		if p.control.LargeSprites {
+			lineoff = 15 - uint8(p.Scanline-int16(spriteY))
+		} else {
+			lineoff = 7 - uint8(p.Scanline-int16(spriteY))
+		}
+	} else {
+		lineoff = uint8(p.Scanline - int16(spriteY))
+	}
+
+	var tileaddr uint16
+	if p.control.LargeSprites {
+		if (tileIndex & 0x01) != 0 {
+			tileaddr = 0x1000
+		} else {
+			tileaddr = 0x0000
+		}
+		tileaddr |= uint16(tileIndex & ^uint8(0x01)) << 4
+		if lineoff >= 8 {
+			tileaddr += uint16(lineoff + 8)
+		} else {
+			tileaddr += uint16(lineoff)
+		}
+	} else {
+		tileaddr = (uint16(tileIndex)<<4 | p.control.SpritePatternAddr) + uint16(lineoff)
+	}
+
+	fetchLastSprite := true
+	if (p.idxSprite < p.spriteCount) && spriteY < 240 {
+		info := &p.spriteTiles[p.idxSprite]
+		info.BackgroundPriority = bgpriority
+		info.HorizontalMirror = hmirror
+		info.PaletteOffset = ((attributes & 0x03) << 2) | 0x10
+		fetchLastSprite = false
+		info.LowByte = p.readVRAM(tileaddr)
+		info.HighByte = p.readVRAM(tileaddr + 8)
+		info.SpriteX = spriteX
+
+		if p.Scanline >= 0 {
+			// Sprites read on prerender scanline are not shown on scanline 0
+			for i := 0; i < 8 && int(spriteX)+i+1 < 257; i++ {
+				p.hasSprite[int(spriteX)+i+1] = true
+			}
+		}
+	}
+
+	if fetchLastSprite {
+		// Fetches to sprite 0xFF for remaining sprites/hidden - used by MMC3 IRQ counter
+		lineoff = 0
+		tileIndex = 0xFF
+		if p.control.LargeSprites {
+			if (tileIndex & 0x01) != 0 {
+				tileaddr = 0x1000
+			} else {
+				tileaddr = 0x0000
+			}
+			tileaddr |= uint16((tileIndex & ^uint8(0x01))) << 4
+			if lineoff >= 8 {
+				tileaddr += uint16(lineoff + 8)
+			} else {
+				tileaddr += uint16(lineoff)
+			}
+		} else {
+			tileaddr = (uint16(tileIndex)<<4 | p.control.SpritePatternAddr) + uint16(lineoff)
+		}
+
+		p.readVRAM(tileaddr)
+		p.readVRAM(tileaddr + 8)
+	}
+
+	p.idxSprite++
+}
+
+// ABGR format. Convenient for little endian since it has the same memory layout
+// as RGBA struct.
+//
+// TODO: should be defined as color.RGBA and generated at either compile time or
+// runtime, based on the target architecture.
+var nesPalette = [...]uint32{
+	0xFF7C7C7C, 0xFFFC0000, 0xFFBC0000, 0xFFBC2844, 0xFF840094, 0xFF2000A8, 0xFF0010A8, 0xFF001488,
+	0xFF003050, 0xFF007800, 0xFF006800, 0xFF005800, 0xFF584000, 0xFF000000, 0xFF000000, 0xFF000000,
+	0xFFBCBCBC, 0xFFF87800, 0xFFF85800, 0xFFFC4468, 0xFFCC00D8, 0xFF5800E4, 0xFF0038F8, 0xFF105CE4,
+	0xFF007CAC, 0xFF00B800, 0xFF00A800, 0xFF44A800, 0xFF888800, 0xFF000000, 0xFF000000, 0xFF000000,
+	0xFFF8F8F8, 0xFFFCBC3C, 0xFFFC8868, 0xFFF87898, 0xFFF878F8, 0xFF9858F8, 0xFF5878F8, 0xFF44A0FC,
+	0xFF00B8F8, 0xFF18F8B8, 0xFF54D858, 0xFF98F858, 0xFFD8E800, 0xFF787878, 0xFF000000, 0xFF000000,
+	0xFFFCFCFC, 0xFFFCE4A4, 0xFFF8B8B8, 0xFFF8B8D8, 0xFFF8B8F8, 0xFFC0A4F8, 0xFFB0D0F0, 0xFFA8E0FC,
+	0xFF78D8F8, 0xFF78F8D8, 0xFFB8F8B8, 0xFFD8F8B8, 0xFFFCFC00, 0xFFF8D8F8, 0xFF000000, 0xFF000000,
+}
+
+func (p *PPU) drawPixel() {
+	var colidx uint8
+	// This is called 3.7 million times per second - needs to be as fast as possible.
+	if p.isRenderingEnabled() || ((p.vramAddr & 0x3F00) != 0x3F00) {
+		color := p.pixelColor()
+		if color&0x03 == 0 {
+			color = 0
+		}
+		colidx = p.Palette.Data[color]
+	} else {
+		// "If the current VRAM address points in the range $3F00-$3FFF during
+		// forced blanking, the color indicated by this palette location will be
+		// shown on screen instead of the backdrop color."
+		colidx = p.Palette.Data[p.vramAddr&0x1F]
+	}
+
+	p.framebuf[(uint32(p.Scanline)<<8)+p.Cycle-1] = nesPalette[colidx]
+}
+
+func (p *PPU) pixelColor() uint8 {
+	offset := p.xscroll
+	backgroundColor := uint8(0)
+	spriteBgColor := uint8(0)
+
+	if p.Cycle > uint32(p.minDrawCycleBG) {
+		// BackgroundMask = false: Hide background in leftmost 8 pixels of screen
+		spriteBgColor = uint8((((p.lobitShift << offset) & 0x8000) >> 15) | (((p.hibitShift << offset) & 0x8000) >> 14))
+		backgroundColor = spriteBgColor
+	}
+
+	if p.hasSprite[p.Cycle] && p.Cycle > uint32(p.minDrawCycleSprite) {
+		// SpriteMask = true: Hide sprites in leftmost 8 pixels of screen
+		for i := range p.spriteCount {
+			shift := int32(p.Cycle) - int32(p.spriteTiles[i].SpriteX) - 1
+			if shift >= 0 && shift < 8 {
+				p.lastSprite = &p.spriteTiles[i]
+				var spriteColor uint8
+				if p.spriteTiles[i].HorizontalMirror {
+					spriteColor = ((p.lastSprite.LowByte >> shift) & 0x01) | ((p.lastSprite.HighByte>>shift)&0x01)<<1
+				} else {
+					spriteColor = ((p.lastSprite.LowByte<<shift)&0x80)>>7 | ((p.lastSprite.HighByte<<shift)&0x80)>>6
+				}
+
+				if spriteColor != 0 {
+					// First sprite without a 00 color, use it.
+					if i == 0 && spriteBgColor != 0 && p.sprite0Visible && p.Cycle != 256 && p.mask.BackgroundEnabled && !p.status.Sprite0Hit && p.Cycle > uint32(p.minDrawCycleSpriteStd) {
+						//  "The hit condition is basically sprite zero is in
+						//   range AND the first sprite output unit is outputting
+						//   a non-zero pixel AND the background drawing unit is
+						//   outputting a non-zero pixel."
+						//  "Sprite zero hits do not register at x=255" (cycle 256)
+						//  "... provided that background and sprite rendering are both enabled"
+						//  "Should always miss when Y >= 239"
+						p.status.Sprite0Hit = true
+					}
+					if backgroundColor == 0 || !p.spriteTiles[i].BackgroundPriority {
+						// Check sprite priority
+						return p.lastSprite.PaletteOffset + spriteColor
+					}
+					break
+				}
+			}
+		}
+	}
+
+	if offset+uint8((p.Cycle-1)&0x07) < 8 {
+		return p.prevTilePalette + backgroundColor
+	}
+	return p.curTilePalette + backgroundColor
+}
+
+func (p *PPU) loadTileInfo() {
+	if p.isRenderingEnabled() {
+		switch p.Cycle & 0x07 {
+		case 1:
+			p.prevTilePalette = p.curTilePalette
+			p.curTilePalette = p.tile.PaletteOffset
+
+			p.lobitShift |= uint16(p.tile.LowByte)
+			p.hibitShift |= uint16(p.tile.HighByte)
+
+			tileIndex := p.readVRAM(p.ntaddr())
+			p.tile.TileAddr = (uint16(tileIndex) << 4) | (p.vramAddr >> 12) | p.control.BackgroundPatternAddr
+
+		case 3:
+			shift := ((p.vramAddr >> 4) & 0x04) | (p.vramAddr & 0x02)
+			p.tile.PaletteOffset = ((p.readVRAM(p.ataddr()) >> shift) & 0x03) << 2
+
+		case 5:
+			p.tile.LowByte = p.readVRAM(p.tile.TileAddr)
+
+		case 7:
+			p.tile.HighByte = p.readVRAM(p.tile.TileAddr + 8)
+		}
+	}
+}
+
+func register(addr uint16) ppureg {
+	if addr == 0x4014 {
+		return OAMDMA
+	}
+	return ppureg(addr & 0x07)
+}
+
+func (p *PPU) updateVideoRamAddr() {
+	if p.Scanline >= 240 || !p.isRenderingEnabled() {
+		increment := uint16(1)
+		if p.control.VerticalWrite {
+			increment = 32
+		}
+		p.vramAddr = (p.vramAddr + increment) & 0x7FFF
+		p.setBusAddress(p.vramAddr & 0x3FFF)
+	} else {
+		p.horzScroll()
+		p.vertScroll()
+	}
+}
+
+func (p *PPU) setOpenBus(mask, value uint8) {
+	if mask == 0xFF {
+		p.openbus = value
+		for i := range 8 {
+			p.openbusDecay[i] = int32(p.FrameCount)
+		}
+	} else {
+		var openBus uint16 = uint16(p.openbus) << 8
+		for i := range 8 {
+			openBus >>= 1
+			if (mask & 0x01) != 0 {
+				if (value & 0x01) != 0 {
+					openBus |= 0x80
+				} else {
+					openBus &^= 0x0080
+				}
+				p.openbusDecay[i] = int32(p.FrameCount)
+			} else if int32(p.FrameCount)-p.openbusDecay[i] > 3 {
+				openBus &^= 0x0080
+			}
+			value >>= 1
+			mask >>= 1
+		}
+		p.openbus = uint8(openBus)
+	}
+}
+
+func (p *PPU) applyOpenBus(mask, value uint8) uint8 {
+	p.setOpenBus(^mask, value)
+	return value | (p.openbus & mask)
+}
+
+func (p *PPU) setControlRegister(value uint8) {
+	nameTable := uint16(value & 0x03)
+	normalAddr := (p.vramAddrTemp & ^uint16(0x0C00)) | (nameTable << 10)
+	p.vramAddrTemp = normalAddr
+
+	p.control.VerticalWrite = (value & 0x04) == 0x04
+	p.control.SpritePatternAddr = 0
+	if (value & 0x08) == 0x08 {
+		p.control.SpritePatternAddr = 0x1000
+	}
+	p.control.BackgroundPatternAddr = 0
+	if (value & 0x10) == 0x10 {
+		p.control.BackgroundPatternAddr = 0x1000
+	}
+	p.control.LargeSprites = (value & 0x20) == 0x20
+	p.control.Slave = (value & 0x40) == 0x40
+	p.control.NMI = (value & 0x80) == 0x80
+
+	if !p.control.NMI {
+		p.CPU.clearNMIflag()
+	} else if p.control.NMI && p.status.VBlank {
+		p.CPU.setNMIflag()
+	}
+}
+
+func (p *PPU) setMaskRegister(value uint8) {
+	p.mask.Gray = (value & 0x01) == 0x01
+	p.mask.BGMask = (value & 0x02) == 0x02
+	p.mask.SpriteMask = (value & 0x04) == 0x04
+	p.mask.BackgroundEnabled = (value & 0x08) == 0x08
+	p.mask.SpritesEnabled = (value & 0x10) == 0x10
+	p.mask.IntensifyBlue = (value & 0x80) == 0x80
+
+	if p.region == NTSC {
+		p.mask.IntensifyRed = (value & 0x20) == 0x20
+		p.mask.IntensifyGreen = (value & 0x40) == 0x40
+	} else if p.region == PAL || p.region == Dendy {
+		p.mask.IntensifyRed = (value & 0x40) == 0x40
+		p.mask.IntensifyGreen = (value & 0x20) == 0x20
+	}
+
+	if p.renderingON != (p.mask.BackgroundEnabled || p.mask.SpritesEnabled) {
+		p.needStateUpdate = true
+	}
+
+	p.updateMinDrawCycle()
+	// TODO(arl)
+	// p.updateGrayscaleAndIntensifyBits()
+}
+
+func (p *PPU) updateStatusFlag() {
+	p.status.VBlank = false
+	p.CPU.clearNMIflag()
+
+	if p.Scanline == p.nmiScanline && p.Cycle == 0 {
+		p.preventVBlank = true
+	}
+}
+
+func (p *PPU) vertScroll() {
+	addr := p.vramAddr
+	if (addr & 0x7000) != 0x7000 {
+		addr += 0x1000
+	} else {
+		addr &^= 0x7000
+		y := (addr & 0x03E0) >> 5
+		switch y {
+		case 29:
+			y = 0
+			addr ^= 0x0800
+		case 31:
+			y = 0
+		default:
+			y++
+		}
+		addr = (addr & ^uint16(0x03E0)) | (y << 5)
+	}
+	p.vramAddr = addr
+}
+
+func (p *PPU) horzScroll() {
+	addr := p.vramAddr
+	if addr&0x001F == 31 {
+		addr = (addr & ^uint16(0x001F)) ^ 0x0400
+	} else {
+		addr++
+	}
+	p.vramAddr = addr
+}
+
+func (p *PPU) ntaddr() uint16 {
+	return 0x2000 | (p.vramAddr & 0x0FFF)
+}
+
+func (p *PPU) ataddr() uint16 {
+	return 0x23C0 | (p.vramAddr & 0x0C00) | ((p.vramAddr >> 4) & 0x38) | ((p.vramAddr >> 2) & 0x07)
+}
+
+func (p *PPU) setBusAddress(addr uint16) {
+	p.busaddr = addr
+}
+
+func (p *PPU) readVRAM(addr uint16) uint8 {
+	p.setBusAddress(addr)
+	return p.Bus.Read8(addr)
+}
+
+func (p *PPU) readOAM(addr uint8) uint8 {
+	return p.spriteRam[addr]
+}
+
+func (p *PPU) writeOAM(addr uint8, value uint8) {
+	p.spriteRam[addr] = value
+}
+
+func (p *PPU) isRenderingEnabled() bool {
+	return p.mask.BackgroundEnabled || p.mask.SpritesEnabled
+}
+
+func (p *PPU) beginVBlank() { p.triggerNmi() }
+func (p *PPU) triggerNmi() {
+	if p.control.NMI {
+		p.CPU.setNMIflag()
+	}
+}
+
+const inputScanLine = 241
+
+func (p *PPU) doScanline1stCycle() {
+	p.Cycle = 0
+	p.Scanline++
+	if p.Scanline > p.vblankEnd {
+		p.lastUpdatedPixel = -1
+		p.Scanline = -1
+		p.spriteCount = 0
+
+		p.updateMinDrawCycle()
+	}
+
+	p.updateAPUStatus()
+
+	if p.Scanline < 240 {
+		if p.Scanline == -1 {
+			p.status.SpriteOverflow = false
+			p.status.Sprite0Hit = false
+			p.fullAccessON = true
+		} else if p.prevRenderingON {
+			if p.Scanline > 0 || (p.FrameCount&0x01 == 0) || p.region != NTSC {
+				p.setBusAddress((p.tile.TileAddr << 4) | (p.vramAddr >> 12) | p.control.BackgroundPatternAddr)
+			}
+		}
+	} else if p.Scanline == 240 {
+		p.setBusAddress(p.vramAddr & 0x3FFF)
+		p.FrameCount++
+	}
+}
+
+func (p *PPU) updateState() {
+	p.needStateUpdate = false
+
+	if p.prevRenderingON != p.renderingON {
+		p.prevRenderingON = p.renderingON
+		if p.Scanline < 240 {
+			if !p.prevRenderingON {
+				p.setBusAddress(p.vramAddr & 0x3FFF)
+				if p.Cycle >= 65 && p.Cycle <= 256 {
+					p.oamaddr++
+					p.spriteAddrH = (p.oamaddr >> 2) & 0x3F
+					p.spriteAddrL = p.oamaddr & 0x03
+				}
+			}
+		}
+	}
+
+	if p.renderingON != (p.mask.BackgroundEnabled || p.mask.SpritesEnabled) {
+		p.renderingON = p.mask.BackgroundEnabled || p.mask.SpritesEnabled
+		p.needStateUpdate = true
+	}
+
+	if p.updateVRAMAddrDelay > 0 {
+		p.updateVRAMAddrDelay--
+		if p.updateVRAMAddrDelay == 0 {
+			p.vramAddr = p.updateVRAMAddr
+			p.vramAddrTemp = p.vramAddr
+			if p.Scanline >= 240 || !p.isRenderingEnabled() {
+				p.setBusAddress(p.vramAddr & 0x3FFF)
+			}
+		} else {
+			p.needStateUpdate = true
+		}
+	}
+
+	if p.ignoreVRAMRead > 0 {
+		p.ignoreVRAMRead--
+		if p.ignoreVRAMRead > 0 {
+			p.needStateUpdate = true
+		}
+	}
+
+	if p.needVRAMIncr {
+		p.needVRAMIncr = false
+		p.updateVideoRamAddr()
+	}
+}
+
+func (p *PPU) updateAPUStatus() {
+	apu := p.CPU.APU
+	apu.SetEnabled(true)
+	if p.Scanline > 240 {
+		if p.Scanline > p.stdVBlankEnd {
+			// Disable APU for extra lines after NMI
+			apu.SetEnabled(false)
+		} else if p.Scanline >= p.stdNMIScanline && p.Scanline < p.nmiScanline {
+			// Disable APU for extra lines before NMI
+			apu.SetEnabled(false)
+		}
+	}
+}
+
+func (p *PPU) processSpriteEvaluation() {
+	if p.isRenderingEnabled() || (p.region == PAL && p.Scanline >= p.palSpriteEvalScanline) {
+		if p.Cycle < 65 {
+			// Clear secondary OAM at between cycle 1 and 64.
+			p.oamCopybuffer = 0xFF
+			p.secondarySpriteRam[(p.Cycle-1)>>1] = 0xFF
+		} else {
+			if p.Cycle%2 != 0 {
+				if p.Cycle == 65 {
+					p.processSpriteEvaluationStart()
+				}
+				p.oamCopybuffer = p.readOAM(p.oamaddr)
+			} else {
+				if p.Cycle == 256 {
+					p.processSpriteEvaluationEnd()
+				}
+
+				if p.oamCopyDone {
+					p.spriteAddrH = (p.spriteAddrH + 1) & 0x3F
+					if p.secondaryOamAddr >= 0x20 {
+						p.oamCopybuffer = p.secondarySpriteRam[p.secondaryOamAddr&0x1F]
+					}
+				} else {
+					spriteHeight := uint8(8)
+					if p.control.LargeSprites {
+						spriteHeight = 16
+					}
+
+					if !p.spriteInRange && p.Scanline >= int16(p.oamCopybuffer) && p.Scanline < int16(p.oamCopybuffer+spriteHeight) {
+						p.spriteInRange = !p.oamCopyDone
+					}
+
+					if p.secondaryOamAddr < 0x20 {
+						p.secondarySpriteRam[p.secondaryOamAddr] = p.oamCopybuffer
+						if p.spriteInRange {
+							if p.Cycle == 66 {
+								p.sprite0Added = true
+							}
+							p.spriteAddrL++
+							p.secondaryOamAddr++
+
+							if p.spriteAddrL >= 4 {
+								p.spriteAddrH = (p.spriteAddrH + 1) & 0x3F
+								p.spriteAddrL = 0
+								if p.spriteAddrH == 0 {
+									p.oamCopyDone = true
+								}
+							}
+							if (p.secondaryOamAddr & 0x03) == 0 {
+								p.spriteInRange = false
+								p.lastVisibleSpriteAddr = uint32(p.spriteAddrH-1) * 4
+
+								if p.spriteAddrL != 0 {
+									spriteHeight := uint8(8)
+									if p.control.LargeSprites {
+										spriteHeight = 16
+									}
+									inRange := p.Scanline >= int16(p.oamCopybuffer) && p.Scanline < int16(p.oamCopybuffer+spriteHeight)
+									if !inRange {
+										p.spriteAddrL = 0
+									}
+								}
+							}
+						} else {
+							p.spriteAddrH = (p.spriteAddrH + 1) & 0x3F
+							p.spriteAddrL = 0
+							if p.spriteAddrH == 0 {
+								p.oamCopyDone = true
+							}
+						}
+					} else {
+						p.oamCopybuffer = p.secondarySpriteRam[p.secondaryOamAddr&0x1F]
+						if p.oamCopyDone {
+							p.spriteAddrH = (p.spriteAddrH + 1) & 0x3F
+							p.spriteAddrL = 0
+						} else if p.spriteInRange {
+							p.status.SpriteOverflow = true
+							p.spriteAddrL = (p.spriteAddrL + 1)
+							if p.spriteAddrL == 4 {
+								p.spriteAddrH = (p.spriteAddrH + 1) & 0x3F
+								p.spriteAddrL = 0
+							}
+							if p.overflowBugCounter == 0 {
+								p.overflowBugCounter = 3
+							} else if p.overflowBugCounter > 0 {
+								p.overflowBugCounter--
+								if p.overflowBugCounter == 0 {
+									p.oamCopyDone = true
+									p.spriteAddrL = 0
+								}
+							}
+						} else {
+							p.spriteAddrH = (p.spriteAddrH + 1) & 0x3F
+							p.spriteAddrL = (p.spriteAddrL + 1) & 0x03
+							if p.spriteAddrH == 0 {
+								p.oamCopyDone = true
+							}
+						}
+					}
+				}
+				p.oamaddr = (p.spriteAddrL & 0x03) | (p.spriteAddrH << 2)
+			}
+		}
+	}
+}
+
+func (p *PPU) processSpriteEvaluationStart() {
+	p.sprite0Added = false
+	p.spriteInRange = false
+	p.secondaryOamAddr = 0
+	p.overflowBugCounter = 0
+	p.oamCopyDone = false
+	p.spriteAddrH = (p.oamaddr >> 2) & 0x3F
+	p.spriteAddrL = p.oamaddr & 0x03
+	p.firstVisibleSpriteAddr = uint32(p.spriteAddrH) * 4
+	p.lastVisibleSpriteAddr = p.firstVisibleSpriteAddr
+}
+
+func (p *PPU) processSpriteEvaluationEnd() {
+	p.sprite0Visible = p.sprite0Added
+	p.spriteCount = int((p.secondaryOamAddr + 3) >> 2)
+}
+
+func (p *PPU) State() *snapshot.PPU {
+	state := &snapshot.PPU{}
+
+	copy(state.PaletteRAM[:], p.Palette.Data[:])
+	copy(state.SpriteRAM[:], p.spriteRam[:])
+	copy(state.SecondarySpriteRAM[:], p.secondarySpriteRam[:])
+	copy(state.OpenBusDecay[:], p.openbusDecay[:])
+
+	state.OAMAdrr = p.oamaddr
+	state.VRAMAddr = p.vramAddr
+	state.XScroll = p.xscroll
+	state.VRAMAddrTemp = p.vramAddrTemp
+	state.WriteLatch = p.writelatch
+
+	state.HibitShift = p.hibitShift
+	state.LoBitShift = p.lobitShift
+
+	state.PPUCTRL = snapshot.PPUCTRL(p.control)
+	state.PPUMASK = snapshot.PPUMASK(p.mask)
+	state.PaletteRAMMask = p.paletteRamMask
+
+	state.PPUSTATUS = snapshot.PPUSTATUS(p.status)
+	state.Scanline = p.Scanline
+	state.Cycle = p.Cycle
+	state.FrameCount = p.FrameCount
+	state.MemoryReadBuffer = p.memoryReadBuffer
+	state.Region = int(p.region)
+	state.BusAddr = p.busaddr
+	state.MasterClock = p.masterClock
+
+	state.CurTilePalette = p.curTilePalette
+	state.Tile = snapshot.PPUTileInfo(p.tile)
+	state.PrevTilePalette = p.prevTilePalette
+
+	state.IdxSprite = p.idxSprite
+	state.SpriteCount = p.spriteCount
+	state.SpriteAddrH = p.spriteAddrH
+	state.SpriteAddrL = p.spriteAddrL
+	state.Sprite0Added = p.sprite0Added
+	state.Sprite0Visible = p.sprite0Visible
+	state.OAMCopybuffer = p.oamCopybuffer
+	state.SecondaryOAMAddr = p.secondaryOamAddr
+	state.SpriteInRange = p.spriteInRange
+	state.RenderingON = p.renderingON
+	state.PrevRenderingON = p.prevRenderingON
+
+	state.OpenBus = p.openbus
+	state.IgnoreVRAMRead = p.ignoreVRAMRead
+
+	state.OAMCopyDone = p.oamCopyDone
+
+	state.NeedStateUpdate = p.needStateUpdate
+	state.NeedVideoRAMIncrement = p.needVRAMIncr
+	state.PreventVBlank = p.preventVBlank
+	state.OverflowBugCounter = p.overflowBugCounter
+	state.UpdateVRAMAddr = p.updateVRAMAddr
+	state.UpdateVRAMAddrDelay = p.updateVRAMAddrDelay
+	state.FullAccessON = p.fullAccessON
+
+	for i := range p.spriteCount {
+		state.SpriteTiles[i] = snapshot.PPUSpriteInfo(p.spriteTiles[i])
+	}
+
+	return state
+}
+
+func (p *PPU) SetState(state *snapshot.PPU) {
+	copy(p.Palette.Data[:], state.PaletteRAM[:])
+	copy(p.spriteRam[:], state.SpriteRAM[:])
+	copy(p.secondarySpriteRam[:], state.SecondarySpriteRAM[:])
+	copy(p.openbusDecay[:], state.OpenBusDecay[:])
+
+	p.oamaddr = state.OAMAdrr
+	p.vramAddr = state.VRAMAddr
+	p.xscroll = state.XScroll
+	p.vramAddrTemp = state.VRAMAddrTemp
+	p.writelatch = state.WriteLatch
+
+	p.hibitShift = state.HibitShift
+	p.lobitShift = state.LoBitShift
+
+	p.control = ppuctrl(state.PPUCTRL)
+	p.mask = ppumask(state.PPUMASK)
+	p.paletteRamMask = state.PaletteRAMMask
+
+	p.status = ppustatus(state.PPUSTATUS)
+	p.Scanline = state.Scanline
+	p.Cycle = state.Cycle
+	p.FrameCount = state.FrameCount
+	p.memoryReadBuffer = state.MemoryReadBuffer
+	p.region = ConsoleRegion(state.Region)
+	p.busaddr = state.BusAddr
+	p.masterClock = state.MasterClock
+
+	p.curTilePalette = state.CurTilePalette
+	p.tile = tileInfo(state.Tile)
+	p.prevTilePalette = state.PrevTilePalette
+
+	p.idxSprite = state.IdxSprite
+	p.spriteCount = state.SpriteCount
+	p.spriteAddrH = state.SpriteAddrH
+	p.spriteAddrL = state.SpriteAddrL
+	p.sprite0Added = state.Sprite0Added
+	p.sprite0Visible = state.Sprite0Visible
+	p.oamCopybuffer = state.OAMCopybuffer
+	p.secondaryOamAddr = state.SecondaryOAMAddr
+	p.spriteInRange = state.SpriteInRange
+	p.renderingON = state.RenderingON
+	p.prevRenderingON = state.PrevRenderingON
+
+	p.openbus = state.OpenBus
+	p.ignoreVRAMRead = state.IgnoreVRAMRead
+
+	p.oamCopyDone = state.OAMCopyDone
+
+	p.needStateUpdate = state.NeedStateUpdate
+	p.needVRAMIncr = state.NeedVideoRAMIncrement
+	p.preventVBlank = state.PreventVBlank
+	p.overflowBugCounter = state.OverflowBugCounter
+	p.updateVRAMAddr = state.UpdateVRAMAddr
+	p.updateVRAMAddrDelay = state.UpdateVRAMAddrDelay
+	p.fullAccessON = state.FullAccessON
+
+	for i := range p.spriteCount {
+		p.spriteTiles[i] = spriteInfo(state.SpriteTiles[i])
+	}
+
+	p.updateTimings(p.region)
+	p.updateMinDrawCycle()
+
+	p.corruptOamRow = [32]bool{}
+	for i := range 257 {
+		p.hasSprite[i] = true
+	}
+	p.lastUpdatedPixel = -1
+	p.updateAPUStatus()
+}
+
+func bto8(b bool) uint8 {
+	if b {
+		return 1
+	}
+	return 0
+}

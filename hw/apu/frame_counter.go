@@ -6,21 +6,28 @@ import (
 	"nestor/hw/snapshot"
 )
 
+type frameType uint8
+
+const (
+	noFrame frameType = iota
+	quarterFrame
+	halfFrame
+)
+
+var frameTypes = [2][6]frameType{
+	{quarterFrame, halfFrame, quarterFrame, noFrame, halfFrame, noFrame},
+	{quarterFrame, halfFrame, quarterFrame, noFrame, halfFrame, noFrame},
+}
+
 var stepCycles = [2][6]int32{
 	{7457, 14913, 22371, 29828, 29829, 29830},
 	{7457, 14913, 22371, 29829, 37281, 37282},
-}
-
-var frameType = [2][6]FrameType{
-	{QuarterFrame, HalfFrame, QuarterFrame, NoFrame, HalfFrame, NoFrame},
-	{QuarterFrame, HalfFrame, QuarterFrame, NoFrame, HalfFrame, NoFrame},
 }
 
 type frameCounter struct {
 	apu *APU
 	CPU cpu
 
-	stepCycles        [2][6]int32
 	prevCycle         int32
 	curStep           uint32
 	stepMode          uint32 //0: 4-step mode, 1: 5-step mode
@@ -39,7 +46,7 @@ func (afc *frameCounter) reset(soft bool) {
 	afc.prevCycle = 0
 
 	// After reset: APU mode in $4017 was unchanged, so we need to keep
-	// whatever value stepMode has for soft resets
+	// whatever value stepMode has for soft resets.
 	if !soft {
 		afc.stepMode = 0
 	}
@@ -49,7 +56,7 @@ func (afc *frameCounter) reset(soft bool) {
 	// After reset or power-up, APU acts as if $4017 were written with $00
 	// from 9 to 12 clocks before first instruction begins. This is
 	// emulated in the cpu.reset. function Reset acts as if $00 was written
-	// to $4017
+	// to $4017.
 	afc.newval = 0
 	if afc.stepMode != 0 {
 		afc.newval = 0x80
@@ -61,7 +68,7 @@ func (afc *frameCounter) reset(soft bool) {
 }
 
 func (afc *frameCounter) WriteFRAMECOUNTER(old, val uint8) {
-	log.ModSound.InfoZ("write framecounter").Uint8("val", val).End()
+	log.ModSound.DebugZ("write framecounter").Uint8("val", val).End()
 	afc.apu.Run()
 	afc.newval = int16(val)
 
@@ -72,7 +79,7 @@ func (afc *frameCounter) WriteFRAMECOUNTER(old, val uint8) {
 		afc.writeDelayCounter = 4
 	} else {
 		// If the write occurs during an APU cycle, the effects occur 3 CPU
-		// cycles after the $4017 write cycle
+		// cycles after the $4017 write cycle.
 		afc.writeDelayCounter = 3
 	}
 
@@ -92,18 +99,18 @@ func (afc *frameCounter) run(cyclesToRun *int32) uint32 {
 			afc.CPU.SetIRQSource(hwdefs.FrameCounter)
 		}
 
-		ftyp := frameType[afc.stepMode][afc.curStep]
-		if ftyp != NoFrame && afc.blockTick == 0 {
+		ftyp := frameTypes[afc.stepMode][afc.curStep]
+		if ftyp != noFrame && afc.blockTick == 0 {
 			afc.apu.FrameCounterTick(ftyp)
 
 			// Do not allow writes to 4017 to clock the frame counter for the
-			// next cycle (i.e this odd cycle + the following even cycle)
+			// next cycle (i.e this odd cycle + the following even cycle).
 			afc.blockTick = 2
 		}
 
 		if stepCycles[afc.stepMode][afc.curStep] < afc.prevCycle {
 			// This can happen when switching from PAL to NTSC, which can cause
-			// a freeze (endless loop in APU)
+			// a freeze (endless loop in APU).
 			cyclesRan = 0
 		} else {
 			cyclesRan = stepCycles[afc.stepMode][afc.curStep] - afc.prevCycle
@@ -143,7 +150,7 @@ func (afc *frameCounter) run(cyclesToRun *int32) uint32 {
 				// Writing to $4017 with bit 7 set will immediately generate
 				// a clock for both the quarter frame and the half frame
 				// units, regardless of what the sequencer is doing.
-				afc.apu.FrameCounterTick(HalfFrame)
+				afc.apu.FrameCounterTick(halfFrame)
 				afc.blockTick = 2
 			}
 		}

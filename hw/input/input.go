@@ -2,107 +2,110 @@
 package input
 
 import (
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
-// A PaddleButton identifies a button of a standard NES controller/paddle.
-type PaddleButton byte
+type EbitenInput struct {
+	keys    [2][8]ebiten.Key
+	scratch [256]ebiten.Key
 
-const (
-	PadA PaddleButton = iota
-	PadB
-	PadSelect
-	PadStart
-	PadUp
-	PadDown
-	PadLeft
-	PadRight
-
-	PadButtonCount
-)
-
-func (pd PaddleButton) String() string {
-	var buttonNames = [PadButtonCount]string{
-		"A", "B",
-		"Select", "Start",
-		"Up", "Down", "Left", "Right",
-	}
-	return buttonNames[pd]
-}
-
-// PaddlePreset holds the mapping configuration of a paddle.
-type PaddlePreset struct {
-	Buttons [PadButtonCount]Code `toml:"buttons"`
-}
-
-const numPresets = 8
-
-type Config struct {
-	Paddles [2]PaddleConfig          `toml:"paddles"`
-	Presets [numPresets]PaddlePreset `toml:"presets"`
-}
-
-func (cfg *Config) PostLoad() {
-	if cfg.Paddles[0].PaddlePreset >= numPresets {
-		cfg.Paddles[0].PaddlePreset = 0
-	}
-	if cfg.Paddles[1].PaddlePreset >= numPresets {
-		cfg.Paddles[1].PaddlePreset = 0
-	}
-	cfg.Paddles[0].Preset = &cfg.Presets[cfg.Paddles[0].PaddlePreset]
-	cfg.Paddles[1].Preset = &cfg.Presets[cfg.Paddles[1].PaddlePreset]
-}
-
-type PaddleConfig struct {
-	Plugged      bool          `toml:"plugged"`
-	PaddlePreset uint          `toml:"preset"`
-	Preset       *PaddlePreset `toml:"-"` // points to the current preset
-}
-
-type Provider struct {
-	keys     [2][8]sdl.Scancode
-	keystate []uint8
+	i0, i1 func() uint8
 
 	cfg Config
 }
 
-func NewProvider(cfg Config) *Provider {
-	var keystate []uint8
-	sdl.Do(func() { keystate = sdl.GetKeyboardState() })
-	return &Provider{keystate: keystate, cfg: cfg}
-}
+func NewEbitenInput(cfg Config) *EbitenInput {
+	pr0 := cfg.Presets[cfg.Paddles[0].PaddlePreset]
+	pr1 := cfg.Presets[cfg.Paddles[1].PaddlePreset]
 
-func (ui *Provider) paddleState(idx int) uint8 {
-	padcfg := ui.cfg.Paddles[idx]
-	if !padcfg.Plugged {
-		// TODO: check this
-		return 0
+	var i0, i1 func() uint8
+
+	switch {
+	case pr0.Keyboard != nil:
+		i0 = kbstate(pr0.ToButtons())
+	case pr0.Gamepad != nil:
+		i0 = gamepadState(pr0.ToButtons())
+	default:
+		i0 = unplugged
 	}
 
-	preset := ui.cfg.Paddles[idx].Preset
+	switch {
+	case pr1.Keyboard != nil:
+		i1 = kbstate(pr1.ToButtons())
+	case pr1.Gamepad != nil:
+		i1 = gamepadState(pr1.ToButtons())
+	default:
+		i1 = unplugged
+	}
 
-	state := uint8(0)
-	for i, code := range preset.Buttons {
-		pressed := uint8(0)
-		switch code.Type {
-		case KeyboardCtrl:
-			pressed = ui.keystate[code.Scancode]
-		case ButtonCtrl:
-			if ctrl := Gamectrls.getByGUID(code.CtrlGUID); ctrl != nil {
-				pressed = ctrl.Button(code.CtrlButton)
-			}
-		case AxisCtrl:
-			if ctrl := Gamectrls.getByGUID(code.CtrlGUID); ctrl != nil {
-				if ctrl.Axis(code.CtrlAxis) >= JoyAxisThreshold {
-					pressed = 1
+	return &EbitenInput{
+		cfg: cfg,
+		i0:  i0,
+		i1:  i1,
+	}
+}
+
+func (ei *EbitenInput) LoadState() (uint8, uint8) {
+	return ei.i0(), ei.i1()
+}
+
+func unplugged() uint8 { return 0 }
+
+// compute input port state from keyboard.
+func kbstate(codes [PadButtonCount]Code) func() uint8 {
+	var scratch [256]ebiten.Key
+
+	f := func() uint8 {
+		keys := inpututil.AppendPressedKeys(scratch[:0])
+
+		var state uint8
+		for _, k := range keys {
+			for i, code := range codes {
+				if k == code.Scancode {
+					state |= 1 << i
+					break
 				}
 			}
 		}
-		state |= pressed << i
+
+		return state
 	}
-	return state
+
+	return f
 }
 
-func (ui *Provider) LoadState() (uint8, uint8) {
-	return ui.paddleState(0), ui.paddleState(1)
+// compute input port state from a gamepad.
+func gamepadState(codes [PadButtonCount]Code) func() uint8 {
+	var gpid ebiten.GamepadID = -1
+
+	for _, id := range ebiten.AppendGamepadIDs(nil) {
+		if ebiten.GamepadSDLID(id) == codes[0].GamepadSDLID {
+			gpid = id
+		}
+	}
+
+	if gpid == -1 {
+		return unplugged
+	}
+
+	var scratch [256]ebiten.GamepadButton
+
+	f := func() uint8 {
+		btns := inpututil.AppendPressedGamepadButtons(gpid, scratch[:0])
+
+		var state uint8
+		for _, k := range btns {
+			for i, code := range codes {
+				if k == code.GamepadButton {
+					state |= 1 << i
+					break
+				}
+			}
+		}
+
+		return state
+	}
+
+	return f
 }

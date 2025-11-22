@@ -1,0 +1,138 @@
+//kage:unit pixels
+
+package shader
+
+/*
+ * CRT Aperture
+ * License: GPL
+ * Source: https://github.com/libretro/slang-shaders/blob/master/crt/shaders/crt-aperture.slang
+ *
+ * Features scanlines, aperture grille mask, glow, and gamma correction.
+ *
+ * Note: Simplified version optimized for Kage's single-pass architecture. Multi-tap Gaussian blur and Lanczos filtering are simplified.
+ */
+
+const (
+	// Glow effect intensity
+	GLOW_HALATION  = 0.1
+	GLOW_DIFFUSION = 0.05
+
+	// Mask parameters
+	MASK_COLORS   = 2.0 // 2.0 or 3.0 (RGB stripes)
+	MASK_STRENGTH = 0.3
+
+	// Scanline parameters
+	SCANLINE_SIZE_MIN = 0.5
+	SCANLINE_SIZE_MAX = 1.5
+
+	// Gamma correction
+	GAMMA_INPUT  = 2.4
+	GAMMA_OUTPUT = 2.4
+	BRIGHTNESS   = 1.5
+
+	PI = 3.141592653589
+)
+
+// Apply gamma correction to linear RGB
+func applyGamma(color vec3, gamma float) vec3 {
+	return vec3(
+		pow(color.r, gamma),
+		pow(color.g, gamma),
+		pow(color.b, gamma),
+	)
+}
+
+// Simple 3x3 blur for glow effect
+func sampleBlur(srcPos vec2) vec3 {
+	// 3x3 kernel offsets
+	offsets := [9]vec2{
+		vec2(-1, -1), vec2(0, -1), vec2(1, -1),
+		vec2(-1, 0), vec2(0, 0), vec2(1, 0),
+		vec2(-1, 1), vec2(0, 1), vec2(1, 1),
+	}
+
+	// Gaussian-like weights
+	weights := [9]float{
+		0.077, 0.123, 0.077,
+		0.123, 0.195, 0.123,
+		0.077, 0.123, 0.077,
+	}
+
+	glow := vec3(0.0)
+	for i := 0; i < 9; i++ {
+		sample := imageSrc0At(srcPos + offsets[i])
+		// Apply input gamma
+		sampleLinear := applyGamma(sample.rgb, GAMMA_INPUT)
+		glow += sampleLinear * weights[i]
+	}
+
+	return glow
+}
+
+// Calculate scanline weight based on vertical position
+func getScanlineWeight(y float, col vec3) vec3 {
+	beam := mix(vec3(SCANLINE_SIZE_MIN), vec3(SCANLINE_SIZE_MAX), col)
+	xMul := 2.0 / beam
+	xOffset := xMul * 0.5
+
+	dist := abs(y*xMul - xOffset)
+	weight := smoothstep(1.0, 0.0, dist) * xOffset
+
+	return weight
+}
+
+// Get aperture grille mask color (RGB stripes)
+func getMaskWeight(x float, imgSize vec2) vec3 {
+	// Calculate which color stripe we're on
+	pixelX := x * imgSize.x
+	colorIndex := mod(floor(pixelX), MASK_COLORS)
+
+	if colorIndex < 0.5 {
+		// Red stripe (or magenta for 3-color mode)
+		return mix(vec3(1.0, 0.0, 1.0), vec3(1.0, 0.0, 0.0), MASK_COLORS-2.0)
+	} else if colorIndex < 1.5 {
+		// Green stripe
+		return vec3(0.0, 1.0, 0.0)
+	} else {
+		// Blue stripe
+		return vec3(0.0, 0.0, 1.0)
+	}
+}
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	imgSize := imageSrc0Size()
+
+	// Sample the main pixel with input gamma
+	mainSample := imageSrc0At(srcPos)
+	col := applyGamma(mainSample.rgb, GAMMA_INPUT)
+
+	// Calculate glow from blurred surrounding pixels
+	colGlow := sampleBlur(srcPos)
+
+	// Calculate normalized texture coordinates
+	texCoord := srcPos / imgSize
+
+	// Apply scanline effect based on vertical position
+	// frac(x) = x - floor(x)
+	texCoordY := texCoord.y * imgSize.y
+	scanlineFrac := texCoordY - floor(texCoordY)
+	scanlineWeight := getScanlineWeight(scanlineFrac, col)
+	col *= scanlineWeight
+
+	// Add halation (glow bleeding into bright areas)
+	// Subtract the main color from glow to avoid double-brightness
+	colGlow = clamp(colGlow-col, 0.0, 1.0)
+	col += colGlow * colGlow * GLOW_HALATION
+
+	// Apply aperture grille mask (RGB stripes)
+	maskWeight := getMaskWeight(texCoord.x, imgSize)
+	col = mix(col, col*maskWeight*MASK_COLORS, MASK_STRENGTH)
+
+	// Add diffusion glow
+	col += colGlow * GLOW_DIFFUSION
+
+	// Apply brightness and output gamma correction
+	col = applyGamma(col*BRIGHTNESS, 1.0/GAMMA_OUTPUT)
+
+	return vec4(col, 1.0)
+}

@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package hw
 
 import (
@@ -27,7 +30,7 @@ type PPU struct {
 	masterClock uint64
 	Cycle       uint32 // Current cycle/pixel in scanline
 	Scanline    int    // Current scanline being drawn
-	FrameCount  uint32 // Current frame
+	FrameCount  uint64 // Current frame
 
 	// $3F00-$3F1F	$0020	Palette RAM indexes
 	// $3F20-$3FFF	$00E0	Mirrors of $3F00-$3F1F
@@ -82,13 +85,17 @@ func NewPPU() *PPU {
 }
 
 func (p *PPU) BeginFrame(framebuf []byte) {
+	// ptr := unsafe.SliceData(framebuf)
+	// fmt.Printf("set frame buf PPU: %p\n", ptr)
+
 	// We're using a RGBA8 framebuffer.
 	p.framebuf = unsafe.Slice((*uint32)(unsafe.Pointer(&framebuf[0])), len(framebuf)/4)
 }
 
-func (p *PPU) Reset() {
+func (p *PPU) Reset(_ bool) {
 	p.Scanline = -1
-	p.FrameCount = 1
+	p.FrameCount = 0
+	log.ModEmu.DebugZ("reset frame count").Uint64("number", p.FrameCount).End()
 	p.Cycle = 339
 	p.writeLatch = false
 	p.vramAddr = 0
@@ -170,6 +177,7 @@ func (p *PPU) doScanline(sm scanlineMode) {
 			p.busAddr = p.vramAddr.addr()
 		case 340:
 			p.FrameCount++
+			log.ModEmu.DebugZ("incr frame count").Uint64("number", p.FrameCount).End()
 		}
 
 	case preRender, renderMode:
@@ -912,7 +920,7 @@ func (p *PPU) setOpenBus(mask uint8, val uint8) {
 		// updated.
 		p.openBus = val
 		for i := range p.openBusDecayBuf {
-			p.openBusDecayBuf[i] = p.FrameCount
+			p.openBusDecayBuf[i] = uint32(p.FrameCount)
 		}
 	} else {
 		openBus := (uint16(p.openBus) << 8)
@@ -924,8 +932,8 @@ func (p *PPU) setOpenBus(mask uint8, val uint8) {
 				} else {
 					openBus &= 0xFF7F
 				}
-				p.openBusDecayBuf[i] = p.FrameCount
-			} else if p.FrameCount-p.openBusDecayBuf[i] > 3 {
+				p.openBusDecayBuf[i] = uint32(p.FrameCount)
+			} else if uint32(p.FrameCount)-p.openBusDecayBuf[i] > 3 {
 				// Decay bits to 0 after 3 frames. This is a very conservative
 				// estimate, individual bits tend to decay much faster than
 				// this.
@@ -944,7 +952,13 @@ func (p *PPU) applyOpenBus(mask uint8, val uint8) uint8 {
 	return val | (p.openBus & mask)
 }
 
+func (p *PPU) State() *snapshot.PPU { return nil }
+
+func (p *PPU) SetState(state *snapshot.PPU) {}
+
+/*
 func (p *PPU) State() *snapshot.PPU {
+	panic("state called")
 	state := &snapshot.PPU{
 		OpenBus:         p.openBus,
 		OpenBusDecayBuf: p.openBusDecayBuf,
@@ -1068,3 +1082,4 @@ func (p *PPU) SetState(state *snapshot.PPU) {
 		p.oam2[i].dataH = state.OAM2[i].DataH
 	}
 }
+*/

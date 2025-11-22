@@ -1,126 +1,144 @@
 package ui
 
 import (
-	"os"
-	"path/filepath"
-	"sync"
+	"slices"
 
-	"github.com/BurntSushi/toml"
-	"github.com/veandco/go-sdl2/sdl"
-
-	"nestor/emu"
-	"nestor/emu/log"
-	"nestor/hw/input"
-	"nestor/hw/shaders"
+	"github.com/ebitenui/ebitenui/widget"
+	"github.com/hajimehoshi/ebiten/v2"
+	"golang.org/x/image/colornames"
 )
 
-type GeneralConfig struct {
-	ShowSplash bool `toml:"show_splash"`
+type configState struct {
+	*app
+
+	startPage int
+	presetidx int // TODO: we can probably remove this and place it in inputConfigPage
 }
 
-type Config struct {
-	emu.Config
-	General GeneralConfig `toml:"general"`
+func newConfigState(app *app) *configState {
+	state := &configState{
+		app: app,
+	}
+
+	state.createUI()
+	return state
 }
 
-var defaultConfig = Config{
-	Config: emu.Config{
-		Input: input.Config{
-			Paddles: [2]input.PaddleConfig{
-				{
-					Plugged:      true,
-					PaddlePreset: 0,
-				},
-				{
-					Plugged:      false,
-					PaddlePreset: 1,
-				},
-			},
-			Presets: [8]input.PaddlePreset{
-				{
-					Buttons: [8]input.Code{
-						// TODO: change this to QWERTY layout?
-						{Scancode: sdl.SCANCODE_W, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_Q, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_A, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_S, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_UP, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_DOWN, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_LEFT, Type: input.KeyboardCtrl},
-						{Scancode: sdl.SCANCODE_RIGHT, Type: input.KeyboardCtrl},
-					},
-				},
-			},
-		},
-		Video: emu.VideoConfig{
-			DisableVSync: false,
-			Monitor:      0,
-			Shader:       shaders.DefaultName,
-		},
-		Audio: emu.AudioConfig{
-			DisableAudio: false,
-		},
-		Emulation: emu.EmulationConfig{
-			RunAheadFrames: 0,
-		},
-		TraceOut: nil,
-	},
-	General: GeneralConfig{
-		ShowSplash: true,
-	},
+func (s *configState) enter(args ...any) {
+	if len(args) >= 1 {
+		switch args[0] {
+		case "input":
+			s.startPage = 0
+		case "video":
+			s.startPage = 1
+		case "emulation":
+			s.startPage = 2
+		default:
+			s.startPage = 0
+		}
+	}
+}
+func (s *configState) exit() {}
+
+func (s *configState) update() {
+	s.ui.Update()
 }
 
-const dirMode = os.FileMode(0755)
-
-var ConfigDir = sync.OnceValue(func() string {
-	cfgdir, err := os.UserConfigDir()
-	if err != nil {
-		log.ModEmu.Fatalf("failed to get user config directory: %v", err)
-	}
-
-	dir := filepath.Join(cfgdir, "nestor")
-	if err := os.MkdirAll(dir, dirMode); err != nil {
-		log.ModEmu.Fatalf("failed to create directory %s: %v", dir, err)
-	}
-	return dir
-})
-
-const cfgFilename = "config.toml"
-
-var configPath = sync.OnceValue(func() string {
-	return filepath.Join(ConfigDir(), cfgFilename)
-})
-
-// LoadConfigOrDefault loads the configuration from the nestor config directory,
-// or provide a default one.
-func LoadConfigOrDefault() Config {
-	// Create a config based on the default one.
-	cfg := defaultConfig
-
-	// Load the config from the file, overwriting the default values.
-	_, err := toml.DecodeFile(configPath(), &cfg)
-	if err != nil {
-		log.ModEmu.Warnf("Failed to load config, using default: %v", err)
-	}
-
-	// Apply post-load operations (fix invalid values, etc).
-	cfg.Input.PostLoad()
-	cfg.Video.Check()
-	log.ModEmu.Infof("Configuration loaded from %s", configPath())
-	return cfg
+func (s *configState) draw(screen *ebiten.Image) {
+	screen.Fill(colornames.Lightcoral)
+	s.ui.Draw(screen)
 }
 
-// saveConfig into nestor config directory.
-func saveConfig(cfg *Config) error {
-	buf, err := toml.Marshal(cfg)
-	if err != nil {
-		return err
+func (s *configState) createUI() {
+	// root of the whole config UI.
+	root := widget.NewContainer(
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.TrackHover(false)),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{true, false}),
+			widget.GridLayoutOpts.Padding(&widget.Insets{
+				Top:    20,
+				Bottom: 20,
+			}),
+			widget.GridLayoutOpts.Spacing(0, 20))),
+		widget.ContainerOpts.BackgroundImage(res.background))
+
+	// container for page list and page content.
+	container := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Padding(&widget.Insets{
+				Left:  25,
+				Right: 25,
+			}),
+			widget.GridLayoutOpts.Columns(2),
+			widget.GridLayoutOpts.Stretch([]bool{false, true}, []bool{true}),
+			widget.GridLayoutOpts.Spacing(20, 0))))
+
+	pages := []any{
+		s.inputConfigPage(),
+		s.videoConfigPage(),
+		s.emulationConfigPage(),
 	}
 
-	if err := os.WriteFile(configPath(), buf, 0644); err != nil {
-		return err
-	}
+	pageContainer := newPageContainer()
 
-	log.ModEmu.Infof("Configuration saved to %s", configPath())
-	return nil
+	pageList := widget.NewList(
+		widget.ListOpts.Entries(pages),
+		widget.ListOpts.EntryLabelFunc(func(e any) string {
+			return e.(*page).title
+		}),
+		widget.ListOpts.ScrollContainerImage(res.list.image),
+		widget.ListOpts.SliderParams(&widget.SliderParams{
+			TrackImage:    res.list.track,
+			HandleImage:   res.list.handle,
+			MinHandleSize: res.list.handleSize,
+			TrackPadding:  res.list.trackPadding,
+		}),
+		widget.ListOpts.EntryColor(res.list.entry),
+		widget.ListOpts.EntryFontFace(res.list.face),
+		widget.ListOpts.EntryTextPadding(res.list.entryPadding),
+		widget.ListOpts.HideHorizontalSlider(),
+		widget.ListOpts.HideVerticalSlider(),
+
+		widget.ListOpts.EntrySelectedHandler(func(args *widget.ListEntrySelectedEventArgs) {
+			// page index
+			page := args.Entry.(*page)
+			pageIdx := slices.Index(pages, any(page))
+			s.startPage = pageIdx
+			pageContainer.setPage(page)
+		}))
+	pageList.SetSelectedEntry(pages[s.startPage])
+
+	container.AddChild(pageList)
+	container.AddChild(pageContainer.widget)
+
+	// TODO: add a reset config button
+	footer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	footer.AddChild(widget.NewButton(
+		widget.ButtonOpts.Text("Back to main menu", res.button.face, res.button.text),
+		widget.ButtonOpts.TextPadding(res.button.padding),
+		widget.ButtonOpts.Image(res.button.image),
+		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+			s.app.setState("main")
+		}),
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionCenter,
+				VerticalPosition:   widget.AnchorLayoutPositionCenter,
+			}),
+		),
+	))
+
+	root.AddChild(container)
+	root.AddChild(footer)
+
+	s.ui.Container = root
+}
+
+type page struct {
+	title   string
+	content widget.PreferredSizeLocateableWidget
 }

@@ -118,7 +118,7 @@ func (dc *DMC) WriteFLAGS(_, val uint8) {
 		dc.cpu.ClearIRQSource(hwdefs.DMC)
 	}
 
-	log.ModSound.InfoZ("write dmc FLAGS").
+	log.ModSound.DebugZ("write dmc FLAGS").
 		Uint8("reg", val).
 		Bool("irq enabled", dc.irqEnabled).
 		Bool("loop", dc.loop).
@@ -150,7 +150,7 @@ func (dc *DMC) WriteLOAD(_, val uint8) {
 
 	dc.last4011 = newval
 
-	log.ModSound.InfoZ("write dmc LOAD").
+	log.ModSound.DebugZ("write dmc LOAD").
 		Uint8("reg", val).
 		Uint8("out lvl", dc.outlvl).
 		End()
@@ -161,7 +161,7 @@ func (dc *DMC) WriteSAMPLEADDR(_, val uint8) {
 	dc.apu.Run()
 	dc.sampleAddr = 0xC000 | uint16(val)<<6
 
-	log.ModSound.InfoZ("write dmc SAMPLEADDR").
+	log.ModSound.DebugZ("write dmc SAMPLEADDR").
 		Uint8("val", val).
 		Uint16("addr", dc.sampleAddr).
 		End()
@@ -172,7 +172,7 @@ func (dc *DMC) WriteSAMPLELEN(_, val uint8) {
 	dc.apu.Run()
 	dc.sampleLen = uint16(val)<<4 | 0x1
 
-	log.ModSound.InfoZ("write dmc SAMPLELEN").
+	log.ModSound.DebugZ("write dmc SAMPLELEN").
 		Uint8("val", val).
 		Uint16("len", dc.sampleLen).
 		End()

@@ -61,38 +61,97 @@ type DMA struct {
 }
 
 type PPU struct {
-	Palette [0x20]uint8
-	OAMMem  [0x100]uint8
-
-	OAM  [8]Sprite
-	OAM2 [8]Sprite
-
-	OpenBus         uint8
-	OpenBusDecayBuf [8]uint32
-
-	BusAddr    uint16
-	OAMAddr    uint8
-	VRAMAddr   uint16
-	VRAMTemp   uint16
-	WriteLatch bool
-	PPUDataBuf uint8
-
-	PPUBgRegs PPUBgRegs
-
-	PPUCTRL   uint8
-	PPUMASK   uint8
-	PPUSTATUS uint8
-
 	MasterClock uint64
-	Cycle       uint32
-	Scanline    int
-	FrameCount  uint32
 
-	OddFrame      bool
-	PreventVBlank bool
+	PaletteRAM         [0x20]uint8
+	SpriteRAM          [0x100]uint8
+	SecondarySpriteRAM [0x20]uint8
+	OpenBusDecay       [8]int32
+	MemoryReadBuffer   uint8
+
+	OAMAdrr      uint8
+	VRAMAddr     uint16
+	XScroll      uint8
+	VRAMAddrTemp uint16
+	WriteLatch   bool
+
+	HibitShift uint16
+	LoBitShift uint16
+	PPUCTRL    PPUCTRL
+	PPUMASK    PPUMASK
+	PPUSTATUS  PPUSTATUS
+	BusAddr    uint16
+
+	PaletteRAMMask     uint16
+	IntensifyColorBits uint16
+	Scanline           int16
+	Cycle              uint32
+	FrameCount         uint32
+	CurTilePalette     uint8
+	PrevTilePalette    uint8
+	Tile               PPUTileInfo
+	OpenBus            uint8
+
+	SpriteTiles      [64]PPUSpriteInfo
+	IdxSprite        int
+	SpriteCount      int
+	SpriteAddrH      uint8
+	SpriteAddrL      uint8
+	Sprite0Added     bool
+	Sprite0Visible   bool
+	OAMCopybuffer    uint8
+	SecondaryOAMAddr uint8
+	SpriteInRange    bool
+	RenderingON      bool
+	PrevRenderingON  bool
+	IgnoreVRAMRead   int
+	OAMCopyDone      bool
+
+	NeedStateUpdate       bool
+	NeedVideoRAMIncrement bool
+	PreventVBlank         bool
+	OverflowBugCounter    uint8
+	UpdateVRAMAddr        uint16
+	UpdateVRAMAddrDelay   uint8
+	FullAccessON          bool
+
+	Region int
 }
 
-type Sprite struct {
+type PPUCTRL struct {
+	VerticalWrite         bool
+	SpritePatternAddr     uint16
+	BackgroundPatternAddr uint16
+	LargeSprites          bool
+	Slave                 bool // not saved
+	NMI                   bool
+}
+
+type PPUMASK struct {
+	Gray              bool
+	BGMask            bool
+	SpriteMask        bool
+	BackgroundEnabled bool
+	SpritesEnabled    bool
+	IntensifyRed      bool
+	IntensifyGreen    bool
+	IntensifyBlue     bool
+}
+
+type PPUSTATUS struct {
+	SpriteOverflow bool
+	Sprite0Hit     bool
+	VBlank         bool
+}
+
+type PPUTileInfo struct {
+	LowByte       uint8
+	HighByte      uint8
+	PaletteOffset uint8
+	TileAddr      uint16
+}
+
+type PPUSprite struct {
 	ID    uint8
 	X     uint8
 	Y     uint8
@@ -100,6 +159,15 @@ type Sprite struct {
 	Attr  uint8
 	DataL uint8
 	DataH uint8
+}
+
+type PPUSpriteInfo struct {
+	SpriteX            uint8
+	LowByte            uint8
+	HighByte           uint8
+	PaletteOffset      uint8
+	HorizontalMirror   bool
+	BackgroundPriority bool
 }
 
 type PPUBgRegs struct {

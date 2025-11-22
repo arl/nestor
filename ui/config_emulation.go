@@ -1,29 +1,45 @@
 package ui
 
-import (
-	"github.com/gotk3/gotk3/gtk"
+import "github.com/ebitenui/ebitenui/widget"
 
-	"nestor/emu"
-)
+func (s *configState) emulationConfigPage() *page {
+	c := newPageContentContainer()
+	c.SetBackgroundImage(res.panel.image)
 
-type emulatioConfigPage struct {
-	parent *gtk.Dialog
-	cfg    *emu.EmulationConfig
-}
+	// run-ahead frames.
+	runaheadFrames := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal))))
 
-func buildEmulationConfigPage(parent *gtk.Dialog, cfg *emu.EmulationConfig, builder *gtk.Builder) *emulatioConfigPage {
-	page := &emulatioConfigPage{
-		parent: parent,
-		cfg:    cfg,
-	}
+	runaheadPresets := []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
 
-	adjustment := build[gtk.Adjustment](builder, "run_ahead_adjustment")
-	adjustment.SetValue(float64(cfg.RunAheadFrames))
+	runaheadFrames.AddChild(
+		widget.NewLabel(
+			widget.LabelOpts.Text("Run-ahead frames", res.label.face, res.label.text),
+			widget.LabelOpts.LabelPadding(&widget.Insets{Top: 5, Left: 10}),
+			widget.LabelOpts.TextOpts(widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionEnd,
+					VerticalPosition:   widget.GridLayoutPositionCenter,
+				})))),
+		newCombobox(runaheadPresets, int(s.app.cfg.Emulation.RunAheadFrames),
+			widget.GridLayoutData{
+				HorizontalPosition: widget.GridLayoutPositionStart,
+				MaxWidth:           200,
+			},
+			func(idxpreset int) {
+				from := s.app.cfg.Emulation.RunAheadFrames
+				modUI.InfoZ("changed run-ahead frames").
+					Uint("from", from).
+					Uint("to", uint(idxpreset)).
+					End()
 
-	runAheadFrames := build[gtk.SpinButton](builder, "run_ahead_frames_spin")
-	runAheadFrames.Connect("value-changed", func(_ *gtk.SpinButton) {
-		cfg.RunAheadFrames = runAheadFrames.GetValueAsInt()
-		modGUI.InfoZ("Setting run ahead frames to").Int("value", cfg.RunAheadFrames).End()
-	})
-	return page
+				s.app.cfg.Emulation.RunAheadFrames = uint(idxpreset)
+				s.app.savecfg()
+				s.createUI()
+			}))
+
+	c.AddChild(runaheadFrames)
+
+	return &page{title: "Emulation", content: c}
 }
