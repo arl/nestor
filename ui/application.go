@@ -20,7 +20,6 @@ import (
 	"nestor/hw/apu"
 	"nestor/hw/input"
 	"nestor/ines"
-	"nestor/ui/shader"
 )
 
 var modUI = log.NewModule("ui")
@@ -148,7 +147,6 @@ type app struct {
 	curstate appState
 
 	screenw, screenh int
-	shader           *ebiten.Shader
 }
 
 func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, cfg config.Config) *app {
@@ -278,7 +276,6 @@ func (app *app) runRom(romPath string) error {
 	app.audioPlayer.SetBufferSize(8192)
 	app.audioPlayer.Play()
 
-	app.setShader(app.cfg.Video.Shader)
 	app.setState("running")
 
 	go func() {
@@ -307,17 +304,6 @@ func (app *app) runRom(romPath string) error {
 	}()
 
 	return nil
-}
-
-func (app *app) setShader(name string) {
-	shader, err := shader.Load(name)
-	if err != nil {
-		modUI.FatalZ("can't load shader").String("name", name).Error("err", err).End()
-	}
-	if app.shader != nil {
-		app.shader.Deallocate()
-	}
-	app.shader = shader
 }
 
 func (app *app) savecfg() {

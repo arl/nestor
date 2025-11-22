@@ -18,6 +18,7 @@ type runningState struct {
 	paused  bool
 	elapsed int64 // elapsed seconds (for FPS display)
 
+	shader  *ebiten.Shader
 	debugui debugui.DebugUI
 
 	shouldQuit bool
@@ -33,9 +34,12 @@ func newRunningState(app *app) *runningState {
 	return s
 }
 
-func (s *runningState) createUI()    {}
-func (s *runningState) enter(...any) {}
-func (s *runningState) exit()        {}
+func (s *runningState) enter(...any) {
+	s.setShader(s.app.cfg.Video.Shader)
+}
+
+func (s *runningState) createUI() {}
+func (s *runningState) exit()     {}
 
 func (s *runningState) update() {
 	if debugShader {
@@ -123,6 +127,17 @@ func (s *runningState) drawFrame(screen *ebiten.Image, frameImg *ebiten.Image, t
 
 const debugShader = true
 
+func (s *runningState) setShader(name string) {
+	shader, err := shader.Load(name)
+	if err != nil {
+		modUI.FatalZ("can't load shader").String("name", name).Error("err", err).End()
+	}
+	if s.shader != nil {
+		s.shader.Deallocate()
+	}
+	s.shader = shader
+}
+
 func (s *runningState) shaderUI() {
 	shaders := shader.Names()
 	idx := slices.Index(shaders, s.cfg.Video.Shader)
@@ -134,14 +149,14 @@ func (s *runningState) shaderUI() {
 				idx += len(shaders) - 1
 				idx %= len(shaders)
 				s.cfg.Video.Shader = shaders[idx]
-				s.app.setShader(shaders[idx])
+				s.setShader(shaders[idx])
 			}
 			ctx.Button("Prev").On(dec)
 			inc := func() {
 				idx++
 				idx %= len(shaders)
 				s.cfg.Video.Shader = shaders[idx]
-				s.app.setShader(shaders[idx])
+				s.setShader(shaders[idx])
 			}
 			ctx.Button("Next").On(inc)
 		})
