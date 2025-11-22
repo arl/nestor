@@ -3,10 +3,11 @@
 package shader
 
 /*
- * Scanline shader
- * Converted from scanline.slang to Kage format
+ * Scanline
+ * License: Public Domain
+ * Source: https://github.com/libretro/slang-shaders/blob/master/scanlines/shaders/scanline.slang
  *
- * Creates CRT-like scanlines using sine wave modulation
+ * Creates CRT-like scanlines using sine wave modulation.
  */
 
 const (
@@ -18,13 +19,15 @@ const (
 func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	texColor := imageSrc0At(srcPos)
 	imgSize := imageSrc0Size()
+	dstSize := imageDstSize()
 
 	// Normalize texture coordinates (0.0 to 1.0)
 	vTexCoord := srcPos / imgSize
 
 	// Calculate omega values for sine wave frequency
-	omegaX := PI * dstPos.z // Using destination width
-	omegaY := 1.999 * PI * imgSize.y
+	// Original: omega = vec2(PI * params.OutputSize.x, 2.0 * PI * params.SourceSize.y);
+	omegaX := PI * dstSize.x
+	omegaY := 2.0 * PI * imgSize.y
 
 	// Compute sine components
 	sineX := SCANLINE_SINE_COMP_A * sin(vTexCoord.x*omegaX)

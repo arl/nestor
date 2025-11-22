@@ -4,9 +4,10 @@ package shader
 
 /*
  * Sharp Bilinear Scanlines
- * Converted from sharp-bilinear-scanlines.slang
- * Original Author: rsn8887 (based on TheMaister)
- * License: Public domain
+ * License: Public Domain
+ * Source: https://github.com/libretro/slang-shaders/blob/master/pixel-art-scaling/shaders/sharp-bilinear-scanlines.slang
+ *
+ * Sharp bilinear interpolation with scanlines.
  */
 
 const (

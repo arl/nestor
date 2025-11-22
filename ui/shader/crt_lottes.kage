@@ -3,15 +3,13 @@
 package shader
 
 /*
- * CRT Lottes shader
- * Converted from crt-lottes.cg to Kage format
- * Original by Timothy Lottes (Public Domain)
+ * CRT Lottes
+ * License: Public Domain
+ * Source: https://github.com/libretro/slang-shaders/blob/master/crt/shaders/crt-lottes.slang
  *
  * A CRT shader styled after a good CGA arcade monitor with RGB inputs.
- * Features: screen curvature, shadow masks, bloom, and scanlines.
  *
- * This is a simplified version for Kage's single-pass architecture.
- * Multi-tap filtering is reduced for performance.
+ * Note: Simplified version for Kage's single-pass architecture. Multi-tap filtering is reduced for performance.
  */
 
 const (

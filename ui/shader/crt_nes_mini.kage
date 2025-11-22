@@ -3,11 +3,11 @@
 package shader
 
 /*
- * CRT NES Mini shader
- * Converted from crt-nes-mini.slang to Kage format
+ * CRT NES Mini
+ * License: Unknown
+ * Source: https://github.com/libretro/slang-shaders/blob/master/crt/shaders/crt-nes-mini.slang
  *
  * Creates CRT scanlines similar to the NES Classic Mini console.
- * Features adjustable scanline thickness, intensity, and brightness boost.
  */
 
 const (

@@ -3,16 +3,11 @@
 package shader
 
 /*
- * Film Grain shader
- * Converted from film-grain.slang to Kage format
- * Original by Martins Upitis (2013)
- * Ported by Hyllian (2024)
+ * Film Grain
+ * License: Unknown
+ * Source: https://github.com/libretro/slang-shaders/blob/master/film/shaders/film-grain.slang
  *
- * Features:
- * - Perlin noise based grain
- * - Luminance based grain intensity
- * - Optional colored noise
- * - Rotating noise pattern
+ * Adds Perlin noise based film grain with luminance based intensity.
  */
 
 var Time float

@@ -3,15 +3,11 @@
 package shader
 
 /*
- * NTSC Simple shader
- * Converted from ntsc-simple.slang to Kage format
- * Original by DariusG (2024-25)
+ * NTSC Simple
+ * License: Unknown
+ * Source: https://github.com/libretro/slang-shaders/blob/master/ntsc/shaders/ntsc-simple.slang
  *
- * Features:
- * - NTSC/PAL signal simulation
- * - Composite/S-Video/RF cable simulation
- * - Luma/Chroma bandwidth control
- * - Artifacts like dot crawl and rainbow effects
+ * Simulates NTSC/PAL signal artifacts like dot crawl and rainbow effects.
  */
 
 var Time float

@@ -3,15 +3,13 @@
 package shader
 
 /*
- * CRT EasyMode shader
- * Converted from crt-easymode.cg to Kage format
- * Original by EasyMode (GPL License)
+ * CRT EasyMode
+ * License: GPL
+ * Source: https://github.com/libretro/slang-shaders/blob/master/crt/shaders/crt-easymode.slang
  *
  * A flat CRT shader ideally for 1080p or higher displays.
- * Features: scanlines, RGB mask, sharpness control, and gamma correction.
  *
- * This is a simplified version for Kage's single-pass architecture.
- * Some advanced features (Lanczos filtering) are approximated.
+ * Note: Simplified version for Kage's single-pass architecture. Lanczos filtering is approximated.
  */
 
 const (

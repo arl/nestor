@@ -3,15 +3,13 @@
 package shader
 
 /*
- * CRT Aperture shader
- * Converted from crt-aperture.cg to Kage format
- * Original by EasyMode (GPL License)
+ * CRT Aperture
+ * License: GPL
+ * Source: https://github.com/libretro/slang-shaders/blob/master/crt/shaders/crt-aperture.slang
  *
- * This is a simplified version optimized for Kage's single-pass architecture.
- * Features: scanlines, aperture grille mask, glow, and gamma correction.
+ * Features scanlines, aperture grille mask, glow, and gamma correction.
  *
- * Note: Some advanced features from the original (multi-tap Gaussian blur,
- * Lanczos filtering) are simplified due to Kage's performance constraints.
+ * Note: Simplified version optimized for Kage's single-pass architecture. Multi-tap Gaussian blur and Lanczos filtering are simplified.
  */
 
 const (
