@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build:
     name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -62,11 +62,68 @@ jobs:
             shasum -a 256 nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > nestor_${VERSION}_checksums_${{ matrix.goos }}_${{ matrix.goarch }}.txt
           fi
 
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: |
+          name: nestor-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
             nestor_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
             nestor_${{ github.ref_name }}_checksums_${{ matrix.goos }}_${{ matrix.goarch }}.txt
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: nestor-*
+          merge-multiple: true
+
+      - name: Display Downloaded Files
+        run: ls -R artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
           generate_release_notes: true
+          draft: false
+          prerelease: false
           fail_on_unmatched_files: true
+
+  homebrew:
+    name: Update Homebrew Tap
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Homebrew Formula
+        uses: Justintime50/homebrew-releaser@v1
+        with:
+          homebrew_owner: arl
+          homebrew_tap: homebrew-arl
+          formula_folder: Formula
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit_owner: github-actions[bot]
+          commit_email: github-actions[bot]@users.noreply.github.com
+          
+          install: 'bin.install "nestor"'
+          
+          # Target files to download for formula
+          target_darwin_amd64: true
+          target_darwin_arm64: true
+          target_linux_amd64: true
+          
+          update_readme_table: false
+          
+          skip_commit: false
+          
+          debug: false
