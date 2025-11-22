@@ -3,27 +3,28 @@ name: Release
 on:
   push:
     tags:
-      - "v*.*.*" # Triggers on version tag pushes
-    # branches:
-    #   - "ci/releases" # uncomment when testing
+      - "v*.*.*"
 
 permissions:
   contents: write
 
 jobs:
-  build-and-package:
-    name: Build and Package
+  build-and-release:
+    name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
+            name: Linux/amd64
             goos: linux
             goarch: amd64
           - os: macos-13
+            name: macOS/amd64
             goos: darwin
             goarch: amd64
           - os: macos-latest
+            name: macOS/arm64
             goos: darwin
             goarch: arm64
     steps:
@@ -35,7 +36,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "stable"
+          go-version-file: "go.mod"
 
       - name: Install Linux Dependencies
         if: runner.os == 'Linux'
@@ -43,55 +44,29 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev libgtk-3-dev
 
-      - name: Configure GoReleaser
-        shell: bash
-        run: |
-          git update-index --assume-unchanged .goreleaser.yml
-          sed -i.bak "s/GOOS_PLACEHOLDER/${{ matrix.goos }}/g" .goreleaser.yml
-          sed -i.bak "s/GOARCH_PLACEHOLDER/${{ matrix.goarch }}/g" .goreleaser.yml
-          rm .goreleaser.yml.bak
-
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --clean ${{ runner.os == 'Linux' && '--skip=homebrew' || '' }}
+      - name: Build Binary
         env:
-          GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
-
-      - name: Rename Checksums
+          CGO_ENABLED: 1
         run: |
-          mv dist/checksums.txt dist/checksums-${{ matrix.goos }}-${{ matrix.goarch }}.txt
+          VERSION="${{ github.ref_name }}"
+          
+          go build -trimpath -ldflags="-s -w" -o nestor .
+          
+          # Create archive
+          tar czf nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz nestor LICENSE.md README.md
+          
+          # Generate checksum
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sha256sum nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > nestor_${VERSION}_checksums_${{ matrix.goos }}_${{ matrix.goarch }}.txt
+          else
+            shasum -a 256 nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > nestor_${VERSION}_checksums_${{ matrix.goos }}_${{ matrix.goarch }}.txt
+          fi
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifacts-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: dist/*
-          if-no-files-found: error
-
-  release:
-    name: Create Release
-    needs: build-and-package
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v6
-        with:
-          path: artifacts
-          pattern: artifacts-*
-          merge-multiple: true
-
-      #- name: Merge Checksums
-      #  run: |
-      #    cat artifacts/checksums-*.txt > artifacts/checksums.txt
-      #    rm artifacts/checksums-*.txt
-
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*
+          files: |
+            nestor_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
+            nestor_${{ github.ref_name }}_checksums_${{ matrix.goos }}_${{ matrix.goarch }}.txt
           generate_release_notes: true
+          fail_on_unmatched_files: true

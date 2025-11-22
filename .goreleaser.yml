@@ -1,70 +1,25 @@
 version: 2
 project_name: nestor
 
-before:
-  hooks:
-    - go mod tidy
-
-builds:
-  - id: nestor
-    binary: nestor
-    env:
-      - CGO_ENABLED=1
-    goos:
-      - GOOS_PLACEHOLDER
-    goarch:
-      - GOARCH_PLACEHOLDER
-    flags:
-      - -trimpath
-    ldflags:
-      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
-
-archives:
-  - formats: ["tar.gz"]
-    name_template: >-
-      {{ .ProjectName }}_
-      {{- .Version }}_
-      {{- .Os }}_
-      {{- .Arch }}
-    files:
-      - LICENSE.md
-      - README.md
-
-checksum:
-  name_template: "checksums.txt"
-
-snapshot:
-  version_template: "{{ .Tag }}-next"
+# This GoReleaser config is currently not used for the main release workflow.
+# Binaries are built directly in GitHub Actions on their native platforms due to CGO requirements.
+# This file is kept for potential future use or local testing.
 
 changelog:
   sort: asc
+  use: github
   filters:
     exclude:
       - "^docs:"
       - "^test:"
-
-homebrew_casks:
-  - name: nestor
-    homepage: "https://github.com/arl/nestor"
-    description: "Nestor is a NES/Famicom emulator written in Go."
-    license: "GPLv3-0"
-    directory: Formula
-    skip_upload: false
-    url:
-      verified: github.com/arl/nestor
-    repository:
-      owner: arl
-      name: homebrew-arl
-      branch: main
-    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
-    commit_author:
-      name: goreleaser-bot
-      email: bot@goreleaser.com
-
-    # Since our app isn't signed and notarized, we need this:
-    hooks:
-      post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/nestor"]
-          end
+      - "^chore:"
+      - "^ci:"
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: Bug Fixes
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Others
+      order: 999
