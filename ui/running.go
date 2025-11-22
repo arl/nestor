@@ -37,37 +37,6 @@ func (s *runningState) createUI()    {}
 func (s *runningState) enter(...any) {}
 func (s *runningState) exit()        {}
 
-const debugShader = true
-
-func (s *runningState) shaderUI() {
-	shaders := shader.Names()
-	idx := slices.Index(shaders, s.cfg.Video.Shader)
-	_, err := s.debugui.Update(func(ctx *debugui.Context) error {
-		ctx.Window("Shader", image.Rect(10, 10, 210, 110), func(layout debugui.ContainerLayout) {
-			ctx.Text(fmt.Sprintf("%d/%d: %s", idx+1, len(shaders), shaders[idx]))
-			ctx.SetGridLayout([]int{-1, -1}, nil)
-			dec := func() {
-				idx += len(shaders) - 1
-				idx %= len(shaders)
-				s.cfg.Video.Shader = shaders[idx]
-				s.app.setShader(shaders[idx])
-			}
-			ctx.Button("Prev").On(dec)
-			inc := func() {
-				idx++
-				idx %= len(shaders)
-				s.cfg.Video.Shader = shaders[idx]
-				s.app.setShader(shaders[idx])
-			}
-			ctx.Button("Next").On(inc)
-		})
-		return nil
-	})
-	if err != nil {
-		panic(err)
-	}
-}
-
 func (s *runningState) update() {
 	if debugShader {
 		s.shaderUI()
@@ -150,4 +119,35 @@ func (s *runningState) drawFrame(screen *ebiten.Image, frameImg *ebiten.Image, t
 	op.Images[0] = frameImg
 
 	screen.DrawRectShader(int(fw), int(fh), s.shader, op)
+}
+
+const debugShader = true
+
+func (s *runningState) shaderUI() {
+	shaders := shader.Names()
+	idx := slices.Index(shaders, s.cfg.Video.Shader)
+	_, err := s.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.Window("Shader", image.Rect(10, 10, 240, 90), func(layout debugui.ContainerLayout) {
+			ctx.Text(fmt.Sprintf("%d/%d: %s", idx+1, len(shaders), shaders[idx]))
+			ctx.SetGridLayout([]int{-1, -1}, nil)
+			dec := func() {
+				idx += len(shaders) - 1
+				idx %= len(shaders)
+				s.cfg.Video.Shader = shaders[idx]
+				s.app.setShader(shaders[idx])
+			}
+			ctx.Button("Prev").On(dec)
+			inc := func() {
+				idx++
+				idx %= len(shaders)
+				s.cfg.Video.Shader = shaders[idx]
+				s.app.setShader(shaders[idx])
+			}
+			ctx.Button("Next").On(inc)
+		})
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
 }
