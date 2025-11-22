@@ -42,3 +42,22 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+
+brews:
+  - name: nestor
+    homepage: "https://github.com/arl/nestor"
+    description: "Nestor is a NES/Famicom emulator written in Go."
+    license: "MIT"
+    url_template: "https://github.com/arl/nestor/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    directory: Formula
+    skip_upload: false
+    repository:
+      owner: arl
+      name: homebrew-arl
+      branch: main
+    commit_author:
+      name: goreleaser-bot
+      email: bot@goreleaser.com
+    test: |
+      system "#{bin}/nestor -version"
