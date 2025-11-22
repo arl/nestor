@@ -2,11 +2,10 @@ name: Release
 
 on:
   push:
-    branches:
-      - "ci/releases" # TODO: remove (just for testing)
     tags:
       - "v*.*.*" # Triggers on version tag pushes
-  workflow_dispatch: # for testing
+    # branches:
+    #   - "ci/releases" # uncomment when testing
 
 permissions:
   contents: write
