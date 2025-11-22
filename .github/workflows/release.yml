@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*" # Triggers on version tag pushes
+    # branches:
+    #   - "ci/releases" # uncomment when testing
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-package:
+    name: Build and Package
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - os: macos-13
+            goos: darwin
+            goarch: amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "stable"
+
+      - name: Install Linux Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev libgtk-3-dev
+
+      - name: Configure GoReleaser
+        shell: bash
+        run: |
+          git update-index --assume-unchanged .goreleaser.yml
+          sed -i.bak "s/GOOS_PLACEHOLDER/${{ matrix.goos }}/g" .goreleaser.yml
+          sed -i.bak "s/GOARCH_PLACEHOLDER/${{ matrix.goarch }}/g" .goreleaser.yml
+          rm .goreleaser.yml.bak
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean ${{ runner.os == 'Linux' && '--skip=homebrew' || '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
+
+      - name: Rename Checksums
+        run: |
+          mv dist/checksums.txt dist/checksums-${{ matrix.goos }}-${{ matrix.goarch }}.txt
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: build-and-package
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+          pattern: artifacts-*
+          merge-multiple: true
+
+      #- name: Merge Checksums
+      #  run: |
+      #    cat artifacts/checksums-*.txt > artifacts/checksums.txt
+      #    rm artifacts/checksums-*.txt
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true

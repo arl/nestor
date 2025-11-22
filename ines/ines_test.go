@@ -31,11 +31,9 @@ func TestRomOpen(t *testing.T) {
 
 	for _, path := range paths {
 		t.Run(path, func(t *testing.T) {
-			rom, err := ReadROM(filepath.Join(romsDir, path))
-			if err != nil {
+			if _, err := ReadROM(filepath.Join(romsDir, path)); err != nil {
 				t.Fatal(err)
 			}
-			_ = rom
 		})
 	}
 }
