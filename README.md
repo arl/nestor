@@ -36,7 +36,6 @@ All these features are planned, but not all of them are implemented yet.
  - [x] Joystick/Joypad support
  - [x] APU (Audio Processing Unit)
  - [x] CRT Shader effects
- - [ ] Debugger
  - [ ] Save state
  - [x] Frame run-ahead
 
@@ -87,7 +86,7 @@ or start the Graphical User Interface (GUI) mode:
 $ ./nestor
 ```
 
-Run `nestor --help` for more options.
+Run `nestor -help` for more options.
 
 
 
@@ -119,7 +118,7 @@ Many thanks to:
 
 Nestor is available under the GPL V3 license.  Full text here: <http://www.gnu.org/licenses/gpl-3.0.en.html>
 
-Copyright (C) 2023-2025 arl
+Copyright (C) 2023-2025 Aurélien Rainone
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
