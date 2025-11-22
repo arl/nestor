@@ -18,8 +18,9 @@ type runningState struct {
 	paused  bool
 	elapsed int64 // elapsed seconds (for FPS display)
 
-	shader  *ebiten.Shader
-	debugui debugui.DebugUI
+	shader     *ebiten.Shader
+	debugui    debugui.DebugUI
+	shaderuiOn bool
 
 	shouldQuit bool
 }
@@ -42,14 +43,20 @@ func (s *runningState) createUI() {}
 func (s *runningState) exit()     {}
 
 func (s *runningState) update() {
-	if debugShader {
+	if s.shaderuiOn {
 		s.shaderUI()
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		s.app.setState("paused")
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-		s.emulator.Reset()
+
+	keys := make([]ebiten.Key, 0, 16)
+	for _, key := range inpututil.AppendJustPressedKeys(keys) {
+		switch key {
+		case ebiten.KeyEscape:
+			s.app.setState("paused")
+		case ebiten.KeyR:
+			s.emulator.Reset()
+		case ebiten.KeyF5:
+			s.shaderuiOn = !s.shaderuiOn
+		}
 	}
 }
 
@@ -95,7 +102,7 @@ func (s *runningState) draw(screen *ebiten.Image) {
 		ebiten.SetWindowTitle(fmt.Sprintf("Nestor - FPS: %.1f", ebiten.ActualTPS()))
 	}
 
-	if debugShader {
+	if s.shaderuiOn {
 		s.debugui.Draw(screen)
 	}
 }
@@ -124,8 +131,6 @@ func (s *runningState) drawFrame(screen *ebiten.Image, frameImg *ebiten.Image, t
 
 	screen.DrawRectShader(int(fw), int(fh), s.shader, op)
 }
-
-const debugShader = true
 
 func (s *runningState) setShader(name string) {
 	shader, err := shader.Load(name)
