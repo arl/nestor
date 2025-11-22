@@ -54,4 +54,16 @@ If a release fails:
 3. Common issues:
    - Missing dependencies (ensure all CGO dependencies are installed)
    - Network issues downloading dependencies
-   - Permission issues with Homebrew tap (check GITHUB_TOKEN permissions)
+   - **Homebrew tap permission error**: The GITHUB_TOKEN may not have permission to push to the homebrew-arl repository. To fix:
+     - Create a Personal Access Token (classic) with `repo` scope
+     - Add it to repository secrets as `HOMEBREW_TAP_TOKEN`
+     - Re-run the failed workflow
+
+## Setup Requirements
+
+For the Homebrew tap update to work, you need to:
+1. Create a Personal Access Token (PAT) in GitHub settings
+2. Give it the `repo` scope (full control of private repositories)
+3. Add it to this repository's secrets as `HOMEBREW_TAP_TOKEN`
+
+Without this token, the release will complete successfully, but the Homebrew formula won't be updated automatically.

@@ -111,7 +111,12 @@ jobs:
           homebrew_owner: arl
           homebrew_tap: homebrew-arl
           formula_folder: Formula
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          
+          # Note: GITHUB_TOKEN doesn't have permission to push to other repos
+          # If this fails, create a Personal Access Token with repo scope
+          # and add it as a secret named HOMEBREW_TAP_TOKEN
+          github_token: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.GITHUB_TOKEN }}
+          
           commit_owner: github-actions[bot]
           commit_email: github-actions[bot]@users.noreply.github.com
           
