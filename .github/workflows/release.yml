@@ -122,6 +122,16 @@ jobs:
           
           install: 'bin.install "nestor"'
           
+          # Add caveats for macOS quarantine handling
+          formula_includes: |
+            def caveats
+              <<~EOS
+                The nestor binary is not signed. On macOS, you may need to remove
+                the quarantine attribute to run it:
+                  xattr -d com.apple.quarantine $(which nestor)
+              EOS
+            end
+          
           # Target files to download for formula
           target_darwin_amd64: true
           target_darwin_arm64: true

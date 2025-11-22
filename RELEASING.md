@@ -27,11 +27,16 @@ The release workflow (`.github/workflows/release.yml`) will automatically:
    - Creates/updates the Nestor formula
    - Supports all three platforms
    - Users can install via: `brew install arl/arl/nestor`
+   - **Note**: On macOS, the binary is unsigned. If you encounter quarantine issues, the formula will display instructions on how to remove the quarantine attribute.
 
 ## Supported Platforms
 
 - **Linux**: amd64 only
 - **macOS**: amd64 (Intel) and arm64 (Apple Silicon)
+  - **Important**: Binaries are not signed. macOS users may need to remove the quarantine attribute using:
+    ```bash
+    xattr -d com.apple.quarantine $(which nestor)
+    ```
 
 ## Release Naming
 
