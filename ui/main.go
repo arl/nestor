@@ -178,7 +178,7 @@ func (s *mainState) createUI() {
 	const maxCellWidth = 200
 	const cellSpacing = 5 // minimum space between cells (horizontally and vertically)
 
-	s.numcols = (s.screenw - 2*cellSpacing) / maxCellWidth
+	s.numcols = (s.displayWidth - 2*cellSpacing) / maxCellWidth
 
 	colstretch := make([]bool, s.numcols)
 	for i := range colstretch {

@@ -24,10 +24,8 @@ import (
 
 var modUI = log.NewModule("ui")
 
-const (
-	startwidth  = 800
-	startheight = 600
-)
+const startwidth = 800
+const startheight = 600
 
 func StartUI(ctx context.Context, cfg config.Config) error {
 	return start(ctx, cfg, "")
@@ -142,21 +140,22 @@ type app struct {
 	samples     *sampleBuffer
 	audioPlayer *oto.Player
 
-	ui       ebitenui.UI
+	ui            ebitenui.UI
+	displayWidth  int
+	displayHeight int
+
 	states   map[string]appState
 	curstate appState
-
-	screenw, screenh int
 }
 
 func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, cfg config.Config) *app {
 	app := &app{
-		cfg:      cfg,
-		states:   map[string]appState{},
-		screenw:  startwidth,
-		screenh:  startheight,
-		samples:  samples,
-		audioctx: audioctx,
+		cfg:           cfg,
+		states:        map[string]appState{},
+		displayWidth:  startwidth,
+		displayHeight: startheight,
+		samples:       samples,
+		audioctx:      audioctx,
 	}
 
 	app.states["running"] = newRunningState(app)
@@ -203,20 +202,15 @@ func (app *app) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyF11) {
 		enable := !ebiten.IsFullscreen()
 		ebiten.SetFullscreen(enable)
-	}
 
-	if ebiten.IsFullscreen() {
-		neww, newh := ebiten.Monitor().Size()
-		if neww != app.screenw || newh != app.screenh {
-			app.screenw, app.screenh = ebiten.Monitor().Size()
+		if enable {
+			app.displayWidth, app.displayHeight = ebiten.Monitor().Size()
+			app.curstate.createUI()
+		} else {
+			app.displayWidth, app.displayHeight = ebiten.WindowSize()
 			app.curstate.createUI()
 		}
-	} else {
-		neww, newh := ebiten.WindowSize()
-		if neww != app.screenw || newh != app.screenh {
-			app.screenw, app.screenh = ebiten.WindowSize()
-			app.curstate.createUI()
-		}
+
 	}
 
 	app.curstate.update()
@@ -228,11 +222,11 @@ func (app *app) Draw(screen *ebiten.Image) {
 }
 
 func (app *app) Layout(outw, outh int) (screenw, screenh int) {
-	if app.screenw == outw && app.screenh == outh {
+	if app.displayWidth == outw && app.displayHeight == outh {
 		return outw, outh
 	}
 
-	app.screenw, app.screenh = outw, outh
+	app.displayWidth, app.displayHeight = outw, outh
 	app.curstate.createUI()
 
 	return outw, outh
