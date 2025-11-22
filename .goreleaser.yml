@@ -20,7 +20,7 @@ builds:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 
 archives:
-  - format: tar.gz
+  - formats: ["tar.gz"]
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
@@ -43,21 +43,28 @@ changelog:
       - "^docs:"
       - "^test:"
 
-brews:
+homebrew_casks:
   - name: nestor
     homepage: "https://github.com/arl/nestor"
     description: "Nestor is a NES/Famicom emulator written in Go."
-    license: "MIT"
-    url_template: "https://github.com/arl/nestor/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
-    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    license: "GPLv3-0"
     directory: Formula
     skip_upload: false
+    url:
+      verified: github.com/arl/nestor
     repository:
       owner: arl
       name: homebrew-arl
       branch: main
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
     commit_author:
       name: goreleaser-bot
       email: bot@goreleaser.com
-    test: |
-      system "#{bin}/nestor -version"
+
+    # Since our app isn't signed and notarized, we need this:
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/nestor"]
+          end
