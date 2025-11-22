@@ -1,5 +1,3 @@
-//go:build ignore
-
 //kage:unit pixels
 
 package shader

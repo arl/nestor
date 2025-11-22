@@ -1,13 +1,10 @@
-//go:build ignore
-// +build ignore
-
 //kage:unit pixels
 
 package shader
 
 const intensity = 0.05
 
-func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {	
 	texColor := imageSrc0At(srcPos)
 	imgSize := imageSrc0Size()
 	texCoord := srcPos / imgSize

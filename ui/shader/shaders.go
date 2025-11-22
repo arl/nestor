@@ -10,37 +10,37 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-//go:embed basic_crt.go
+//go:embed basic_crt.kage
 var basicCRT []byte
 
-//go:embed none.go
+//go:embed none.kage
 var none []byte
 
-//go:embed gizmo_crt.go
+//go:embed gizmo_crt.kage
 var gizmoCRT []byte
 
-//go:embed scanline.go
+//go:embed scanline.kage
 var scanline []byte
 
-//go:embed crt_nes_mini.go
+//go:embed crt_nes_mini.kage
 var crtNESMini []byte
 
-//go:embed crt_aperture.go
+//go:embed crt_aperture.kage
 var crtAperture []byte
 
-//go:embed crt_easymode.go
+//go:embed crt_easymode.kage
 var crtEasymode []byte
 
-//go:embed crt_lottes.go
+//go:embed crt_lottes.kage
 var crtLottes []byte
 
-//go:embed film_grain.go
+//go:embed film_grain.kage
 var filmGrain []byte
 
-//go:embed ntsc_simple.go
+//go:embed ntsc_simple.kage
 var ntscSimple []byte
 
-//go:embed sharp_bilinear_scanlines.go
+//go:embed sharp_bilinear_scanlines.kage
 var sharpBilinearScanlines []byte
 
 var shaders = map[string][]byte{
