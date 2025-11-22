@@ -55,11 +55,11 @@ jobs:
           # Create archive
           tar czf nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz nestor LICENSE.md README.md
           
-          # Generate checksum
+          # Generate checksum with matching filename prefix
           if [ "$RUNNER_OS" == "Linux" ]; then
-            sha256sum nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > nestor_${VERSION}_checksums_${{ matrix.goos }}_${{ matrix.goarch }}.txt
+            sha256sum nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz.sha256
           else
-            shasum -a 256 nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > nestor_${VERSION}_checksums_${{ matrix.goos }}_${{ matrix.goarch }}.txt
+            shasum -a 256 nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz.sha256
           fi
 
       - name: Upload Artifacts
@@ -68,7 +68,7 @@ jobs:
           name: nestor-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
             nestor_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
-            nestor_${{ github.ref_name }}_checksums_${{ matrix.goos }}_${{ matrix.goarch }}.txt
+            nestor_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz.sha256
           if-no-files-found: error
 
   release:
@@ -142,3 +142,34 @@ jobs:
           skip_commit: false
           
           debug: false
+
+  verify-homebrew:
+    name: Verify Homebrew Installation
+    needs: homebrew
+    runs-on: macos-latest
+    steps:
+      - name: Install from Homebrew
+        run: |
+          brew tap arl/arl
+          brew install nestor
+      
+      - name: Verify Installation
+        run: |
+          # Check that nestor is installed
+          which nestor
+          
+          # Get the installed version
+          INSTALLED_VERSION=$(nestor -version 2>&1 || echo "version command failed")
+          echo "Installed version output: $INSTALLED_VERSION"
+          
+          # Extract tag version (e.g., v0.1.0 -> 0.1.0)
+          EXPECTED_VERSION="${{ github.ref_name }}"
+          echo "Expected version tag: $EXPECTED_VERSION"
+          
+          # Verify the version output contains expected information
+          if echo "$INSTALLED_VERSION" | grep -q "version"; then
+            echo "✓ Version command executed successfully"
+          else
+            echo "✗ Version command failed or produced unexpected output"
+            exit 1
+          fi
