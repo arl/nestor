@@ -110,7 +110,7 @@ Run `nestor -help` for more options.
 
 | ![rom selection](./doc/images/romlist.png) | 
 |:--:| 
-| *Main window / Rom selection* |
+| **Rom selection** window |
 
 | ![input config ui](./doc/images/config_input.png) | ![emulation config ui](./doc/images/config_emulation.png) | ![video config ui](./doc/images/config_video.png) |
 |:--:|:--:|:--:| 
