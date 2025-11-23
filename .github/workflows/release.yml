@@ -1,4 +1,4 @@
-name: macos release
+name: Release
 
 on:
   push:
@@ -12,8 +12,11 @@ jobs:
       contents: write
     strategy:
       matrix:
-        os: [macos-13, macos-15]
+        os: [ubuntu-latest, macos-13, macos-15]
         include:
+          - os: ubuntu-latest
+            arch: x86-64
+            asset_name: nestor-linux-x64.tgz
           - os: macos-13
             arch: x86-64
             asset_name: nestor-macos-x64.tgz
@@ -23,12 +26,18 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: "go.mod"
+
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: >-
+          sudo apt-get update &&
+          sudo apt-get install libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev libgtk-3-dev
 
       - name: Build Nestor
         run: go build -ldflags="-s -w" .

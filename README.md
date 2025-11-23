@@ -1,10 +1,15 @@
+
 <p align="center">
  <img src="./assets/graphics/logo.png" width="384" align="center">
 </p>
 
-# Nestor - NES emulator
+# Nestor
+[![Release](https://img.shields.io/github/v/release/arl/nestor)](https://github.com/arl/nestor/releases/latest)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/arl/nestor/ci.yml?branch=main&style)](https://github.com/arl/nestor/actions)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style)](https://www.gnu.org/licenses/gpl-3.0)
 
-Nestor is a NES/Famicom emulator written in Go.
+
+Nestor is a NES/Famicom emulator.
 
 
 | ![adventures of rad gravity](https://github.com/user-attachments/assets/014025c9-6c7e-4f68-b351-3557c345a12e) | ![battletoads](https://github.com/user-attachments/assets/d7a03db0-fcf7-4e8f-a8f7-23ec0d01fae7) | ![tsuppari oozumou](https://github.com/user-attachments/assets/534e5d32-7bf0-48a1-9b3e-bb580f651585) |
@@ -12,11 +17,10 @@ Nestor is a NES/Famicom emulator written in Go.
 | ![castevania](https://github.com/user-attachments/assets/8b283d1f-9eca-49da-849f-d4c9c91f98cd) | ![prince of persia](https://github.com/user-attachments/assets/cdb49c3e-4ac4-4dd9-94fe-ac4d91af4aff) | ![contra](https://github.com/user-attachments/assets/a59fbc21-4938-441d-81d7-1dabda65c929) |
 
 
-- [Nestor - NES emulator](#nestor---nes-emulator)
+- [Nestor](#nestor)
   - [Features](#features)
     - [Implemented mappers](#implemented-mappers)
   - [Installation](#installation)
-    - [MacOS - homebrew](#macos---homebrew)
     - [Build from source](#build-from-source)
   - [Usage](#usage)
   - [UI Screenshots](#ui-screenshots)
@@ -24,24 +28,25 @@ Nestor is a NES/Famicom emulator written in Go.
   - [License](#license)
 
 
-
 ## Features
 
 All these features are planned, but not all of them are implemented yet.
 
  - [x] Cycle accurate CPU
- - [X] PPU (Picture Processing Unit)
+ - [x] Joystick/Joypad support
+ - [x] CRT Shader effects
+ - [x] Frame run-ahead
  - [x] NTSC (USA / Japan)
  - [ ] PAL (Europe)
- - [x] Joystick/Joypad support
- - [x] APU (Audio Processing Unit)
- - [x] CRT Shader effects
  - [ ] Save state
- - [x] Frame run-ahead
 
 ### Implemented mappers
 
-A NES games cartridge is made up of various circuits and hardware, which varies from game to game. The configuraion and capabilities of such cartridges is commonly called their mapper. Mappers are designed to extend the system and bypass its limitations, such as by adding RAM to the cartridge or even extra sound channels.
+A NES games cartridge is made up of various circuits and hardware, which varies
+from game to game. The configuraion and capabilities of such cartridges is
+commonly called their mapper. Mappers are designed to extend the system and
+bypass its limitations, such as by adding RAM to the cartridge or even extra
+sound channels.
 
 | Name  | iNES mapper | Implemented |
 |-------|------------:|:-----------:|
@@ -50,27 +55,39 @@ A NES games cartridge is made up of various circuits and hardware, which varies 
 | UxROM |           2 |     [x]     |
 | CNROM |           3 |     [x]     |
 | MMC3  |           4 |     [ ]     |
-| MMC5  |          10 |     [ ]     |
 | AxROM |           7 |     [x]     |
+| MMC5  |          10 |     [ ]     |
 | GxROM |          66 |     [x]     |
 
 
 ## Installation
 
-### MacOS - homebrew
-
-```
-brew tap arl/arl
-brew install nestor
-```
 
 ### Build from source
 
- 1. Install Go, following installation instructions at https://go.dev/doc/install (>= go1.25 is required).
- 2. Nestor uses the Ebitengine library, which requires some dependencies to be installed first. Follow the [Ebitengine installation instructions](https://ebitengine.org/en/documents/install.html) for your platform.
- 3. Clone github.com/arl/nestor
- 4. Run `go build` in the repository folder.
+ 1. Nestor uses the Ebitengine library, which requires some dependencies to be
+    installed first. Follow the [Ebitengine installation
+    instructions](https://ebitengine.org/en/documents/install.html) for your
+    platform.
+ 2. Install latest Go version, following installation instructions at
+    https://go.dev/doc/install (go1.25+ is required).
 
+Now either clone the repository with git:
+
+```
+git clone https://github.com/arl/nestor.git
+```
+
+then run `go install` in the repository folder.
+
+
+Or (the go way) simply run:
+
+```
+go install github.com/arl/nestor@latest
+```
+
+You're good to go, the `nestor` binary should be in your `$GOPATH/bin` folder.
 
 ## Usage
 
@@ -89,22 +106,21 @@ $ ./nestor
 Run `nestor -help` for more options.
 
 
-
 ## UI Screenshots
 
-| ![mainwindow rom selection](https://github.com/user-attachments/assets/2515bce2-a926-40f0-9213-2505d87f102b) | 
+| ![rom selection](./doc/images/romlist.png) | 
 |:--:| 
 | *Main window / Rom selection* |
 
+| ![input config ui](./doc/images/config_input.png) | ![emulation config ui](./doc/images/config_emulation.png) | ![video config ui](./doc/images/config_video.png) |
+|:--:|:--:|:--:| 
+| **Input** config | **Emulation** config | **Video** config |
 
-| ![emuwindow gamepanel](https://github.com/user-attachments/assets/5b4b7e7a-b8af-4f81-83c1-2df4f1814591) | 
-|:--:| 
-| *Emulator window with accompanying in-game controls window* |
+Upon creation, nestor creates a configuration folder in your home directory:
+ - On Linux: `~/.config/nestor/`
+ - On MacOS: `~/Library/Application Support/nestor/`
+ - On Windows: `%APPDATA%\nestor\`
 
-
-| ![input config ui](https://github.com/user-attachments/assets/4add9e06-1eff-4bb0-82f0-c4e2f6583e59) | 
-|:--:| 
-| *Input configuration page* |
 
 ## Thanks
 
@@ -113,6 +129,7 @@ Many thanks to:
  - @tommyblue for the paddle!
  - @rasky for [ndsemu](https://github.com/rasky/ndsemu) codebase!
  - [NesDev Wifi](https://www.nesdev.org/wiki/Nesdev_Wiki) for the great documentation and community!
+
 
 ## License
 
