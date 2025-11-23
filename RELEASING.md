@@ -25,35 +25,29 @@ The release workflow (`.github/workflows/release.yml`) will automatically:
 
 3. **Update Homebrew tap** at `arl/homebrew-arl`:
    - Creates/updates the Nestor formula
-   - Supports all three platforms
+   - Formula builds from source using Go
    - Users can install via: `brew install arl/arl/nestor`
-   - **Note**: On macOS, the binary is unsigned. If you encounter quarantine issues, the formula will display instructions on how to remove the quarantine attribute.
+   - The formula will automatically compile Nestor on the user's machine
 
 4. **Verify Homebrew installation**:
    - Installs nestor from the updated Homebrew tap
-   - Verifies that `nestor -version` runs successfully
-   - Ensures the release is installable and functional
+   - Verifies the installation is functional
+   - Ensures the release is installable on macOS
 
 ## Supported Platforms
 
 - **Linux**: amd64 only
 - **macOS**: amd64 (Intel) and arm64 (Apple Silicon)
-  - **Important**: Binaries are not signed. macOS users may need to remove the quarantine attribute using:
-    ```bash
-    xattr -d com.apple.quarantine $(which nestor)
-    ```
+  - Homebrew formula builds from source, so no code signing issues
 
 ## Release Naming
 
 - Archives: `nestor_<version>_<os>_<arch>.tar.gz`
 - Checksums: `nestor_<version>_<os>_<arch>.tar.gz.sha256`
 
-**Note**: Version numbers in filenames do NOT include the 'v' prefix (e.g., `0.1.0` not `v0.1.0`).
-This is required for Homebrew compatibility.
-
 Example:
-- `nestor_0.1.0_darwin_arm64.tar.gz`
-- `nestor_0.1.0_darwin_arm64.tar.gz.sha256`
+- `nestor_v0.1.0_darwin_arm64.tar.gz`
+- `nestor_v0.1.0_darwin_arm64.tar.gz.sha256`
 
 The checksum files use the same prefix as the archives for easy identification in the release assets list.
 

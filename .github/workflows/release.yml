@@ -48,20 +48,18 @@ jobs:
         env:
           CGO_ENABLED: 1
         run: |
-          # Get version without 'v' prefix for Homebrew compatibility
           VERSION="${{ github.ref_name }}"
-          VERSION_NO_V="${VERSION#v}"
 
           go build -trimpath -ldflags="-s -w" -o nestor .
 
-          # Create archive - use version without 'v' prefix for Homebrew Releaser action
-          tar czf nestor_${VERSION_NO_V}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz nestor LICENSE.md README.md
+          # Create archive
+          tar czf nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz nestor LICENSE.md README.md
 
           # Generate checksum with matching filename prefix
           if [ "$RUNNER_OS" == "Linux" ]; then
-            sha256sum nestor_${VERSION_NO_V}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > nestor_${VERSION_NO_V}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz.sha256
+            sha256sum nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz.sha256
           else
-            shasum -a 256 nestor_${VERSION_NO_V}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > nestor_${VERSION_NO_V}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz.sha256
+            shasum -a 256 nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz.sha256
           fi
 
       - name: Upload Artifacts
@@ -69,8 +67,8 @@ jobs:
         with:
           name: nestor-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
-            nestor_*_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
-            nestor_*_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz.sha256
+            nestor_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
+            nestor_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz.sha256
           if-no-files-found: error
 
   release:
@@ -115,29 +113,22 @@ jobs:
           formula_folder: Formula
 
           # Note: GITHUB_TOKEN doesn't have permission to push to other repos.
-          # Need a Personal access token with 'repo' scope.
+          # Need a Personal Access Token with 'repo' scope.
           github_token: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
 
           commit_owner: github-actions[bot]
           commit_email: github-actions[bot]@users.noreply.github.com
 
-          install: 'bin.install "nestor"'
-          test: 'assert_match("{{ github.ref_name }}", shell_output("nestor -version"))'
+          # Build from source using Go
+          depends_on: go
 
-          # Add caveats for macOS quarantine handling
-          formula_includes: |
-            def caveats
-              <<~EOS
-                The nestor binary is not signed. On macOS, you may need to remove
-                the quarantine attribute to run it:
-                  xattr -d com.apple.quarantine $(which nestor)
-              EOS
-            end
+          install: |
+            system "go", "build", "-trimpath", "-ldflags=-s -w", "-o", "nestor", "."
+            bin.install "nestor"
 
-          # Target files to download for formula
-          target_darwin_amd64: true
-          target_darwin_arm64: true
-          target_linux_amd64: true
+          test: |
+            assert_predicate bin/"nestor", :exist?
+            assert_predicate bin/"nestor", :executable?
 
           update_readme_table: false
 
