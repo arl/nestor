@@ -48,9 +48,12 @@ The release workflow (`.github/workflows/release.yml`) will automatically:
 - Archives: `nestor_<version>_<os>_<arch>.tar.gz`
 - Checksums: `nestor_<version>_<os>_<arch>.tar.gz.sha256`
 
+**Note**: Version numbers in filenames do NOT include the 'v' prefix (e.g., `0.1.0` not `v0.1.0`).
+This is required for Homebrew compatibility.
+
 Example:
-- `nestor_v0.1.0_darwin_arm64.tar.gz`
-- `nestor_v0.1.0_darwin_arm64.tar.gz.sha256`
+- `nestor_0.1.0_darwin_arm64.tar.gz`
+- `nestor_0.1.0_darwin_arm64.tar.gz.sha256`
 
 The checksum files use the same prefix as the archives for easy identification in the release assets list.
 
