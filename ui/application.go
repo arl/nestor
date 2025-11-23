@@ -55,7 +55,6 @@ func start(ctx context.Context, cfg config.Config, romPath string) error {
 	}
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetTPS(ebiten.SyncWithFPS)
-	ebiten.SetVsyncEnabled(!cfg.Video.DisableVSync)
 	ebiten.SetRunnableOnUnfocused(true)
 
 	app := newApp(ctx, samples, audioctx, cfg)
@@ -270,9 +269,16 @@ func (app *app) runRom(romPath string) error {
 	app.audioPlayer.SetBufferSize(8192)
 	app.audioPlayer.Play()
 
+	ebiten.SetVsyncEnabled(!app.cfg.Video.DisableVSync)
+
 	app.setState("running")
 
 	go func() {
+		defer func() {
+			ebiten.SetVsyncEnabled(true)
+			ebiten.SetWindowTitle("Nestor")
+		}()
+
 		tmpdir, err := os.MkdirTemp("", "nestor-")
 		if err != nil {
 			modUI.WarnZ("failed to create temp dir").Error("err", err).End()

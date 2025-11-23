@@ -26,8 +26,17 @@ func (s *configState) videoConfigPage() *page {
 			modUI.ErrorZ("monitor: unexpected input").String("txt", args.InputText).End()
 			return
 		}
+		if idxmon == int(s.app.cfg.Video.Monitor) {
+			return
+		}
 
+		prev := s.app.cfg.Video.Monitor
 		s.app.cfg.Video.Monitor = uint(idxmon)
+		modUI.InfoZ("changed monitor").
+			Uint("from", prev).
+			Uint("to", s.app.cfg.Video.Monitor).
+			End()
+
 		s.app.savecfg()
 	}
 
@@ -107,12 +116,21 @@ func (s *configState) videoConfigPage() *page {
 			onShaderChanged))
 
 	c.AddChild(
-		newCheckbox2States("Enable V-Sync", !s.app.cfg.Video.DisableVSync, func(enabled bool) {
-			s.app.cfg.Video.DisableVSync = !enabled
+		newCheckbox2States("Disable V-Sync", s.app.cfg.Video.DisableVSync, func(enabled bool) {
+			s.app.cfg.Video.DisableVSync = enabled
+			modUI.InfoZ("toggled disable-vsync").
+				Bool("from", !enabled).
+				Bool("to", enabled).
+				End()
+
 			s.app.savecfg()
 		}),
 		newCheckbox2States("Start in fullscreen", s.app.cfg.Video.StartFullscreen, func(enabled bool) {
 			s.app.cfg.Video.StartFullscreen = enabled
+			modUI.InfoZ("toggled start-fullscreen").
+				Bool("from", !enabled).
+				Bool("to", enabled).
+				End()
 			s.app.savecfg()
 		}),
 		monitorBlock,
