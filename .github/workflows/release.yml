@@ -49,12 +49,12 @@ jobs:
           CGO_ENABLED: 1
         run: |
           VERSION="${{ github.ref_name }}"
-          
+
           go build -trimpath -ldflags="-s -w" -o nestor .
-          
+
           # Create archive
           tar czf nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz nestor LICENSE.md README.md
-          
+
           # Generate checksum with matching filename prefix
           if [ "$RUNNER_OS" == "Linux" ]; then
             sha256sum nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > nestor_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz.sha256
@@ -111,15 +111,15 @@ jobs:
           homebrew_owner: arl
           homebrew_tap: homebrew-arl
           formula_folder: Formula
-          
           # Note: GITHUB_TOKEN doesn't have permission to push to other repos
           # If this fails, create a Personal Access Token with repo scope
           # and add it as a secret named HOMEBREW_TAP_TOKEN
+
           github_token: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
-          
+
           commit_owner: github-actions[bot]
           commit_email: github-actions[bot]@users.noreply.github.com
-          
+
           install: 'bin.install "nestor"'
           
           # Add caveats for macOS quarantine handling
@@ -131,16 +131,16 @@ jobs:
                   xattr -d com.apple.quarantine $(which nestor)
               EOS
             end
-          
+
           # Target files to download for formula
           target_darwin_amd64: true
           target_darwin_arm64: true
           target_linux_amd64: true
-          
+
           update_readme_table: false
-          
+
           skip_commit: false
-          
+
           debug: false
 
   verify-homebrew:
@@ -152,20 +152,20 @@ jobs:
         run: |
           brew tap arl/arl
           brew install nestor
-      
+
       - name: Verify Installation
         run: |
           # Check that nestor is installed
           which nestor
-          
+
           # Get the installed version
           INSTALLED_VERSION=$(nestor -version 2>&1 || echo "version command failed")
           echo "Installed version output: $INSTALLED_VERSION"
-          
+
           # Extract tag version (e.g., v0.1.0 -> 0.1.0)
           EXPECTED_VERSION="${{ github.ref_name }}"
           echo "Expected version tag: $EXPECTED_VERSION"
-          
+
           # Verify the version output contains expected information
           if echo "$INSTALLED_VERSION" | grep -q "version"; then
             echo "✓ Version command executed successfully"
