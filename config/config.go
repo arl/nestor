@@ -55,7 +55,7 @@ var defaultConfig = Config{
 			DisableVSync:    false,
 			StartFullscreen: false,
 			Monitor:         0,
-			Shader:          "passthrough",
+			Shader:          "",
 		},
 		Audio: emu.AudioConfig{
 			DisableAudio: false,
@@ -100,7 +100,9 @@ func LoadOrDefault() Config {
 	// Load the config from the file, overwriting the default values.
 	_, err := toml.DecodeFile(Path(), &cfg)
 	if err != nil {
-		log.ModEmu.Warnf("Failed to load config, using default: %v", err)
+		if !os.IsNotExist(err) {
+			log.ModEmu.Warnf("Failed to load config, using default: %v", err)
+		}
 	}
 
 	// Apply post-load operations (fix invalid values, etc).
