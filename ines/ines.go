@@ -180,7 +180,7 @@ func (hdr *header) CHRNVRAMSize() int {
 	return hdr.chrnvramsz
 }
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=Region
+//go:generate go tool stringer -type=Region
 
 // Region indicates the region where the rom was released, for non-homebrew games.
 type Region byte
@@ -227,7 +227,7 @@ func (hdr *header) IsNES20() bool {
 // graphics.
 type NTMirroring int
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=NTMirroring
+//go:generate go tool stringer -type=NTMirroring
 const (
 	HorzMirroring NTMirroring = 1 + iota
 	VertMirroring
