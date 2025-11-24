@@ -44,7 +44,7 @@ func newAppMenu(ui *ebitenui.UI) *appMenu {
 	//
 	file := newAppMenuButton("File")
 	var (
-		open = newAppMenuEntry("Open ROM")
+		open = newAppMenuEntry("Open ROM ...")
 		quit = newAppMenuEntry("Quit")
 	)
 

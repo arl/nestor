@@ -13,6 +13,7 @@ import (
 	"github.com/ebitenui/ebitenui"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	einput "github.com/quasilyte/ebitengine-input"
 
 	"nestor/config"
 	"nestor/emu"
@@ -145,6 +146,8 @@ type app struct {
 
 	states   map[string]appState
 	curstate appState
+
+	inputsys     einput.System
 }
 
 func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, cfg config.Config) *app {
@@ -156,6 +159,10 @@ func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, c
 		samples:       samples,
 		audioctx:      audioctx,
 	}
+
+	app.inputsys.Init(einput.SystemConfig{
+		DevicesEnabled: einput.AnyDevice,
+	})
 
 	app.states["running"] = newRunningState(app)
 	app.states["paused"] = newPausedState(app)
@@ -197,6 +204,8 @@ func (app *app) Update() error {
 	if app.quit.Load() {
 		return ebiten.Termination
 	}
+
+	app.inputsys.Update()
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyF11) {
 		enable := !ebiten.IsFullscreen()

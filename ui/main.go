@@ -8,6 +8,7 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	einput "github.com/quasilyte/ebitengine-input"
 	"github.com/sqweek/dialog"
 	"golang.org/x/image/colornames"
 )
@@ -22,11 +23,15 @@ type mainState struct {
 	sc     *widget.ScrollContainer
 	slider *widget.Slider
 	cells  []*widget.Container
+
+	inputhandler *einput.Handler
+	menu         *appMenu
 }
 
 func newMainState(app *app) *mainState {
 	state := &mainState{
-		app: app,
+		app:          app,
+		inputhandler: app.inputsys.NewHandler(0, menuKeymap),
 	}
 
 	state.createUI()
@@ -40,7 +45,8 @@ func (s *mainState) enter(...any) {
 
 func (s *mainState) exit() {}
 
-func buildMenu(app *app) *widget.Container {
+func buildMenu(s *mainState) *widget.Container {
+	app := s.app
 	menu := newAppMenu(&app.ui)
 	menu.fileOpen.ClickedEvent.AddHandler(func(args any) {
 		dlg := dialog.File().Title("Open NES ROM").Filter("NES rom", "nes")
@@ -72,6 +78,7 @@ func buildMenu(app *app) *widget.Container {
 		app.setState("config", "emulation")
 	})
 
+	s.menu = menu
 	return menu.container
 }
 
@@ -86,6 +93,7 @@ func (s *mainState) startROM() {
 }
 
 func (s *mainState) update() {
+	// Handle navigation keys
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		s.up()
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
@@ -98,7 +106,29 @@ func (s *mainState) update() {
 		s.startROM()
 	}
 
+	// Handle menu keyboard shortcuts
+	s.handleMenuShortcuts()
+
 	s.ui.Update()
+}
+
+// handleMenuShortcuts processes keyboard shortcuts for menu actions.
+func (s *mainState) handleMenuShortcuts() {
+	if s.menu == nil {
+		return
+	}
+
+	if s.inputhandler.ActionIsJustPressed(actionFileOpenROM) {
+		s.menu.fileOpen.Click()
+	} else if s.inputhandler.ActionIsJustPressed(actionFileQuit) {
+		s.menu.fileQuit.Click()
+	} else if s.inputhandler.ActionIsJustPressed(actionSettingsOpenVideoConfig) {
+		s.menu.settingsVideo.Click()
+	} else if s.inputhandler.ActionIsJustPressed(actionSettingsOpenInputConfig) {
+		s.menu.settingsInput.Click()
+	} else if s.inputhandler.ActionIsJustPressed(actionSettingsOpenEmulationConfig) {
+		s.menu.settingsEmulation.Click()
+	}
 }
 
 func (s *mainState) draw(screen *ebiten.Image) {
@@ -172,7 +202,7 @@ func (s *mainState) createUI() {
 		)),
 	)
 
-	s.ui.Container.AddChild(buildMenu(s.app))
+	s.ui.Container.AddChild(buildMenu(s))
 
 	const screenshotWidth = 180 // side of the screenshot square image.
 	const maxCellWidth = 200
