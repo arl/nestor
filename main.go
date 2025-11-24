@@ -157,16 +157,6 @@ func main() {
 	// 		return
 	// 	}
 	// }
-
-	// tmpdir, err := os.MkdirTemp("", "nestor.out.*")
-	// if err != nil {
-	// 	fmt.Fprintf(os.Stderr, "failed to create nestor out temp directory: %v", err)
-	// 	exitcode = 1
-	// 	return
-	// }
-	// emulator.SetTempDir(tmpdir)
-
-	// if args.CPUProfile != "" {
 }
 
 func printRomInfos(romPath string) error {
