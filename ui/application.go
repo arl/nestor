@@ -12,7 +12,6 @@ import (
 	"github.com/ebitengine/oto/v3"
 	"github.com/ebitenui/ebitenui"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	einput "github.com/quasilyte/ebitengine-input"
 
 	"nestor/config"
@@ -148,6 +147,7 @@ type app struct {
 	curstate appState
 
 	inputsys     einput.System
+	inputhandler *einput.Handler
 }
 
 func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, cfg config.Config) *app {
@@ -163,6 +163,8 @@ func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, c
 	app.inputsys.Init(einput.SystemConfig{
 		DevicesEnabled: einput.AnyDevice,
 	})
+
+	app.inputhandler = app.inputsys.NewHandler(0, globalKeymap)
 
 	app.states["running"] = newRunningState(app)
 	app.states["paused"] = newPausedState(app)
@@ -207,7 +209,8 @@ func (app *app) Update() error {
 
 	app.inputsys.Update()
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyF11) {
+	// Handle global shortcuts (available in all states)
+	if app.inputhandler.ActionIsJustPressed(actionToggleFullscreen) {
 		enable := !ebiten.IsFullscreen()
 		ebiten.SetFullscreen(enable)
 
@@ -218,7 +221,6 @@ func (app *app) Update() error {
 			app.displayWidth, app.displayHeight = ebiten.WindowSize()
 			app.curstate.createUI()
 		}
-
 	}
 
 	app.curstate.update()

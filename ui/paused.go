@@ -4,14 +4,20 @@ import (
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	einput "github.com/quasilyte/ebitengine-input"
 	"golang.org/x/image/colornames"
 )
 
-type pausedState struct{ *app }
+type pausedState struct {
+	*app
+	inputhandler *einput.Handler
+}
 
 func newPausedState(app *app) *pausedState {
-	s := &pausedState{app: app}
+	s := &pausedState{
+		app:          app,
+		inputhandler: app.inputsys.NewHandler(0, mergeKeymaps(globalKeymap, pausedKeymap)),
+	}
 	s.createUI()
 	return s
 }
@@ -26,7 +32,7 @@ func (s *pausedState) enter(...any) {
 func (s *pausedState) exit() {}
 
 func (s *pausedState) update() {
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+	if s.inputhandler.ActionIsJustPressed(actionResumeEmulator) {
 		s.onResume()
 	}
 

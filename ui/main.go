@@ -31,7 +31,7 @@ type mainState struct {
 func newMainState(app *app) *mainState {
 	state := &mainState{
 		app:          app,
-		inputhandler: app.inputsys.NewHandler(0, menuKeymap),
+		inputhandler: app.inputsys.NewHandler(0, mergeKeymaps(globalKeymap, menuKeymap)),
 	}
 
 	state.createUI()

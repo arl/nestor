@@ -10,7 +10,7 @@ import (
 
 	"github.com/ebitengine/debugui"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	einput "github.com/quasilyte/ebitengine-input"
 )
 
 type runningState struct {
@@ -22,13 +22,15 @@ type runningState struct {
 	debugui    debugui.DebugUI
 	shaderuiOn bool
 
-	shouldQuit bool
+	shouldQuit   bool
+	inputhandler *einput.Handler
 }
 
 func newRunningState(app *app) *runningState {
 	s := &runningState{
-		app:     app,
-		elapsed: time.Now().Unix(),
+		app:          app,
+		elapsed:      time.Now().Unix(),
+		inputhandler: app.inputsys.NewHandler(0, mergeKeymaps(globalKeymap, runningKeymap)),
 	}
 
 	s.createUI()
@@ -47,16 +49,12 @@ func (s *runningState) update() {
 		s.shaderUI()
 	}
 
-	keys := make([]ebiten.Key, 0, 16)
-	for _, key := range inpututil.AppendJustPressedKeys(keys) {
-		switch key {
-		case ebiten.KeyEscape:
-			s.app.setState("paused")
-		case ebiten.KeyR:
-			s.emulator.Reset()
-		case ebiten.KeyF5:
-			s.shaderuiOn = !s.shaderuiOn
-		}
+	if s.inputhandler.ActionIsJustPressed(actionPauseEmulator) {
+		s.app.setState("paused")
+	} else if s.inputhandler.ActionIsJustPressed(actionResetEmulator) {
+		s.emulator.Reset()
+	} else if s.inputhandler.ActionIsJustPressed(actionToggleShaderUI) {
+		s.shaderuiOn = !s.shaderuiOn
 	}
 }
 
