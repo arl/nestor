@@ -14,8 +14,9 @@ import (
 )
 
 type General struct {
-	ShowSplash       bool   `toml:"show_splash"`
-	FileLoadStartDir string `toml:"file_load_start_dir"`
+	ShowSplash        bool              `toml:"show_splash"`
+	FileLoadStartDir  string            `toml:"file_load_start_dir"`
+	KeyboardShortcuts map[string]string `toml:"keyboard_shortcuts"`
 }
 
 type Config struct {
