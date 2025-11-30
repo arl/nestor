@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"errors"
 	"math"
 
 	"github.com/ebitenui/ebitenui/image"
@@ -54,8 +55,10 @@ func buildMenu(s *mainState) *widget.Container {
 
 		name, err := dlg.Load()
 		if err != nil {
-			modUI.ErrorZ("dialog: failed to open").Error("err", err).End()
-			errorWindow(&app.ui, err)
+			if !errors.Is(err, dialog.ErrCancelled) {
+				modUI.ErrorZ("dialog: failed to open").Error("err", err).End()
+				errorWindow(&app.ui, err)
+			}
 			return
 		}
 
