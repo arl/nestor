@@ -68,6 +68,18 @@ var defaultConfig = Config{
 	},
 	General: General{
 		ShowSplash: true,
+		KeyboardShortcuts: map[string]string{
+			"global.toggle_fullscreen":            "f11",
+			"menu.file_open_rom":                  "ctrl+o",
+			"menu.file_quit":                      "ctrl+q",
+			"menu.settings_open_video_config":     "ctrl+v",
+			"menu.settings_open_input_config":     "ctrl+i",
+			"menu.settings_open_emulation_config": "ctrl+e",
+			"running.pause_emulator":              "escape",
+			"running.reset_emulator":              "r",
+			"running.toggle_shader_ui":            "f5",
+			"paused.resume_emulator":              "escape",
+		},
 	},
 }
 

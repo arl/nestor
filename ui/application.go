@@ -69,6 +69,8 @@ func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, c
 		DevicesEnabled: einput.AnyDevice,
 	})
 
+	loadKeymaps(cfg.General)
+
 	app.handler = app.inputsys.NewHandler(0, globalKeymap)
 
 	app.states["running"] = stateDef{state: newRunningState(app), keymap: runningKeymap}
