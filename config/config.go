@@ -53,7 +53,7 @@ var defaultConfig = Config{
 			},
 		},
 		Video: emu.VideoConfig{
-			DisableVSync:    false,
+			VSync:           true,
 			StartFullscreen: false,
 			Monitor:         0,
 			Shader:          "",

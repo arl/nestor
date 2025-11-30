@@ -174,10 +174,6 @@ func (app *app) runRom(romPath string) error {
 			Width:          emu.NTSCWidth,
 			Height:         emu.NTSCHeight,
 			NumBackBuffers: 4,
-			Title:          "Nestor",
-			ScaleFactor:    2,
-			DisableVSync:   app.cfg.Video.DisableVSync,
-			Shader:         app.cfg.Video.Shader,
 		},
 	)
 
@@ -198,7 +194,7 @@ func (app *app) runRom(romPath string) error {
 	app.audioPlayer.SetBufferSize(8192)
 	app.audioPlayer.Play()
 
-	ebiten.SetVsyncEnabled(!app.cfg.Video.DisableVSync)
+	ebiten.SetVsyncEnabled(app.cfg.Video.VSync)
 
 	app.setState("running", nil)
 

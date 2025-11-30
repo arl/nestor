@@ -34,7 +34,7 @@ func (ecfg *EmulationConfig) Check() {
 }
 
 type VideoConfig struct {
-	DisableVSync    bool   `toml:"disable_vsync"`
+	VSync           bool   `toml:"vsync"`
 	StartFullscreen bool   `toml:"start_fullscreen"`
 	Monitor         uint   `toml:"monitor"`
 	Shader          string `toml:"shader"`
