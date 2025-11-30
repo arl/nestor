@@ -12,6 +12,8 @@ import (
 	einput "github.com/quasilyte/ebitengine-input"
 	"github.com/sqweek/dialog"
 	"golang.org/x/image/colornames"
+
+	"nestor/ui/keymap"
 )
 
 type mainState struct {
@@ -121,15 +123,15 @@ func (s *mainState) handleMenuShortcuts() {
 		return
 	}
 
-	if s.inputh.ActionIsJustPressed(actionFileOpenROM) {
+	if s.inputh.ActionIsJustPressed(keymap.ActionFileOpenROM) {
 		s.menu.fileOpen.Click()
-	} else if s.inputh.ActionIsJustPressed(actionFileQuit) {
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionFileQuit) {
 		s.menu.fileQuit.Click()
-	} else if s.inputh.ActionIsJustPressed(actionSettingsOpenVideoConfig) {
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig) {
 		s.menu.settingsVideo.Click()
-	} else if s.inputh.ActionIsJustPressed(actionSettingsOpenInputConfig) {
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenInputConfig) {
 		s.menu.settingsInput.Click()
-	} else if s.inputh.ActionIsJustPressed(actionSettingsOpenEmulationConfig) {
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenEmulationConfig) {
 		s.menu.settingsEmulation.Click()
 	}
 }

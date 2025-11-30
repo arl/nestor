@@ -11,6 +11,8 @@ import (
 	"github.com/ebitengine/debugui"
 	"github.com/hajimehoshi/ebiten/v2"
 	einput "github.com/quasilyte/ebitengine-input"
+
+	"nestor/ui/keymap"
 )
 
 type runningState struct {
@@ -49,11 +51,11 @@ func (s *runningState) update() {
 		s.shaderUI()
 	}
 
-	if s.inputh.ActionIsJustPressed(actionPauseEmulator) {
+	if s.inputh.ActionIsJustPressed(keymap.ActionPauseEmulator) {
 		s.app.setState("paused", nil)
-	} else if s.inputh.ActionIsJustPressed(actionResetEmulator) {
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionResetEmulator) {
 		s.emulator.Reset()
-	} else if s.inputh.ActionIsJustPressed(actionToggleShaderUI) {
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionToggleShaderUI) {
 		s.shaderuiOn = !s.shaderuiOn
 	}
 }

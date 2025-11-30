@@ -18,6 +18,7 @@ import (
 	"nestor/emu"
 	"nestor/hw/input"
 	"nestor/ines"
+	"nestor/ui/keymap"
 )
 
 type state interface {
@@ -69,13 +70,11 @@ func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, c
 		DevicesEnabled: einput.AnyDevice,
 	})
 
-	loadKeymaps(cfg.General)
+	app.handler = app.inputsys.NewHandler(0, keymap.GlobalKeymap)
 
-	app.handler = app.inputsys.NewHandler(0, globalKeymap)
-
-	app.states["running"] = stateDef{state: newRunningState(app), keymap: runningKeymap}
-	app.states["paused"] = stateDef{state: newPausedState(app), keymap: pausedKeymap}
-	app.states["main"] = stateDef{state: newMainState(app), keymap: menuKeymap}
+	app.states["running"] = stateDef{state: newRunningState(app), keymap: keymap.RunningKeymap}
+	app.states["paused"] = stateDef{state: newPausedState(app), keymap: keymap.PausedKeymap}
+	app.states["main"] = stateDef{state: newMainState(app), keymap: keymap.MenuKeymap}
 	app.states["config"] = stateDef{state: newConfigState(app), keymap: nil}
 	app.states["capture"] = stateDef{state: newCaptureState(app), keymap: nil}
 
@@ -105,7 +104,7 @@ func (app *app) setState(name string, arg any) {
 		return
 	}
 
-	app.handler = app.inputsys.NewHandler(0, mergeKeymaps(globalKeymap, to.keymap))
+	app.handler = app.inputsys.NewHandler(0, mergeKeymaps(keymap.GlobalKeymap, to.keymap))
 
 	app.curstate = to.state
 	app.curstate.enter(app.handler, arg)
@@ -130,7 +129,7 @@ func (app *app) Update() error {
 	app.inputsys.Update()
 
 	// Handle global shortcuts (available in all states)
-	if app.handler.ActionIsJustPressed(actionToggleFullscreen) {
+	if app.handler.ActionIsJustPressed(keymap.ActionToggleFullscreen) {
 		enable := !ebiten.IsFullscreen()
 		ebiten.SetFullscreen(enable)
 

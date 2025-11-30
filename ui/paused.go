@@ -6,6 +6,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	einput "github.com/quasilyte/ebitengine-input"
 	"golang.org/x/image/colornames"
+
+	"nestor/ui/keymap"
 )
 
 type pausedState struct {
@@ -32,7 +34,7 @@ func (s *pausedState) enter(inputh *einput.Handler, _ any) {
 func (s *pausedState) exit() {}
 
 func (s *pausedState) update() {
-	if s.inputh.ActionIsJustPressed(actionResumeEmulator) {
+	if s.inputh.ActionIsJustPressed(keymap.ActionResumeEmulator) {
 		s.onResume()
 	}
 

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"sync"
@@ -11,12 +12,13 @@ import (
 	"nestor/emu"
 	"nestor/emu/log"
 	"nestor/hw/input"
+	"nestor/ui/keymap"
 )
 
 type General struct {
-	ShowSplash        bool              `toml:"show_splash"`
-	FileLoadStartDir  string            `toml:"file_load_start_dir"`
-	KeyboardShortcuts map[string]string `toml:"keyboard_shortcuts"`
+	ShowSplash        bool             `toml:"show_splash"`
+	FileLoadStartDir  string           `toml:"file_load_start_dir"`
+	KeyboardShortcuts keymap.Shortcuts `toml:"keyboard_shortcuts"`
 }
 
 type Config struct {
@@ -67,19 +69,8 @@ var defaultConfig = Config{
 		TraceOut: nil,
 	},
 	General: General{
-		ShowSplash: true,
-		KeyboardShortcuts: map[string]string{
-			"global.toggle_fullscreen":            "f11",
-			"menu.file_open_rom":                  "ctrl+o",
-			"menu.file_quit":                      "ctrl+q",
-			"menu.settings_open_video_config":     "ctrl+v",
-			"menu.settings_open_input_config":     "ctrl+i",
-			"menu.settings_open_emulation_config": "ctrl+e",
-			"running.pause_emulator":              "escape",
-			"running.reset_emulator":              "r",
-			"running.toggle_shader_ui":            "f5",
-			"paused.resume_emulator":              "escape",
-		},
+		ShowSplash:        true,
+		KeyboardShortcuts: keymap.DefaultShortcuts,
 	},
 }
 
@@ -110,6 +101,8 @@ func LoadOrDefault() Config {
 	// Create a config based on the default one.
 	cfg := defaultConfig
 
+	maps.Copy(cfg.General.KeyboardShortcuts, defaultConfig.General.KeyboardShortcuts)
+
 	// Load the config from the file, overwriting the default values.
 	_, err := toml.DecodeFile(Path(), &cfg)
 	if err != nil {
@@ -119,6 +112,7 @@ func LoadOrDefault() Config {
 	}
 
 	// Apply post-load operations (fix invalid values, etc).
+	cfg.General.KeyboardShortcuts.Apply()
 	cfg.Video.Check()
 	cfg.Emulation.Check()
 	log.ModEmu.InfoZ("loaded configuration").String("path", Path()).End()
