@@ -43,13 +43,3 @@ var runningKeymap = einput.Keymap{
 var pausedKeymap = einput.Keymap{
 	actionResumeEmulator: {einput.KeyEscape},
 }
-
-func mergeKeymaps(keymaps ...einput.Keymap) einput.Keymap {
-	result := einput.Keymap{}
-	for _, km := range keymaps {
-		for action, keys := range km {
-			result[action] = keys
-		}
-	}
-	return result
-}

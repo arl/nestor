@@ -6,10 +6,12 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	einput "github.com/quasilyte/ebitengine-input"
 )
 
 type captureState struct {
 	*app
+	inputh *einput.Handler
 
 	btn       input.PaddleButton // configured button
 	idxpreset int                // configured preset
@@ -30,10 +32,11 @@ type captureArgs struct {
 	idxpreset int
 }
 
-func (s *captureState) enter(arg any) {
+func (s *captureState) enter(inputh *einput.Handler, arg any) {
 	cargs := arg.(captureArgs)
 	s.btn = cargs.btn
 	s.idxpreset = cargs.idxpreset
+	s.inputh = inputh
 
 	modUI.InfoZ("Capture state entered").End()
 }

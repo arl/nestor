@@ -10,21 +10,21 @@ import (
 
 type pausedState struct {
 	*app
-	inputhandler *einput.Handler
+	inputh *einput.Handler
 }
 
 func newPausedState(app *app) *pausedState {
 	s := &pausedState{
-		app:          app,
-		inputhandler: app.inputsys.NewHandler(0, mergeKeymaps(globalKeymap, pausedKeymap)),
+		app: app,
 	}
 	s.createUI()
 	return s
 }
 
-func (s *pausedState) enter(_ any) {
+func (s *pausedState) enter(inputh *einput.Handler, _ any) {
 	ebiten.SetWindowTitle("Nestor <paused>")
 	modUI.InfoZ("Blocking emulator").End()
+	s.inputh = inputh
 	s.emulator.Block()
 	s.audioPlayer.Pause()
 }
@@ -32,7 +32,7 @@ func (s *pausedState) enter(_ any) {
 func (s *pausedState) exit() {}
 
 func (s *pausedState) update() {
-	if s.inputhandler.ActionIsJustPressed(actionResumeEmulator) {
+	if s.inputh.ActionIsJustPressed(actionResumeEmulator) {
 		s.onResume()
 	}
 

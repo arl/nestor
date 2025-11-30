@@ -17,27 +17,27 @@ type runningState struct {
 	*app
 	paused  bool
 	elapsed int64 // elapsed seconds (for FPS display)
+	inputh  *einput.Handler
 
 	shader     *ebiten.Shader
 	debugui    debugui.DebugUI
 	shaderuiOn bool
 
-	shouldQuit   bool
-	inputhandler *einput.Handler
+	shouldQuit bool
 }
 
 func newRunningState(app *app) *runningState {
 	s := &runningState{
-		app:          app,
-		elapsed:      time.Now().Unix(),
-		inputhandler: app.inputsys.NewHandler(0, mergeKeymaps(globalKeymap, runningKeymap)),
+		app:     app,
+		elapsed: time.Now().Unix(),
 	}
 
 	s.createUI()
 	return s
 }
 
-func (s *runningState) enter(_ any) {
+func (s *runningState) enter(hinput *einput.Handler, _ any) {
+	s.inputh = hinput
 	s.setShader(s.app.cfg.Video.Shader)
 }
 
@@ -49,11 +49,11 @@ func (s *runningState) update() {
 		s.shaderUI()
 	}
 
-	if s.inputhandler.ActionIsJustPressed(actionPauseEmulator) {
+	if s.inputh.ActionIsJustPressed(actionPauseEmulator) {
 		s.app.setState("paused", nil)
-	} else if s.inputhandler.ActionIsJustPressed(actionResetEmulator) {
+	} else if s.inputh.ActionIsJustPressed(actionResetEmulator) {
 		s.emulator.Reset()
-	} else if s.inputhandler.ActionIsJustPressed(actionToggleShaderUI) {
+	} else if s.inputh.ActionIsJustPressed(actionToggleShaderUI) {
 		s.shaderuiOn = !s.shaderuiOn
 	}
 }

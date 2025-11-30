@@ -24,8 +24,13 @@ type state interface {
 	createUI()
 	update()
 	draw(screen *ebiten.Image)
-	enter(arg any)
+	enter(hinput *einput.Handler, arg any)
 	exit()
+}
+
+type stateDef struct {
+	state  state
+	keymap einput.Keymap
 }
 
 type app struct {
@@ -44,17 +49,16 @@ type app struct {
 	displayWidth  int
 	displayHeight int
 
-	states   map[string]state
+	states   map[string]stateDef
 	curstate state
-
-	inputsys     einput.System
-	inputhandler *einput.Handler
+	inputsys einput.System
+	handler  *einput.Handler
 }
 
 func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, cfg config.Config) *app {
 	app := &app{
 		cfg:           cfg,
-		states:        map[string]state{},
+		states:        make(map[string]stateDef),
 		displayWidth:  startwidth,
 		displayHeight: startheight,
 		samples:       samples,
@@ -65,13 +69,13 @@ func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, c
 		DevicesEnabled: einput.AnyDevice,
 	})
 
-	app.inputhandler = app.inputsys.NewHandler(0, globalKeymap)
+	app.handler = app.inputsys.NewHandler(0, globalKeymap)
 
-	app.states["running"] = newRunningState(app)
-	app.states["paused"] = newPausedState(app)
-	app.states["main"] = newMainState(app)
-	app.states["config"] = newConfigState(app)
-	app.states["capture"] = newCaptureState(app)
+	app.states["running"] = stateDef{state: newRunningState(app), keymap: runningKeymap}
+	app.states["paused"] = stateDef{state: newPausedState(app), keymap: pausedKeymap}
+	app.states["main"] = stateDef{state: newMainState(app), keymap: menuKeymap}
+	app.states["config"] = stateDef{state: newConfigState(app), keymap: nil}
+	app.states["capture"] = stateDef{state: newCaptureState(app), keymap: nil}
 
 	go func() {
 		<-ctx.Done()
@@ -98,9 +102,22 @@ func (app *app) setState(name string, arg any) {
 		modUI.PanicZ("unknown state").String("state", name).End()
 		return
 	}
-	app.curstate = to
-	app.curstate.enter(arg)
+
+	app.handler = app.inputsys.NewHandler(0, mergeKeymaps(globalKeymap, to.keymap))
+
+	app.curstate = to.state
+	app.curstate.enter(app.handler, arg)
 	app.curstate.createUI()
+}
+
+func mergeKeymaps(keymaps ...einput.Keymap) einput.Keymap {
+	result := einput.Keymap{}
+	for _, km := range keymaps {
+		for action, keys := range km {
+			result[action] = keys
+		}
+	}
+	return result
 }
 
 func (app *app) Update() error {
@@ -111,7 +128,7 @@ func (app *app) Update() error {
 	app.inputsys.Update()
 
 	// Handle global shortcuts (available in all states)
-	if app.inputhandler.ActionIsJustPressed(actionToggleFullscreen) {
+	if app.handler.ActionIsJustPressed(actionToggleFullscreen) {
 		enable := !ebiten.IsFullscreen()
 		ebiten.SetFullscreen(enable)
 

@@ -24,14 +24,13 @@ type mainState struct {
 	slider *widget.Slider
 	cells  []*widget.Container
 
-	inputhandler *einput.Handler
-	menu         *appMenu
+	inputh *einput.Handler
+	menu   *appMenu
 }
 
 func newMainState(app *app) *mainState {
 	state := &mainState{
-		app:          app,
-		inputhandler: app.inputsys.NewHandler(0, mergeKeymaps(globalKeymap, menuKeymap)),
+		app: app,
 	}
 
 	state.createUI()
@@ -39,7 +38,8 @@ func newMainState(app *app) *mainState {
 	return state
 }
 
-func (s *mainState) enter(_ any) {
+func (s *mainState) enter(inputh *einput.Handler, _ any) {
+	s.inputh = inputh
 	s.roms = loadRecentROMs()
 }
 
@@ -118,15 +118,15 @@ func (s *mainState) handleMenuShortcuts() {
 		return
 	}
 
-	if s.inputhandler.ActionIsJustPressed(actionFileOpenROM) {
+	if s.inputh.ActionIsJustPressed(actionFileOpenROM) {
 		s.menu.fileOpen.Click()
-	} else if s.inputhandler.ActionIsJustPressed(actionFileQuit) {
+	} else if s.inputh.ActionIsJustPressed(actionFileQuit) {
 		s.menu.fileQuit.Click()
-	} else if s.inputhandler.ActionIsJustPressed(actionSettingsOpenVideoConfig) {
+	} else if s.inputh.ActionIsJustPressed(actionSettingsOpenVideoConfig) {
 		s.menu.settingsVideo.Click()
-	} else if s.inputhandler.ActionIsJustPressed(actionSettingsOpenInputConfig) {
+	} else if s.inputh.ActionIsJustPressed(actionSettingsOpenInputConfig) {
 		s.menu.settingsInput.Click()
-	} else if s.inputhandler.ActionIsJustPressed(actionSettingsOpenEmulationConfig) {
+	} else if s.inputh.ActionIsJustPressed(actionSettingsOpenEmulationConfig) {
 		s.menu.settingsEmulation.Click()
 	}
 }
