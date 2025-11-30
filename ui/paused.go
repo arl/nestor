@@ -22,7 +22,7 @@ func newPausedState(app *app) *pausedState {
 	return s
 }
 
-func (s *pausedState) enter(...any) {
+func (s *pausedState) enter(_ any) {
 	ebiten.SetWindowTitle("Nestor <paused>")
 	modUI.InfoZ("Blocking emulator").End()
 	s.emulator.Block()
@@ -45,28 +45,28 @@ func (s *pausedState) draw(screen *ebiten.Image) {
 
 func (s *pausedState) onResume() {
 	s.emulator.Resume()
-	s.app.setState("running")
+	s.app.setState("running", nil)
 	s.audioPlayer.Play()
 }
 
 func (s *pausedState) onReset() {
 	s.emulator.Resume()
 	s.emulator.Reset()
-	s.app.setState("running")
+	s.app.setState("running", nil)
 	s.audioPlayer.Play()
 }
 
 func (s *pausedState) onReload() {
 	s.emulator.Resume()
 	s.emulator.Restart()
-	s.app.setState("running")
+	s.app.setState("running", nil)
 	s.audioPlayer.Play()
 }
 
 func (s *pausedState) onStop() {
 	s.emulator.Stop()
 	<-s.framech // discard frame
-	s.app.setState("main")
+	s.app.setState("main", nil)
 }
 
 func (s *pausedState) createUI() {

@@ -25,9 +25,15 @@ func newCaptureState(app *app) *captureState {
 	return state
 }
 
-func (s *captureState) enter(args ...any) {
-	s.btn = args[0].(input.PaddleButton)
-	s.idxpreset = args[1].(int)
+type captureArgs struct {
+	btn       input.PaddleButton
+	idxpreset int
+}
+
+func (s *captureState) enter(arg any) {
+	cargs := arg.(captureArgs)
+	s.btn = cargs.btn
+	s.idxpreset = cargs.idxpreset
 
 	modUI.InfoZ("Capture state entered").End()
 }
@@ -83,7 +89,7 @@ func (s *captureState) update() {
 	if code != nil {
 		s.assign(s.btn, s.idxpreset, *code)
 		s.app.savecfg()
-		s.app.setState("config")
+		s.app.setState("config", nil)
 	}
 
 	s.ui.Update()

@@ -37,7 +37,7 @@ func newRunningState(app *app) *runningState {
 	return s
 }
 
-func (s *runningState) enter(...any) {
+func (s *runningState) enter(_ any) {
 	s.setShader(s.app.cfg.Video.Shader)
 }
 
@@ -50,7 +50,7 @@ func (s *runningState) update() {
 	}
 
 	if s.inputhandler.ActionIsJustPressed(actionPauseEmulator) {
-		s.app.setState("paused")
+		s.app.setState("paused", nil)
 	} else if s.inputhandler.ActionIsJustPressed(actionResetEmulator) {
 		s.emulator.Reset()
 	} else if s.inputhandler.ActionIsJustPressed(actionToggleShaderUI) {
@@ -65,7 +65,7 @@ func (s *runningState) draw(screen *ebiten.Image) {
 			s.shouldQuit = false
 			s.emulator.Stop()
 			<-s.framech // discard frame
-			s.app.setState("main")
+			s.app.setState("main", nil)
 			return
 		}
 

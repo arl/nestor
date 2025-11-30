@@ -24,20 +24,27 @@ func newConfigState(app *app) *configState {
 	return state
 }
 
-func (s *configState) enter(args ...any) {
-	if len(args) >= 1 {
-		switch args[0] {
-		case "input":
-			s.startPage = 0
-		case "video":
-			s.startPage = 1
-		case "emulation":
-			s.startPage = 2
-		default:
-			s.startPage = 0
-		}
+type configPageDest string
+
+func (s *configState) enter(arg any) {
+	dst, ok := arg.(configPageDest)
+	if !ok {
+		return
+	}
+
+	switch dst {
+	case "input":
+		s.startPage = 0
+	case "video":
+		s.startPage = 1
+	case "emulation":
+		s.startPage = 2
+	default:
+		modUI.WarnZ("unknown config page destination").String("dst", string(dst)).End()
+		s.startPage = 0
 	}
 }
+
 func (s *configState) exit() {}
 
 func (s *configState) update() {
@@ -122,7 +129,7 @@ func (s *configState) createUI() {
 		widget.ButtonOpts.TextPadding(res.button.padding),
 		widget.ButtonOpts.Image(res.button.image),
 		widget.ButtonOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.app.setState("main")
+			s.app.setState("main", nil)
 		}),
 		widget.ButtonOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{

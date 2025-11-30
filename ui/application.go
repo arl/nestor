@@ -24,15 +24,7 @@ type state interface {
 	createUI()
 	update()
 	draw(screen *ebiten.Image)
-	enter(...any)
-	exit()
-}
-
-type appState interface {
-	createUI()
-	update()
-	draw(screen *ebiten.Image)
-	enter(...any)
+	enter(arg any)
 	exit()
 }
 
@@ -96,7 +88,7 @@ func (app *app) exit() {
 // setState defines the new application state, calling exit on the current and
 // enter on the new one. Not re-entrant. Args are passed to the enter function
 // of the new state.
-func (app *app) setState(name string, args ...any) {
+func (app *app) setState(name string, arg any) {
 	modUI.InfoZ("Switching to state").String("to", name).End()
 	if app.curstate != nil {
 		app.curstate.exit()
@@ -107,7 +99,7 @@ func (app *app) setState(name string, args ...any) {
 		return
 	}
 	app.curstate = to
-	app.curstate.enter(args...)
+	app.curstate.enter(arg)
 	app.curstate.createUI()
 }
 
@@ -191,7 +183,7 @@ func (app *app) runRom(romPath string) error {
 
 	ebiten.SetVsyncEnabled(!app.cfg.Video.DisableVSync)
 
-	app.setState("running")
+	app.setState("running", nil)
 
 	go func() {
 		defer func() {

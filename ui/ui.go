@@ -51,12 +51,12 @@ func entrypoint(ctx context.Context, cfg config.Config, romPath string) error {
 	app := newApp(ctx, samples, audioctx, cfg)
 
 	if romPath != "" {
-		app.setState("running")
+		app.setState("running", nil)
 		if err := app.runRom(romPath); err != nil {
 			return fmt.Errorf("can't run rom: %w", err)
 		}
 	} else {
-		app.setState("main")
+		app.setState("main", nil)
 	}
 
 	options := &ebiten.RunGameOptions{

@@ -39,7 +39,7 @@ func newMainState(app *app) *mainState {
 	return state
 }
 
-func (s *mainState) enter(...any) {
+func (s *mainState) enter(_ any) {
 	s.roms = loadRecentROMs()
 }
 
@@ -69,13 +69,13 @@ func buildMenu(s *mainState) *widget.Container {
 		app.exit()
 	})
 	menu.settingsInput.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", "input")
+		app.setState("config", configPageDest("input"))
 	})
 	menu.settingsVideo.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", "video")
+		app.setState("config", configPageDest("video"))
 	})
 	menu.settingsEmulation.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", "emulation")
+		app.setState("config", configPageDest("emulation"))
 	})
 
 	s.menu = menu
@@ -86,7 +86,7 @@ func (s *mainState) startROM() {
 	path := s.roms[s.selidx].Path
 	modUI.InfoZ("selected ROM").String("path", path).End()
 	if err := s.runRom(path); err == nil {
-		s.setState("running")
+		s.setState("running", nil)
 	} else {
 		modUI.ErrorZ("failed to run ROM").String("path", path).Error("err", err).End()
 	}

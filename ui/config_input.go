@@ -169,7 +169,7 @@ func (s *configState) inputConfigPage() *page {
 		cells:      cells,
 		layoutData: widget.RowLayoutData{Stretch: true},
 		onClick: func(i, j int) {
-			s.app.setState("capture", buttons[i], s.presetidx)
+			s.app.setState("capture", captureArgs{buttons[i], s.presetidx})
 		},
 	}
 
