@@ -38,7 +38,7 @@ func (s *captureState) enter(inputh *einput.Handler, arg any) {
 	s.idxpreset = cargs.idxpreset
 	s.inputh = inputh
 
-	modUI.InfoZ("Capture state entered").End()
+	modUI.InfoZ("Capture state entered").String("mode", string(s.args.mode)).End()
 }
 
 func (s *captureState) exit() {}
