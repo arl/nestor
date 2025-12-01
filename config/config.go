@@ -16,7 +16,6 @@ import (
 )
 
 type General struct {
-	ShowSplash        bool             `toml:"show_splash"`
 	FileLoadStartDir  string           `toml:"file_load_start_dir"`
 	KeyboardShortcuts keymap.Shortcuts `toml:"keyboard_shortcuts"`
 }
@@ -69,7 +68,6 @@ var defaultConfig = Config{
 		TraceOut: nil,
 	},
 	General: General{
-		ShowSplash:        true,
 		KeyboardShortcuts: keymap.DefaultShortcuts,
 	},
 }
