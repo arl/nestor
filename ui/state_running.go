@@ -6,13 +6,12 @@ import (
 	"slices"
 	"time"
 
-	"nestor/ui/shader"
-
 	"github.com/ebitengine/debugui"
 	"github.com/hajimehoshi/ebiten/v2"
 	einput "github.com/quasilyte/ebitengine-input"
 
 	"nestor/ui/keymap"
+	"nestor/ui/shader"
 )
 
 type runningState struct {
