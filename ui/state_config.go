@@ -86,6 +86,7 @@ func (s *configState) createUI() {
 			widget.GridLayoutOpts.Spacing(20, 0))))
 
 	pages := []any{
+		s.generalConfigPage(),
 		s.inputConfigPage(),
 		s.videoConfigPage(),
 		s.emulationConfigPage(),

@@ -109,7 +109,7 @@ func LoadOrDefault() Config {
 		}
 	}
 
-	// Apply post-load operations (fix invalid values, etc).
+	// Apply post-load operations (default or invalid values)
 	cfg.General.KeyboardShortcuts.Apply()
 	cfg.Video.Check()
 	cfg.Emulation.Check()

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"nestor/hw/input"
-
 	"github.com/ebitenui/ebitenui/widget"
+
+	"nestor/hw/input"
 )
 
 func (s *configState) inputConfigPage() *page {
@@ -169,7 +169,7 @@ func (s *configState) inputConfigPage() *page {
 		cells:      cells,
 		layoutData: widget.RowLayoutData{Stretch: true},
 		onClick: func(i, j int) {
-			s.app.setState("capture", captureArgs{buttons[i], s.presetidx})
+			s.app.setState("capture", captureArgs{mode: captureModeNes, btn: buttons[i], idxpreset: s.presetidx})
 		},
 	}
 

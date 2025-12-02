@@ -73,6 +73,9 @@ func buildMenu(s *mainState) *widget.Container {
 	menu.fileQuit.ClickedEvent.AddHandler(func(args any) {
 		app.exit()
 	})
+	menu.settingsGeneral.ClickedEvent.AddHandler(func(args any) {
+		app.setState("config", configPageDest("general"))
+	})
 	menu.settingsInput.ClickedEvent.AddHandler(func(args any) {
 		app.setState("config", configPageDest("input"))
 	})
@@ -127,6 +130,10 @@ func (s *mainState) handleMenuShortcuts() {
 		s.menu.fileOpen.Click()
 	} else if s.inputh.ActionIsJustPressed(keymap.ActionFileQuit) {
 		s.menu.fileQuit.Click()
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenGeneralConfig) {
+		s.menu.settingsGeneral.Click()
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig) {
+		s.menu.settingsVideo.Click()
 	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig) {
 		s.menu.settingsVideo.Click()
 	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenInputConfig) {

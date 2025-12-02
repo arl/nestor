@@ -16,6 +16,7 @@ const (
 	// Menu actions (main state)
 	ActionFileOpenROM
 	ActionFileQuit
+	ActionSettingsOpenGeneralConfig
 	ActionSettingsOpenVideoConfig
 	ActionSettingsOpenInputConfig
 	ActionSettingsOpenEmulationConfig
@@ -34,6 +35,7 @@ const (
 	IDGlobalToggleFullscreen          = "global.toggle_fullscreen"
 	IDMenuFileOpenROM                 = "menu.file_open_rom"
 	IDMenuFileQuit                    = "menu.file_quit"
+	IDMenuSettingsOpenGeneralConfig   = "menu.settings_open_general_config"
 	IDMenuSettingsOpenVideoConfig     = "menu.settings_open_video_config"
 	IDMenuSettingsOpenInputConfig     = "menu.settings_open_input_config"
 	IDMenuSettingsOpenEmulationConfig = "menu.settings_open_emulation_config"
@@ -75,6 +77,7 @@ var actionRegistry = map[string]struct {
 	IDGlobalToggleFullscreen:          {ActionToggleFullscreen, GlobalKeymap},
 	IDMenuFileOpenROM:                 {ActionFileOpenROM, MenuKeymap},
 	IDMenuFileQuit:                    {ActionFileQuit, MenuKeymap},
+	IDMenuSettingsOpenGeneralConfig:   {ActionSettingsOpenGeneralConfig, MenuKeymap},
 	IDMenuSettingsOpenVideoConfig:     {ActionSettingsOpenVideoConfig, MenuKeymap},
 	IDMenuSettingsOpenInputConfig:     {ActionSettingsOpenInputConfig, MenuKeymap},
 	IDMenuSettingsOpenEmulationConfig: {ActionSettingsOpenEmulationConfig, MenuKeymap},
@@ -104,6 +107,7 @@ var DefaultShortcuts = Shortcuts{
 	IDGlobalToggleFullscreen:          "f11",
 	IDMenuFileOpenROM:                 "ctrl+o",
 	IDMenuFileQuit:                    "ctrl+q",
+	IDMenuSettingsOpenGeneralConfig:   "ctrl+g",
 	IDMenuSettingsOpenVideoConfig:     "ctrl+v",
 	IDMenuSettingsOpenInputConfig:     "ctrl+i",
 	IDMenuSettingsOpenEmulationConfig: "ctrl+e",
