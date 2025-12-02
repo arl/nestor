@@ -60,16 +60,20 @@ type Emulator struct {
 	out *Output
 	cfg EmulationConfig
 
-	// These are accessed concurrently by the emulator loop and the UI.
-	quit    atomic.Bool
-	paused  atomic.Bool
-	reset   atomic.Bool
-	restart atomic.Bool
-
-	blockch chan struct{}
+	// Loop can be concurrently controlled by the emulator and ui.
+	loopstate atomic.Uint64
+	blockch   chan struct{}
 
 	tmpdir string
 }
+
+const (
+	loopstateRunning uint64 = iota
+	loopstateQuit
+	loopstateBlock
+	loopstateReset
+	loopstateRestart
+)
 
 // Launch starts the various hardware subsystems, shows the window, setups the
 // video and audio streams and plugs controllers. It doesn't start the emulation
@@ -141,14 +145,30 @@ func (e *Emulator) RunFrameWithRunAhead() {
 }
 
 func (e *Emulator) Run() {
-	for !e.shouldStop() {
-		if e.isPaused() {
-			<-e.blockch
-		} else {
+	for !e.NES.CPU.IsHalted() {
+		switch e.loopstate.Load() {
+		case loopstateRunning:
 			e.RunOneFrame()
+		case loopstateQuit:
+			goto loopEnd
+		case loopstateBlock:
+			<-e.blockch
+		case loopstateReset:
+			e.loopstate.Store(loopstateRunning)
+			log.ModEmu.InfoZ("Performing soft reset").End()
+			frame := e.out.BeginFrame()
+			e.NES.RunResetFrame(&frame, true)
+			e.out.EndFrame(&frame)
+		case loopstateRestart:
+			e.loopstate.Store(loopstateRunning)
+			log.ModEmu.InfoZ("Performing hard reset").End()
+			frame := e.out.BeginFrame()
+			e.NES.RunResetFrame(&frame, false)
+			e.out.EndFrame(&frame)
 		}
-		e.handleReset()
 	}
+
+loopEnd:
 
 	log.ModEmu.InfoZ("Emulation loop exited").End()
 
@@ -157,43 +177,19 @@ func (e *Emulator) Run() {
 	}
 }
 
-func (e *Emulator) handleReset() {
-	if e.reset.CompareAndSwap(true, false) {
-		log.ModEmu.InfoZ("Performing soft reset").End()
-		frame := e.out.BeginFrame()
-		e.NES.RunResetFrame(&frame, true)
-		e.out.EndFrame(&frame)
-	} else if e.restart.CompareAndSwap(true, false) {
-		log.ModEmu.InfoZ("Performing hard reset").End()
-		frame := e.out.BeginFrame()
-		e.NES.RunResetFrame(&frame, false)
-		e.out.EndFrame(&frame)
-	}
-}
+// Block, Unblock, Reset, Restart and Stop are all safe for concurrent use.
 
-// Block, Resume, Reset, Restart and Stop allow to control
-// the emulator loop in a concurrent-safe way.
-
-func (e *Emulator) Block()   { e.paused.Store(true) }
-func (e *Emulator) Reset()   { e.reset.Store(true) }
-func (e *Emulator) Restart() { e.restart.Store(true) }
-func (e *Emulator) Stop()    { e.quit.Store(true) }
-
-func (e *Emulator) Resume() {
-	e.paused.Store(false)
+func (e *Emulator) Reset()   { e.loopstate.Store(loopstateReset) }
+func (e *Emulator) Restart() { e.loopstate.Store(loopstateRestart) }
+func (e *Emulator) Stop()    { e.loopstate.Store(loopstateQuit) }
+func (e *Emulator) Block()   { e.loopstate.Store(loopstateBlock) }
+func (e *Emulator) Unblock() {
+	e.loopstate.Store(loopstateRunning)
 	select {
 	case e.blockch <- struct{}{}:
 	default:
-		// avoid deadlock if we're not waiting blocked
+		// avoid deadlock if we were not blocked
 	}
-}
-
-func (e *Emulator) isPaused() bool {
-	return e.paused.Load()
-}
-
-func (e *Emulator) shouldStop() bool {
-	return e.quit.Load() || e.NES.CPU.IsHalted()
 }
 
 func (e *Emulator) save() {

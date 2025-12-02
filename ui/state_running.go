@@ -60,20 +60,6 @@ func (s *runningState) update() {
 }
 
 func (s *runningState) draw(screen *ebiten.Image) {
-	if s.paused {
-		if s.shouldQuit {
-			s.paused = false
-			s.shouldQuit = false
-			s.emulator.Stop()
-			<-s.framech // discard frame
-			s.app.setState("main", nil)
-			return
-		}
-
-		s.ui.Draw(screen)
-		return
-	}
-
 	// retrieve frame
 	frame := <-s.framech
 

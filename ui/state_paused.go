@@ -46,20 +46,20 @@ func (s *pausedState) draw(screen *ebiten.Image) {
 }
 
 func (s *pausedState) onResume() {
-	s.emulator.Resume()
+	s.emulator.Unblock()
 	s.app.setState("running", nil)
 	s.audioPlayer.Play()
 }
 
 func (s *pausedState) onReset() {
-	s.emulator.Resume()
+	s.emulator.Unblock()
 	s.emulator.Reset()
 	s.app.setState("running", nil)
 	s.audioPlayer.Play()
 }
 
 func (s *pausedState) onReload() {
-	s.emulator.Resume()
+	s.emulator.Unblock()
 	s.emulator.Restart()
 	s.app.setState("running", nil)
 	s.audioPlayer.Play()
