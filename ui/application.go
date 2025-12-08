@@ -70,8 +70,6 @@ func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, c
 		DevicesEnabled: einput.AnyDevice,
 	})
 
-	app.handler = app.inputsys.NewHandler(0, keymap.GlobalKeymap)
-
 	app.states["running"] = stateDef{state: newRunningState(app), keymap: keymap.RunningKeymap}
 	app.states["paused"] = stateDef{state: newPausedState(app), keymap: keymap.PausedKeymap}
 	app.states["main"] = stateDef{state: newMainState(app), keymap: keymap.MenuKeymap}
@@ -144,6 +142,11 @@ func (app *app) Update() error {
 
 	app.curstate.update()
 	return nil
+}
+
+// disableInputHandler disables input handler for current state's lifetime.
+func (app *app) disableInputHandler() {
+	app.handler = app.inputsys.NewHandler(0, nil)
 }
 
 func (app *app) Draw(screen *ebiten.Image) {

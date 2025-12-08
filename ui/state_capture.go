@@ -47,6 +47,9 @@ type captureArgs struct {
 }
 
 func (s *captureState) enter(inputh *einput.Handler, arg any) {
+	// Disable input handler to prevent it from catching events
+	// generated during capture.
+	s.app.disableInputHandler()
 	s.args = ptrTo(arg.(captureArgs))
 	s.inputh = inputh
 
@@ -74,8 +77,12 @@ func (s *captureState) captureForUI() {
 		return
 	}
 
-	s.app.cfg.General.KeyboardShortcuts[s.args.action] = keymap.Shortcut(k.String())
-	s.app.savecfg()
+	if k != einput.KeyEscape {
+		s.app.cfg.General.KeyboardShortcuts[s.args.action] = keymap.Shortcut(k.String())
+		s.app.cfg.General.KeyboardShortcuts.Apply()
+		s.app.savecfg()
+	}
+
 	s.app.setState("config", nil)
 }
 
