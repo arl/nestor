@@ -4,7 +4,7 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 )
 
-type Table struct {
+type PropertyList struct {
 	*widget.Container
 }
 
@@ -16,66 +16,75 @@ const (
 	RightAlign  ColumnAlignment = widget.AnchorLayoutPositionEnd
 )
 
+// Property list colors - using theme-consistent colors for better readability
 const (
-	headerCellColor = widgetDisabledColor
-	tableCellColor  = listSelectedBackground
-	cellBorderWidth = 1
-	cellBorderColor = 0x000000
+	propertyListHeaderBg    = 0x2a3944   // darker header background, same as listFocusedBackground
+	propertyListCellBg      = panelColor // same as panel background for consistency
+	propertyListBorderColor = 0x3a4a5a   // subtle border color
+	propertyListBorderWidth = 1
 )
 
-type cell struct {
-	text      string
+type property struct {
+	key       string
+	value     string
 	clickable bool
 }
 
-type tableConfig struct {
+type propertyListConfig struct {
 	headers    []string
-	cells      [][]cell
+	properties []property
 	layoutData any
-	onClick    func(i, j int)
+	onClick    func(i int)
 }
 
-func newStaticTable(cfg tableConfig) *Table {
-	numcols := len(cfg.headers)
-	for _, row := range cfg.cells {
-		if len(row) != numcols {
-			panic("inconsistent number of columns in table rows")
-		}
+func newPropertyList(cfg propertyListConfig) *PropertyList {
+	if len(cfg.headers) != 2 {
+		panic("property list requires exactly 2 headers (key and value)")
 	}
 
 	root := widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(cfg.layoutData),
-			widget.WidgetOpts.MinSize(280, 0),
+			widget.WidgetOpts.MinSize(320, 0),
 		),
+		// Use the container background as the border color
+		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(propertyListBorderColor)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
-			widget.GridLayoutOpts.Columns(numcols),
+			widget.GridLayoutOpts.Columns(2),
 			widget.GridLayoutOpts.DefaultStretch(true, false),
-			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(2)))))
+			// Add padding for the outer border
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(propertyListBorderWidth)),
+			// Add spacing for the inner borders
+			widget.GridLayoutOpts.Spacing(propertyListBorderWidth, propertyListBorderWidth))))
 
-	// Table headers
-	for _, header := range cfg.headers {
-		root.AddChild(headerCell(header))
+	// Headers
+	for i, header := range cfg.headers {
+		isValueColumn := i == 1
+		root.AddChild(propertyHeaderCell(header, isValueColumn))
 	}
 
-	for irow, row := range cfg.cells {
-		for icell, cell := range row {
-			var handler func(args *MouseClickArgs)
-			if cell.clickable && cfg.onClick != nil {
-				handler = func(args *MouseClickArgs) {
-					cfg.onClick(irow, icell)
-				}
+	// Properties (key-value pairs)
+	for idx, prop := range cfg.properties {
+		var handler func(args *MouseClickArgs)
+		if prop.clickable && cfg.onClick != nil {
+			idx := idx // capture for closure
+			handler = func(args *MouseClickArgs) {
+				cfg.onClick(idx)
 			}
-			root.AddChild(tableCell(cell.text, handler))
 		}
+		// Key cell (left-aligned)
+		root.AddChild(propertyKeyCell(prop.key))
+		// Value cell (centered, clickable)
+		root.AddChild(propertyValueCell(prop.value, handler))
 	}
 
-	return &Table{Container: root}
+	return &PropertyList{Container: root}
 }
 
-func headerCell(text string) *widget.Container {
-	padding := widget.Insets{Bottom: 10}
+func propertyHeaderCell(text string, isValueColumn bool) *widget.Container {
+	padding := widget.Insets{Top: 8, Bottom: 8, Left: 12, Right: 12}
 
+	// Both header cells are centered
 	label := widget.NewLabel(
 		widget.LabelOpts.Text(text, res.fonts.boldFace, res.label.text),
 		widget.LabelOpts.LabelPadding(&padding),
@@ -90,7 +99,7 @@ func headerCell(text string) *widget.Container {
 				}))))
 
 	cellContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(nineSliceBorderFromHex(cellBorderWidth, cellBorderColor, headerCellColor)),
+		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(propertyListHeaderBg)),
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.GridLayoutData{
 			HorizontalPosition: widget.GridLayoutPositionCenter,
@@ -101,30 +110,25 @@ func headerCell(text string) *widget.Container {
 	return cellContainer
 }
 
-func tableCell(text string, onclick func(*MouseClickArgs)) *widget.Container {
-	widgetOpts := []widget.WidgetOpt{
-		widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-			StretchHorizontal:  true,
-			HorizontalPosition: widget.AnchorLayoutPositionCenter,
-		})}
+// propertyKeyCell creates a left-aligned cell for the property key
+func propertyKeyCell(text string) *widget.Container {
+	padding := widget.Insets{Top: 6, Bottom: 6, Left: 12, Right: 12}
 
-	if onclick != nil {
-		widgetOpts = append(widgetOpts, widget.WidgetOpts.MouseButtonClickedHandler(onclick))
-	}
-
-	textinput := widget.NewTextInput(
-		widget.TextInputOpts.Face(res.fonts.face),
-		widget.TextInputOpts.Padding(res.textInput.padding),
-		widget.TextInputOpts.Color(res.textInput.color),
-		widget.TextInputOpts.Placeholder("<unset>"),
-		widget.TextInputOpts.WidgetOpts(widgetOpts...))
-
-	textinput.SetText(text)
-	textinput.GetWidget().CustomData = textinput
-	textinput.GetWidget().Disabled = true
+	label := widget.NewLabel(
+		widget.LabelOpts.Text(text, res.fonts.face, res.label.text),
+		widget.LabelOpts.LabelPadding(&padding),
+		widget.LabelOpts.TextOpts(
+			widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+			widget.TextOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+					StretchHorizontal:  true,
+					StretchVertical:    true,
+					HorizontalPosition: widget.AnchorLayoutPositionStart,
+					VerticalPosition:   widget.AnchorLayoutPositionCenter,
+				}))))
 
 	cellContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(nineSliceBorderFromHex(cellBorderWidth, cellBorderColor, tableCellColor)),
+		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(propertyListCellBg)),
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
@@ -132,6 +136,56 @@ func tableCell(text string, onclick func(*MouseClickArgs)) *widget.Container {
 				VerticalPosition:   widget.GridLayoutPositionCenter,
 			})))
 
-	cellContainer.AddChild(textinput)
+	cellContainer.AddChild(label)
+	return cellContainer
+}
+
+// propertyValueCell creates a centered cell for the property value, optionally clickable
+func propertyValueCell(text string, onclick func(*MouseClickArgs)) *widget.Container {
+	padding := widget.Insets{Top: 6, Bottom: 6, Left: 12, Right: 12}
+
+	widgetOpts := []widget.WidgetOpt{
+		widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+			StretchHorizontal:  true,
+			StretchVertical:    true,
+			HorizontalPosition: widget.AnchorLayoutPositionCenter,
+			VerticalPosition:   widget.AnchorLayoutPositionCenter,
+		})}
+
+	// Make the cell visually interactive if clickable
+	var cellBg uint32 = propertyListCellBg
+	if onclick != nil {
+		widgetOpts = append(widgetOpts, widget.WidgetOpts.MouseButtonClickedHandler(onclick))
+		cellBg = listSelectedBackground // slightly different background for interactive cells
+	}
+
+	// Display placeholder for empty values
+	displayText := text
+	labelColor := res.label.text
+	if displayText == "" {
+		displayText = "<click to set>"
+		labelColor = &widget.LabelColor{
+			Idle:     hex2color(textDisabledColor),
+			Disabled: hex2color(textDisabledColor),
+		}
+	}
+
+	label := widget.NewLabel(
+		widget.LabelOpts.Text(displayText, res.fonts.face, labelColor),
+		widget.LabelOpts.LabelPadding(&padding),
+		widget.LabelOpts.TextOpts(
+			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
+			widget.TextOpts.WidgetOpts(widgetOpts...)))
+
+	cellContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(ninesliceFromHex(cellBg)),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+				HorizontalPosition: widget.GridLayoutPositionCenter,
+				VerticalPosition:   widget.GridLayoutPositionCenter,
+			})))
+
+	cellContainer.AddChild(label)
 	return cellContainer
 }
