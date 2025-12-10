@@ -37,12 +37,14 @@ func (s *configState) enter(inputh *einput.Handler, arg any) {
 	}
 
 	switch dst {
-	case "input":
+	case "general":
 		s.startPage = 0
-	case "video":
+	case "input":
 		s.startPage = 1
-	case "emulation":
+	case "video":
 		s.startPage = 2
+	case "emulation":
+		s.startPage = 3
 	default:
 		modUI.WarnZ("unknown config page destination").String("dst", string(dst)).End()
 		s.startPage = 0

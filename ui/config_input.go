@@ -56,6 +56,7 @@ func (s *configState) inputConfigPage() *page {
 	// preset selection block.
 	presetPaddlesBlock := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Padding(&widget.Insets{Top: 20}),
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
 			widget.RowLayoutOpts.Spacing(spacing))))
 

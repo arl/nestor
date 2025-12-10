@@ -41,7 +41,7 @@ func newPlist(cfg plistConfig) *plist {
 		panic("property list requires exactly 2 headers (key and value)")
 	}
 
-	padding := widget.Insets{Top: 2, Bottom: 10, Left: 8, Right: 8}
+	padding := widget.Insets{Top: 0, Bottom: 6, Left: 8, Right: 8}
 	cellbg := ninesliceFromHex(propertyListCellBg)
 	headerbg := ninesliceFromHex(propertyListHeaderBg)
 	inset1 := widget.NewInsetsSimple(1)
