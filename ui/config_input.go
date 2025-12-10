@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"nestor/hw/input"
-
 	"github.com/ebitenui/ebitenui/widget"
+
+	"nestor/hw/input"
 )
 
 func (s *configState) inputConfigPage() *page {
@@ -56,6 +56,7 @@ func (s *configState) inputConfigPage() *page {
 	// preset selection block.
 	presetPaddlesBlock := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Padding(&widget.Insets{Top: 20}),
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
 			widget.RowLayoutOpts.Spacing(spacing))))
 
@@ -109,17 +110,15 @@ func (s *configState) inputConfigPage() *page {
 			},
 			onPresetChanged(1)))
 
-	// 2nd line.
+	// 2nd line - preset configuration and button assignments
 	line2 := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
-			widget.RowLayoutOpts.Spacing(spacing*5))))
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(spacing))))
 
 	// currently configured preset.
-	var currentPresetCombo *Combobox
-	currentPresetCombo = newCombobox(presets, s.presetidx, widget.RowLayoutData{
-		MaxWidth: 200,
-	}, func(idx int) {
+	var currentPresetCombo *combobox
+	currentPresetCombo = newCombobox(presets, s.presetidx, widget.RowLayoutData{}, func(idx int) {
 		modUI.InfoZ("changed current preset").Int("preset", idx).End()
 		s.presetidx = idx
 		s.createUI()
@@ -127,18 +126,13 @@ func (s *configState) inputConfigPage() *page {
 
 	currentPresetBlock := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(10),
 		)))
 
 	currentPresetBlock.AddChild(
 		widget.NewLabel(
-			widget.LabelOpts.Text("Configuring preset:", res.label.face, res.label.text),
-			widget.LabelOpts.LabelPadding(&widget.Insets{Top: 5, Left: 10}),
-			widget.LabelOpts.TextOpts(widget.TextOpts.WidgetOpts(
-				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
-					HorizontalPosition: widget.GridLayoutPositionEnd,
-					VerticalPosition:   widget.GridLayoutPositionCenter,
-				})))),
+			widget.LabelOpts.Text("Configuring preset:", res.label.face, res.label.text)),
 		currentPresetCombo,
 	)
 
@@ -156,36 +150,33 @@ func (s *configState) inputConfigPage() *page {
 		input.PadRight,
 	}
 
-	cells := make([][]cell, len(buttons))
+	properties := make([]property, len(buttons))
 	for i, btn := range buttons {
-		cells[i] = []cell{
-			{text: strings.ToUpper(btn.String())},
-			{text: codes[btn].Name(), clickable: true},
+		properties[i] = property{
+			key:   strings.ToUpper(btn.String()),
+			value: codes[btn].Name(),
 		}
 	}
 
-	tablecfg := tableConfig{
+	listcfg := plistConfig{
 		headers:    []string{"Button", "Assigned to"},
-		cells:      cells,
-		layoutData: widget.RowLayoutData{Stretch: true},
-		onClick: func(i, j int) {
-			s.app.setState("capture", buttons[i], s.presetidx)
+		properties: properties,
+		onClick: func(i int) {
+			s.app.setState("capture", captureArgs{mode: captureModeNes, btn: buttons[i], idxpreset: s.presetidx})
 		},
 	}
 
-	buttonsTable := newStaticTable(tablecfg)
+	buttonsTable := newPlist(listcfg)
 
-	line2.AddChild(currentPresetBlock, buttonsTable)
+	helpLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Click on a button assignment to change it.", res.label.face, res.label.text))
 
-	bottomlabel := widget.NewLabel(
-		widget.LabelOpts.Text("Click in the table to define mappings", res.label.face, res.label.text),
-		widget.LabelOpts.LabelPadding(&widget.Insets{Left: 275}))
+	line2.AddChild(currentPresetBlock, helpLabel, buttonsTable)
 
 	c.AddChild(
 		line1,
 		newSeparator(widget.RowLayoutData{Stretch: true}),
 		line2,
-		bottomlabel,
 	)
 
 	return &page{title: "Input", content: c}

@@ -52,18 +52,6 @@ func byteSliceFromInt16(arr []int16) []uint8 {
 	return unsafe.Slice((*uint8)(unsafe.Pointer(unsafe.SliceData(arr))), len(arr)*2)
 }
 
-func resizeImage(src *ebiten.Image, w, h float64) *ebiten.Image {
-	sw, sh := src.Bounds().Dx(), src.Bounds().Dy()
-	scaleX := w / float64(sw)
-	scaleY := h / float64(sh)
-
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(scaleX, scaleY)
-	dst := ebiten.NewImage(int(w), int(h))
-	dst.DrawImage(src, op)
-	return dst
-}
-
 // filImage ensures the returned image has the given width, scaling it if
 // necessary to fit. The height is adjusted to maintain the original aspect
 // ratio.

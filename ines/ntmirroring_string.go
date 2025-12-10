@@ -19,9 +19,9 @@ const _NTMirroring_name = "HorzMirroringVertMirroringOnlyAScreenOnlyBScreen"
 var _NTMirroring_index = [...]uint8{0, 13, 26, 37, 48}
 
 func (i NTMirroring) String() string {
-	i -= 1
-	if i < 0 || i >= NTMirroring(len(_NTMirroring_index)-1) {
-		return "NTMirroring(" + strconv.FormatInt(int64(i+1), 10) + ")"
+	idx := int(i) - 1
+	if i < 1 || idx >= len(_NTMirroring_index)-1 {
+		return "NTMirroring(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _NTMirroring_name[_NTMirroring_index[i]:_NTMirroring_index[i+1]]
+	return _NTMirroring_name[_NTMirroring_index[idx]:_NTMirroring_index[idx+1]]
 }

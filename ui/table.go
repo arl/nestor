@@ -1,137 +1,146 @@
 package ui
 
 import (
+	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 )
 
-type Table struct {
+type textAlignment = widget.TextPosition
+
+const (
+	alignStart  textAlignment = widget.TextPositionStart
+	alignCenter textAlignment = widget.TextPositionCenter
+	alignEnd    textAlignment = widget.TextPositionEnd
+)
+
+type mouseClickArgs = widget.WidgetMouseButtonClickedEventArgs
+
+const (
+	propertyListHeaderBg    = 0x2a3944   // darker header background, same as listFocusedBackground
+	propertyListCellBg      = panelColor // same as panel background for consistency
+	propertyListBorderColor = 0x3a4a5a   // subtle border color
+)
+
+type property struct {
+	key   string
+	value string
+}
+
+type plist struct {
 	*widget.Container
 }
 
-type ColumnAlignment = widget.AnchorLayoutPosition
-
-const (
-	LeftAlign   ColumnAlignment = widget.AnchorLayoutPositionStart
-	CenterAlign ColumnAlignment = widget.AnchorLayoutPositionCenter
-	RightAlign  ColumnAlignment = widget.AnchorLayoutPositionEnd
-)
-
-const (
-	headerCellColor = widgetDisabledColor
-	tableCellColor  = listSelectedBackground
-	cellBorderWidth = 1
-	cellBorderColor = 0x000000
-)
-
-type cell struct {
-	text      string
-	clickable bool
-}
-
-type tableConfig struct {
+type plistConfig struct {
 	headers    []string
-	cells      [][]cell
-	layoutData any
-	onClick    func(i, j int)
+	properties []property
+	onClick    func(i int)
 }
 
-func newStaticTable(cfg tableConfig) *Table {
-	numcols := len(cfg.headers)
-	for _, row := range cfg.cells {
-		if len(row) != numcols {
-			panic("inconsistent number of columns in table rows")
+func newPlist(cfg plistConfig) *plist {
+	if len(cfg.headers) != 2 {
+		panic("property list requires exactly 2 headers (key and value)")
+	}
+
+	padding := widget.Insets{Top: 0, Bottom: 6, Left: 8, Right: 8}
+	cellbg := ninesliceFromHex(propertyListCellBg)
+	headerbg := ninesliceFromHex(propertyListHeaderBg)
+	inset1 := widget.NewInsetsSimple(1)
+	cellld := widget.AnchorLayoutData{
+		StretchHorizontal:  true,
+		StretchVertical:    true,
+		HorizontalPosition: widget.AnchorLayoutPositionCenter,
+		VerticalPosition:   widget.AnchorLayoutPositionCenter,
+	}
+
+	makecol := func() *widget.Container {
+		return widget.NewContainer(
+			// Use the container background as the border color
+			widget.ContainerOpts.BackgroundImage(ninesliceFromHex(propertyListBorderColor)),
+			widget.ContainerOpts.Layout(widget.NewGridLayout(
+				widget.GridLayoutOpts.Columns(1),
+				widget.GridLayoutOpts.DefaultStretch(true, true),
+				widget.GridLayoutOpts.Padding(inset1), // outer border
+				widget.GridLayoutOpts.Spacing(1, 1)))) // inner borders
+	}
+
+	makecellcontainer := func(bg *image.NineSlice) *widget.Container {
+		return widget.NewContainer(
+			widget.ContainerOpts.BackgroundImage(bg),
+			widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+			widget.ContainerOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+					HorizontalPosition: widget.GridLayoutPositionCenter,
+					VerticalPosition:   widget.GridLayoutPositionCenter,
+				})))
+	}
+
+	makeheader := func(text string) *widget.Container {
+		label := widget.NewLabel(
+			widget.LabelOpts.Text(text, res.fonts.boldFace, res.label.text),
+			widget.LabelOpts.LabelPadding(&padding),
+			widget.LabelOpts.TextOpts(
+				widget.TextOpts.Position(alignCenter, alignCenter),
+				widget.TextOpts.Padding(&widget.Insets{}),
+				widget.TextOpts.WidgetOpts(
+					widget.WidgetOpts.LayoutData(cellld))))
+
+		cell := makecellcontainer(headerbg)
+
+		cell.AddChild(label)
+		return cell
+	}
+
+	makecell := func(text string, align textAlignment, onclick func(*mouseClickArgs)) *widget.Container {
+		// Display placeholder for empty values
+		displayText := text
+		labelColor := res.label.text
+		if displayText == "" {
+			displayText = "<click to set>"
+			labelColor = &widget.LabelColor{
+				Idle:     hex2color(textDisabledColor),
+				Disabled: hex2color(textDisabledColor),
+			}
 		}
+
+		cell := makecellcontainer(cellbg)
+		cell.AddChild(widget.NewLabel(
+			widget.LabelOpts.Text(displayText, res.fonts.face, labelColor),
+			widget.LabelOpts.LabelPadding(&padding),
+			widget.LabelOpts.TextOpts(
+				widget.TextOpts.Position(align, alignCenter),
+				widget.TextOpts.WidgetOpts(
+					widget.WidgetOpts.MouseButtonClickedHandler(onclick),
+					widget.WidgetOpts.LayoutData(cellld),
+				))))
+		return cell
+	}
+
+	keys, values := makecol(), makecol()
+
+	// Headers
+	keys.AddChild(makeheader(cfg.headers[0]))
+	values.AddChild(makeheader(cfg.headers[1]))
+
+	for idx, prop := range cfg.properties {
+		var handler func(args *mouseClickArgs)
+		if cfg.onClick != nil {
+			idx := idx
+			handler = func(args *mouseClickArgs) {
+				cfg.onClick(idx)
+			}
+		}
+		keys.AddChild(makecell(prop.key, alignStart, handler))
+		values.AddChild(makecell(prop.value, alignCenter, handler))
 	}
 
 	root := widget.NewContainer(
-		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(cfg.layoutData),
-			widget.WidgetOpts.MinSize(280, 0),
-		),
-		widget.ContainerOpts.Layout(widget.NewGridLayout(
-			widget.GridLayoutOpts.Columns(numcols),
-			widget.GridLayoutOpts.DefaultStretch(true, false),
-			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(2)))))
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(0),
+		)),
+	)
 
-	// Table headers
-	for _, header := range cfg.headers {
-		root.AddChild(headerCell(header))
-	}
+	root.AddChild(keys, values)
 
-	for irow, row := range cfg.cells {
-		for icell, cell := range row {
-			var handler func(args *MouseClickArgs)
-			if cell.clickable && cfg.onClick != nil {
-				handler = func(args *MouseClickArgs) {
-					cfg.onClick(irow, icell)
-				}
-			}
-			root.AddChild(tableCell(cell.text, handler))
-		}
-	}
-
-	return &Table{Container: root}
-}
-
-func headerCell(text string) *widget.Container {
-	padding := widget.Insets{Bottom: 10}
-
-	label := widget.NewLabel(
-		widget.LabelOpts.Text(text, res.fonts.boldFace, res.label.text),
-		widget.LabelOpts.LabelPadding(&padding),
-		widget.LabelOpts.TextOpts(
-			widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter),
-			widget.TextOpts.WidgetOpts(
-				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-					StretchHorizontal:  true,
-					StretchVertical:    true,
-					HorizontalPosition: widget.AnchorLayoutPositionCenter,
-					VerticalPosition:   widget.AnchorLayoutPositionCenter,
-				}))))
-
-	cellContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(nineSliceBorderFromHex(cellBorderWidth, cellBorderColor, headerCellColor)),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.GridLayoutData{
-			HorizontalPosition: widget.GridLayoutPositionCenter,
-			VerticalPosition:   widget.GridLayoutPositionCenter,
-		})))
-
-	cellContainer.AddChild(label)
-	return cellContainer
-}
-
-func tableCell(text string, onclick func(*MouseClickArgs)) *widget.Container {
-	widgetOpts := []widget.WidgetOpt{
-		widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-			StretchHorizontal:  true,
-			HorizontalPosition: widget.AnchorLayoutPositionCenter,
-		})}
-
-	if onclick != nil {
-		widgetOpts = append(widgetOpts, widget.WidgetOpts.MouseButtonClickedHandler(onclick))
-	}
-
-	textinput := widget.NewTextInput(
-		widget.TextInputOpts.Face(res.fonts.face),
-		widget.TextInputOpts.Padding(res.textInput.padding),
-		widget.TextInputOpts.Color(res.textInput.color),
-		widget.TextInputOpts.Placeholder("<unset>"),
-		widget.TextInputOpts.WidgetOpts(widgetOpts...))
-
-	textinput.SetText(text)
-	textinput.GetWidget().CustomData = textinput
-	textinput.GetWidget().Disabled = true
-
-	cellContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(nineSliceBorderFromHex(cellBorderWidth, cellBorderColor, tableCellColor)),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
-				HorizontalPosition: widget.GridLayoutPositionStart,
-				VerticalPosition:   widget.GridLayoutPositionCenter,
-			})))
-
-	cellContainer.AddChild(textinput)
-	return cellContainer
+	return &plist{Container: root}
 }

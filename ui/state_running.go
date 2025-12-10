@@ -6,17 +6,19 @@ import (
 	"slices"
 	"time"
 
-	"nestor/ui/shader"
-
 	"github.com/ebitengine/debugui"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	einput "github.com/quasilyte/ebitengine-input"
+
+	"nestor/ui/keymap"
+	"nestor/ui/shader"
 )
 
 type runningState struct {
 	*app
 	paused  bool
 	elapsed int64 // elapsed seconds (for FPS display)
+	inputh  *einput.Handler
 
 	shader     *ebiten.Shader
 	debugui    debugui.DebugUI
@@ -35,7 +37,8 @@ func newRunningState(app *app) *runningState {
 	return s
 }
 
-func (s *runningState) enter(...any) {
+func (s *runningState) enter(hinput *einput.Handler, _ any) {
+	s.inputh = hinput
 	s.setShader(s.app.cfg.Video.Shader)
 }
 
@@ -47,34 +50,16 @@ func (s *runningState) update() {
 		s.shaderUI()
 	}
 
-	keys := make([]ebiten.Key, 0, 16)
-	for _, key := range inpututil.AppendJustPressedKeys(keys) {
-		switch key {
-		case ebiten.KeyEscape:
-			s.app.setState("paused")
-		case ebiten.KeyR:
-			s.emulator.Reset()
-		case ebiten.KeyF5:
-			s.shaderuiOn = !s.shaderuiOn
-		}
+	if s.inputh.ActionIsJustPressed(keymap.ActionPauseEmulator) {
+		s.app.setState("paused", nil)
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionResetEmulator) {
+		s.emulator.Reset()
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionToggleShaderUI) {
+		s.shaderuiOn = !s.shaderuiOn
 	}
 }
 
 func (s *runningState) draw(screen *ebiten.Image) {
-	if s.paused {
-		if s.shouldQuit {
-			s.paused = false
-			s.shouldQuit = false
-			s.emulator.Stop()
-			<-s.framech // discard frame
-			s.app.setState("main")
-			return
-		}
-
-		s.ui.Draw(screen)
-		return
-	}
-
 	// retrieve frame
 	frame := <-s.framech
 

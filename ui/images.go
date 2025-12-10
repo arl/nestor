@@ -2,12 +2,10 @@ package ui
 
 import (
 	"github.com/ebitenui/ebitenui/image"
-	"github.com/ebitenui/ebitenui/widget"
-
-	"nestor/assets"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+
+	"nestor/assets"
 )
 
 func newImageFromFile(path string) (*ebiten.Image, error) {
@@ -18,26 +16,6 @@ func newImageFromFile(path string) (*ebiten.Image, error) {
 	defer f.Close()
 	i, _, err := ebitenutil.NewImageFromReader(f)
 	return i, err
-}
-
-func loadGraphicImages(idle string, disabled string) (*widget.GraphicImage, error) {
-	idleImage, err := newImageFromFile(idle)
-	if err != nil {
-		return nil, err
-	}
-
-	var disabledImage *ebiten.Image
-	if disabled != "" {
-		disabledImage, err = newImageFromFile(disabled)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return &widget.GraphicImage{
-		Idle:     idleImage,
-		Disabled: disabledImage,
-	}, nil
 }
 
 func loadImageNineSlice(path string, centerWidth int, centerHeight int) (*image.NineSlice, error) {

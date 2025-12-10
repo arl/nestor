@@ -19,8 +19,9 @@ const _Region_name = "NTSCPALMultipleDendy"
 var _Region_index = [...]uint8{0, 4, 7, 15, 20}
 
 func (i Region) String() string {
-	if i >= Region(len(_Region_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Region_index)-1 {
 		return "Region(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Region_name[_Region_index[i]:_Region_index[i+1]]
+	return _Region_name[_Region_index[idx]:_Region_index[idx+1]]
 }

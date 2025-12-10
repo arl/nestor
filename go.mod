@@ -12,10 +12,11 @@ require (
 	github.com/go-faster/jx v1.1.0
 	github.com/google/go-cmp v0.7.0
 	github.com/hajimehoshi/ebiten/v2 v2.9.4
+	github.com/quasilyte/ebitengine-input v0.9.1
 	github.com/sqweek/dialog v0.0.0-20240226140203-065105509627
 	github.com/tinylib/msgp v1.5.0
 	golang.org/x/image v0.32.0
-	golang.org/x/sync v0.17.0
+	golang.org/x/sync v0.18.0
 	gopkg.in/Sirupsen/logrus.v0 v0.11.5
 )
 
@@ -32,13 +33,14 @@ require (
 	github.com/jezek/xgb v1.1.1 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
+	github.com/quasilyte/gmath v0.0.0-20221217210116-fba37a2e15c7 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
-	golang.org/x/mod v0.28.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/mod v0.30.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
-	golang.org/x/tools v0.37.0 // indirect
+	golang.org/x/tools v0.39.0 // indirect
 )
 
 tool (
