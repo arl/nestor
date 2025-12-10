@@ -116,7 +116,7 @@ func (s *configState) inputConfigPage() *page {
 			widget.RowLayoutOpts.Spacing(spacing*5))))
 
 	// currently configured preset.
-	var currentPresetCombo *Combobox
+	var currentPresetCombo *combobox
 	currentPresetCombo = newCombobox(presets, s.presetidx, widget.RowLayoutData{
 		MaxWidth: 200,
 	}, func(idx int) {

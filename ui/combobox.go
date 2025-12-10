@@ -6,7 +6,7 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 )
 
-type Combobox struct {
+type combobox struct {
 	*widget.ListComboButton
 	items   []string
 	indices []any
@@ -14,7 +14,7 @@ type Combobox struct {
 	idx int
 }
 
-func newCombobox(items []string, selidx int, layoutData any, selectHandler func(item int)) *Combobox {
+func newCombobox(items []string, selidx int, layoutData any, selectHandler func(item int)) *combobox {
 	indices := make([]any, 0, len(items))
 	for i := range items {
 		indices = append(indices, i)
@@ -29,7 +29,7 @@ func newCombobox(items []string, selidx int, layoutData any, selectHandler func(
 		return items[idx]
 	}
 
-	combo := &Combobox{
+	combo := &combobox{
 		items:   items,
 		indices: indices,
 		idx:     selidx,
@@ -79,6 +79,6 @@ func newCombobox(items []string, selidx int, layoutData any, selectHandler func(
 	return combo
 }
 
-func (c *Combobox) SelectedIndex() int {
+func (c *combobox) SelectedIndex() int {
 	return c.idx
 }
