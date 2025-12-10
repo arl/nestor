@@ -2,7 +2,6 @@ package ui
 
 import (
 	"github.com/ebitenui/ebitenui/image"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 

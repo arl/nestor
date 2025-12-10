@@ -1,11 +1,9 @@
 package ui
 
 import (
-	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	einput "github.com/quasilyte/ebitengine-input"
-	"golang.org/x/image/colornames"
 
 	"nestor/ui/keymap"
 )
@@ -77,9 +75,7 @@ func (s *pausedState) createUI() {
 	)
 
 	buttonsGroup := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(
-			image.NewNineSliceColor(colornames.Gray),
-		),
+		widget.ContainerOpts.BackgroundImage(res.panel.image),
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
 				HorizontalPosition: widget.AnchorLayoutPositionCenter,
@@ -95,7 +91,7 @@ func (s *pausedState) createUI() {
 
 	buttonsGroup.AddChild(
 		widget.NewLabel(
-			widget.LabelOpts.Text("<paused>", res.fonts.titleFace, &widget.LabelColor{Idle: colornames.White}),
+			widget.LabelOpts.Text("Paused", res.text.titleFace, &widget.LabelColor{Idle: res.text.idleColor}),
 			widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
 		),
 
