@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"io"
+	"math"
 	"strings"
 
 	"github.com/tinylib/msgp/msgp"
@@ -62,7 +63,7 @@ func (m *marshalGen) Execute(p Elem, ctx Context) error {
 	return m.p.err
 }
 
-func (m *marshalGen) rawAppend(typ string, argfmt string, arg interface{}) {
+func (m *marshalGen) rawAppend(typ string, argfmt string, arg any) {
 	if m.ctx.compFloats && typ == "Float64" {
 		typ = "Float"
 	}
@@ -71,6 +72,24 @@ func (m *marshalGen) rawAppend(typ string, argfmt string, arg interface{}) {
 	}
 
 	m.p.printf("\no = msgp.Append%s(o, %s)", typ, fmt.Sprintf(argfmt, arg))
+}
+
+func (m *marshalGen) rawAppendWithArrayLimit(typ string, argfmt string, arg any) {
+	m.rawAppend(typ, argfmt, arg)
+	if m.ctx.marshalLimits && m.ctx.arrayLimit != math.MaxUint32 {
+		m.p.printf("\nif %s > %slimitArrays {", fmt.Sprintf(argfmt, arg), m.ctx.limitPrefix)
+		m.p.printf("\nreturn nil, msgp.ErrLimitExceeded")
+		m.p.printf("\n}")
+	}
+}
+
+func (m *marshalGen) rawAppendWithMapLimit(typ string, argfmt string, arg any) {
+	m.rawAppend(typ, argfmt, arg)
+	if m.ctx.marshalLimits && m.ctx.mapLimit != math.MaxUint32 {
+		m.p.printf("\nif %s > %slimitMaps {", fmt.Sprintf(argfmt, arg), m.ctx.limitPrefix)
+		m.p.printf("\nreturn nil, msgp.ErrLimitExceeded")
+		m.p.printf("\n}")
+	}
 }
 
 func (m *marshalGen) fuseHook() {
@@ -250,7 +269,7 @@ func (m *marshalGen) gMap(s *Map) {
 	}
 	m.fuseHook()
 	vname := s.Varname()
-	m.rawAppend(mapHeader, lenAsUint32, vname)
+	m.rawAppendWithMapLimit(mapHeader, lenAsUint32, vname)
 	m.p.printf("\nfor %s, %s := range %s {", s.Keyidx, s.Validx, vname)
 	// Shim key to base type if necessary.
 	if s.Key != nil {
@@ -292,7 +311,7 @@ func (m *marshalGen) gSlice(s *Slice) {
 	vname := s.Varname()
 	setTypeParams(s.Els, s.typeParams)
 
-	m.rawAppend(arrayHeader, lenAsUint32, vname)
+	m.rawAppendWithArrayLimit(arrayHeader, lenAsUint32, vname)
 	m.p.rangeBlock(m.ctx, s.Index, vname, m, s.Els)
 }
 
@@ -353,12 +372,30 @@ func (m *marshalGen) gBase(b *BaseElem) {
 
 	var echeck bool
 	switch b.Value {
+	case BinaryMarshaler:
+		echeck = true
+		m.binaryMarshalCall(vname, "MarshalBinary", "", "msgp.AppendBytes")
+	case BinaryAppender:
+		echeck = false
+		m.binaryAppendCall(vname, "AppendBinary", "msgp.AppendBytes")
+	case TextMarshalerBin:
+		echeck = true
+		m.binaryMarshalCall(vname, "MarshalText", "", "msgp.AppendBytes")
+	case TextAppenderBin:
+		echeck = false
+		m.binaryAppendCall(vname, "AppendText", "msgp.AppendBytes")
+	case TextMarshalerString:
+		echeck = true
+		m.binaryMarshalCall(vname, "MarshalText", "string", "msgp.AppendString")
+	case TextAppenderString:
+		echeck = false
+		m.binaryAppendCall(vname, "AppendText", "msgp.AppendString")
 	case IDENT:
 		dst := b.BaseType()
 		if b.typeParams.isPtr {
 			dst = "*" + dst
 		}
-		if remap := b.typeParams.ToPointerMap[dst]; remap != "" {
+		if remap := b.typeParams.ToPointerMap[stripTypeParams(dst)]; remap != "" {
 			vname = fmt.Sprintf(remap, vname)
 		}
 		echeck = true
@@ -376,5 +413,36 @@ func (m *marshalGen) gBase(b *BaseElem) {
 
 	if echeck {
 		m.p.wrapErrCheck(m.ctx.ArgsStr())
+	}
+}
+
+// binaryMarshalCall generates code for marshaler interfaces that return []byte
+func (m *marshalGen) binaryMarshalCall(vname, method, convert, appendFunc string) {
+	bts := randIdent()
+	vname = strings.Trim(vname, "(*)")
+	m.p.printf("\nvar %s []byte", bts)
+	m.p.printf("\n%s, err = %s.%s()", bts, vname, method)
+	m.p.wrapErrCheck(m.ctx.ArgsStr())
+	if convert != "" {
+		m.p.printf("\no = %s(o, %s(%s))", appendFunc, convert, bts)
+	} else {
+		m.p.printf("\no = %s(o, %s)", appendFunc, bts)
+	}
+}
+
+// binaryAppendCall generates code for appender interfaces that use pre-allocated buffer.
+// We optimize for cases where the size is 0-256 bytes.
+func (m *marshalGen) binaryAppendCall(vname, method, appendFunc string) {
+	sz := randIdent()
+	vname = strings.Trim(vname, "(*)")
+	// Reserve 2 bytes for the header bin8 or str8.
+	m.p.printf("\no = append(o, 0, 0); %s := len(o)", sz)
+	m.p.printf("\no, err = %s.%s(o)", vname, method)
+	m.p.wrapErrCheck(m.ctx.ArgsStr())
+	m.p.printf("\n%s = len(o) - %s", sz, sz)
+	if appendFunc == "msgp.AppendString" {
+		m.p.printf("\no = msgp.AppendBytesStringTwoPrefixed(o, %s)", sz)
+	} else {
+		m.p.printf("\no = msgp.AppendBytesTwoPrefixed(o, %s)", sz)
 	}
 }

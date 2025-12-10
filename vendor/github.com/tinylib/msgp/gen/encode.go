@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"io"
+	"math"
 	"strings"
 
 	"github.com/tinylib/msgp/msgp"
@@ -27,7 +28,7 @@ func (e *encodeGen) Apply(dirs []string) error {
 	return nil
 }
 
-func (e *encodeGen) writeAndCheck(typ string, argfmt string, arg interface{}) {
+func (e *encodeGen) writeAndCheck(typ string, argfmt string, arg any) {
 	if e.ctx.compFloats && typ == "Float64" {
 		typ = "Float"
 	}
@@ -37,6 +38,26 @@ func (e *encodeGen) writeAndCheck(typ string, argfmt string, arg interface{}) {
 
 	e.p.printf("\nerr = en.Write%s(%s)", typ, fmt.Sprintf(argfmt, arg))
 	e.p.wrapErrCheck(e.ctx.ArgsStr())
+}
+
+func (e *encodeGen) writeAndCheckWithArrayLimit(typ string, argfmt string, arg any) {
+	e.writeAndCheck(typ, argfmt, arg)
+	if e.ctx.marshalLimits && e.ctx.arrayLimit != math.MaxUint32 {
+		e.p.printf("\nif %s > %slimitArrays {", fmt.Sprintf(argfmt, arg), e.ctx.limitPrefix)
+		e.p.printf("\nerr = msgp.ErrLimitExceeded")
+		e.p.printf("\nreturn")
+		e.p.printf("\n}")
+	}
+}
+
+func (e *encodeGen) writeAndCheckWithMapLimit(typ string, argfmt string, arg any) {
+	e.writeAndCheck(typ, argfmt, arg)
+	if e.ctx.marshalLimits && e.ctx.mapLimit != math.MaxUint32 {
+		e.p.printf("\nif %s > %slimitMaps {", fmt.Sprintf(argfmt, arg), e.ctx.limitPrefix)
+		e.p.printf("\nerr = msgp.ErrLimitExceeded")
+		e.p.printf("\nreturn")
+		e.p.printf("\n}")
+	}
 }
 
 func (e *encodeGen) fuseHook() {
@@ -51,6 +72,23 @@ func (e *encodeGen) Fuse(b []byte) {
 		e.fuse = append(e.fuse, b...)
 	} else {
 		e.fuse = b
+	}
+}
+
+// binaryEncodeCall generates code for marshaler interfaces
+func (e *encodeGen) binaryEncodeCall(vname, method, writeType, arg string) {
+	bts := randIdent()
+	e.p.printf("\nvar %s []byte", bts)
+	if arg == "" {
+		e.p.printf("\n%s, err = %s.%s()", bts, vname, method)
+	} else {
+		e.p.printf("\n%s, err = %s.%s(%s)", bts, vname, method, arg)
+	}
+	e.p.wrapErrCheck(e.ctx.ArgsStr())
+	if writeType == "String" {
+		e.writeAndCheck(writeType, literalFmt, "string("+bts+")")
+	} else {
+		e.writeAndCheck(writeType, literalFmt, bts)
 	}
 }
 
@@ -244,7 +282,7 @@ func (e *encodeGen) gMap(m *Map) {
 	}
 	e.fuseHook()
 	vname := m.Varname()
-	e.writeAndCheck(mapHeader, lenAsUint32, vname)
+	e.writeAndCheckWithMapLimit(mapHeader, lenAsUint32, vname)
 
 	e.p.printf("\nfor %s, %s := range %s {", m.Keyidx, m.Validx, vname)
 	if m.Key != nil {
@@ -297,7 +335,7 @@ func (e *encodeGen) gSlice(s *Slice) {
 		return
 	}
 	e.fuseHook()
-	e.writeAndCheck(arrayHeader, lenAsUint32, s.Varname())
+	e.writeAndCheckWithArrayLimit(arrayHeader, lenAsUint32, s.Varname())
 	setTypeParams(s.Els, s.typeParams)
 	e.p.rangeBlock(e.ctx, s.Index, s.Varname(), e, s.Els)
 }
@@ -339,12 +377,35 @@ func (e *encodeGen) gBase(b *BaseElem) {
 	case AInt64, AInt32, AUint64, AUint32, ABool:
 		t := strings.TrimPrefix(b.BaseName(), "atomic.")
 		e.writeAndCheck(t, literalFmt, strings.TrimPrefix(vname, "*")+".Load()")
+	case BinaryMarshaler:
+		e.binaryEncodeCall(vname, "MarshalBinary", "Bytes", "")
+	case TextMarshalerBin:
+		e.binaryEncodeCall(vname, "MarshalText", "Bytes", "")
+	case TextMarshalerString:
+		e.binaryEncodeCall(vname, "MarshalText", "String", "")
+	case BinaryAppender:
+		// We do not know if the interface is implemented on pointer or value.
+		vname = strings.Trim(vname, "*()")
+		e.writeAndCheck("BinaryAppender", literalFmt, vname)
+	case TextAppenderBin:
+		vname = strings.Trim(vname, "*()")
+		e.writeAndCheck("TextAppender", literalFmt, vname)
+	case TextAppenderString:
+		vname = strings.Trim(vname, "*()")
+		e.writeAndCheck("TextAppenderString", literalFmt, vname)
 	case IDENT: // unknown identity
 		dst := b.BaseType()
 		if b.typeParams.isPtr {
 			dst = "*" + dst
 		}
-		if remap := b.typeParams.ToPointerMap[dst]; remap != "" {
+
+		// Strip type parameters from dst for lookup in ToPointerMap
+		lookupKey := stripTypeParams(dst)
+		if idx := strings.Index(dst, "["); idx != -1 {
+			lookupKey = dst[:idx]
+		}
+
+		if remap := b.typeParams.ToPointerMap[lookupKey]; remap != "" {
 			vname = fmt.Sprintf(remap, vname)
 		}
 		e.p.printf("\nerr = %s.EncodeMsg(en)", vname)

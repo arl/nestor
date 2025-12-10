@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/parser"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -32,6 +33,11 @@ var directives = map[string]directive{
 	"clearomitted":  clearomitted,
 	"newtime":       newtime,
 	"timezone":      newtimezone,
+	"limit":         limit,
+	"binmarshal":    binmarshal,
+	"binappend":     binappend,
+	"textmarshal":   textmarshal,
+	"textappend":    textappend,
 }
 
 // map of all recognized directives which will be applied
@@ -64,8 +70,8 @@ func yieldComments(c []*ast.CommentGroup) []string {
 	var out []string
 	for _, cg := range c {
 		for _, line := range cg.List {
-			if strings.HasPrefix(line.Text, linePrefix) {
-				out = append(out, strings.TrimPrefix(line.Text, linePrefix))
+			if after, ok := strings.CutPrefix(line.Text, linePrefix); ok {
+				out = append(out, after)
 			}
 		}
 	}
@@ -166,6 +172,22 @@ func ignore(text []string, f *FileSet) error {
 	}
 	for _, item := range text[1:] {
 		name := strings.TrimSpace(item)
+		if name, ok := strings.CutPrefix(name, "regex:"); ok {
+			name = strings.TrimPrefix(name, "regex:")
+			rx, err := regexp.Compile(name)
+			if err != nil {
+				panic(fmt.Sprintf("Error compiling ignore regex %q: %v", name, err))
+			}
+			for name := range f.Identities {
+				if !rx.MatchString(name) {
+					continue
+				}
+				delete(f.Identities, name)
+				infof("ignoring %s\n", name)
+			}
+			continue
+		}
+
 		if _, ok := f.Identities[name]; ok {
 			delete(f.Identities, name)
 			infof("ignoring %s\n", name)
@@ -313,5 +335,192 @@ func newtimezone(text []string, f *FileSet) error {
 		return fmt.Errorf("timezone directive should be either 'local' or 'utc'; found %q", text[1])
 	}
 	infof("using timezone %q\n", text[1])
+	return nil
+}
+
+//msgp:limit arrays:n maps:n marshal:true/false
+func limit(text []string, f *FileSet) (err error) {
+	for _, arg := range text[1:] {
+		arg = strings.ToLower(strings.TrimSpace(arg))
+		switch {
+		case strings.HasPrefix(arg, "arrays:"):
+			limitStr := strings.TrimPrefix(arg, "arrays:")
+			limit, err := strconv.ParseUint(limitStr, 10, 32)
+			if err != nil {
+				return fmt.Errorf("invalid arrays limit; found %s, expected positive integer", limitStr)
+			}
+			f.ArrayLimit = uint32(limit)
+		case strings.HasPrefix(arg, "maps:"):
+			limitStr := strings.TrimPrefix(arg, "maps:")
+			limit, err := strconv.ParseUint(limitStr, 10, 32)
+			if err != nil {
+				return fmt.Errorf("invalid maps limit; found %s, expected positive integer", limitStr)
+			}
+			f.MapLimit = uint32(limit)
+		case strings.HasPrefix(arg, "marshal:"):
+			marshalStr := strings.TrimPrefix(arg, "marshal:")
+			marshal, err := strconv.ParseBool(marshalStr)
+			if err != nil {
+				return fmt.Errorf("invalid marshal option; found %s, expected 'true' or 'false'", marshalStr)
+			}
+			f.MarshalLimits = marshal
+		default:
+			return fmt.Errorf("invalid limit directive; found %s, expected 'arrays:n', 'maps:n', or 'marshal:true/false'", arg)
+		}
+	}
+	infof("limits - arrays:%d maps:%d marshal:%t\n", f.ArrayLimit, f.MapLimit, f.MarshalLimits)
+	return nil
+}
+
+//msgp:binmarshal pkg.Type pkg.Type2
+func binmarshal(text []string, f *FileSet) error {
+	if len(text) < 2 {
+		return fmt.Errorf("binmarshal directive should have at least 1 argument; found %d", len(text)-1)
+	}
+	alwaysPtr := true
+
+	for _, item := range text[1:] {
+		name := strings.TrimSpace(item)
+		be := gen.Ident(name)
+		be.Value = gen.BinaryMarshaler
+		be.Alias(name)
+		be.Convert = false // Don't use conversion for marshaler types
+		be.AlwaysPtr(&alwaysPtr)
+
+		infof("%s -> BinaryMarshaler\n", name)
+		f.findShim(name, be, true)
+	}
+
+	return nil
+}
+
+//msgp:binappend pkg.Type pkg.Type2
+func binappend(text []string, f *FileSet) error {
+	if len(text) < 2 {
+		return fmt.Errorf("binappend directive should have at least 1 argument; found %d", len(text)-1)
+	}
+	alwaysPtr := true
+	for _, item := range text[1:] {
+		name := strings.TrimSpace(item)
+		be := gen.Ident(name)
+		be.Value = gen.BinaryAppender
+		be.Alias(name)
+		be.Convert = false // Don't use conversion for marshaler types
+		be.AlwaysPtr(&alwaysPtr)
+
+		infof("%s -> BinaryAppender\n", name)
+		f.findShim(name, be, true)
+	}
+
+	return nil
+}
+
+//msgp:textmarshal [as:string] pkg.Type pkg.Type2
+func textmarshal(text []string, f *FileSet) error {
+	if len(text) < 2 {
+		return fmt.Errorf("textmarshal directive should have at least 1 argument; found %d", len(text)-1)
+	}
+
+	// Check for as:string option anywhere in the arguments
+	var asString bool
+	var typeArgs []string
+	alwaysPtr := true
+
+	for _, item := range text[1:] {
+		trimmed := strings.TrimSpace(item)
+		if strings.HasPrefix(trimmed, "as:") {
+			option := strings.TrimPrefix(trimmed, "as:")
+			switch option {
+			case "string":
+				asString = true
+			case "bin":
+				asString = false
+			default:
+				return fmt.Errorf("invalid as: option %q, expected 'string' or 'bin'", option)
+			}
+		} else {
+			typeArgs = append(typeArgs, trimmed)
+		}
+	}
+
+	if len(typeArgs) == 0 {
+		return fmt.Errorf("textmarshal directive should have at least 1 type argument")
+	}
+
+	for _, item := range typeArgs {
+		name := strings.TrimSpace(item)
+		be := gen.Ident(name)
+		be.AlwaysPtr(&alwaysPtr)
+		if asString {
+			be.Value = gen.TextMarshalerString
+		} else {
+			be.Value = gen.TextMarshalerBin
+		}
+		be.Alias(name)
+		be.Convert = false // Don't use conversion for marshaler types
+
+		if asString {
+			infof("%s -> TextMarshaler (as string)\n", name)
+		} else {
+			infof("%s -> TextMarshaler (as bin)\n", name)
+		}
+		f.findShim(name, be, true)
+	}
+
+	return nil
+}
+
+//msgp:textappend [as:string] pkg.Type pkg.Type2
+func textappend(text []string, f *FileSet) error {
+	if len(text) < 2 {
+		return fmt.Errorf("textappend directive should have at least 1 argument; found %d", len(text)-1)
+	}
+
+	// Check for as:string option anywhere in the arguments
+	var asString bool
+	var typeArgs []string
+	alwaysPtr := true
+
+	for _, item := range text[1:] {
+		trimmed := strings.TrimSpace(item)
+		if strings.HasPrefix(trimmed, "as:") {
+			option := strings.TrimPrefix(trimmed, "as:")
+			switch option {
+			case "string":
+				asString = true
+			case "bin":
+				asString = false
+			default:
+				return fmt.Errorf("invalid as: option %q, expected 'string' or 'bin'", option)
+			}
+		} else {
+			typeArgs = append(typeArgs, trimmed)
+		}
+	}
+
+	if len(typeArgs) == 0 {
+		return fmt.Errorf("textappend directive should have at least 1 type argument")
+	}
+
+	for _, item := range typeArgs {
+		name := strings.TrimSpace(item)
+		be := gen.Ident(name)
+		if asString {
+			be.Value = gen.TextAppenderString
+		} else {
+			be.Value = gen.TextAppenderBin
+		}
+		be.Alias(name)
+		be.Convert = false // Don't use conversion for marshaler types
+		be.AlwaysPtr(&alwaysPtr)
+
+		if asString {
+			infof("%s -> TextAppender (as string)\n", name)
+		} else {
+			infof("%s -> TextAppender (as bin)\n", name)
+		}
+		f.findShim(name, be, true)
+	}
+
 	return nil
 }

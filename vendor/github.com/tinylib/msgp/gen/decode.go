@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -74,10 +75,131 @@ func (d *decodeGen) assignAndCheck(name string, typ string) {
 	d.p.wrapErrCheck(d.ctx.ArgsStr())
 }
 
+func (d *decodeGen) assignArray(name string, typ string, fieldLimit uint32) {
+	if !d.p.ok() {
+		return
+	}
+	d.p.printf("\n%s, err = dc.Read%s()", name, typ)
+	d.p.wrapErrCheck(d.ctx.ArgsStr())
+
+	// Determine effective limit: field limit > context field limit > file limit
+	var limit uint32
+	var limitName string
+
+	if fieldLimit > 0 {
+		// Explicit field limit passed as parameter
+		limit = fieldLimit
+		limitName = fmt.Sprintf("%d", fieldLimit)
+	} else if d.ctx.currentFieldArrayLimit != math.MaxUint32 {
+		// Field limit from context (set during field processing)
+		limit = d.ctx.currentFieldArrayLimit
+		limitName = fmt.Sprintf("%d", d.ctx.currentFieldArrayLimit)
+	} else if d.ctx.arrayLimit != math.MaxUint32 {
+		// File-level limit
+		limit = d.ctx.arrayLimit
+		limitName = fmt.Sprintf("%slimitArrays", d.ctx.limitPrefix)
+	}
+
+	if limit > 0 && limit != math.MaxUint32 {
+		d.p.printf("\nif %s > %s {", name, limitName)
+		d.p.printf("\nerr = msgp.ErrLimitExceeded")
+		d.p.printf("\nreturn")
+		d.p.printf("\n}")
+	}
+}
+
+func (d *decodeGen) assignMap(name string, typ string, fieldLimit uint32) {
+	if !d.p.ok() {
+		return
+	}
+	d.p.printf("\n%s, err = dc.Read%s()", name, typ)
+	d.p.wrapErrCheck(d.ctx.ArgsStr())
+
+	// Determine effective limit: field limit > context field limit > file limit
+	var limit uint32
+	var limitName string
+
+	if fieldLimit > 0 {
+		// Explicit field limit passed as parameter
+		limit = fieldLimit
+		limitName = fmt.Sprintf("%d", fieldLimit)
+	} else if d.ctx.currentFieldMapLimit != math.MaxUint32 {
+		// Field limit from context (set during field processing)
+		limit = d.ctx.currentFieldMapLimit
+		limitName = fmt.Sprintf("%d", d.ctx.currentFieldMapLimit)
+	} else if d.ctx.mapLimit != math.MaxUint32 {
+		// File-level limit
+		limit = d.ctx.mapLimit
+		limitName = fmt.Sprintf("%slimitMaps", d.ctx.limitPrefix)
+	}
+
+	if limit > 0 && limit != math.MaxUint32 {
+		d.p.printf("\nif %s > %s {", name, limitName)
+		d.p.printf("\nerr = msgp.ErrLimitExceeded")
+		d.p.printf("\nreturn")
+		d.p.printf("\n}")
+	}
+}
+
+// readBytesWithLimit will read bytes into vname.
+// Returns field to check for nil.
+func (d *decodeGen) readBytesWithLimit(vname string, fieldLimit uint32) string {
+	if !d.p.ok() {
+		return ""
+	}
+
+	// Determine effective limit: field limit > context field limit > file limit
+	var limit uint32
+	var limitName string
+
+	if fieldLimit > 0 {
+		// Explicit field limit passed as parameter
+		limit = fieldLimit
+		limitName = fmt.Sprintf("%d", fieldLimit)
+	} else if d.ctx.currentFieldArrayLimit != math.MaxUint32 {
+		// Field limit from context (set during field processing)
+		limit = d.ctx.currentFieldArrayLimit
+		limitName = fmt.Sprintf("%d", d.ctx.currentFieldArrayLimit)
+	} else if d.ctx.arrayLimit != math.MaxUint32 {
+		// File-level limit
+		limit = d.ctx.arrayLimit
+		limitName = fmt.Sprintf("%slimitArrays", d.ctx.limitPrefix)
+	}
+
+	// Choose reading strategy based on whether limits exist
+	if limit > 0 && limit != math.MaxUint32 {
+		// Limits exist - use header-first security approach
+		sz := randIdent()
+		d.p.printf("\nvar %s uint32", sz)
+		d.p.printf("\n%s, err = dc.ReadBytesHeader()", sz)
+		d.p.wrapErrCheck(d.ctx.ArgsStr())
+
+		// Check size against limit before allocating
+		d.p.printf("\nif %s > %s {", sz, limitName)
+		d.p.printf("\nerr = msgp.ErrLimitExceeded")
+		d.p.printf("\nreturn")
+		d.p.printf("\n}")
+
+		// Allocate and read the data
+		// regular field - ensure always allocated, even for size 0
+		d.p.printf("\nif %s == nil || uint32(cap(%s)) < %s {", vname, vname, sz)
+		d.p.printf("\n%s = make([]byte, %s)", vname, sz)
+		d.p.printf("\n} else {")
+		d.p.printf("\n%s = %s[:%s]", vname, vname, sz)
+		d.p.printf("\n}")
+		d.p.printf("\n_, err = dc.ReadFull(%s)", vname)
+		return ""
+	} else {
+		// No limits - use original direct reading approach for efficiency
+		d.p.printf("\n%s, err = dc.ReadBytes(%s)", vname, vname)
+		return vname
+	}
+}
+
 func (d *decodeGen) structAsTuple(s *Struct) {
 	sz := randIdent()
 	d.p.declare(sz, u32)
-	d.assignAndCheck(sz, arrayHeader)
+	d.assignArray(sz, arrayHeader, 0)
 	if s.AsVarTuple {
 		d.p.printf("\nif %[1]s == 0 { return }", sz)
 	} else {
@@ -89,6 +211,15 @@ func (d *decodeGen) structAsTuple(s *Struct) {
 		}
 		fieldElem := s.Fields[i].FieldElem
 		anField := s.Fields[i].HasTagPart("allownil") && fieldElem.AllowNil()
+
+		// Set field-specific limits in context based on struct field's FieldLimit
+		if s.Fields[i].FieldLimit > 0 {
+			// Apply same limit to both arrays and maps for this field
+			d.ctx.SetFieldLimits(s.Fields[i].FieldLimit, s.Fields[i].FieldLimit)
+		} else {
+			d.ctx.ClearFieldLimits()
+		}
+
 		if anField {
 			d.p.print("\nif dc.IsNil() {")
 			d.p.print("\nerr = dc.ReadNil()")
@@ -99,6 +230,10 @@ func (d *decodeGen) structAsTuple(s *Struct) {
 		d.ctx.PushString(s.Fields[i].FieldName)
 		setTypeParams(fieldElem, s.typeParams)
 		next(d, fieldElem)
+
+		// Clear field limits after processing
+		d.ctx.ClearFieldLimits()
+
 		d.ctx.Pop()
 		if anField {
 			d.p.printf("\n}") // close if statement
@@ -116,7 +251,7 @@ func (d *decodeGen) structAsMap(s *Struct) {
 	d.needsField()
 	sz := randIdent()
 	d.p.declare(sz, u32)
-	d.assignAndCheck(sz, mapHeader)
+	d.assignMap(sz, mapHeader, 0)
 
 	oeCount := s.CountFieldTagPart("omitempty") + s.CountFieldTagPart("omitzero")
 	if !d.ctx.clearOmitted {
@@ -142,6 +277,15 @@ func (d *decodeGen) structAsMap(s *Struct) {
 		d.p.printf("\ncase %q:", s.Fields[i].FieldTag)
 		fieldElem := s.Fields[i].FieldElem
 		anField := s.Fields[i].HasTagPart("allownil") && fieldElem.AllowNil()
+
+		// Set field-specific limits in context based on struct field's FieldLimit
+		if s.Fields[i].FieldLimit > 0 {
+			// Apply same limit to both arrays and maps for this field
+			d.ctx.SetFieldLimits(s.Fields[i].FieldLimit, s.Fields[i].FieldLimit)
+		} else {
+			d.ctx.ClearFieldLimits()
+		}
+
 		if anField {
 			d.p.print("\nif dc.IsNil() {")
 			d.p.print("\nerr = dc.ReadNil()")
@@ -151,6 +295,10 @@ func (d *decodeGen) structAsMap(s *Struct) {
 		SetIsAllowNil(fieldElem, anField)
 		setTypeParams(fieldElem, s.typeParams)
 		next(d, fieldElem)
+
+		// Clear field limits after processing
+		d.ctx.ClearFieldLimits()
+
 		if oeCount > 0 && (s.Fields[i].HasTagPart("omitempty") || s.Fields[i].HasTagPart("omitzero")) {
 			d.p.printf("\n%s", bm.setStmt(len(oeEmittedIdx)))
 			oeEmittedIdx = append(oeEmittedIdx, i)
@@ -192,6 +340,48 @@ func (d *decodeGen) structAsMap(s *Struct) {
 	}
 }
 
+func (d *decodeGen) readBytesConvertWithLimit(tmp string, allowNil bool, receiverVar string) {
+	if !d.p.ok() {
+		return
+	}
+
+	// Check if limits exist to decide on reading strategy
+	if d.ctx.currentFieldArrayLimit != math.MaxUint32 || d.ctx.arrayLimit != math.MaxUint32 {
+		// Limits exist - use header-first approach for security
+		sz := randIdent()
+		d.p.printf("\nvar %s uint32", sz)
+		d.p.printf("\n%s, err = dc.ReadBytesHeader()", sz)
+		d.p.wrapErrCheck(d.ctx.ArgsStr())
+
+		// Check array limits for bytes (use currentFieldArrayLimit or arrayLimit)
+		if d.ctx.currentFieldArrayLimit != math.MaxUint32 {
+			d.p.printf("\nif %s > %d {", sz, d.ctx.currentFieldArrayLimit)
+			d.p.printf("\nerr = msgp.ErrLimitExceeded")
+			d.p.printf("\nreturn")
+			d.p.printf("\n}")
+		} else if d.ctx.arrayLimit != math.MaxUint32 {
+			d.p.printf("\nif %s > %slimitArrays {", sz, d.ctx.limitPrefix)
+			d.p.printf("\nerr = msgp.ErrLimitExceeded")
+			d.p.printf("\nreturn")
+			d.p.printf("\n}")
+		}
+
+		// Allocate and read with type conversion
+		if tmp != receiverVar {
+			d.p.printf("\n%s = %s", tmp, receiverVar)
+		}
+		d.p.printf("\nif %s == nil || uint32(cap(%s)) < %s {", tmp, tmp, sz)
+		d.p.printf("\n%s = make([]byte, %s)", tmp, sz)
+		d.p.printf("\n} else {")
+		d.p.printf("\n%s = %s[:%s]", tmp, tmp, sz)
+		d.p.printf("\n}")
+		d.p.printf("\n_, err = dc.ReadFull(%s)", tmp)
+	} else {
+		// No limits - use original efficient approach with receiver cast as destination
+		d.p.printf("\n%s, err = dc.ReadBytes(%s)", tmp, receiverVar)
+	}
+}
+
 func (d *decodeGen) gBase(b *BaseElem) {
 	if !d.p.ok() {
 		return
@@ -199,40 +389,55 @@ func (d *decodeGen) gBase(b *BaseElem) {
 
 	// open block for 'tmp'
 	var tmp string
+	lowered := b.Varname()             // passed as argument
 	if b.Convert && b.Value != IDENT { // we don't need block for 'tmp' in case of IDENT
 		tmp = randIdent()
+		lowered = b.ToBase() + "(" + lowered + ")"
 		d.p.printf("\n{ var %s %s", tmp, b.BaseType())
 	}
 
 	vname := b.Varname()  // e.g. "z.FieldOne"
 	bname := b.BaseName() // e.g. "Float64"
 	checkNil := vname     // Name of var to check for nil
+	alwaysRef := vname
+
+	// make sure we always reference the pointer
+	if strings.Contains(alwaysRef, "*") {
+		alwaysRef = strings.Trim(alwaysRef, "*()")
+	} else if !b.parentIsPtr {
+		alwaysRef = "&" + vname
+	}
 
 	// handle special cases
 	// for object type.
 	switch b.Value {
 	case Bytes:
 		if b.Convert {
-			lowered := b.ToBase() + "(" + vname + ")"
-			d.p.printf("\n%s, err = dc.ReadBytes(%s)", tmp, lowered)
+			d.readBytesConvertWithLimit(tmp, b.AllowNil(), lowered)
 			checkNil = tmp
 		} else {
-			d.p.printf("\n%s, err = dc.ReadBytes(%s)", vname, vname)
-			checkNil = vname
+			checkNil = d.readBytesWithLimit(vname, 0)
 		}
+	case BinaryMarshaler, BinaryAppender:
+		d.p.printf("\nerr = dc.ReadBinaryUnmarshal(%s)", alwaysRef)
+	case TextMarshalerBin, TextAppenderBin:
+		d.p.printf("\nerr = dc.ReadTextUnmarshal(%s)", alwaysRef)
+	case TextMarshalerString, TextAppenderString:
+		d.p.printf("\nerr = dc.ReadTextUnmarshalString(%s)", alwaysRef)
 	case IDENT:
 		dst := b.BaseType()
 		if b.typeParams.isPtr {
 			dst = "*" + dst
 		}
+
 		if b.Convert {
-			if remap := b.typeParams.ToPointerMap[dst]; remap != "" {
+			if remap := b.typeParams.ToPointerMap[stripTypeParams(dst)]; remap != "" {
 				vname = fmt.Sprintf(remap, vname)
 			}
 			lowered := b.ToBase() + "(" + vname + ")"
 			d.p.printf("\nerr = %s.DecodeMsg(dc)", lowered)
 		} else {
-			if remap := b.typeParams.ToPointerMap[dst]; remap != "" {
+			if remap := b.typeParams.ToPointerMap[stripTypeParams(dst)]; remap != "" {
 				vname = fmt.Sprintf(remap, vname)
 			}
 			d.p.printf("\nerr = %s.DecodeMsg(dc)", vname)
@@ -281,7 +486,7 @@ func (d *decodeGen) gMap(m *Map) {
 
 	// resize or allocate map
 	d.p.declare(sz, u32)
-	d.assignAndCheck(sz, mapHeader)
+	d.assignMap(sz, mapHeader, 0)
 	d.p.resizeMap(sz, m)
 
 	// for element in map, read string/value
@@ -305,7 +510,7 @@ func (d *decodeGen) gSlice(s *Slice) {
 	}
 	sz := randIdent()
 	d.p.declare(sz, u32)
-	d.assignAndCheck(sz, arrayHeader)
+	d.assignArray(sz, arrayHeader, 0)
 	if s.isAllowNil {
 		d.p.resizeSliceNoNil(sz, s)
 	} else {
@@ -347,6 +552,10 @@ func (d *decodeGen) gPtr(p *Ptr) {
 		tp := p.typeParams
 		tp.isPtr = true
 		p.Value.SetTypeParams(tp)
+	}
+	if be, ok := p.Value.(*BaseElem); ok {
+		be.parentIsPtr = true
+		defer func() { be.parentIsPtr = false }()
 	}
 	next(d, p.Value)
 	d.p.closeblock()

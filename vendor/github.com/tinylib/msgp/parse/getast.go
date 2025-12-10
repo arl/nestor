@@ -5,9 +5,11 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"math"
 	"os"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/tinylib/msgp/gen"
@@ -36,6 +38,10 @@ type FileSet struct {
 	AllowMapShims bool                 // Allow map keys to be shimmed (default true)
 	AllowBinMaps  bool                 // Allow maps with binary keys to be used (default false)
 	AutoMapShims  bool                 // Automatically shim map keys of builtin types(default false)
+	ArrayLimit    uint32               // Maximum array/slice size allowed during deserialization
+	MapLimit      uint32               // Maximum map size allowed during deserialization
+	MarshalLimits bool                 // Whether to enforce limits during marshaling
+	LimitPrefix   string               // Unique prefix for limit constants to avoid collisions
 
 	tagName    string // tag to read field names from
 	pointerRcv bool   // generate with pointer receivers.
@@ -55,6 +61,8 @@ func File(name string, unexported bool, directives []string) (*FileSet, error) {
 		TypeInfos:  make(map[string]*TypeInfo),
 		Identities: make(map[string]gen.Elem),
 		Directives: append([]string{}, directives...),
+		ArrayLimit: math.MaxUint32,
+		MapLimit:   math.MaxUint32,
 	}
 
 	fset := token.NewFileSet()
@@ -229,9 +237,8 @@ func formatTypeParams(params *ast.FieldList) string {
 
 	var paramStrs []string
 	for _, field := range params.List {
-		str := stringify(field.Type)
 		// Convert underscores to _RTn where n is the number of the parameter
-		convert := strings.HasPrefix(str, "msgp.RTFor[")
+		convert := isrtfor(field.Type)
 
 		// Each field can have multiple names (e.g., T, U constraint)
 		for _, name := range field.Names {
@@ -247,6 +254,31 @@ func formatTypeParams(params *ast.FieldList) string {
 	return "[" + strings.Join(paramStrs, ", ") + "]"
 }
 
+// isrtfor returns whether the provided expression is a msgp.RTFor[T] pattern.
+func isrtfor(t ast.Expr) bool { return strings.HasPrefix(stringify(t), "msgp.RTFor[") }
+
+// findRTForInInterface recursively searches for msgp.RTFor[T] patterns within interface types
+func findRTForInInterface(iface *ast.InterfaceType) []string {
+	var rtfors []string
+	if iface.Methods == nil {
+		return rtfors
+	}
+
+	for _, method := range iface.Methods.List {
+		// Check if this is an embedded interface/type
+		if len(method.Names) == 0 {
+			if isrtfor(method.Type) {
+				rtfors = append(rtfors, stringify(method.Type))
+			}
+			// Recursively check nested interfaces
+			if nestedIface, ok := method.Type.(*ast.InterfaceType); ok {
+				rtfors = append(rtfors, findRTForInInterface(nestedIface)...)
+			}
+		}
+	}
+	return rtfors
+}
+
 // formatTypeParams converts an AST FieldList to a string representation.
 // For 'Foo[T any, P msgp.RTFor[T]]' will return {"T": "P"}.
 func getMspTypeParams(params *ast.FieldList) map[string]string {
@@ -256,16 +288,31 @@ func getMspTypeParams(params *ast.FieldList) map[string]string {
 
 	paramStrs := make(map[string]string)
 	for _, field := range params.List {
-		str := stringify(field.Type)
-		if !strings.HasPrefix(str, "msgp.RTFor[") {
+
+		// Handle simple msgp.RTFor[T] constraints
+		if isrtfor(field.Type) {
+			t := strings.TrimSuffix(strings.TrimPrefix(stringify(field.Type), "msgp.RTFor["), "]")
+			for _, name := range field.Names {
+				paramStrs[t] = name.Name + "(&%s)"
+				paramStrs["*"+t] = name.Name + "(%s)"
+				paramStrs[name.Name] = "%s"
+				infof("found generic type %s, with roundtrippper %s\n", t, name.Name)
+			}
 			continue
 		}
-		for _, name := range field.Names {
-			t := strings.TrimSuffix(strings.TrimPrefix(str, "msgp.RTFor["), "]")
-			paramStrs[t] = name.Name + "(&%s)"
-			paramStrs["*"+t] = name.Name + "(%s)"
-			paramStrs[name.Name] = "%s"
-			infof("found generic type %s, with roundtrippper %s\n", t, name.Name)
+
+		// Handle complex interface constraints that embed msgp.RTFor[T]
+		if iface, ok := field.Type.(*ast.InterfaceType); ok {
+			rtfors := findRTForInInterface(iface)
+			for _, rtfor := range rtfors {
+				t := strings.TrimSuffix(strings.TrimPrefix(rtfor, "msgp.RTFor["), "]")
+				for _, name := range field.Names {
+					paramStrs[t] = name.Name + "(&%s)"
+					paramStrs["*"+t] = name.Name + "(%s)"
+					paramStrs[name.Name] = "%s"
+					infof("found generic type %s, with roundtrippper %s (in complex interface)\n", t, name.Name)
+				}
+			}
 		}
 	}
 
@@ -371,6 +418,10 @@ loop:
 	p.ClearOmitted = fs.ClearOmitted
 	p.NewTime = fs.NewTime
 	p.AsUTC = fs.AsUTC
+	p.ArrayLimit = fs.ArrayLimit
+	p.MapLimit = fs.MapLimit
+	p.MarshalLimits = fs.MarshalLimits
+	p.LimitPrefix = fs.LimitPrefix
 }
 
 func (fs *FileSet) PrintTo(p *gen.Printer) error {
@@ -484,11 +535,23 @@ func (fs *FileSet) getField(f *ast.Field) []gen.StructField {
 		}
 		tags := strings.Split(body, ",")
 		if len(tags) >= 2 {
-			switch tags[1] {
-			case "extension":
-				extension = true
-			case "flatten":
-				flatten = true
+			for _, tag := range tags[1:] {
+				switch tag {
+				case "extension":
+					extension = true
+				case "flatten":
+					flatten = true
+				default:
+					// Check for limit=N format
+					if strings.HasPrefix(tag, "limit=") {
+						limitStr := strings.TrimPrefix(tag, "limit=")
+						if limit, err := strconv.ParseUint(limitStr, 10, 32); err == nil {
+							sf[0].FieldLimit = uint32(limit)
+						} else {
+							warnf("invalid limit value in field tag: %s", limitStr)
+						}
+					}
+				}
 			}
 		}
 		// ignore "-" fields
@@ -785,9 +848,9 @@ func (fs *FileSet) parseExpr(e ast.Expr) gen.Elem {
 	}
 }
 
-var Logf func(s string, v ...interface{})
+var Logf func(s string, v ...any)
 
-func infof(s string, v ...interface{}) {
+func infof(s string, v ...any) {
 	if Logf != nil {
 		pushstate(s)
 		Logf("info: "+strings.Join(logctx, ": "), v...)
@@ -795,7 +858,7 @@ func infof(s string, v ...interface{}) {
 	}
 }
 
-func warnf(s string, v ...interface{}) {
+func warnf(s string, v ...any) {
 	if Logf != nil {
 		pushstate(s)
 		Logf("warn: "+strings.Join(logctx, ": "), v...)

@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -63,6 +64,148 @@ func (u *unmarshalGen) assignAndCheck(name string, base string) {
 	u.p.wrapErrCheck(u.ctx.ArgsStr())
 }
 
+func (u *unmarshalGen) assignArray(name string, base string, fieldLimit uint32) {
+	if !u.p.ok() {
+		return
+	}
+	u.p.printf("\n%s, bts, err = msgp.Read%sBytes(bts)", name, base)
+	u.p.wrapErrCheck(u.ctx.ArgsStr())
+
+	// Determine effective limit: field limit > context field limit > file limit
+	var limit uint32
+	var limitName string
+
+	if fieldLimit > 0 {
+		// Explicit field limit passed as parameter
+		limit = fieldLimit
+		limitName = fmt.Sprintf("%d", fieldLimit)
+	} else if u.ctx.currentFieldArrayLimit != math.MaxUint32 {
+		// Field limit from context (set during field processing)
+		limit = u.ctx.currentFieldArrayLimit
+		limitName = fmt.Sprintf("%d", u.ctx.currentFieldArrayLimit)
+	} else if u.ctx.arrayLimit != math.MaxUint32 {
+		// File-level limit
+		limit = u.ctx.arrayLimit
+		limitName = fmt.Sprintf("%slimitArrays", u.ctx.limitPrefix)
+	}
+
+	if limit > 0 && limit != math.MaxUint32 {
+		u.p.printf("\nif %s > %s {", name, limitName)
+		u.p.printf("\nerr = msgp.ErrLimitExceeded")
+		u.p.printf("\nreturn")
+		u.p.printf("\n}")
+	}
+}
+
+func (u *unmarshalGen) assignMap(name string, base string, fieldLimit uint32) {
+	if !u.p.ok() {
+		return
+	}
+	u.p.printf("\n%s, bts, err = msgp.Read%sBytes(bts)", name, base)
+	u.p.wrapErrCheck(u.ctx.ArgsStr())
+
+	// Determine effective limit: field limit > context field limit > file limit
+	var limit uint32
+	var limitName string
+
+	if fieldLimit > 0 {
+		// Explicit field limit passed as parameter
+		limit = fieldLimit
+		limitName = fmt.Sprintf("%d", fieldLimit)
+	} else if u.ctx.currentFieldMapLimit != math.MaxUint32 {
+		// Field limit from context (set during field processing)
+		limit = u.ctx.currentFieldMapLimit
+		limitName = fmt.Sprintf("%d", u.ctx.currentFieldMapLimit)
+	} else if u.ctx.mapLimit != math.MaxUint32 {
+		// File-level limit
+		limit = u.ctx.mapLimit
+		limitName = fmt.Sprintf("%slimitMaps", u.ctx.limitPrefix)
+	}
+
+	if limit > 0 && limit != math.MaxUint32 {
+		u.p.printf("\nif %s > %s {", name, limitName)
+		u.p.printf("\nerr = msgp.ErrLimitExceeded")
+		u.p.printf("\nreturn")
+		u.p.printf("\n}")
+	}
+}
+
+// Returns whether a nil check should be done
+func (u *unmarshalGen) readBytesWithLimit(refname, lowered string, zerocopy bool, fieldLimit uint32) bool {
+	if !u.p.ok() {
+		return false
+	}
+
+	// Determine effective limit: field limit > context field limit > file limit
+	var limit uint32
+	var limitName string
+
+	if fieldLimit > 0 {
+		// Explicit field limit passed as parameter
+		limit = fieldLimit
+		limitName = fmt.Sprintf("%d", fieldLimit)
+	} else if u.ctx.currentFieldArrayLimit != math.MaxUint32 {
+		// Field limit from context (set during field processing)
+		limit = u.ctx.currentFieldArrayLimit
+		limitName = fmt.Sprintf("%d", u.ctx.currentFieldArrayLimit)
+	} else if u.ctx.arrayLimit != math.MaxUint32 {
+		// File-level limit
+		limit = u.ctx.arrayLimit
+		limitName = fmt.Sprintf("%slimitArrays", u.ctx.limitPrefix)
+	}
+
+	// Choose reading strategy based on whether limits exist
+	if limit > 0 && limit != math.MaxUint32 {
+		// Limits exist - use header-first security approach
+		sz := randIdent()
+		u.p.printf("\nvar %s uint32", sz)
+		u.p.printf("\n%s, bts, err = msgp.ReadBytesHeader(bts)", sz)
+		u.p.wrapErrCheck(u.ctx.ArgsStr())
+
+		// Check size against limit before allocating
+		u.p.printf("\nif %s > %s {", sz, limitName)
+		u.p.printf("\nerr = msgp.ErrLimitExceeded")
+		u.p.printf("\nreturn")
+		u.p.printf("\n}")
+
+		// Now safely read the data
+		if zerocopy {
+			u.p.printf("\nif uint32(len(bts)) < %s {", sz)
+			u.p.printf("\nerr = msgp.ErrShortBytes")
+			u.p.printf("\nreturn")
+			u.p.printf("\n}")
+			u.p.printf("\n%s = bts[:%s]", refname, sz)
+			u.p.printf("\nbts = bts[%s:]", sz)
+		} else {
+			if refname != lowered {
+				u.p.printf("\n%s = %s", refname, lowered)
+			}
+			u.p.printf("\nif %s == nil || uint32(cap(%s)) < %s {", refname, refname, sz)
+			u.p.printf("\n%s = make([]byte, %s)", refname, sz)
+			u.p.printf("\n} else {")
+			u.p.printf("\n%s = %s[:%s]", refname, refname, sz)
+			u.p.printf("\n}")
+
+			u.p.printf("\nif uint32(len(bts)) < %s {", sz)
+			u.p.printf("\nerr = msgp.ErrShortBytes")
+			u.p.printf("\nreturn")
+			u.p.printf("\n}")
+			u.p.printf("\ncopy(%s, bts[:%s])", refname, sz)
+			u.p.printf("\nbts = bts[%s:]", sz)
+		}
+		return false
+	} else {
+		// No limits - use original direct reading approach for efficiency
+		if zerocopy {
+			u.p.printf("\n%s, bts, err = msgp.ReadBytesZC(bts)", refname)
+		} else {
+			u.p.printf("\n%s, bts, err = msgp.ReadBytesBytes(bts, %s)", refname, lowered)
+		}
+		u.p.wrapErrCheck(u.ctx.ArgsStr())
+		return !zerocopy
+	}
+}
+
 func (u *unmarshalGen) gStruct(s *Struct) {
 	if !u.p.ok() {
 		return
@@ -91,6 +234,15 @@ func (u *unmarshalGen) tuple(s *Struct) {
 		u.ctx.PushString(s.Fields[i].FieldName)
 		fieldElem := s.Fields[i].FieldElem
 		anField := s.Fields[i].HasTagPart("allownil") && fieldElem.AllowNil()
+
+		// Set field-specific limits in context based on struct field's FieldLimit
+		if s.Fields[i].FieldLimit > 0 {
+			// Apply same limit to both arrays and maps for this field
+			u.ctx.SetFieldLimits(s.Fields[i].FieldLimit, s.Fields[i].FieldLimit)
+		} else {
+			u.ctx.ClearFieldLimits()
+		}
+
 		if anField {
 			u.p.printf("\nif msgp.IsNil(bts) {\nbts = bts[1:]\n%s = nil\n} else {", fieldElem.Varname())
 		}
@@ -100,6 +252,10 @@ func (u *unmarshalGen) tuple(s *Struct) {
 		}
 		setTypeParams(fieldElem, s.typeParams)
 		next(u, fieldElem)
+
+		// Clear field limits after processing
+		u.ctx.ClearFieldLimits()
+
 		if s.Fields[i].HasTagPart("zerocopy") {
 			setRecursiveZC(fieldElem, false)
 		}
@@ -137,7 +293,7 @@ func (u *unmarshalGen) mapstruct(s *Struct) {
 	u.needsField()
 	sz := randIdent()
 	u.p.declare(sz, u32)
-	u.assignAndCheck(sz, mapHeader)
+	u.assignMap(sz, mapHeader, 0)
 
 	oeCount := s.CountFieldTagPart("omitempty") + s.CountFieldTagPart("omitzero")
 	if !u.ctx.clearOmitted {
@@ -168,6 +324,15 @@ func (u *unmarshalGen) mapstruct(s *Struct) {
 
 		fieldElem := s.Fields[i].FieldElem
 		anField := s.Fields[i].HasTagPart("allownil") && fieldElem.AllowNil()
+
+		// Set field-specific limits in context based on struct field's FieldLimit
+		if s.Fields[i].FieldLimit > 0 {
+			// Apply same limit to both arrays and maps for this field
+			u.ctx.SetFieldLimits(s.Fields[i].FieldLimit, s.Fields[i].FieldLimit)
+		} else {
+			u.ctx.ClearFieldLimits()
+		}
+
 		if anField {
 			u.p.printf("\nif msgp.IsNil(bts) {\nbts = bts[1:]\n%s = nil\n} else {", fieldElem.Varname())
 		}
@@ -178,6 +343,10 @@ func (u *unmarshalGen) mapstruct(s *Struct) {
 		setTypeParams(fieldElem, s.typeParams)
 
 		next(u, fieldElem)
+
+		// Clear field limits after processing
+		u.ctx.ClearFieldLimits()
+
 		if s.Fields[i].HasTagPart("zerocopy") {
 			setRecursiveZC(fieldElem, false)
 		}
@@ -216,6 +385,21 @@ func (u *unmarshalGen) mapstruct(s *Struct) {
 	}
 }
 
+// binaryUnmarshalCall generates code for unmarshaling marshaler/appender interfaces
+func (u *unmarshalGen) binaryUnmarshalCall(refname, unmarshalMethod, readType string) {
+	tmpBytes := randIdent()
+	refname = strings.Trim(refname, "(*)")
+
+	u.p.printf("\nvar %s []byte", tmpBytes)
+	if readType == "String" {
+		u.p.printf("\n%s, bts, err = msgp.ReadStringZC(bts)", tmpBytes)
+	} else {
+		u.p.printf("\n%s, bts, err = msgp.ReadBytesZC(bts)", tmpBytes)
+	}
+	u.p.wrapErrCheck(u.ctx.ArgsStr())
+	u.p.printf("\nerr = %s.%s(%s)", refname, unmarshalMethod, tmpBytes)
+}
+
 func (u *unmarshalGen) gBase(b *BaseElem) {
 	if !u.p.ok() {
 		return
@@ -229,16 +413,18 @@ func (u *unmarshalGen) gBase(b *BaseElem) {
 		lowered = b.ToBase() + "(" + lowered + ")"
 		u.p.printf("\n{\nvar %s %s", refname, b.BaseType())
 	}
-
+	nilCheck := false
 	switch b.Value {
 	case Bytes:
-		if b.zerocopy {
-			u.p.printf("\n%s, bts, err = msgp.ReadBytesZC(bts)", refname)
-		} else {
-			u.p.printf("\n%s, bts, err = msgp.ReadBytesBytes(bts, %s)", refname, lowered)
-		}
+		nilCheck = u.readBytesWithLimit(refname, lowered, b.zerocopy, 0)
 	case Ext:
 		u.p.printf("\nbts, err = msgp.ReadExtensionBytes(bts, %s)", lowered)
+	case BinaryMarshaler, BinaryAppender:
+		u.binaryUnmarshalCall(refname, "UnmarshalBinary", "Bytes")
+	case TextMarshalerBin, TextAppenderBin:
+		u.binaryUnmarshalCall(refname, "UnmarshalText", "Bytes")
+	case TextMarshalerString, TextAppenderString:
+		u.binaryUnmarshalCall(refname, "UnmarshalText", "String")
 	case IDENT:
 		if b.Convert {
 			lowered = b.ToBase() + "(" + lowered + ")"
@@ -247,10 +433,9 @@ func (u *unmarshalGen) gBase(b *BaseElem) {
 		if b.typeParams.isPtr {
 			dst = "*" + dst
 		}
-		if remap := b.typeParams.ToPointerMap[dst]; remap != "" {
+		if remap := b.typeParams.ToPointerMap[stripTypeParams(dst)]; remap != "" {
 			lowered = fmt.Sprintf(remap, lowered)
 		}
-
 		u.p.printf("\nbts, err = %s.UnmarshalMsg(bts)", lowered)
 	case Time:
 		if u.ctx.asUTC {
@@ -268,10 +453,13 @@ func (u *unmarshalGen) gBase(b *BaseElem) {
 	default:
 		u.p.printf("\n%s, bts, err = msgp.Read%sBytes(bts)", refname, b.BaseName())
 	}
-	u.p.wrapErrCheck(u.ctx.ArgsStr())
+	if b.Value != Bytes {
+		u.p.wrapErrCheck(u.ctx.ArgsStr())
+	}
 
-	if b.Value == Bytes && b.AllowNil() {
+	if nilCheck && b.AllowNil() {
 		// Ensure that 0 sized slices are allocated.
+		// We are inside the path where the value wasn't nil.
 		u.p.printf("\nif %s == nil {\n%s = make([]byte, 0)\n}", refname, refname)
 	}
 
@@ -314,7 +502,7 @@ func (u *unmarshalGen) gSlice(s *Slice) {
 	}
 	sz := randIdent()
 	u.p.declare(sz, u32)
-	u.assignAndCheck(sz, arrayHeader)
+	u.assignArray(sz, arrayHeader, 0)
 	if s.isAllowNil {
 		u.p.resizeSliceNoNil(sz, s)
 	} else {
@@ -330,7 +518,7 @@ func (u *unmarshalGen) gMap(m *Map) {
 	}
 	sz := randIdent()
 	u.p.declare(sz, u32)
-	u.assignAndCheck(sz, mapHeader)
+	u.assignMap(sz, mapHeader, 0)
 
 	// allocate or clear map
 	u.p.resizeMap(sz, m)
