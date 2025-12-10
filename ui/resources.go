@@ -161,34 +161,34 @@ type buttonResources struct {
 
 func newButtonResources(fonts *fonts) *buttonResources {
 	const (
-		buttonIdleColor     = 0xaaaab4 // rgb(170, 170, 180)
-		buttonIdleBorder    = 0x5a5a5a // rgb(90, 90, 90)
-		buttonHoverColor    = 0x828296 // rgb(130, 130, 150)
-		buttonHoverBorder   = 0x464646 // rgb(70, 70, 70)
-		buttonPressedColor  = 0x828296 // rgb(130, 130, 150)
-		buttonPressedBorder = 0x464646 // rgb(70, 70, 70)
+		buttonIdleColor     = 0x2a3944 // rgba(42, 57, 68, 1)
+		buttonIdleBorder    = 0x4b687a // rgba(75, 104, 122, 1)
+		buttonHoverColor    = 0x4b687a // rgba(75, 104, 122, 1)
+		buttonHoverBorder   = 0x5a7a91 // rgba(90, 122, 145, 1)
+		buttonPressedColor  = 0x192a3b // rgba(25, 42, 59, 1)
+		buttonPressedBorder = 0x4b687a // rgba(75, 104, 122, 1)
 	)
 
 	i := &widget.ButtonImage{
 		Idle: image.NewBorderedNineSliceColor(
 			hex2color(buttonIdleColor),
 			hex2color(buttonIdleBorder),
-			3),
+			1),
 		Hover: image.NewBorderedNineSliceColor(
-			hex2color(buttonIdleColor),
-			hex2color(buttonIdleBorder),
-			3,
+			hex2color(buttonHoverColor),
+			hex2color(buttonHoverBorder),
+			1,
 		),
 		Pressed: image.NewAdvancedNineSliceColor(
 			hex2color(buttonPressedColor),
-			image.NewBorder(3, 2, 2, 2, hex2color(buttonPressedBorder)),
+			image.NewBorder(1, 1, 1, 1, hex2color(buttonPressedBorder)),
 		),
 	}
 
 	return &buttonResources{
 		image: i,
 		text: &widget.ButtonTextColor{
-			Idle:     hex2color(buttonTextDisabledColor),
+			Idle:     hex2color(buttonTextIdleColor),
 			Disabled: hex2color(buttonTextDisabledColor),
 		},
 		face: fonts.face,
