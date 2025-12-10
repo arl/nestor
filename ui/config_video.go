@@ -4,10 +4,10 @@ import (
 	"slices"
 	"strconv"
 
-	"nestor/ui/shader"
-
 	"github.com/ebitenui/ebitenui/utilities/mobile"
 	"github.com/ebitenui/ebitenui/widget"
+
+	"nestor/ui/shader"
 )
 
 func (s *configState) videoConfigPage() *page {

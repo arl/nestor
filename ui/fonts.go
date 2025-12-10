@@ -3,9 +3,9 @@ package ui
 import (
 	"log"
 
-	"nestor/assets"
-
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
+
+	"nestor/assets"
 )
 
 const (
