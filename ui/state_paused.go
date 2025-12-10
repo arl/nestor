@@ -1,24 +1,30 @@
 package ui
 
 import (
-	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"golang.org/x/image/colornames"
+	einput "github.com/quasilyte/ebitengine-input"
+
+	"nestor/ui/keymap"
 )
 
-type pausedState struct{ *app }
+type pausedState struct {
+	*app
+	inputh *einput.Handler
+}
 
 func newPausedState(app *app) *pausedState {
-	s := &pausedState{app: app}
+	s := &pausedState{
+		app: app,
+	}
 	s.createUI()
 	return s
 }
 
-func (s *pausedState) enter(...any) {
+func (s *pausedState) enter(inputh *einput.Handler, _ any) {
 	ebiten.SetWindowTitle("Nestor <paused>")
 	modUI.InfoZ("Blocking emulator").End()
+	s.inputh = inputh
 	s.emulator.Block()
 	s.audioPlayer.Pause()
 }
@@ -26,7 +32,7 @@ func (s *pausedState) enter(...any) {
 func (s *pausedState) exit() {}
 
 func (s *pausedState) update() {
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+	if s.inputh.ActionIsJustPressed(keymap.ActionResumeEmulator) {
 		s.onResume()
 	}
 
@@ -38,29 +44,29 @@ func (s *pausedState) draw(screen *ebiten.Image) {
 }
 
 func (s *pausedState) onResume() {
-	s.emulator.Resume()
-	s.app.setState("running")
+	s.emulator.Unblock()
+	s.app.setState("running", nil)
 	s.audioPlayer.Play()
 }
 
 func (s *pausedState) onReset() {
-	s.emulator.Resume()
+	s.emulator.Unblock()
 	s.emulator.Reset()
-	s.app.setState("running")
+	s.app.setState("running", nil)
 	s.audioPlayer.Play()
 }
 
 func (s *pausedState) onReload() {
-	s.emulator.Resume()
+	s.emulator.Unblock()
 	s.emulator.Restart()
-	s.app.setState("running")
+	s.app.setState("running", nil)
 	s.audioPlayer.Play()
 }
 
 func (s *pausedState) onStop() {
 	s.emulator.Stop()
 	<-s.framech // discard frame
-	s.app.setState("main")
+	s.app.setState("main", nil)
 }
 
 func (s *pausedState) createUI() {
@@ -69,9 +75,7 @@ func (s *pausedState) createUI() {
 	)
 
 	buttonsGroup := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(
-			image.NewNineSliceColor(colornames.Gray),
-		),
+		widget.ContainerOpts.BackgroundImage(res.panel.image),
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
 				HorizontalPosition: widget.AnchorLayoutPositionCenter,
@@ -87,7 +91,7 @@ func (s *pausedState) createUI() {
 
 	buttonsGroup.AddChild(
 		widget.NewLabel(
-			widget.LabelOpts.Text("<paused>", res.fonts.titleFace, &widget.LabelColor{Idle: colornames.White}),
+			widget.LabelOpts.Text("Paused", res.text.titleFace, &widget.LabelColor{Idle: res.text.idleColor}),
 			widget.LabelOpts.TextOpts(widget.TextOpts.Position(widget.TextPositionCenter, widget.TextPositionCenter)),
 		),
 

@@ -1,19 +1,22 @@
 package ui
 
 import (
-	"nestor/hw/input"
-
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	einput "github.com/quasilyte/ebitengine-input"
+
+	"nestor/hw/input"
+	"nestor/ui/keymap"
 )
 
 type captureState struct {
 	*app
 
-	btn       input.PaddleButton // configured button
-	idxpreset int                // configured preset
-	gamepads  []ebiten.GamepadID
+	inputh   *einput.Handler
+	args     *captureArgs
+	scanner  einput.KeyScanner
+	gamepads []ebiten.GamepadID
 }
 
 func newCaptureState(app *app) *captureState {
@@ -25,16 +28,65 @@ func newCaptureState(app *app) *captureState {
 	return state
 }
 
-func (s *captureState) enter(args ...any) {
-	s.btn = args[0].(input.PaddleButton)
-	s.idxpreset = args[1].(int)
+type captureMode string
 
-	modUI.InfoZ("Capture state entered").End()
+const (
+	captureModeUI  = "ui"
+	captureModeNes = "nes"
+)
+
+type captureArgs struct {
+	mode captureMode // "nes"|"ui"
+
+	// "ui" for ui keyboard shortcut
+	action string // ID of the ui action to modify
+
+	// "nes" for nes controllers
+	idxpreset int                // preset to modify
+	btn       input.PaddleButton // nes pad button mapped
+}
+
+func (s *captureState) enter(inputh *einput.Handler, arg any) {
+	// Disable input handler to prevent it from catching events
+	// generated during capture.
+	s.app.disableInputHandler()
+	s.args = ptrTo(arg.(captureArgs))
+	s.inputh = inputh
+
+	modUI.InfoZ("Capture state entered").String("mode", string(s.args.mode)).End()
 }
 
 func (s *captureState) exit() {}
 
 func (s *captureState) update() {
+	switch s.args.mode {
+	case captureModeUI:
+		s.captureForUI()
+	case captureModeNes:
+		s.captureForNES()
+	default:
+		panic("unexpected capture mode " + s.args.mode)
+	}
+
+	s.ui.Update()
+}
+
+func (s *captureState) captureForUI() {
+	k, status := s.scanner.Scan()
+	if status != einput.KeyScanCompleted {
+		return
+	}
+
+	if k != einput.KeyEscape {
+		s.app.cfg.General.KeyboardShortcuts[s.args.action] = keymap.Shortcut(k.String())
+		s.app.cfg.General.KeyboardShortcuts.Apply()
+		s.app.savecfg()
+	}
+
+	s.app.setState("config", nil)
+}
+
+func (s *captureState) captureForNES() {
 	var code *input.Code
 
 	// key press.
@@ -81,16 +133,11 @@ func (s *captureState) update() {
 	}
 
 	if code != nil {
-		s.assign(s.btn, s.idxpreset, *code)
+		s.app.cfg.Input.Presets[s.args.idxpreset].AssignCode(s.args.btn, *code)
+
 		s.app.savecfg()
-		s.app.setState("config")
+		s.app.setState("config", nil)
 	}
-
-	s.ui.Update()
-}
-
-func (s *captureState) assign(btn input.PaddleButton, idxpreset int, code input.Code) {
-	s.app.cfg.Input.Presets[idxpreset].AssignCode(btn, code)
 }
 
 func (s *captureState) draw(screen *ebiten.Image) {

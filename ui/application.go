@@ -12,119 +12,26 @@ import (
 	"github.com/ebitengine/oto/v3"
 	"github.com/ebitenui/ebitenui"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	einput "github.com/quasilyte/ebitengine-input"
 
 	"nestor/config"
 	"nestor/emu"
-	"nestor/emu/log"
-	"nestor/hw/apu"
 	"nestor/hw/input"
 	"nestor/ines"
+	"nestor/ui/keymap"
 )
 
-var modUI = log.NewModule("ui")
-
-const startwidth = 800
-const startheight = 600
-
-func StartUI(ctx context.Context, cfg config.Config) error {
-	return start(ctx, cfg, "")
-}
-
-func StartROM(ctx context.Context, cfg config.Config, romPath string) error {
-	return start(ctx, cfg, romPath)
-}
-
-func start(ctx context.Context, cfg config.Config, romPath string) error {
-	initResources()
-
-	// Init audio.
-	samples, audioctx, err := initAudio()
-	if err != nil {
-		return fmt.Errorf("initAudio failure: %s", err)
-	}
-
-	// Init video.
-	setMonitor(cfg.Video.Monitor)
-	ebiten.SetWindowTitle("Nestor")
-	ebiten.SetWindowSize(startwidth, startheight)
-	ebiten.SetWindowSizeLimits(startwidth, startheight, -1, -1)
-	ebiten.SetRunnableOnUnfocused(false)
-	if cfg.Video.StartFullscreen {
-		ebiten.SetFullscreen(true)
-	}
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-	ebiten.SetTPS(ebiten.SyncWithFPS)
-	ebiten.SetRunnableOnUnfocused(true)
-
-	app := newApp(ctx, samples, audioctx, cfg)
-
-	if romPath != "" {
-		app.setState("running")
-		if err := app.runRom(romPath); err != nil {
-			return fmt.Errorf("can't run rom: %w", err)
-		}
-	} else {
-		app.setState("main")
-	}
-
-	options := &ebiten.RunGameOptions{
-		SingleThread: false,
-	}
-	if err := ebiten.RunGameWithOptions(app, options); err != nil {
-		return fmt.Errorf("ui failure: %w", err)
-	}
-
-	modUI.InfoZ("ui quitted").End()
-	return nil
-}
-
-func initAudio() (*sampleBuffer, *oto.Context, error) {
-	const audioBufferSize = 1024 // TODO: adjust based on latency.
-	samples := newSampleBuffer(audioBufferSize)
-
-	audioctx, readych, err := oto.NewContext(&oto.NewContextOptions{
-		SampleRate:   apu.MaxSampleRate,
-		ChannelCount: 2,
-		Format:       oto.FormatSignedInt16LE,
-	})
-	if err != nil {
-		panic("oto.NewContext failed: " + err.Error())
-	}
-
-	const timeout = 5 * time.Second
-	select {
-	case <-readych:
-		return samples, audioctx, nil
-	case <-time.After(timeout):
-		break
-	}
-
-	return nil, nil, fmt.Errorf("audio context not ready after %s", timeout)
-}
-
-// Can't fail, always fallback to primary/default monitor.
-// Use 0 for primary monitor.
-func setMonitor(idxmon uint) {
-	monitors := ebiten.AppendMonitors(nil)
-	selidx := 0
-	for i, m := range monitors {
-		modUI.InfoZ("Detected monitor").Int("idx", i).String("name", m.Name()).End()
-		if i == int(idxmon) {
-			selidx = i
-		}
-	}
-
-	ebiten.SetMonitor(monitors[selidx])
-	modUI.InfoZ("Using monitor").Int("idx", selidx).String("name", monitors[selidx].Name()).End()
-}
-
-type appState interface {
+type state interface {
 	createUI()
 	update()
 	draw(screen *ebiten.Image)
-	enter(...any)
+	enter(hinput *einput.Handler, arg any)
 	exit()
+}
+
+type stateDef struct {
+	state  state
+	keymap einput.Keymap
 }
 
 type app struct {
@@ -143,25 +50,31 @@ type app struct {
 	displayWidth  int
 	displayHeight int
 
-	states   map[string]appState
-	curstate appState
+	states   map[string]stateDef
+	curstate state
+	inputsys einput.System
+	handler  *einput.Handler
 }
 
 func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, cfg config.Config) *app {
 	app := &app{
 		cfg:           cfg,
-		states:        map[string]appState{},
+		states:        make(map[string]stateDef),
 		displayWidth:  startwidth,
 		displayHeight: startheight,
 		samples:       samples,
 		audioctx:      audioctx,
 	}
 
-	app.states["running"] = newRunningState(app)
-	app.states["paused"] = newPausedState(app)
-	app.states["main"] = newMainState(app)
-	app.states["config"] = newConfigState(app)
-	app.states["capture"] = newCaptureState(app)
+	app.inputsys.Init(einput.SystemConfig{
+		DevicesEnabled: einput.AnyDevice,
+	})
+
+	app.states["running"] = stateDef{state: newRunningState(app), keymap: keymap.RunningKeymap}
+	app.states["paused"] = stateDef{state: newPausedState(app), keymap: keymap.PausedKeymap}
+	app.states["main"] = stateDef{state: newMainState(app), keymap: keymap.MenuKeymap}
+	app.states["config"] = stateDef{state: newConfigState(app), keymap: nil}
+	app.states["capture"] = stateDef{state: newCaptureState(app), keymap: nil}
 
 	go func() {
 		<-ctx.Done()
@@ -178,7 +91,7 @@ func (app *app) exit() {
 // setState defines the new application state, calling exit on the current and
 // enter on the new one. Not re-entrant. Args are passed to the enter function
 // of the new state.
-func (app *app) setState(name string, args ...any) {
+func (app *app) setState(name string, arg any) {
 	modUI.InfoZ("Switching to state").String("to", name).End()
 	if app.curstate != nil {
 		app.curstate.exit()
@@ -188,9 +101,22 @@ func (app *app) setState(name string, args ...any) {
 		modUI.PanicZ("unknown state").String("state", name).End()
 		return
 	}
-	app.curstate = to
-	app.curstate.enter(args...)
+
+	app.handler = app.inputsys.NewHandler(0, mergeKeymaps(keymap.GlobalKeymap, to.keymap))
+
+	app.curstate = to.state
+	app.curstate.enter(app.handler, arg)
 	app.curstate.createUI()
+}
+
+func mergeKeymaps(keymaps ...einput.Keymap) einput.Keymap {
+	result := einput.Keymap{}
+	for _, km := range keymaps {
+		for action, keys := range km {
+			result[action] = keys
+		}
+	}
+	return result
 }
 
 func (app *app) Update() error {
@@ -198,7 +124,10 @@ func (app *app) Update() error {
 		return ebiten.Termination
 	}
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyF11) {
+	app.inputsys.Update()
+
+	// Handle global shortcuts (available in all states)
+	if app.handler.ActionIsJustPressed(keymap.ActionToggleFullscreen) {
 		enable := !ebiten.IsFullscreen()
 		ebiten.SetFullscreen(enable)
 
@@ -209,11 +138,15 @@ func (app *app) Update() error {
 			app.displayWidth, app.displayHeight = ebiten.WindowSize()
 			app.curstate.createUI()
 		}
-
 	}
 
 	app.curstate.update()
 	return nil
+}
+
+// disableInputHandler disables input handler for current state's lifetime.
+func (app *app) disableInputHandler() {
+	app.handler = app.inputsys.NewHandler(0, nil)
 }
 
 func (app *app) Draw(screen *ebiten.Image) {
@@ -245,10 +178,6 @@ func (app *app) runRom(romPath string) error {
 			Width:          emu.NTSCWidth,
 			Height:         emu.NTSCHeight,
 			NumBackBuffers: 4,
-			Title:          "Nestor",
-			ScaleFactor:    2,
-			DisableVSync:   app.cfg.Video.DisableVSync,
-			Shader:         app.cfg.Video.Shader,
 		},
 	)
 
@@ -269,9 +198,9 @@ func (app *app) runRom(romPath string) error {
 	app.audioPlayer.SetBufferSize(8192)
 	app.audioPlayer.Play()
 
-	ebiten.SetVsyncEnabled(!app.cfg.Video.DisableVSync)
+	ebiten.SetVsyncEnabled(app.cfg.Video.VSync)
 
-	app.setState("running")
+	app.setState("running", nil)
 
 	go func() {
 		defer func() {

@@ -2,14 +2,18 @@ package ui
 
 import (
 	"bytes"
+	"errors"
 	"math"
 
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	einput "github.com/quasilyte/ebitengine-input"
 	"github.com/sqweek/dialog"
 	"golang.org/x/image/colornames"
+
+	"nestor/ui/keymap"
 )
 
 type mainState struct {
@@ -22,6 +26,9 @@ type mainState struct {
 	sc     *widget.ScrollContainer
 	slider *widget.Slider
 	cells  []*widget.Container
+
+	inputh *einput.Handler
+	menu   *appMenu
 }
 
 func newMainState(app *app) *mainState {
@@ -34,13 +41,15 @@ func newMainState(app *app) *mainState {
 	return state
 }
 
-func (s *mainState) enter(...any) {
+func (s *mainState) enter(inputh *einput.Handler, _ any) {
+	s.inputh = inputh
 	s.roms = loadRecentROMs()
 }
 
 func (s *mainState) exit() {}
 
-func buildMenu(app *app) *widget.Container {
+func buildMenu(s *mainState) *widget.Container {
+	app := s.app
 	menu := newAppMenu(&app.ui)
 	menu.fileOpen.ClickedEvent.AddHandler(func(args any) {
 		dlg := dialog.File().Title("Open NES ROM").Filter("NES rom", "nes")
@@ -48,8 +57,10 @@ func buildMenu(app *app) *widget.Container {
 
 		name, err := dlg.Load()
 		if err != nil {
-			modUI.ErrorZ("dialog: failed to open").Error("err", err).End()
-			errorWindow(&app.ui, err)
+			if !errors.Is(err, dialog.ErrCancelled) {
+				modUI.ErrorZ("dialog: failed to open").Error("err", err).End()
+				errorWindow(&app.ui, err)
+			}
 			return
 		}
 
@@ -62,16 +73,20 @@ func buildMenu(app *app) *widget.Container {
 	menu.fileQuit.ClickedEvent.AddHandler(func(args any) {
 		app.exit()
 	})
+	menu.settingsGeneral.ClickedEvent.AddHandler(func(args any) {
+		app.setState("config", configPageDest("general"))
+	})
 	menu.settingsInput.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", "input")
+		app.setState("config", configPageDest("input"))
 	})
 	menu.settingsVideo.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", "video")
+		app.setState("config", configPageDest("video"))
 	})
 	menu.settingsEmulation.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", "emulation")
+		app.setState("config", configPageDest("emulation"))
 	})
 
+	s.menu = menu
 	return menu.container
 }
 
@@ -79,13 +94,14 @@ func (s *mainState) startROM() {
 	path := s.roms[s.selidx].Path
 	modUI.InfoZ("selected ROM").String("path", path).End()
 	if err := s.runRom(path); err == nil {
-		s.setState("running")
+		s.setState("running", nil)
 	} else {
 		modUI.ErrorZ("failed to run ROM").String("path", path).Error("err", err).End()
 	}
 }
 
 func (s *mainState) update() {
+	// Handle navigation keys
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		s.up()
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
@@ -98,7 +114,33 @@ func (s *mainState) update() {
 		s.startROM()
 	}
 
+	// Handle menu keyboard shortcuts
+	s.handleMenuShortcuts()
+
 	s.ui.Update()
+}
+
+// handleMenuShortcuts processes keyboard shortcuts for menu actions.
+func (s *mainState) handleMenuShortcuts() {
+	if s.menu == nil {
+		return
+	}
+
+	if s.inputh.ActionIsJustPressed(keymap.ActionFileOpenROM) {
+		s.menu.fileOpen.Click()
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionFileQuit) {
+		s.menu.fileQuit.Click()
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenGeneralConfig) {
+		s.menu.settingsGeneral.Click()
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig) {
+		s.menu.settingsVideo.Click()
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig) {
+		s.menu.settingsVideo.Click()
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenInputConfig) {
+		s.menu.settingsInput.Click()
+	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenEmulationConfig) {
+		s.menu.settingsEmulation.Click()
+	}
 }
 
 func (s *mainState) draw(screen *ebiten.Image) {
@@ -172,7 +214,7 @@ func (s *mainState) createUI() {
 		)),
 	)
 
-	s.ui.Container.AddChild(buildMenu(s.app))
+	s.ui.Container.AddChild(buildMenu(s))
 
 	const screenshotWidth = 180 // side of the screenshot square image.
 	const maxCellWidth = 200

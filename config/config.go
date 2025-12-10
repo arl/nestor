@@ -1,6 +1,7 @@
 package config
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"sync"
@@ -11,11 +12,12 @@ import (
 	"nestor/emu"
 	"nestor/emu/log"
 	"nestor/hw/input"
+	"nestor/ui/keymap"
 )
 
 type General struct {
-	ShowSplash       bool   `toml:"show_splash"`
-	FileLoadStartDir string `toml:"file_load_start_dir"`
+	FileLoadStartDir  string           `toml:"file_load_start_dir"`
+	KeyboardShortcuts keymap.Shortcuts `toml:"keyboard_shortcuts"`
 }
 
 type Config struct {
@@ -52,7 +54,7 @@ var defaultConfig = Config{
 			},
 		},
 		Video: emu.VideoConfig{
-			DisableVSync:    false,
+			VSync:           true,
 			StartFullscreen: false,
 			Monitor:         0,
 			Shader:          "",
@@ -66,7 +68,7 @@ var defaultConfig = Config{
 		TraceOut: nil,
 	},
 	General: General{
-		ShowSplash: true,
+		KeyboardShortcuts: keymap.DefaultShortcuts,
 	},
 }
 
@@ -97,6 +99,8 @@ func LoadOrDefault() Config {
 	// Create a config based on the default one.
 	cfg := defaultConfig
 
+	maps.Copy(cfg.General.KeyboardShortcuts, defaultConfig.General.KeyboardShortcuts)
+
 	// Load the config from the file, overwriting the default values.
 	_, err := toml.DecodeFile(Path(), &cfg)
 	if err != nil {
@@ -105,7 +109,8 @@ func LoadOrDefault() Config {
 		}
 	}
 
-	// Apply post-load operations (fix invalid values, etc).
+	// Apply post-load operations (default or invalid values)
+	cfg.General.KeyboardShortcuts.Apply()
 	cfg.Video.Check()
 	cfg.Emulation.Check()
 	log.ModEmu.InfoZ("loaded configuration").String("path", Path()).End()

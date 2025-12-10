@@ -7,8 +7,6 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 )
 
-type MouseClickArgs = widget.WidgetMouseButtonClickedEventArgs
-
 // accepts 0xrrggbb or 0xaarrggbb
 func hex2color(val uint32) color.Color {
 	alpha := uint8(0xFF)
@@ -27,14 +25,6 @@ func hex2color(val uint32) color.Color {
 
 func ninesliceFromHex(val uint32) *image.NineSlice {
 	return image.NewNineSliceColor(hex2color(val))
-}
-
-func nineSliceBorderFromHex(width int, borderColor, bgColor uint32) *image.NineSlice {
-	return image.NewBorderedNineSliceColor(
-		hex2color(borderColor),
-		hex2color(bgColor),
-		width,
-	)
 }
 
 type pageContainer struct {

@@ -12,18 +12,6 @@ type OutputConfig struct {
 
 	// Number of video and audio buffers to allocate. Defaults to 2.
 	NumBackBuffers int
-
-	// Window title.
-	Title string
-
-	// Window scale factor (defaults to 2).
-	ScaleFactor int32
-
-	// Do not synchronize updates with vertical retrace (i.e immediate updates).
-	DisableVSync bool
-
-	// Shader name for additional video processing effects.
-	Shader string
 }
 
 type Output struct {

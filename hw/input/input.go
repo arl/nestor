@@ -7,12 +7,8 @@ import (
 )
 
 type EbitenInput struct {
-	keys    [2][8]ebiten.Key
-	scratch [256]ebiten.Key
-
 	i0, i1 func() uint8
-
-	cfg Config
+	cfg    Config
 }
 
 func NewEbitenInput(cfg Config) *EbitenInput {

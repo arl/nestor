@@ -1,12 +1,12 @@
 package ui
 
 import (
-	goimage "image"
+	"image"
 
 	"github.com/ebitenui/ebitenui/widget"
 )
 
-type Combobox struct {
+type combobox struct {
 	*widget.ListComboButton
 	items   []string
 	indices []any
@@ -14,7 +14,7 @@ type Combobox struct {
 	idx int
 }
 
-func newCombobox(items []string, selidx int, layoutData any, selectHandler func(item int)) *Combobox {
+func newCombobox(items []string, selidx int, layoutData any, selectHandler func(item int)) *combobox {
 	indices := make([]any, 0, len(items))
 	for i := range items {
 		indices = append(indices, i)
@@ -29,7 +29,7 @@ func newCombobox(items []string, selidx int, layoutData any, selectHandler func(
 		return items[idx]
 	}
 
-	combo := &Combobox{
+	combo := &combobox{
 		items:   items,
 		indices: indices,
 		idx:     selidx,
@@ -56,7 +56,7 @@ func newCombobox(items []string, selidx int, layoutData any, selectHandler func(
 			TextPadding: res.comboButton.padding,
 			TextColor:   res.button.text,
 			TextFace:    res.comboButton.face,
-			MinSize:     &goimage.Point{150, 0},
+			MinSize:     &image.Point{150, 0},
 		}),
 		widget.ListComboButtonOpts.ListParams(&widget.ListParams{
 			ScrollContainerImage: res.list.image,
@@ -69,7 +69,7 @@ func newCombobox(items []string, selidx int, layoutData any, selectHandler func(
 			EntryFace:        res.fonts.small,
 			EntryColor:       res.list.entry,
 			EntryTextPadding: widget.NewInsetsSimple(5),
-			MinSize:          &goimage.Point{150, 0},
+			MinSize:          &image.Point{150, 0},
 		}),
 		widget.ListComboButtonOpts.EntryLabelFunc(fbtn, flist),
 		widget.ListComboButtonOpts.EntrySelectedHandler(handler),
@@ -79,6 +79,6 @@ func newCombobox(items []string, selidx int, layoutData any, selectHandler func(
 	return combo
 }
 
-func (c *Combobox) SelectedIndex() int {
+func (c *combobox) SelectedIndex() int {
 	return c.idx
 }

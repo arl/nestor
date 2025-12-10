@@ -4,10 +4,10 @@ import (
 	"slices"
 	"strconv"
 
-	"nestor/ui/shader"
-
 	"github.com/ebitenui/ebitenui/utilities/mobile"
 	"github.com/ebitenui/ebitenui/widget"
+
+	"nestor/ui/shader"
 )
 
 func (s *configState) videoConfigPage() *page {
@@ -116,9 +116,9 @@ func (s *configState) videoConfigPage() *page {
 			onShaderChanged))
 
 	c.AddChild(
-		newCheckbox2States("Disable V-Sync", s.app.cfg.Video.DisableVSync, func(enabled bool) {
-			s.app.cfg.Video.DisableVSync = enabled
-			modUI.InfoZ("toggled disable-vsync").
+		newCheckbox2States("Enable V-Sync", s.app.cfg.Video.VSync, func(enabled bool) {
+			s.app.cfg.Video.VSync = enabled
+			modUI.InfoZ("toggled 'enable vsync'").
 				Bool("from", !enabled).
 				Bool("to", enabled).
 				End()
