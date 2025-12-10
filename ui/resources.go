@@ -4,13 +4,13 @@ import (
 	"image/color"
 	_ "image/png"
 
-	"nestor/assets"
-
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
+
+	"nestor/assets"
 )
 
 const (
@@ -50,8 +50,7 @@ const (
 )
 
 type uiResources struct {
-	fonts *fonts
-
+	fonts      *fonts
 	background *image.NineSlice
 
 	separatorColor color.Color
@@ -66,13 +65,11 @@ type uiResources struct {
 	comboButton *comboButtonResources
 	list        *listResources
 	slider      *sliderResources
-	progressBar *progressBarResources
 	panel       *panelResources
 	tabBook     *tabBookResources
 	header      *headerResources
 	textInput   *textInputResources
 	textArea    *textAreaResources
-	toolTip     *toolTipResources
 }
 
 var res *uiResources
@@ -93,13 +90,11 @@ func initResources() {
 	res.slider = newSliderResources()
 	res.list = newListResources(fonts)
 	res.comboButton = newComboButtonResources(fonts)
-	res.progressBar = newProgressBarResources()
 	res.panel = newPanelResources()
 	res.tabBook = newTabBookResources(fonts)
 	res.header = newHeaderResources(fonts)
 	res.textInput = newTextInputResources(fonts)
 	res.textArea = newTextAreaResources(fonts)
-	res.toolTip = newToolTipResources(fonts)
 }
 
 type imageResources struct {
@@ -352,31 +347,6 @@ func newSliderResources() *sliderResources {
 	}
 }
 
-type progressBarResources struct {
-	trackImage *widget.ProgressBarImage
-	fillImage  *widget.ProgressBarImage
-}
-
-func newProgressBarResources() *progressBarResources {
-	idle := must(newImageFromFile("graphics/progressbar-track-idle.png"))
-	fillIdle := must(newImageFromFile("graphics/progressbar-fill-idle.png"))
-	disabled := must(newImageFromFile("graphics/slider-track-disabled.png"))
-
-	return &progressBarResources{
-		trackImage: &widget.ProgressBarImage{
-			Idle:     image.NewNineSlice(idle, [3]int{4, 11, 4}, [3]int{2, 2, 2}),
-			Hover:    image.NewNineSlice(idle, [3]int{4, 11, 4}, [3]int{2, 2, 2}),
-			Disabled: image.NewNineSlice(disabled, [3]int{4, 11, 4}, [3]int{2, 2, 2}),
-		},
-
-		fillImage: &widget.ProgressBarImage{
-			Idle:     image.NewNineSlice(fillIdle, [3]int{4, 11, 4}, [3]int{2, 2, 2}),
-			Hover:    image.NewNineSlice(fillIdle, [3]int{4, 11, 4}, [3]int{2, 2, 2}),
-			Disabled: image.NewNineSlice(fillIdle, [3]int{4, 11, 4}, [3]int{2, 2, 2}),
-		},
-	}
-}
-
 type panelResources struct {
 	image   *image.NineSlice
 	padding *widget.Insets
@@ -498,30 +468,6 @@ func newTextAreaResources(fonts *fonts) *textAreaResources {
 			Right:  30,
 			Top:    2,
 			Bottom: 2,
-		},
-	}
-}
-
-type toolTipResources struct {
-	background *image.NineSlice
-	padding    *widget.Insets
-	face       *text.Face
-	color      color.Color
-}
-
-func newToolTipResources(fonts *fonts) *toolTipResources {
-	bg := must(newImageFromFile("graphics/tool-tip.png"))
-
-	return &toolTipResources{
-		face:       fonts.toolTipFace,
-		color:      hex2color(toolTipColor),
-		background: image.NewNineSlice(bg, [3]int{19, 6, 13}, [3]int{19, 5, 13}),
-
-		padding: &widget.Insets{
-			Left:   15,
-			Right:  15,
-			Top:    10,
-			Bottom: 10,
 		},
 	}
 }
