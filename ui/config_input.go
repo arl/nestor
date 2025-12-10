@@ -152,22 +152,20 @@ func (s *configState) inputConfigPage() *page {
 	properties := make([]property, len(buttons))
 	for i, btn := range buttons {
 		properties[i] = property{
-			key:       strings.ToUpper(btn.String()),
-			value:     codes[btn].Name(),
-			clickable: true,
+			key:   strings.ToUpper(btn.String()),
+			value: codes[btn].Name(),
 		}
 	}
 
-	listcfg := propertyListConfig{
+	listcfg := plistConfig{
 		headers:    []string{"Button", "Assigned to"},
 		properties: properties,
-		layoutData: widget.RowLayoutData{Stretch: true},
 		onClick: func(i int) {
 			s.app.setState("capture", captureArgs{mode: captureModeNes, btn: buttons[i], idxpreset: s.presetidx})
 		},
 	}
 
-	buttonsTable := newPropertyList(listcfg)
+	buttonsTable := newPlist(listcfg)
 
 	helpLabel := widget.NewLabel(
 		widget.LabelOpts.Text("Click on a button assignment to change it.", res.label.face, res.label.text))

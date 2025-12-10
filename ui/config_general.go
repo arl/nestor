@@ -11,30 +11,26 @@ func (s *configState) generalConfigPage() *page {
 	c := newPageContentContainer()
 	c.SetBackgroundImage(res.panel.image)
 
-	const spacing = 20
-
 	shortcuts := s.app.cfg.General.KeyboardShortcuts
 	actions := slices.Sorted(maps.Keys(shortcuts))
 
 	properties := make([]property, len(actions))
 	for i, action := range actions {
 		properties[i] = property{
-			key:       action,
-			value:     string(shortcuts[action]),
-			clickable: true,
+			key:   action,
+			value: string(shortcuts[action]),
 		}
 	}
 
-	listcfg := propertyListConfig{
-		headers:    []string{"Action", "Keyboard Shortcut"},
+	listcfg := plistConfig{
+		headers:    []string{"Action", "Shortcut"},
 		properties: properties,
-		layoutData: widget.RowLayoutData{Stretch: true},
 		onClick: func(i int) {
 			s.app.setState("capture", captureArgs{mode: captureModeUI, action: actions[i]})
 		},
 	}
 
-	shortcutsTable := newPropertyList(listcfg)
+	shortcutsTable := newPlist(listcfg)
 
 	helpLabel := widget.NewLabel(
 		widget.LabelOpts.Text("Click on a shortcut value to change it.", res.label.face, res.label.text))

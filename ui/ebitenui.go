@@ -7,8 +7,6 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 )
 
-type MouseClickArgs = widget.WidgetMouseButtonClickedEventArgs
-
 // accepts 0xrrggbb or 0xaarrggbb
 func hex2color(val uint32) color.Color {
 	alpha := uint8(0xFF)
