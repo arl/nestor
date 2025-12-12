@@ -28,52 +28,104 @@ func ninesliceFromHex(val uint32) *image.NineSlice {
 }
 
 type pageContainer struct {
-	widget    widget.PreferredSizeLocateableWidget
+	root      *widget.Container
 	titleText *widget.Text
-	flipBook  *widget.FlipBook
+	content   *widget.Container
+	sc        *widget.ScrollContainer
+	slider    *widget.Slider
 }
 
 func newPageContainer() *pageContainer {
-	c := widget.NewContainer(
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.TrackHover(false)),
-		widget.ContainerOpts.BackgroundImage(res.panel.image),
+	pc := &pageContainer{}
+
+	pc.content = widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Padding(res.panel.padding),
-			widget.RowLayoutOpts.Spacing(15))),
+			widget.RowLayoutOpts.Spacing(10),
+		)),
 	)
 
-	titleText := widget.NewText(
-		widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-			Stretch: true,
-		})),
-		widget.TextOpts.Text("", res.text.titleFace, res.text.idleColor))
-	c.AddChild(titleText)
-
-	flipBook := widget.NewFlipBook(
-		widget.FlipBookOpts.ContainerOpts(widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-			Stretch: true,
-		}))),
+	pc.sc = widget.NewScrollContainer(
+		widget.ScrollContainerOpts.Content(pc.content),
+		widget.ScrollContainerOpts.StretchContentWidth(),
+		widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
+			Idle: res.panel.image,
+			Mask: res.panel.image,
+		}),
 	)
-	c.AddChild(flipBook)
 
-	return &pageContainer{
-		widget:    c,
-		titleText: titleText,
-		flipBook:  flipBook,
+	pageSizeFunc := func() int {
+		viewH := pc.sc.ViewRect().Dy()
+		contentH := pc.content.GetWidget().Rect.Dy()
+		if contentH <= viewH {
+			return 1000
+		}
+		return int(float64(viewH) / float64(contentH) * 1000)
 	}
+
+	pc.slider = widget.NewSlider(
+		widget.SliderOpts.Orientation(widget.DirectionVertical),
+		widget.SliderOpts.MinMax(0, 1000),
+		widget.SliderOpts.PageSizeFunc(pageSizeFunc),
+		widget.SliderOpts.ChangedHandler(func(args *widget.SliderChangedEventArgs) {
+			pc.sc.ScrollTop = float64(args.Slider.Current) / 1000
+		}),
+		widget.SliderOpts.Images(res.slider.trackImage, res.slider.handle),
+	)
+
+	pc.sc.GetWidget().ScrolledEvent.AddHandler(func(args any) {
+		if a, ok := args.(*widget.WidgetScrolledEventArgs); ok {
+			pc.slider.Current -= int(a.Y * float64(pageSizeFunc()))
+		}
+	})
+
+	pc.titleText = widget.NewText(
+		widget.TextOpts.Text("", res.text.titleFace, res.text.idleColor),
+	)
+
+	scrollRow := widget.NewContainer(
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+			HorizontalPosition: widget.GridLayoutPositionStart,
+			VerticalPosition:   widget.GridLayoutPositionStart,
+			MaxWidth:           0,
+			MaxHeight:          0,
+		})),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(2),
+			widget.GridLayoutOpts.Spacing(4, 0),
+			widget.GridLayoutOpts.Stretch([]bool{true, false}, []bool{true}),
+		)),
+	)
+	scrollRow.AddChild(pc.sc)
+	scrollRow.AddChild(pc.slider)
+
+	pc.root = widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(res.panel.image),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Padding(res.panel.padding),
+			widget.GridLayoutOpts.Spacing(0, 15),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true}),
+		)),
+	)
+	pc.root.AddChild(pc.titleText)
+	pc.root.AddChild(scrollRow)
+
+	return pc
 }
 
-func (p *pageContainer) setPage(page *page) {
-	p.titleText.Label = page.title
-	p.flipBook.SetPage(page.content)
-	p.flipBook.RequestRelayout()
+func (p *pageContainer) setPage(pg *page) {
+	p.titleText.Label = pg.title
+	p.content.RemoveChildren()
+	p.content.AddChild(pg.content)
+	p.sc.ScrollTop = 0
+	p.slider.Current = 0
 }
 
 func newPageContentContainer() *widget.Container {
 	return widget.NewContainer(
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-			StretchHorizontal: true,
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+			Stretch: true,
 		})),
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),

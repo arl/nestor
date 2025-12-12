@@ -144,7 +144,7 @@ func (s *configState) createUI() {
 	sidebar.AddChild(backButton)
 
 	container.AddChild(sidebar)
-	container.AddChild(pageContainer.widget)
+	container.AddChild(pageContainer.root)
 
 	root.AddChild(container)
 
