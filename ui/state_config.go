@@ -13,8 +13,9 @@ type configState struct {
 	*app
 	inputh *einput.Handler
 
-	startPage int
-	presetidx int // TODO: we can probably remove this and place it in inputConfigPage
+	startPage     int
+	presetidx     int // TODO: we can probably remove this and place it in inputConfigPage
+	pageContainer *pageContainer
 }
 
 func newConfigState(app *app) *configState {
@@ -55,6 +56,7 @@ func (s *configState) exit() {}
 
 func (s *configState) update() {
 	s.ui.Update()
+	s.pageContainer.updateSliderVisibility()
 }
 
 func (s *configState) draw(screen *ebiten.Image) {
@@ -93,7 +95,7 @@ func (s *configState) createUI() {
 		s.emulationConfigPage(),
 	}
 
-	pageContainer := newPageContainer()
+	s.pageContainer = newPageContainer()
 
 	// Left sidebar with page list and back button.
 	sidebar := widget.NewContainer(
@@ -124,7 +126,7 @@ func (s *configState) createUI() {
 			// page index
 			page := args.Entry.(*page)
 			s.startPage = slices.Index(pages, any(page))
-			pageContainer.setPage(page)
+			s.pageContainer.setPage(page)
 		}))
 	pageList.SetSelectedEntry(pages[s.startPage])
 
@@ -144,7 +146,7 @@ func (s *configState) createUI() {
 	sidebar.AddChild(backButton)
 
 	container.AddChild(sidebar)
-	container.AddChild(pageContainer.root)
+	container.AddChild(s.pageContainer.root)
 
 	root.AddChild(container)
 

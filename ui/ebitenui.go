@@ -122,6 +122,16 @@ func (p *pageContainer) setPage(pg *page) {
 	p.slider.Current = 0
 }
 
+func (p *pageContainer) updateSliderVisibility() {
+	viewH := p.sc.ViewRect().Dy()
+	contentH := p.content.GetWidget().Rect.Dy()
+	if contentH <= viewH {
+		p.slider.GetWidget().Visibility = widget.Visibility_Hide
+	} else {
+		p.slider.GetWidget().Visibility = widget.Visibility_Show
+	}
+}
+
 func newPageContentContainer() *widget.Container {
 	return widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{

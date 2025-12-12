@@ -23,9 +23,10 @@ type mainState struct {
 	numcols int
 	roms    []recentROM
 
-	sc     *widget.ScrollContainer
-	slider *widget.Slider
-	cells  []*widget.Container
+	sc      *widget.ScrollContainer
+	slider  *widget.Slider
+	grid    *widget.Container
+	cells   []*widget.Container
 
 	inputh *einput.Handler
 	menu   *appMenu
@@ -118,6 +119,23 @@ func (s *mainState) update() {
 	s.handleMenuShortcuts()
 
 	s.ui.Update()
+	s.updateSliderVisibility()
+}
+
+func (s *mainState) updateSliderVisibility() {
+	if s.sc == nil || s.slider == nil || s.grid == nil {
+		return
+	}
+	viewH := s.sc.ViewRect().Dy()
+	contentH := s.grid.GetWidget().Rect.Dy()
+	if contentH == 0 || viewH == 0 {
+		return
+	}
+	if contentH <= viewH {
+		s.slider.GetWidget().Visibility = widget.Visibility_Hide
+	} else {
+		s.slider.GetWidget().Visibility = widget.Visibility_Show
+	}
 }
 
 // handleMenuShortcuts processes keyboard shortcuts for menu actions.
@@ -227,7 +245,7 @@ func (s *mainState) createUI() {
 		colstretch[i] = true
 	}
 
-	grid := widget.NewContainer(
+	s.grid = widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true}),
 		),
@@ -252,7 +270,7 @@ func (s *mainState) createUI() {
 
 		cell := s.createROMCell(i, img, screenshotWidth)
 		s.cells = append(s.cells, cell)
-		grid.AddChild(cell)
+		s.grid.AddChild(cell)
 	}
 
 	scrollable := widget.NewContainer(
@@ -265,7 +283,7 @@ func (s *mainState) createUI() {
 	)
 
 	s.sc = widget.NewScrollContainer(
-		widget.ScrollContainerOpts.Content(grid),
+		widget.ScrollContainerOpts.Content(s.grid),
 		widget.ScrollContainerOpts.StretchContentWidth(),
 		widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
 			Idle: res.background,
@@ -276,7 +294,7 @@ func (s *mainState) createUI() {
 	scrollable.AddChild(s.sc)
 
 	pageSizeFunc := func() int {
-		return int(math.Round(float64(s.sc.ViewRect().Dy())/float64(grid.GetWidget().Rect.Dy())*1000) / 3)
+		return int(math.Round(float64(s.sc.ViewRect().Dy())/float64(s.grid.GetWidget().Rect.Dy())*1000) / 3)
 	}
 
 	s.slider = widget.NewSlider(
