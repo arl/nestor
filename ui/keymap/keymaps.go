@@ -25,6 +25,14 @@ const (
 	ActionPauseEmulator  // pause and show menu
 	ActionResetEmulator  // reset the NES
 	ActionToggleShaderUI // toggle shader selection UI
+	ActionLoadSaveStateSlot1
+	ActionLoadSaveStateSlot2
+	ActionLoadSaveStateSlot3
+	ActionLoadSaveStateSlot4
+	ActionLoadSaveStateSlot5
+	ActionSaveSaveStateSlot6
+	ActionSaveSaveStateSlot7
+	ActionSaveSaveStateSlot8
 
 	// Paused state actions
 	ActionResumeEmulator // resume emulation
@@ -32,17 +40,28 @@ const (
 
 // Action String IDs
 const (
-	IDGlobalToggleFullscreen          = "global.toggle_fullscreen"
+	IDGlobalToggleFullscreen = "global.toggle_fullscreen"
+
 	IDMenuFileOpenROM                 = "menu.file_open_rom"
 	IDMenuFileQuit                    = "menu.file_quit"
 	IDMenuSettingsOpenGeneralConfig   = "menu.settings_open_general_config"
 	IDMenuSettingsOpenVideoConfig     = "menu.settings_open_video_config"
 	IDMenuSettingsOpenInputConfig     = "menu.settings_open_input_config"
 	IDMenuSettingsOpenEmulationConfig = "menu.settings_open_emulation_config"
-	IDRunningPauseEmulator            = "running.pause_emulator"
-	IDRunningResetEmulator            = "running.reset_emulator"
-	IDRunningToggleShaderUI           = "running.toggle_shader_ui"
-	IDPausedResumeEmulator            = "paused.resume_emulator"
+
+	IDRunningPauseEmulator      = "running.pause_emulator"
+	IDRunningResetEmulator      = "running.reset_emulator"
+	IDRunningToggleShaderUI     = "running.toggle_shader_ui"
+	IDRunningLoadSaveStateSlot1 = "running.load_save_state_slot_1"
+	IDRunningLoadSaveStateSlot2 = "running.load_save_state_slot_2"
+	IDRunningLoadSaveStateSlot3 = "running.load_save_state_slot_3"
+	IDRunningLoadSaveStateSlot4 = "running.load_save_state_slot_4"
+	IDRunningLoadSaveStateSlot5 = "running.load_save_state_slot_5"
+	IDRunningSaveSaveStateSlot6 = "running.save_save_state_slot_6"
+	IDRunningSaveSaveStateSlot7 = "running.save_save_state_slot_7"
+	IDRunningSaveSaveStateSlot8 = "running.save_save_state_slot_8"
+
+	IDPausedResumeEmulator = "paused.resume_emulator"
 )
 
 // Keymaps
@@ -60,9 +79,17 @@ var (
 	}
 
 	RunningKeymap = einput.Keymap{
-		ActionPauseEmulator:  {einput.KeyEscape},
-		ActionResetEmulator:  {einput.KeyR},
-		ActionToggleShaderUI: {einput.KeyF5},
+		ActionPauseEmulator:      {einput.KeyEscape},
+		ActionResetEmulator:      {einput.KeyR},
+		ActionToggleShaderUI:     {einput.KeyF10},
+		ActionLoadSaveStateSlot1: {einput.KeyF1},
+		ActionLoadSaveStateSlot2: {einput.KeyF2},
+		ActionLoadSaveStateSlot3: {einput.KeyF3},
+		ActionLoadSaveStateSlot4: {einput.KeyF4},
+		ActionLoadSaveStateSlot5: {einput.KeyF5},
+		ActionSaveSaveStateSlot6: {einput.KeyF6},
+		ActionSaveSaveStateSlot7: {einput.KeyF7},
+		ActionSaveSaveStateSlot8: {einput.KeyF8},
 	}
 
 	PausedKeymap = einput.Keymap{
@@ -74,17 +101,28 @@ var actionRegistry = map[string]struct {
 	action einput.Action
 	keymap einput.Keymap
 }{
-	IDGlobalToggleFullscreen:          {ActionToggleFullscreen, GlobalKeymap},
+	IDGlobalToggleFullscreen: {ActionToggleFullscreen, GlobalKeymap},
+
 	IDMenuFileOpenROM:                 {ActionFileOpenROM, MenuKeymap},
 	IDMenuFileQuit:                    {ActionFileQuit, MenuKeymap},
 	IDMenuSettingsOpenGeneralConfig:   {ActionSettingsOpenGeneralConfig, MenuKeymap},
 	IDMenuSettingsOpenVideoConfig:     {ActionSettingsOpenVideoConfig, MenuKeymap},
 	IDMenuSettingsOpenInputConfig:     {ActionSettingsOpenInputConfig, MenuKeymap},
 	IDMenuSettingsOpenEmulationConfig: {ActionSettingsOpenEmulationConfig, MenuKeymap},
-	IDRunningPauseEmulator:            {ActionPauseEmulator, RunningKeymap},
-	IDRunningResetEmulator:            {ActionResetEmulator, RunningKeymap},
-	IDRunningToggleShaderUI:           {ActionToggleShaderUI, RunningKeymap},
-	IDPausedResumeEmulator:            {ActionResumeEmulator, PausedKeymap},
+
+	IDRunningPauseEmulator:      {ActionPauseEmulator, RunningKeymap},
+	IDRunningResetEmulator:      {ActionResetEmulator, RunningKeymap},
+	IDRunningToggleShaderUI:     {ActionToggleShaderUI, RunningKeymap},
+	IDRunningLoadSaveStateSlot1: {ActionLoadSaveStateSlot1, RunningKeymap},
+	IDRunningLoadSaveStateSlot2: {ActionLoadSaveStateSlot2, RunningKeymap},
+	IDRunningLoadSaveStateSlot3: {ActionLoadSaveStateSlot3, RunningKeymap},
+	IDRunningLoadSaveStateSlot4: {ActionLoadSaveStateSlot4, RunningKeymap},
+	IDRunningLoadSaveStateSlot5: {ActionLoadSaveStateSlot5, RunningKeymap},
+	IDRunningSaveSaveStateSlot6: {ActionSaveSaveStateSlot6, RunningKeymap},
+	IDRunningSaveSaveStateSlot7: {ActionSaveSaveStateSlot7, RunningKeymap},
+	IDRunningSaveSaveStateSlot8: {ActionSaveSaveStateSlot8, RunningKeymap},
+
+	IDPausedResumeEmulator: {ActionResumeEmulator, PausedKeymap},
 }
 
 type Shortcut string
@@ -104,17 +142,29 @@ type Shortcuts map[string]Shortcut
 
 // DefaultShortcuts defines the default key bindings.
 var DefaultShortcuts = Shortcuts{
-	IDGlobalToggleFullscreen:          "f11",
-	IDMenuFileOpenROM:                 "ctrl+o",
-	IDMenuFileQuit:                    "ctrl+q",
+	IDGlobalToggleFullscreen: "f11",
+
+	IDMenuFileOpenROM: "ctrl+o",
+	IDMenuFileQuit:    "ctrl+q",
+
 	IDMenuSettingsOpenGeneralConfig:   "ctrl+g",
 	IDMenuSettingsOpenVideoConfig:     "ctrl+v",
 	IDMenuSettingsOpenInputConfig:     "ctrl+i",
 	IDMenuSettingsOpenEmulationConfig: "ctrl+e",
-	IDRunningPauseEmulator:            "escape",
-	IDRunningResetEmulator:            "r",
-	IDRunningToggleShaderUI:           "f5",
-	IDPausedResumeEmulator:            "escape",
+
+	IDRunningPauseEmulator:      "escape",
+	IDRunningResetEmulator:      "r",
+	IDRunningToggleShaderUI:     "f5",
+	IDRunningLoadSaveStateSlot1: "f1",
+	IDRunningLoadSaveStateSlot2: "f2",
+	IDRunningLoadSaveStateSlot3: "f3",
+	IDRunningLoadSaveStateSlot4: "f4",
+	IDRunningLoadSaveStateSlot5: "f5",
+	IDRunningSaveSaveStateSlot6: "f6",
+	IDRunningSaveSaveStateSlot7: "f7",
+	IDRunningSaveSaveStateSlot8: "f8",
+
+	IDPausedResumeEmulator: "escape",
 }
 
 // Apply updates the keymaps based on the configuration.
