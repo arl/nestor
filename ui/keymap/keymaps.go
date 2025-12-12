@@ -48,36 +48,36 @@ const (
 
 // Action String IDs
 const (
-	idGlobalToggleFullscreen = "global.toggle_fullscreen"
+	idToggleFullscreen = "global.toggle_fullscreen"
 
-	idMenuFileOpenROM                 = "menu.file_open_rom"
-	idMenuFileQuit                    = "menu.file_quit"
-	idMenuSettingsOpenGeneralConfig   = "menu.settings_open_general_config"
-	idMenuSettingsOpenVideoConfig     = "menu.settings_open_video_config"
-	idMenuSettingsOpenInputConfig     = "menu.settings_open_input_config"
-	idMenuSettingsOpenEmulationConfig = "menu.settings_open_emulation_config"
+	idOpenROM                     = "open_rom"
+	idQuit                        = "quit"
+	idSettingsOpenGeneralConfig   = "settings_open_general_config"
+	idSettingsOpenVideoConfig     = "settings_open_video_config"
+	idSettingsOpenInputConfig     = "settings_open_input_config"
+	idSettingsOpenEmulationConfig = "settings_open_emulation_config"
 
-	idRunningPauseEmulator      = "running.pause_emulator"
-	idRunningResetEmulator      = "running.reset_emulator"
-	idRunningToggleShaderUI     = "running.toggle_shader_ui"
-	idRunningSaveSavestateSlot1 = "running.save_savestate_slot_1"
-	idRunningSaveSavestateSlot2 = "running.save_savestate_slot_2"
-	idRunningSaveSavestateSlot3 = "running.save_savestate_slot_3"
-	idRunningSaveSavestateSlot4 = "running.save_savestate_slot_4"
-	idRunningSaveSavestateSlot5 = "running.save_savestate_slot_5"
-	idRunningSaveSavestateSlot6 = "running.save_savestate_slot_6"
-	idRunningSaveSavestateSlot7 = "running.save_savestate_slot_7"
-	idRunningSaveSavestateSlot8 = "running.save_savestate_slot_8"
-	idRunningLoadSavestateSlot1 = "running.load_savestate_slot_1"
-	idRunningLoadSavestateSlot2 = "running.load_savestate_slot_2"
-	idRunningLoadSavestateSlot3 = "running.load_savestate_slot_3"
-	idRunningLoadSavestateSlot4 = "running.load_savestate_slot_4"
-	idRunningLoadSavestateSlot5 = "running.load_savestate_slot_5"
-	idRunningLoadSavestateSlot6 = "running.load_savestate_slot_6"
-	idRunningLoadSavestateSlot7 = "running.load_savestate_slot_7"
-	idRunningLoadSavestateSlot8 = "running.load_savestate_slot_8"
+	idPauseEmulator  = "pause_emulator"
+	idResumeEmulator = "resume_emulator"
+	idResetEmulator  = "reset_emulator"
 
-	idPausedResumeEmulator = "paused.resume_emulator"
+	idToggleShaderUI     = "toggle_shader_ui"
+	idSaveSavestateSlot1 = "save_savestate_slot_1"
+	idSaveSavestateSlot2 = "save_savestate_slot_2"
+	idSaveSavestateSlot3 = "save_savestate_slot_3"
+	idSaveSavestateSlot4 = "save_savestate_slot_4"
+	idSaveSavestateSlot5 = "save_savestate_slot_5"
+	idSaveSavestateSlot6 = "save_savestate_slot_6"
+	idSaveSavestateSlot7 = "save_savestate_slot_7"
+	idSaveSavestateSlot8 = "save_savestate_slot_8"
+	idLoadSavestateSlot1 = "load_savestate_slot_1"
+	idLoadSavestateSlot2 = "load_savestate_slot_2"
+	idLoadSavestateSlot3 = "load_savestate_slot_3"
+	idLoadSavestateSlot4 = "load_savestate_slot_4"
+	idLoadSavestateSlot5 = "load_savestate_slot_5"
+	idLoadSavestateSlot6 = "load_savestate_slot_6"
+	idLoadSavestateSlot7 = "load_savestate_slot_7"
+	idLoadSavestateSlot8 = "load_savestate_slot_8"
 )
 
 var (
@@ -104,37 +104,37 @@ type Shortcuts map[string]Shortcut
 
 // DefaultShortcuts defines the default key bindings.
 var DefaultShortcuts = Shortcuts{
-	idGlobalToggleFullscreen: "f11",
+	idToggleFullscreen: "f11",
 
-	idMenuFileOpenROM: "ctrl+o",
-	idMenuFileQuit:    "ctrl+q",
+	idOpenROM: "ctrl+o",
+	idQuit:    "ctrl+q",
 
-	idMenuSettingsOpenGeneralConfig:   "ctrl+g",
-	idMenuSettingsOpenVideoConfig:     "ctrl+v",
-	idMenuSettingsOpenInputConfig:     "ctrl+i",
-	idMenuSettingsOpenEmulationConfig: "ctrl+e",
+	idSettingsOpenGeneralConfig:   "ctrl+g",
+	idSettingsOpenVideoConfig:     "ctrl+v",
+	idSettingsOpenInputConfig:     "ctrl+i",
+	idSettingsOpenEmulationConfig: "ctrl+e",
 
-	idRunningPauseEmulator:      "escape",
-	idRunningResetEmulator:      "r",
-	idRunningToggleShaderUI:     "f9",
-	idRunningSaveSavestateSlot1: "f1",
-	idRunningSaveSavestateSlot2: "f2",
-	idRunningSaveSavestateSlot3: "f3",
-	idRunningSaveSavestateSlot4: "f4",
-	idRunningSaveSavestateSlot5: "f5",
-	idRunningSaveSavestateSlot6: "f6",
-	idRunningSaveSavestateSlot7: "f7",
-	idRunningSaveSavestateSlot8: "f8",
-	idRunningLoadSavestateSlot1: "shift+f1",
-	idRunningLoadSavestateSlot2: "shift+f2",
-	idRunningLoadSavestateSlot3: "shift+f3",
-	idRunningLoadSavestateSlot4: "shift+f4",
-	idRunningLoadSavestateSlot5: "shift+f5",
-	idRunningLoadSavestateSlot6: "shift+f6",
-	idRunningLoadSavestateSlot7: "shift+f7",
-	idRunningLoadSavestateSlot8: "shift+f8",
+	idPauseEmulator:      "space",
+	idResetEmulator:      "ctrl+r",
+	idToggleShaderUI:     "f9",
+	idSaveSavestateSlot1: "f1",
+	idSaveSavestateSlot2: "f2",
+	idSaveSavestateSlot3: "f3",
+	idSaveSavestateSlot4: "f4",
+	idSaveSavestateSlot5: "f5",
+	idSaveSavestateSlot6: "f6",
+	idSaveSavestateSlot7: "f7",
+	idSaveSavestateSlot8: "f8",
+	idLoadSavestateSlot1: "shift+f1",
+	idLoadSavestateSlot2: "shift+f2",
+	idLoadSavestateSlot3: "shift+f3",
+	idLoadSavestateSlot4: "shift+f4",
+	idLoadSavestateSlot5: "shift+f5",
+	idLoadSavestateSlot6: "shift+f6",
+	idLoadSavestateSlot7: "shift+f7",
+	idLoadSavestateSlot8: "shift+f8",
 
-	idPausedResumeEmulator: "escape",
+	idResumeEmulator: "space",
 }
 
 // Apply updates the keymaps based on the configuration.
@@ -164,35 +164,35 @@ var actionRegistry = map[string]struct {
 	action einput.Action
 	keymap einput.Keymap
 }{
-	idGlobalToggleFullscreen: {ActionToggleFullscreen, GlobalKeymap},
+	idToggleFullscreen: {ActionToggleFullscreen, GlobalKeymap},
 
-	idMenuFileOpenROM:                 {ActionFileOpenROM, MenuKeymap},
-	idMenuFileQuit:                    {ActionFileQuit, MenuKeymap},
-	idMenuSettingsOpenGeneralConfig:   {ActionSettingsOpenGeneralConfig, MenuKeymap},
-	idMenuSettingsOpenVideoConfig:     {ActionSettingsOpenVideoConfig, MenuKeymap},
-	idMenuSettingsOpenInputConfig:     {ActionSettingsOpenInputConfig, MenuKeymap},
-	idMenuSettingsOpenEmulationConfig: {ActionSettingsOpenEmulationConfig, MenuKeymap},
+	idOpenROM:                     {ActionFileOpenROM, MenuKeymap},
+	idQuit:                        {ActionFileQuit, MenuKeymap},
+	idSettingsOpenGeneralConfig:   {ActionSettingsOpenGeneralConfig, MenuKeymap},
+	idSettingsOpenVideoConfig:     {ActionSettingsOpenVideoConfig, MenuKeymap},
+	idSettingsOpenInputConfig:     {ActionSettingsOpenInputConfig, MenuKeymap},
+	idSettingsOpenEmulationConfig: {ActionSettingsOpenEmulationConfig, MenuKeymap},
 
-	idRunningPauseEmulator:  {ActionPauseEmulator, RunningKeymap},
-	idRunningResetEmulator:  {ActionResetEmulator, RunningKeymap},
-	idRunningToggleShaderUI: {ActionToggleShaderUI, RunningKeymap},
+	idPauseEmulator:  {ActionPauseEmulator, RunningKeymap},
+	idResetEmulator:  {ActionResetEmulator, RunningKeymap},
+	idToggleShaderUI: {ActionToggleShaderUI, RunningKeymap},
 
-	idRunningLoadSavestateSlot1: {ActionLoadSavestateSlot1, RunningKeymap},
-	idRunningLoadSavestateSlot2: {ActionLoadSavestateSlot2, RunningKeymap},
-	idRunningLoadSavestateSlot3: {ActionLoadSavestateSlot3, RunningKeymap},
-	idRunningLoadSavestateSlot4: {ActionLoadSavestateSlot4, RunningKeymap},
-	idRunningLoadSavestateSlot5: {ActionLoadSavestateSlot5, RunningKeymap},
-	idRunningLoadSavestateSlot6: {ActionLoadSavestateSlot6, RunningKeymap},
-	idRunningLoadSavestateSlot7: {ActionLoadSavestateSlot7, RunningKeymap},
-	idRunningLoadSavestateSlot8: {ActionLoadSavestateSlot8, RunningKeymap},
-	idRunningSaveSavestateSlot1: {ActionSaveSavestateSlot1, RunningKeymap},
-	idRunningSaveSavestateSlot2: {ActionSaveSavestateSlot2, RunningKeymap},
-	idRunningSaveSavestateSlot3: {ActionSaveSavestateSlot3, RunningKeymap},
-	idRunningSaveSavestateSlot4: {ActionSaveSavestateSlot4, RunningKeymap},
-	idRunningSaveSavestateSlot5: {ActionSaveSavestateSlot5, RunningKeymap},
-	idRunningSaveSavestateSlot6: {ActionSaveSavestateSlot6, RunningKeymap},
-	idRunningSaveSavestateSlot7: {ActionSaveSavestateSlot7, RunningKeymap},
-	idRunningSaveSavestateSlot8: {ActionSaveSavestateSlot8, RunningKeymap},
+	idLoadSavestateSlot1: {ActionLoadSavestateSlot1, RunningKeymap},
+	idLoadSavestateSlot2: {ActionLoadSavestateSlot2, RunningKeymap},
+	idLoadSavestateSlot3: {ActionLoadSavestateSlot3, RunningKeymap},
+	idLoadSavestateSlot4: {ActionLoadSavestateSlot4, RunningKeymap},
+	idLoadSavestateSlot5: {ActionLoadSavestateSlot5, RunningKeymap},
+	idLoadSavestateSlot6: {ActionLoadSavestateSlot6, RunningKeymap},
+	idLoadSavestateSlot7: {ActionLoadSavestateSlot7, RunningKeymap},
+	idLoadSavestateSlot8: {ActionLoadSavestateSlot8, RunningKeymap},
+	idSaveSavestateSlot1: {ActionSaveSavestateSlot1, RunningKeymap},
+	idSaveSavestateSlot2: {ActionSaveSavestateSlot2, RunningKeymap},
+	idSaveSavestateSlot3: {ActionSaveSavestateSlot3, RunningKeymap},
+	idSaveSavestateSlot4: {ActionSaveSavestateSlot4, RunningKeymap},
+	idSaveSavestateSlot5: {ActionSaveSavestateSlot5, RunningKeymap},
+	idSaveSavestateSlot6: {ActionSaveSavestateSlot6, RunningKeymap},
+	idSaveSavestateSlot7: {ActionSaveSavestateSlot7, RunningKeymap},
+	idSaveSavestateSlot8: {ActionSaveSavestateSlot8, RunningKeymap},
 
-	idPausedResumeEmulator: {ActionResumeEmulator, PausedKeymap},
+	idResumeEmulator: {ActionResumeEmulator, PausedKeymap},
 }
