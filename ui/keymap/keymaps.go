@@ -140,7 +140,7 @@ var DefaultShortcuts = Shortcuts{
 // Apply updates the keymaps based on the configuration.
 func (s Shortcuts) Apply() {
 	for name, key := range s {
-		reg, ok := actionRegistry[name]
+		def, ok := actionRegistry[name]
 		if !ok {
 			log.ModEmu.Warnf("unknown keyboard shortcut action: %s", name)
 			continue
@@ -152,7 +152,9 @@ func (s Shortcuts) Apply() {
 			continue
 		}
 
-		reg.keymap[reg.action] = []einput.Key{k}
+		for _, km := range def.keymaps {
+			km[def.action] = []einput.Key{k}
+		}
 	}
 }
 
@@ -160,39 +162,45 @@ func init() {
 	DefaultShortcuts.Apply()
 }
 
-var actionRegistry = map[string]struct {
-	action einput.Action
-	keymap einput.Keymap
-}{
-	idToggleFullscreen: {ActionToggleFullscreen, GlobalKeymap},
+type actionDef struct {
+	action  einput.Action
+	keymaps []einput.Keymap
+}
 
-	idOpenROM:                     {ActionFileOpenROM, MenuKeymap},
-	idQuit:                        {ActionFileQuit, MenuKeymap},
-	idSettingsOpenGeneralConfig:   {ActionSettingsOpenGeneralConfig, MenuKeymap},
-	idSettingsOpenVideoConfig:     {ActionSettingsOpenVideoConfig, MenuKeymap},
-	idSettingsOpenInputConfig:     {ActionSettingsOpenInputConfig, MenuKeymap},
-	idSettingsOpenEmulationConfig: {ActionSettingsOpenEmulationConfig, MenuKeymap},
+func action(a einput.Action, keymaps ...einput.Keymap) actionDef {
+	return actionDef{action: a, keymaps: keymaps}
+}
 
-	idPauseEmulator:  {ActionPauseEmulator, RunningKeymap},
-	idResetEmulator:  {ActionResetEmulator, RunningKeymap},
-	idToggleShaderUI: {ActionToggleShaderUI, RunningKeymap},
+var actionRegistry = map[string]actionDef{
+	idToggleFullscreen: action(ActionToggleFullscreen, GlobalKeymap),
 
-	idLoadSavestateSlot1: {ActionLoadSavestateSlot1, RunningKeymap},
-	idLoadSavestateSlot2: {ActionLoadSavestateSlot2, RunningKeymap},
-	idLoadSavestateSlot3: {ActionLoadSavestateSlot3, RunningKeymap},
-	idLoadSavestateSlot4: {ActionLoadSavestateSlot4, RunningKeymap},
-	idLoadSavestateSlot5: {ActionLoadSavestateSlot5, RunningKeymap},
-	idLoadSavestateSlot6: {ActionLoadSavestateSlot6, RunningKeymap},
-	idLoadSavestateSlot7: {ActionLoadSavestateSlot7, RunningKeymap},
-	idLoadSavestateSlot8: {ActionLoadSavestateSlot8, RunningKeymap},
-	idSaveSavestateSlot1: {ActionSaveSavestateSlot1, RunningKeymap},
-	idSaveSavestateSlot2: {ActionSaveSavestateSlot2, RunningKeymap},
-	idSaveSavestateSlot3: {ActionSaveSavestateSlot3, RunningKeymap},
-	idSaveSavestateSlot4: {ActionSaveSavestateSlot4, RunningKeymap},
-	idSaveSavestateSlot5: {ActionSaveSavestateSlot5, RunningKeymap},
-	idSaveSavestateSlot6: {ActionSaveSavestateSlot6, RunningKeymap},
-	idSaveSavestateSlot7: {ActionSaveSavestateSlot7, RunningKeymap},
-	idSaveSavestateSlot8: {ActionSaveSavestateSlot8, RunningKeymap},
+	idOpenROM:                     action(ActionFileOpenROM, MenuKeymap),
+	idQuit:                        action(ActionFileQuit, MenuKeymap),
+	idSettingsOpenGeneralConfig:   action(ActionSettingsOpenGeneralConfig, MenuKeymap),
+	idSettingsOpenVideoConfig:     action(ActionSettingsOpenVideoConfig, MenuKeymap),
+	idSettingsOpenInputConfig:     action(ActionSettingsOpenInputConfig, MenuKeymap),
+	idSettingsOpenEmulationConfig: action(ActionSettingsOpenEmulationConfig, MenuKeymap),
 
-	idResumeEmulator: {ActionResumeEmulator, PausedKeymap},
+	idPauseEmulator:  action(ActionPauseEmulator, RunningKeymap),
+	idResetEmulator:  action(ActionResetEmulator, RunningKeymap),
+	idToggleShaderUI: action(ActionToggleShaderUI, RunningKeymap),
+
+	idLoadSavestateSlot1: action(ActionLoadSavestateSlot1, MenuKeymap, RunningKeymap),
+	idLoadSavestateSlot2: action(ActionLoadSavestateSlot2, MenuKeymap, RunningKeymap),
+	idLoadSavestateSlot3: action(ActionLoadSavestateSlot3, MenuKeymap, RunningKeymap),
+	idLoadSavestateSlot4: action(ActionLoadSavestateSlot4, MenuKeymap, RunningKeymap),
+	idLoadSavestateSlot5: action(ActionLoadSavestateSlot5, MenuKeymap, RunningKeymap),
+	idLoadSavestateSlot6: action(ActionLoadSavestateSlot6, MenuKeymap, RunningKeymap),
+	idLoadSavestateSlot7: action(ActionLoadSavestateSlot7, MenuKeymap, RunningKeymap),
+	idLoadSavestateSlot8: action(ActionLoadSavestateSlot8, MenuKeymap, RunningKeymap),
+	idSaveSavestateSlot1: action(ActionSaveSavestateSlot1, RunningKeymap),
+	idSaveSavestateSlot2: action(ActionSaveSavestateSlot2, RunningKeymap),
+	idSaveSavestateSlot3: action(ActionSaveSavestateSlot3, RunningKeymap),
+	idSaveSavestateSlot4: action(ActionSaveSavestateSlot4, RunningKeymap),
+	idSaveSavestateSlot5: action(ActionSaveSavestateSlot5, RunningKeymap),
+	idSaveSavestateSlot6: action(ActionSaveSavestateSlot6, RunningKeymap),
+	idSaveSavestateSlot7: action(ActionSaveSavestateSlot7, RunningKeymap),
+	idSaveSavestateSlot8: action(ActionSaveSavestateSlot8, RunningKeymap),
+
+	idResumeEmulator: action(ActionResumeEmulator, PausedKeymap),
 }
