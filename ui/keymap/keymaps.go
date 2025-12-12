@@ -64,66 +64,12 @@ const (
 	IDPausedResumeEmulator = "paused.resume_emulator"
 )
 
-// Keymaps
 var (
-	GlobalKeymap = einput.Keymap{
-		ActionToggleFullscreen: {einput.KeyF11},
-	}
-
-	MenuKeymap = einput.Keymap{
-		ActionFileOpenROM:                 {einput.KeyWithModifier(einput.KeyO, einput.ModControl)},
-		ActionFileQuit:                    {einput.KeyWithModifier(einput.KeyQ, einput.ModControl)},
-		ActionSettingsOpenVideoConfig:     {einput.KeyWithModifier(einput.KeyV, einput.ModControl)},
-		ActionSettingsOpenInputConfig:     {einput.KeyWithModifier(einput.KeyI, einput.ModControl)},
-		ActionSettingsOpenEmulationConfig: {einput.KeyWithModifier(einput.KeyE, einput.ModControl)},
-	}
-
-	RunningKeymap = einput.Keymap{
-		ActionPauseEmulator:      {einput.KeyEscape},
-		ActionResetEmulator:      {einput.KeyR},
-		ActionToggleShaderUI:     {einput.KeyF10},
-		ActionLoadSaveStateSlot1: {einput.KeyF1},
-		ActionLoadSaveStateSlot2: {einput.KeyF2},
-		ActionLoadSaveStateSlot3: {einput.KeyF3},
-		ActionLoadSaveStateSlot4: {einput.KeyF4},
-		ActionLoadSaveStateSlot5: {einput.KeyF5},
-		ActionSaveSaveStateSlot6: {einput.KeyF6},
-		ActionSaveSaveStateSlot7: {einput.KeyF7},
-		ActionSaveSaveStateSlot8: {einput.KeyF8},
-	}
-
-	PausedKeymap = einput.Keymap{
-		ActionResumeEmulator: {einput.KeyEscape},
-	}
+	GlobalKeymap  = einput.Keymap{}
+	MenuKeymap    = einput.Keymap{}
+	RunningKeymap = einput.Keymap{}
+	PausedKeymap  = einput.Keymap{}
 )
-
-var actionRegistry = map[string]struct {
-	action einput.Action
-	keymap einput.Keymap
-}{
-	IDGlobalToggleFullscreen: {ActionToggleFullscreen, GlobalKeymap},
-
-	IDMenuFileOpenROM:                 {ActionFileOpenROM, MenuKeymap},
-	IDMenuFileQuit:                    {ActionFileQuit, MenuKeymap},
-	IDMenuSettingsOpenGeneralConfig:   {ActionSettingsOpenGeneralConfig, MenuKeymap},
-	IDMenuSettingsOpenVideoConfig:     {ActionSettingsOpenVideoConfig, MenuKeymap},
-	IDMenuSettingsOpenInputConfig:     {ActionSettingsOpenInputConfig, MenuKeymap},
-	IDMenuSettingsOpenEmulationConfig: {ActionSettingsOpenEmulationConfig, MenuKeymap},
-
-	IDRunningPauseEmulator:      {ActionPauseEmulator, RunningKeymap},
-	IDRunningResetEmulator:      {ActionResetEmulator, RunningKeymap},
-	IDRunningToggleShaderUI:     {ActionToggleShaderUI, RunningKeymap},
-	IDRunningLoadSaveStateSlot1: {ActionLoadSaveStateSlot1, RunningKeymap},
-	IDRunningLoadSaveStateSlot2: {ActionLoadSaveStateSlot2, RunningKeymap},
-	IDRunningLoadSaveStateSlot3: {ActionLoadSaveStateSlot3, RunningKeymap},
-	IDRunningLoadSaveStateSlot4: {ActionLoadSaveStateSlot4, RunningKeymap},
-	IDRunningLoadSaveStateSlot5: {ActionLoadSaveStateSlot5, RunningKeymap},
-	IDRunningSaveSaveStateSlot6: {ActionSaveSaveStateSlot6, RunningKeymap},
-	IDRunningSaveSaveStateSlot7: {ActionSaveSaveStateSlot7, RunningKeymap},
-	IDRunningSaveSaveStateSlot8: {ActionSaveSaveStateSlot8, RunningKeymap},
-
-	IDPausedResumeEmulator: {ActionResumeEmulator, PausedKeymap},
-}
 
 type Shortcut string
 
@@ -184,4 +130,36 @@ func (s Shortcuts) Apply() {
 
 		reg.keymap[reg.action] = []einput.Key{k}
 	}
+}
+
+func init() {
+	DefaultShortcuts.Apply()
+}
+
+var actionRegistry = map[string]struct {
+	action einput.Action
+	keymap einput.Keymap
+}{
+	IDGlobalToggleFullscreen: {ActionToggleFullscreen, GlobalKeymap},
+
+	IDMenuFileOpenROM:                 {ActionFileOpenROM, MenuKeymap},
+	IDMenuFileQuit:                    {ActionFileQuit, MenuKeymap},
+	IDMenuSettingsOpenGeneralConfig:   {ActionSettingsOpenGeneralConfig, MenuKeymap},
+	IDMenuSettingsOpenVideoConfig:     {ActionSettingsOpenVideoConfig, MenuKeymap},
+	IDMenuSettingsOpenInputConfig:     {ActionSettingsOpenInputConfig, MenuKeymap},
+	IDMenuSettingsOpenEmulationConfig: {ActionSettingsOpenEmulationConfig, MenuKeymap},
+
+	IDRunningPauseEmulator:      {ActionPauseEmulator, RunningKeymap},
+	IDRunningResetEmulator:      {ActionResetEmulator, RunningKeymap},
+	IDRunningToggleShaderUI:     {ActionToggleShaderUI, RunningKeymap},
+	IDRunningLoadSaveStateSlot1: {ActionLoadSaveStateSlot1, RunningKeymap},
+	IDRunningLoadSaveStateSlot2: {ActionLoadSaveStateSlot2, RunningKeymap},
+	IDRunningLoadSaveStateSlot3: {ActionLoadSaveStateSlot3, RunningKeymap},
+	IDRunningLoadSaveStateSlot4: {ActionLoadSaveStateSlot4, RunningKeymap},
+	IDRunningLoadSaveStateSlot5: {ActionLoadSaveStateSlot5, RunningKeymap},
+	IDRunningSaveSaveStateSlot6: {ActionSaveSaveStateSlot6, RunningKeymap},
+	IDRunningSaveSaveStateSlot7: {ActionSaveSaveStateSlot7, RunningKeymap},
+	IDRunningSaveSaveStateSlot8: {ActionSaveSaveStateSlot8, RunningKeymap},
+
+	IDPausedResumeEmulator: {ActionResumeEmulator, PausedKeymap},
 }
