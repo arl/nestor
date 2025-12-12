@@ -139,6 +139,9 @@ func (app *app) Update() error {
 			app.curstate.createUI()
 		}
 	}
+	if app.handler.ActionIsJustPressed(keymap.ActionQuit) {
+		app.quit.Store(true)
+	}
 
 	app.curstate.update()
 	return nil

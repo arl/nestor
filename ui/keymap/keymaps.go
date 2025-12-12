@@ -14,8 +14,8 @@ const (
 	ActionToggleFullscreen einput.Action = iota + 1
 
 	// Menu actions (main state)
-	ActionFileOpenROM
-	ActionFileQuit
+	ActionOpenROM
+	ActionQuit
 	ActionSettingsOpenGeneralConfig
 	ActionSettingsOpenVideoConfig
 	ActionSettingsOpenInputConfig
@@ -174,8 +174,8 @@ func action(a einput.Action, keymaps ...einput.Keymap) actionDef {
 var actionRegistry = map[string]actionDef{
 	idToggleFullscreen: action(ActionToggleFullscreen, GlobalKeymap),
 
-	idOpenROM:                     action(ActionFileOpenROM, MenuKeymap),
-	idQuit:                        action(ActionFileQuit, MenuKeymap),
+	idOpenROM:                     action(ActionOpenROM, MenuKeymap),
+	idQuit:                        action(ActionQuit, GlobalKeymap),
 	idSettingsOpenGeneralConfig:   action(ActionSettingsOpenGeneralConfig, MenuKeymap),
 	idSettingsOpenVideoConfig:     action(ActionSettingsOpenVideoConfig, MenuKeymap),
 	idSettingsOpenInputConfig:     action(ActionSettingsOpenInputConfig, MenuKeymap),

@@ -23,10 +23,10 @@ type mainState struct {
 	numcols int
 	roms    []recentROM
 
-	sc      *widget.ScrollContainer
-	slider  *widget.Slider
-	grid    *widget.Container
-	cells   []*widget.Container
+	sc     *widget.ScrollContainer
+	slider *widget.Slider
+	grid   *widget.Container
+	cells  []*widget.Container
 
 	inputh *einput.Handler
 	menu   *appMenu
@@ -144,10 +144,8 @@ func (s *mainState) handleMenuShortcuts() {
 		return
 	}
 
-	if s.inputh.ActionIsJustPressed(keymap.ActionFileOpenROM) {
+	if s.inputh.ActionIsJustPressed(keymap.ActionOpenROM) {
 		s.menu.fileOpen.Click()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionFileQuit) {
-		s.menu.fileQuit.Click()
 	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenGeneralConfig) {
 		s.menu.settingsGeneral.Click()
 	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig) {
