@@ -229,7 +229,12 @@ func (app *app) runRom(romPath string, savestate []byte) error {
 				modUI.ErrorZ("failed to load savestate").Error("err", err).End()
 			}
 		}
-		execstate := emulator.Run()
+
+		execstate, err := emulator.Run()
+		if err != nil {
+			log.ModEmu.ErrorZ("emulation ended").Error("err", err).End()
+			return
+		}
 
 		if err := addRecentROM(recentROM{
 			Path:      romPath,
