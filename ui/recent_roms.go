@@ -165,7 +165,7 @@ func loadRecentROMs() []recentROM {
 		return cmp.Compare(b.LastUsed.Unix(), a.LastUsed.Unix())
 	})
 
-	const maxRecentsRoms = 16 // Limit the number of recent roms to show
+	const maxRecentsRoms = 32 // Limit the number of recent roms to show
 	if len(roms) > maxRecentsRoms {
 		roms = roms[:maxRecentsRoms]
 	}
