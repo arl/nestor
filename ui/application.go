@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"image"
-	"os"
 	"path/filepath"
 	"sync/atomic"
 	"time"
@@ -167,7 +166,7 @@ func (app *app) Layout(outw, outh int) (screenw, screenh int) {
 	return outw, outh
 }
 
-func (app *app) runRom(romPath string) error {
+func (app *app) runRom(romPath string, savestate []byte) error {
 	ebitenInput := input.NewEbitenInput(app.cfg.Input)
 
 	rom, err := ines.ReadROM(romPath)
@@ -211,25 +210,20 @@ func (app *app) runRom(romPath string) error {
 			ebiten.SetWindowTitle("Nestor")
 		}()
 
-		tmpdir, err := os.MkdirTemp("", "nestor-")
-		if err != nil {
-			modUI.WarnZ("failed to create temp dir").Error("err", err).End()
-		} else {
-			emulator.SetTempDir(tmpdir)
+		if savestate != nil {
+			// TEST to see why the save state was not applied
+			if err := emulator.NES.LoadSnapshot(savestate); err != nil {
+				modUI.ErrorZ("failed to load savestate").Error("err", err).End()
+			}
 		}
-
-		emulator.Run()
-
-		screenshot, err := os.ReadFile(filepath.Join(tmpdir, "screenshot.png"))
-		if err != nil {
-			modUI.WarnZ("failed to read screenshot").Error("err", err).End()
-		}
+		execstate := emulator.Run()
 
 		if err := addRecentROM(recentROM{
-			Path:     romPath,
-			Name:     filepath.Base(romPath),
-			Image:    screenshot,
-			LastUsed: time.Now(),
+			Path:      romPath,
+			Name:      filepath.Base(romPath),
+			Image:     execstate.PNGBytes,
+			SaveState: execstate.SaveState,
+			LastUsed:  time.Now(),
 		}); err != nil {
 			modUI.WarnZ("failed to add recent ROM").Error("err", err).End()
 		}

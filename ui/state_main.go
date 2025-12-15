@@ -65,7 +65,7 @@ func buildMenu(s *mainState) *widget.Container {
 			return
 		}
 
-		if err := app.runRom(name); err != nil {
+		if err := app.runRom(name, nil); err != nil {
 			modUI.ErrorZ("failed to run rom").Error("err", err).End()
 			errorWindow(&app.ui, err)
 		}
@@ -92,12 +92,11 @@ func buildMenu(s *mainState) *widget.Container {
 }
 
 func (s *mainState) startROM() {
-	path := s.roms[s.selidx].Path
-	modUI.InfoZ("selected ROM").String("path", path).End()
-	if err := s.runRom(path); err == nil {
+	recentrom := s.roms[s.selidx]
+	if err := s.runRom(recentrom.Path, recentrom.SaveState); err == nil {
 		s.setState("running", nil)
 	} else {
-		modUI.ErrorZ("failed to run ROM").String("path", path).Error("err", err).End()
+		modUI.ErrorZ("failed to run ROM").String("path", recentrom.Path).Error("err", err).End()
 	}
 }
 

@@ -17,7 +17,7 @@ import (
 	"nestor/config"
 )
 
-const recentROMextension = ".nrr"
+const recentROMExtension = ".nrr"
 
 var RecentROMsDir = sync.OnceValue(func() string {
 	dir := filepath.Join(config.Dir(), "recent-roms")
@@ -29,10 +29,11 @@ var RecentROMsDir = sync.OnceValue(func() string {
 
 // recentROM holds the data for a single recently played ROM.
 type recentROM struct {
-	Name     string
-	Path     string
-	Image    []byte // PNG data for the screenshot
-	LastUsed time.Time
+	Name      string    // Base name of the ROM file.
+	Path      string    // Full path to the ROM file.
+	Image     []byte    // PNG data for the screenshot.
+	SaveState []byte    // Saved state data.
+	LastUsed  time.Time // Last time the ROM was played.
 }
 
 func (r recentROM) IsValid() bool {
@@ -41,7 +42,7 @@ func (r recentROM) IsValid() bool {
 
 // save writes the recent ROM data to a .nrr file.
 func (r recentROM) save() error {
-	f, err := os.Create(filepath.Join(RecentROMsDir(), r.Name+recentROMextension))
+	f, err := os.Create(filepath.Join(RecentROMsDir(), r.Name+recentROMExtension))
 	if err != nil {
 		return err
 	}
@@ -63,6 +64,14 @@ func (r recentROM) save() error {
 		return err
 	}
 	if _, err := zfw.Write(r.Image); err != nil {
+		return err
+	}
+
+	zfw, err = zw.Create("state.bin")
+	if err != nil {
+		return err
+	}
+	if _, err := zfw.Write(r.SaveState); err != nil {
 		return err
 	}
 
@@ -95,58 +104,52 @@ func loadRecentROMs() []recentROM {
 	var roms []recentROM
 
 	err := filepath.WalkDir(RecentROMsDir(), func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() || filepath.Ext(path) != recentROMextension {
+		if err != nil || d.IsDir() || filepath.Ext(path) != recentROMExtension {
 			return err
 		}
 
 		f, err := os.Open(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to open recent ROM file: %w", err)
 		}
 		defer f.Close()
 
 		info, err := f.Stat()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to stat recent ROM file: %w", err)
 		}
 
 		zr, err := zip.NewReader(f, info.Size())
 		if err != nil {
-			return err // Corrupted zip file
+			return fmt.Errorf("failed to read recent ROM zip: %w", err)
+		}
+
+		loaded := make(map[string][]byte)
+		for _, zf := range zr.File {
+			buf, err := readZipFile(zf)
+			if err != nil {
+				fmt.Printf("warning: could not read %s from %s: %v\n", zf.Name, path, err)
+				continue
+			}
+			loaded[zf.Name] = buf
 		}
 
 		cur := recentROM{
-			Name:     removeExt(info.Name()),
-			LastUsed: info.ModTime(),
-		}
-
-		for _, zf := range zr.File {
-			switch zf.Name {
-			case "screenshot.png":
-				buf, err := readZipFile(zf)
-				if err != nil {
-					fmt.Printf("warning: could not read screenshot from %s: %v\n", path, err)
-					continue
-				}
-				cur.Image = buf
-			case "infos.txt":
-				buf, err := readZipFile(zf)
-				if err != nil {
-					fmt.Printf("warning: could not read info from %s: %v\n", path, err)
-					continue
-				}
-				cur.Path = string(bytes.TrimSpace(buf))
-			}
+			Name:      removeExt(info.Name()),
+			LastUsed:  info.ModTime(),
+			Path:      string(bytes.TrimSpace(loaded["infos.txt"])),
+			Image:     loaded["screenshot.png"],
+			SaveState: loaded["state.bin"],
 		}
 
 		if cur.IsValid() {
 			roms = append(roms, cur)
 		}
+
 		return nil
 	})
-
 	if err != nil {
-		fmt.Printf("error loading recent roms: %s\n", err)
+		modUI.WarnZ("error loading recent roms").Error("err", err).End()
 	}
 
 	// Normalize: remove duplicates and sort by LastUsed date.
