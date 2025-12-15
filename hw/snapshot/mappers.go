@@ -60,3 +60,10 @@ type UxROMState struct {
 	BankMask     uint8
 	BusConflicts bool
 }
+
+type Mapper34State struct {
+	*BaseState
+	IsNINA  bool
+	PRGBank uint32
+	CHRBank uint32
+}

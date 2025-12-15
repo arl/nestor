@@ -13,6 +13,7 @@ var All = map[uint16]mapperDesc{
 	2:  UxROM,
 	3:  CNROM,
 	7:  AxROM,
+	34: Mapper34,
 	66: GxROM,
 }
 
