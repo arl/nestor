@@ -61,8 +61,9 @@ type Emulator struct {
 	cfg EmulationConfig
 
 	// Loop can be concurrently controlled by the emulator and ui.
-	loopstate atomic.Uint64
-	blockch   chan struct{}
+	loopstate    atomic.Uint64
+	blockch      chan struct{}
+	savedstatech chan *ExecState // save() sends to it.
 }
 
 const (
@@ -71,6 +72,7 @@ const (
 	loopstateBlock
 	loopstateReset
 	loopstateRestart
+	loopstateSavestate
 )
 
 // Launch starts the various hardware subsystems, shows the window, setups the
@@ -90,10 +92,11 @@ func Launch(rom *ines.Rom, cfg Config, out *Output, inp hw.InputStateLoader) (*E
 	}
 
 	return &Emulator{
-		NES:     nes,
-		out:     out,
-		cfg:     cfg.Emulation,
-		blockch: make(chan struct{}, 1),
+		NES:          nes,
+		out:          out,
+		cfg:          cfg.Emulation,
+		blockch:      make(chan struct{}, 1),
+		savedstatech: make(chan *ExecState, 1),
 	}, nil
 }
 
@@ -155,9 +158,14 @@ func (e *Emulator) Run() *ExecState {
 			e.RunOneFrame()
 		case loopstateQuit:
 			log.ModEmu.InfoZ("Emulation loop exited").End()
-			return e.save()
+			e.save()
+			return <-e.savedstatech
 		case loopstateBlock:
 			<-e.blockch
+		case loopstateSavestate:
+			log.ModEmu.InfoZ("Savestate requested").End()
+			e.loopstate.Store(loopstateRunning)
+			e.save()
 		case loopstateReset:
 			e.loopstate.Store(loopstateRunning)
 			log.ModEmu.InfoZ("Issueing soft reset").End()
@@ -176,8 +184,7 @@ func (e *Emulator) Run() *ExecState {
 	return nil
 }
 
-// Block, Unblock, Reset, Restart and Stop are all safe for concurrent use.
-
+// Block, Unblock, Reset, Restart, Stop and Savestate are all safe for concurrent use.
 func (e *Emulator) Reset()   { e.loopstate.Store(loopstateReset) }
 func (e *Emulator) Restart() { e.loopstate.Store(loopstateRestart) }
 func (e *Emulator) Stop()    { e.loopstate.Store(loopstateQuit) }
@@ -191,24 +198,30 @@ func (e *Emulator) Unblock() {
 	}
 }
 
-func (e *Emulator) save() *ExecState {
+func (e *Emulator) Savestate() *ExecState {
+	e.loopstate.Store(loopstateSavestate)
+
+	return <-e.savedstatech
+}
+
+func (e *Emulator) save() {
 	// Get a state snapshot.
 	savestate, err := e.NES.SaveSnapshot()
 	if err != nil {
 		log.ModEmu.WarnZ("Failed to save state").Error("err", err).End()
-		return nil
+		return
 	}
 
 	// Make screenshot from the last frame.
 	var screenshot bytes.Buffer
 	if err := png.Encode(&screenshot, e.out.Screenshot()); err != nil {
 		log.ModEmu.WarnZ("Failed to encode screenshot to png").Error("err", err).End()
-		return nil
+		return
 	}
 
 	ram := e.NES.Mapper.BatteryPackedRAM()
 
-	return &ExecState{
+	e.savedstatech <- &ExecState{
 		PNGBytes:   screenshot.Bytes(),
 		SaveState:  savestate,
 		BatteryRAM: ram,
