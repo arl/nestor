@@ -40,6 +40,7 @@ All these features are planned, but not all of them are implemented yet.
  - [ ] PAL (Europe)
  - [ ] Save state
 
+
 ### Implemented mappers
 
 A NES games cartridge is made up of various circuits and hardware, which varies
