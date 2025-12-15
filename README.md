@@ -48,16 +48,17 @@ commonly called their mapper. Mappers are designed to extend the system and
 bypass its limitations, such as by adding RAM to the cartridge or even extra
 sound channels.
 
-| Name  | iNES mapper | Implemented |
-|-------|------------:|:-----------:|
-| NROM  |           0 |     [x]     |
-| MMC1  |           1 |     [x]     |
-| UxROM |           2 |     [x]     |
-| CNROM |           3 |     [x]     |
-| MMC3  |           4 |     [ ]     |
-| AxROM |           7 |     [x]     |
-| MMC5  |          10 |     [ ]     |
-| GxROM |          66 |     [x]     |
+|      Name       | iNES mapper | Implemented |
+|-----------------|------------:|:-----------:|
+| NROM            |           0 |     [x]     |
+| MMC1            |           1 |     [x]     |
+| UxROM           |           2 |     [x]     |
+| CNROM           |           3 |     [x]     |
+| MMC3            |           4 |     [ ]     |
+| AxROM           |           7 |     [x]     |
+| MMC5            |          10 |     [ ]     |
+| BNROM           |          34 |     [x]     |
+| GxROM           |          66 |     [x]     |
 
 
 ## Installation

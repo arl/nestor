@@ -63,16 +63,32 @@ func (b *base) init(writeReg func(uint16, uint8)) {
 	// CPU mapping.
 	hwio.MustInitRegs(b)
 
+	b.writeReg = writeReg
+
 	if b.rom.PRGRAMSize() > 0 {
+		prg := b.PRGRAM
+		prgMask := uint16(len(prg) - 1)
+
 		// panic(fmt.Sprintf("PRGRAM not implemented, rom has $%XB", b.rom.PRGRAMSize()))
 		b.cpu.Bus.MapMem(0x6000, &hwio.Mem{
 			Name:  "PRGRAM",
 			VSize: 0x2000,
-			Data:  make([]byte, b.rom.PRGRAMSize()),
+			Data:  b.PRGRAM,
+			WriteCb: func(addr uint16, value uint8) {
+				// hwio.Mem.WriteCb replaces the default write behavior, so we must
+				// update the underlying buffer ourselves.
+				prg[addr&prgMask] = value
+
+				// Some mappers (e.g. NINA-001) place bank registers in PRG-RAM space.
+				if b.registers.Test(uint(addr)) {
+					if b.writeReg != nil {
+						b.writeReg(addr, value)
+					}
+				}
+			},
 		})
 	}
 
-	b.writeReg = writeReg
 	b.cpu.Bus.MapMem(0x8000, &hwio.Mem{
 		Name:  "PRGROM",
 		Data:  b.PRGROM[:],
