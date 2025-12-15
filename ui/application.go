@@ -15,6 +15,7 @@ import (
 
 	"nestor/config"
 	"nestor/emu"
+	"nestor/emu/log"
 	"nestor/hw/input"
 	"nestor/ines"
 	"nestor/ui/keymap"
@@ -53,6 +54,8 @@ type app struct {
 	curstate state
 	inputsys einput.System
 	handler  *einput.Handler
+
+	pendingfunc atomic.Pointer[func()] // function to call in the main loop, use app.do()
 }
 
 func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, cfg config.Config) *app {
@@ -118,9 +121,17 @@ func mergeKeymaps(keymaps ...einput.Keymap) einput.Keymap {
 	return result
 }
 
+func (app *app) do(fn func()) {
+	app.pendingfunc.Store(&fn)
+}
+
 func (app *app) Update() error {
 	if app.quit.Load() {
 		return ebiten.Termination
+	}
+
+	if fn := app.pendingfunc.Swap(nil); fn != nil {
+		(*fn)()
 	}
 
 	app.inputsys.Update()
@@ -206,6 +217,8 @@ func (app *app) runRom(romPath string, savestate []byte) error {
 
 	go func() {
 		defer func() {
+			app.do(func() { app.setState("main", nil) })
+
 			ebiten.SetVsyncEnabled(true)
 			ebiten.SetWindowTitle("Nestor")
 		}()
