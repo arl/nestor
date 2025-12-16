@@ -62,6 +62,11 @@ func (m *mapper34) WritePRGROM(addr uint16, val uint8) {
 
 	// NINA-001: bank registers are in PRG-RAM space at $7FFD-$7FFF.
 	// BNROM: PRG bank selected by writes to PRG-ROM space ($8000-$FFFF).
+	// When not in NINA mode, ignore any writes in PRG-RAM space so they don't
+	// fall through and incorrectly trigger PRG bank switching.
+	if !m.isNINA && addr < 0x8000 {
+		return
+	}
 	if m.isNINA {
 		switch addr {
 		case 0x7FFD:
