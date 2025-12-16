@@ -128,7 +128,6 @@ func (s *captureState) captureForNES() {
 				GamepadSDLID:  sdlid,
 				GamepadButton: padbtn,
 			}
-
 		}
 	}
 
