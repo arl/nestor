@@ -2,7 +2,6 @@ package mappers
 
 import (
 	"nestor/hw/snapshot"
-	"nestor/ines"
 )
 
 var Mapper34 = mapperDesc{
@@ -41,7 +40,8 @@ func loadMapper34(b *base) (Mapper, error) {
 	}
 	b.init(m34.WritePRGROM)
 
-	b.setNTMirroring(ines.VertMirroring)
+	// BNROM and NINA-001 use fixed mirroring specified by the ROM header.
+	b.setNTMirroring(b.rom.Mirroring())
 	if isNINA {
 		b.selectCHRROMPage4KB(0, int(m34.chrbank0))
 		b.selectCHRROMPage4KB(1, int(m34.chrbank1))
