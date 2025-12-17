@@ -11,6 +11,7 @@ import (
 type pausedState struct {
 	*app
 	inputh *einput.Handler
+	menu   *appMenu
 }
 
 func newPausedState(app *app) *pausedState {
@@ -65,12 +66,31 @@ func (s *pausedState) onReload() {
 
 func (s *pausedState) onStop() {
 	s.emulator.Stop()
-	<-s.framech // discard frame
+	<-s.framech
 	s.app.setState("main", nil)
 }
 
 func (s *pausedState) createUI() {
+	s.menu = newAppMenu(&s.ui)
+
+	s.menu.fileQuit.ClickedEvent.AddHandler(func(args any) { s.onStop(); s.exit() })
+
+	s.menu.fileOpen.GetWidget().Disabled = true
+	s.menu.settingsGeneral.GetWidget().Disabled = true
+	s.menu.settingsInput.GetWidget().Disabled = true
+	s.menu.settingsVideo.GetWidget().Disabled = true
+	s.menu.settingsEmulation.GetWidget().Disabled = true
+
 	root := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true}),
+		)),
+	)
+
+	root.AddChild(s.menu.container)
+
+	content := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 	)
 
@@ -144,6 +164,7 @@ func (s *pausedState) createUI() {
 		),
 	)
 
-	root.AddChild(buttonsGroup)
+	content.AddChild(buttonsGroup)
+	root.AddChild(content)
 	s.ui.Container = root
 }

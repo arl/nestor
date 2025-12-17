@@ -12,8 +12,6 @@ import (
 	einput "github.com/quasilyte/ebitengine-input"
 	"github.com/sqweek/dialog"
 	"golang.org/x/image/colornames"
-
-	"nestor/ui/keymap"
 )
 
 type mainState struct {
@@ -49,46 +47,37 @@ func (s *mainState) enter(inputh *einput.Handler, _ any) {
 
 func (s *mainState) exit() {}
 
-func buildMenu(s *mainState) *widget.Container {
-	app := s.app
-	menu := newAppMenu(&app.ui)
-	menu.fileOpen.ClickedEvent.AddHandler(func(args any) {
+func (s *mainState) buildMenu() *widget.Container {
+	s.menu = newAppMenu(&s.ui)
+
+	s.menu.fileOpen.ClickedEvent.AddHandler(func(args any) {
 		dlg := dialog.File().Title("Open NES ROM").Filter("NES rom", "nes")
-		dlg.StartDir = app.cfg.General.FileLoadStartDir
+		dlg.StartDir = s.cfg.General.FileLoadStartDir
 
 		name, err := dlg.Load()
 		if err != nil {
 			if !errors.Is(err, dialog.ErrCancelled) {
 				modUI.ErrorZ("dialog: failed to open").Error("err", err).End()
-				errorWindow(&app.ui, err)
+				errorWindow(&s.ui, err)
 			}
 			return
 		}
 
-		if err := app.runRom(name, nil); err != nil {
+		if err := s.runRom(name, nil); err != nil {
 			modUI.ErrorZ("failed to run rom").Error("err", err).End()
-			errorWindow(&app.ui, err)
+			errorWindow(&s.ui, err)
 		}
 	})
+	s.menu.fileQuit.ClickedEvent.AddHandler(func(args any) { s.exit() })
+	s.menu.settingsGeneral.ClickedEvent.AddHandler(func(args any) { s.setState("config", configPageDest("general")) })
+	s.menu.settingsInput.ClickedEvent.AddHandler(func(args any) { s.setState("config", configPageDest("input")) })
+	s.menu.settingsVideo.ClickedEvent.AddHandler(func(args any) { s.setState("config", configPageDest("video")) })
+	s.menu.settingsEmulation.ClickedEvent.AddHandler(func(args any) { s.setState("config", configPageDest("emulation")) })
 
-	menu.fileQuit.ClickedEvent.AddHandler(func(args any) {
-		app.exit()
-	})
-	menu.settingsGeneral.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", configPageDest("general"))
-	})
-	menu.settingsInput.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", configPageDest("input"))
-	})
-	menu.settingsVideo.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", configPageDest("video"))
-	})
-	menu.settingsEmulation.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", configPageDest("emulation"))
-	})
+	s.menu.fileLoadState.GetWidget().Disabled = true
+	s.menu.fileSaveState.GetWidget().Disabled = true
 
-	s.menu = menu
-	return menu.container
+	return s.menu.container
 }
 
 func (s *mainState) startROM() {
@@ -114,8 +103,9 @@ func (s *mainState) update() {
 		s.startROM()
 	}
 
-	// Handle menu keyboard shortcuts
-	s.handleMenuShortcuts()
+	if s.menu != nil {
+		s.menu.handleShortcuts(s.inputh)
+	}
 
 	s.ui.Update()
 	s.updateSliderVisibility()
@@ -134,27 +124,6 @@ func (s *mainState) updateSliderVisibility() {
 		s.slider.GetWidget().Visibility = widget.Visibility_Hide
 	} else {
 		s.slider.GetWidget().Visibility = widget.Visibility_Show
-	}
-}
-
-// handleMenuShortcuts processes keyboard shortcuts for menu actions.
-func (s *mainState) handleMenuShortcuts() {
-	if s.menu == nil {
-		return
-	}
-
-	if s.inputh.ActionIsJustPressed(keymap.ActionOpenROM) {
-		s.menu.fileOpen.Click()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenGeneralConfig) {
-		s.menu.settingsGeneral.Click()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig) {
-		s.menu.settingsVideo.Click()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig) {
-		s.menu.settingsVideo.Click()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenInputConfig) {
-		s.menu.settingsInput.Click()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenEmulationConfig) {
-		s.menu.settingsEmulation.Click()
 	}
 }
 
@@ -229,7 +198,7 @@ func (s *mainState) createUI() {
 		)),
 	)
 
-	s.ui.Container.AddChild(buildMenu(s))
+	s.ui.Container.AddChild(s.buildMenu())
 
 	const screenshotWidth = 180 // side of the screenshot square image.
 	const maxCellWidth = 200

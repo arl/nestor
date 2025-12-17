@@ -72,9 +72,9 @@ func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, c
 		DevicesEnabled: einput.AnyDevice,
 	})
 
+	app.states["main"] = stateDef{state: newMainState(app), keymap: keymap.MenuKeymap}
 	app.states["running"] = stateDef{state: newRunningState(app), keymap: keymap.RunningKeymap}
 	app.states["paused"] = stateDef{state: newPausedState(app), keymap: keymap.PausedKeymap}
-	app.states["main"] = stateDef{state: newMainState(app), keymap: keymap.MenuKeymap}
 	app.states["config"] = stateDef{state: newConfigState(app), keymap: nil}
 	app.states["capture"] = stateDef{state: newCaptureState(app), keymap: nil}
 

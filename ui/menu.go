@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	goimage "image"
 	"image/color"
 
@@ -8,14 +9,24 @@ import (
 	"github.com/ebitenui/ebitenui/event"
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
+	einput "github.com/quasilyte/ebitengine-input"
 	"golang.org/x/image/colornames"
+
+	"nestor/ui/keymap"
 )
+
+const numSavestateSlots = 8
 
 type appMenu struct {
 	container *widget.Container
 
-	fileOpen *widget.Button
-	fileQuit *widget.Button
+	fileOpen      *widget.Button
+	fileLoadState *widget.Button
+	fileSaveState *widget.Button
+	fileQuit      *widget.Button
+
+	loadStateSlots [numSavestateSlots]*widget.Button
+	saveStateSlots [numSavestateSlots]*widget.Button
 
 	settingsGeneral   *widget.Button
 	settingsInput     *widget.Button
@@ -23,6 +34,22 @@ type appMenu struct {
 	settingsEmulation *widget.Button
 
 	help *widget.Button
+}
+
+func (m *appMenu) handleShortcuts(inputh interface {
+	ActionIsJustPressed(einput.Action) bool
+}) {
+	if inputh.ActionIsJustPressed(keymap.ActionOpenROM) {
+		m.fileOpen.Click()
+	} else if inputh.ActionIsJustPressed(keymap.ActionSettingsOpenGeneralConfig) {
+		m.settingsGeneral.Click()
+	} else if inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig) {
+		m.settingsVideo.Click()
+	} else if inputh.ActionIsJustPressed(keymap.ActionSettingsOpenInputConfig) {
+		m.settingsInput.Click()
+	} else if inputh.ActionIsJustPressed(keymap.ActionSettingsOpenEmulationConfig) {
+		m.settingsEmulation.Click()
+	}
 }
 
 func newAppMenu(ui *ebitenui.UI) *appMenu {
@@ -45,18 +72,35 @@ func newAppMenu(ui *ebitenui.UI) *appMenu {
 	//
 	file := newAppMenuButton("File")
 	var (
-		open = newAppMenuEntry("Open ROM ...")
-		quit = newAppMenuEntry("Quit")
+		open      = newAppMenuEntry("Open ROM ...")
+		loadState = newAppMenuEntry("Load State")
+		saveState = newAppMenuEntry("Save State")
+		quit      = newAppMenuEntry("Quit")
 	)
 
+	var loadStateSlots [numSavestateSlots]*widget.Button
+	for i := range loadStateSlots {
+		loadStateSlots[i] = newAppMenuEntry(fmt.Sprintf("Slot %d", i+1))
+	}
+	loadState.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
+		openAppSubMenu(args.Button.GetWidget(), ui, loadStateSlots[:]...)
+	}))
+
+	var saveStateSlots [numSavestateSlots]*widget.Button
+	for i := range saveStateSlots {
+		saveStateSlots[i] = newAppMenuEntry(fmt.Sprintf("Slot %d", i+1))
+	}
+	saveState.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
+		openAppSubMenu(args.Button.GetWidget(), ui, saveStateSlots[:]...)
+	}))
+
 	file.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
-		openAppMenu(args.Button.GetWidget(), ui, open, quit)
+		openAppMenu(args.Button.GetWidget(), ui, open, loadState, saveState, quit)
 	}))
 	root.AddChild(file)
 
 	//
 	// "Settings" menu
-	// This is the same thing as the "File" menu, just with more entries.
 	//
 	settings := newAppMenuButton("Settings")
 	var (
@@ -76,7 +120,11 @@ func newAppMenu(ui *ebitenui.UI) *appMenu {
 	return &appMenu{
 		container:         root,
 		fileOpen:          open,
+		fileLoadState:     loadState,
+		fileSaveState:     saveState,
 		fileQuit:          quit,
+		loadStateSlots:    loadStateSlots,
+		saveStateSlots:    saveStateSlots,
 		settingsGeneral:   general,
 		settingsInput:     input,
 		settingsVideo:     video,
@@ -132,20 +180,17 @@ func newAppMenuEntry(label string) *widget.Button {
 
 func openAppMenu(opener *widget.Widget, ui *ebitenui.UI, entries ...*widget.Button) {
 	c := widget.NewContainer(
-		// Set the background to a translucent black.
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.RGBA{R: 0, G: 0, B: 0, A: 125})),
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(hex2color(menuBackground))),
 
-		// Menu entries should be arranged vertically.
 		widget.ContainerOpts.Layout(
 			widget.NewRowLayout(
 				widget.RowLayoutOpts.Direction(widget.DirectionVertical),
 				widget.RowLayoutOpts.Spacing(4),
-				widget.RowLayoutOpts.Padding(&widget.Insets{Top: 1, Bottom: 1}),
+				widget.RowLayoutOpts.Padding(&widget.Insets{Top: 4, Bottom: 4}),
 			),
 		),
 
-		// Set the minimum size for the menu.
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.MinSize(64, 0)),
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
 	)
 
 	for _, entry := range entries {
@@ -153,21 +198,45 @@ func openAppMenu(opener *widget.Widget, ui *ebitenui.UI, entries ...*widget.Butt
 	}
 
 	w, h := c.PreferredSize()
+	x := opener.Rect.Min.X
+	y := opener.Rect.Max.Y
 
 	window := widget.NewWindow(
-		widget.WindowOpts.Modal(),
 		widget.WindowOpts.Contents(c),
+		widget.WindowOpts.CloseMode(widget.CLICK_OUT),
+		widget.WindowOpts.Location(goimage.Rect(x, y, x+w, y+h)),
+	)
 
-		widget.WindowOpts.CloseMode(widget.CLICK),
+	ui.AddWindow(window)
+}
 
-		widget.WindowOpts.Location(
-			goimage.Rect(
-				opener.Rect.Min.X,
-				opener.Rect.Min.Y+opener.Rect.Max.Y,
-				opener.Rect.Min.X+w,
-				opener.Rect.Min.Y+opener.Rect.Max.Y+opener.Rect.Min.Y+h,
+func openAppSubMenu(opener *widget.Widget, ui *ebitenui.UI, entries ...*widget.Button) {
+	c := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(hex2color(menuBackground))),
+
+		widget.ContainerOpts.Layout(
+			widget.NewRowLayout(
+				widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+				widget.RowLayoutOpts.Spacing(4),
+				widget.RowLayoutOpts.Padding(&widget.Insets{Top: 4, Bottom: 4}),
 			),
 		),
+
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.MinSize(100, 0)),
+	)
+
+	for _, entry := range entries {
+		c.AddChild(entry)
+	}
+
+	w, h := c.PreferredSize()
+	x := opener.Rect.Max.X
+	y := opener.Rect.Min.Y
+
+	window := widget.NewWindow(
+		widget.WindowOpts.Contents(c),
+		widget.WindowOpts.CloseMode(widget.CLICK),
+		widget.WindowOpts.Location(goimage.Rect(x, y, x+w, y+h)),
 	)
 
 	ui.AddWindow(window)
