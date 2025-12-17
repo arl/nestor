@@ -73,7 +73,7 @@ func (s *pausedState) onStop() {
 func (s *pausedState) createUI() {
 	s.menu = newAppMenu(&s.ui)
 
-	s.menu.fileQuit.ClickedEvent.AddHandler(func(args any) { s.onStop(); s.exit() })
+	s.menu.fileQuit.ClickedEvent.AddHandler(func(args any) { s.app.exit() })
 
 	s.menu.fileOpen.GetWidget().Disabled = true
 	s.menu.settingsGeneral.GetWidget().Disabled = true
