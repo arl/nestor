@@ -133,12 +133,3 @@ func Save(cfg *Config) error {
 	modCfg.Infof("configuration saved to %s", Path())
 	return nil
 }
-
-var SaveRAMDir = sync.OnceValue(func() string {
-	dir := filepath.Join(Dir(), "saveram")
-	if err := os.MkdirAll(dir, dirMode); err != nil {
-		modCfg.Fatalf("failed to create directory %s: %v", dir, err)
-	}
-
-	return dir
-})
