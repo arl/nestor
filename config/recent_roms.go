@@ -1,4 +1,4 @@
-package ui
+package config
 
 import (
 	"archive/zip"
@@ -13,22 +13,20 @@ import (
 	"slices"
 	"sync"
 	"time"
-
-	"nestor/config"
 )
 
 const recentROMExtension = ".nrr"
 
 var RecentROMsDir = sync.OnceValue(func() string {
-	dir := filepath.Join(config.Dir(), "recent-roms")
+	dir := filepath.Join(Dir(), "recent-roms")
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		modUI.ErrorZ("failed to create directory").String("path", dir).Error("err", err).End()
+		modCfg.ErrorZ("failed to create directory").String("path", dir).Error("err", err).End()
 	}
 	return dir
 })
 
-// recentROM holds the data for a single recently played ROM.
-type recentROM struct {
+// RecentROM holds the data for a single recently played ROM.
+type RecentROM struct {
 	Name      string    // Base name of the ROM file.
 	Path      string    // Full path to the ROM file.
 	Image     []byte    // PNG data for the screenshot.
@@ -36,12 +34,12 @@ type recentROM struct {
 	LastUsed  time.Time // Last time the ROM was played.
 }
 
-func (r recentROM) IsValid() bool {
+func (r RecentROM) IsValid() bool {
 	return r.Path != "" && r.Image != nil && r.Name != "" && !r.LastUsed.IsZero()
 }
 
 // save writes the recent ROM data to a .nrr file.
-func (r recentROM) save() error {
+func (r RecentROM) save() error {
 	f, err := os.Create(filepath.Join(RecentROMsDir(), r.Name+recentROMExtension))
 	if err != nil {
 		return err
@@ -78,9 +76,8 @@ func (r recentROM) save() error {
 	return nil
 }
 
-// addRecentROM is the new entry point for saving a ROM to the recent list.
-// Call this function when you run a new ROM.
-func addRecentROM(rom recentROM) error {
+// AddRecentROM persits data about a rom into the on-disk recent list.
+func AddRecentROM(rom RecentROM) error {
 	if err := rom.save(); err != nil {
 		return fmt.Errorf("failed to save recent ROM: %w", err)
 	}
@@ -100,8 +97,8 @@ func removeExt(path string) string {
 	return path[:len(path)-len(filepath.Ext(path))]
 }
 
-func loadRecentROMs() []recentROM {
-	var roms []recentROM
+func LoadRecentROMs() []RecentROM {
+	var roms []RecentROM
 
 	err := filepath.WalkDir(RecentROMsDir(), func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || filepath.Ext(path) != recentROMExtension {
@@ -134,7 +131,7 @@ func loadRecentROMs() []recentROM {
 			loaded[zf.Name] = buf
 		}
 
-		cur := recentROM{
+		cur := RecentROM{
 			Name:      removeExt(info.Name()),
 			LastUsed:  info.ModTime(),
 			Path:      string(bytes.TrimSpace(loaded["infos.txt"])),
@@ -149,11 +146,11 @@ func loadRecentROMs() []recentROM {
 		return nil
 	})
 	if err != nil {
-		modUI.WarnZ("error loading recent roms").Error("err", err).End()
+		modCfg.WarnZ("error loading recent roms").Error("err", err).End()
 	}
 
 	// Normalize: remove duplicates and sort by LastUsed date.
-	m := make(map[string]recentROM, len(roms))
+	m := make(map[string]RecentROM, len(roms))
 	for _, rom := range roms {
 		m[rom.Name] = rom
 	}
@@ -161,7 +158,7 @@ func loadRecentROMs() []recentROM {
 	for _, rom := range m {
 		roms = append(roms, rom)
 	}
-	slices.SortFunc(roms, func(a, b recentROM) int {
+	slices.SortFunc(roms, func(a, b RecentROM) int {
 		return cmp.Compare(b.LastUsed.Unix(), a.LastUsed.Unix())
 	})
 

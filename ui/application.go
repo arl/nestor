@@ -236,7 +236,7 @@ func (app *app) runRom(romPath string, savestate []byte) error {
 			return
 		}
 
-		if err := addRecentROM(recentROM{
+		if err := config.AddRecentROM(config.RecentROM{
 			Path:      romPath,
 			Name:      filepath.Base(romPath),
 			Image:     execstate.PNGBytes,
