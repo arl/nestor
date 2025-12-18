@@ -34,67 +34,12 @@ type RecentROM struct {
 	LastUsed  time.Time // Last time the ROM was played.
 }
 
-func (r RecentROM) IsValid() bool {
-	return r.Path != "" && r.Image != nil && r.Name != "" && !r.LastUsed.IsZero()
-}
-
-// save writes the recent ROM data to a .nrr file.
-func (r RecentROM) save() error {
-	f, err := os.Create(filepath.Join(RecentROMsDir(), r.Name+recentROMExtension))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	zw := zip.NewWriter(f)
-	defer zw.Close()
-
-	zfw, err := zw.Create("infos.txt")
-	if err != nil {
-		return err
-	}
-	if _, err := zfw.Write([]byte(r.Path)); err != nil {
-		return err
-	}
-
-	zfw, err = zw.Create("screenshot.png")
-	if err != nil {
-		return err
-	}
-	if _, err := zfw.Write(r.Image); err != nil {
-		return err
-	}
-
-	zfw, err = zw.Create("state.bin")
-	if err != nil {
-		return err
-	}
-	if _, err := zfw.Write(r.SaveState); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // AddRecentROM persits data about a rom into the on-disk recent list.
 func AddRecentROM(rom RecentROM) error {
 	if err := rom.save(); err != nil {
 		return fmt.Errorf("failed to save recent ROM: %w", err)
 	}
 	return nil
-}
-
-func readZipFile(zf *zip.File) ([]byte, error) {
-	zfr, err := zf.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer zfr.Close()
-	return io.ReadAll(zfr)
-}
-
-func removeExt(path string) string {
-	return path[:len(path)-len(filepath.Ext(path))]
 }
 
 func LoadRecentROMs() []RecentROM {
@@ -139,7 +84,7 @@ func LoadRecentROMs() []RecentROM {
 			SaveState: loaded["state.bin"],
 		}
 
-		if cur.IsValid() {
+		if cur.isValid() {
 			roms = append(roms, cur)
 		}
 
@@ -168,4 +113,59 @@ func LoadRecentROMs() []RecentROM {
 	}
 
 	return roms
+}
+
+func (r RecentROM) isValid() bool {
+	return r.Path != "" && r.Image != nil && r.Name != "" && !r.LastUsed.IsZero()
+}
+
+// save writes the recent ROM data to a .nrr file.
+func (r RecentROM) save() error {
+	f, err := os.Create(filepath.Join(RecentROMsDir(), r.Name+recentROMExtension))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	zw := zip.NewWriter(f)
+	defer zw.Close()
+
+	zfw, err := zw.Create("infos.txt")
+	if err != nil {
+		return err
+	}
+	if _, err := zfw.Write([]byte(r.Path)); err != nil {
+		return err
+	}
+
+	zfw, err = zw.Create("screenshot.png")
+	if err != nil {
+		return err
+	}
+	if _, err := zfw.Write(r.Image); err != nil {
+		return err
+	}
+
+	zfw, err = zw.Create("state.bin")
+	if err != nil {
+		return err
+	}
+	if _, err := zfw.Write(r.SaveState); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func readZipFile(zf *zip.File) ([]byte, error) {
+	zfr, err := zf.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer zfr.Close()
+	return io.ReadAll(zfr)
+}
+
+func removeExt(path string) string {
+	return path[:len(path)-len(filepath.Ext(path))]
 }

@@ -12,6 +12,8 @@ import (
 	einput "github.com/quasilyte/ebitengine-input"
 	"github.com/sqweek/dialog"
 	"golang.org/x/image/colornames"
+
+	"nestor/config"
 )
 
 type mainState struct {
@@ -19,7 +21,7 @@ type mainState struct {
 
 	selidx  int
 	numcols int
-	roms    []recentROM
+	roms    []config.RecentROM
 
 	sc     *widget.ScrollContainer
 	slider *widget.Slider
@@ -42,7 +44,7 @@ func newMainState(app *app) *mainState {
 
 func (s *mainState) enter(inputh *einput.Handler, _ any) {
 	s.inputh = inputh
-	s.roms = loadRecentROMs()
+	s.roms = config.LoadRecentROMs()
 }
 
 func (s *mainState) exit() {}
