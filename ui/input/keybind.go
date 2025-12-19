@@ -16,43 +16,16 @@ type KeyCombo struct {
 	Alt   bool
 }
 
-var keyNames = map[string]ebiten.Key{
-	"a": ebiten.KeyA, "b": ebiten.KeyB, "c": ebiten.KeyC, "d": ebiten.KeyD,
-	"e": ebiten.KeyE, "f": ebiten.KeyF, "g": ebiten.KeyG, "h": ebiten.KeyH,
-	"i": ebiten.KeyI, "j": ebiten.KeyJ, "k": ebiten.KeyK, "l": ebiten.KeyL,
-	"m": ebiten.KeyM, "n": ebiten.KeyN, "o": ebiten.KeyO, "p": ebiten.KeyP,
-	"q": ebiten.KeyQ, "r": ebiten.KeyR, "s": ebiten.KeyS, "t": ebiten.KeyT,
-	"u": ebiten.KeyU, "v": ebiten.KeyV, "w": ebiten.KeyW, "x": ebiten.KeyX,
-	"y": ebiten.KeyY, "z": ebiten.KeyZ,
-	"0": ebiten.Key0, "1": ebiten.Key1, "2": ebiten.Key2, "3": ebiten.Key3,
-	"4": ebiten.Key4, "5": ebiten.Key5, "6": ebiten.Key6, "7": ebiten.Key7,
-	"8": ebiten.Key8, "9": ebiten.Key9,
-	"f1": ebiten.KeyF1, "f2": ebiten.KeyF2, "f3": ebiten.KeyF3, "f4": ebiten.KeyF4,
-	"f5": ebiten.KeyF5, "f6": ebiten.KeyF6, "f7": ebiten.KeyF7, "f8": ebiten.KeyF8,
-	"f9": ebiten.KeyF9, "f10": ebiten.KeyF10, "f11": ebiten.KeyF11, "f12": ebiten.KeyF12,
-	"escape": ebiten.KeyEscape, "esc": ebiten.KeyEscape,
-	"enter": ebiten.KeyEnter, "return": ebiten.KeyEnter,
-	"space": ebiten.KeySpace,
-	"tab": ebiten.KeyTab,
-	"backspace": ebiten.KeyBackspace,
-	"delete": ebiten.KeyDelete,
-	"insert": ebiten.KeyInsert,
-	"home": ebiten.KeyHome,
-	"end": ebiten.KeyEnd,
-	"pageup": ebiten.KeyPageUp,
-	"pagedown": ebiten.KeyPageDown,
-	"up": ebiten.KeyUp, "down": ebiten.KeyDown, "left": ebiten.KeyLeft, "right": ebiten.KeyRight,
-	"minus": ebiten.KeyMinus, "-": ebiten.KeyMinus,
-	"equal": ebiten.KeyEqual, "=": ebiten.KeyEqual,
-	"comma": ebiten.KeyComma, ",": ebiten.KeyComma,
-	"period": ebiten.KeyPeriod, ".": ebiten.KeyPeriod,
-	"slash": ebiten.KeySlash, "/": ebiten.KeySlash,
-	"backslash": ebiten.KeyBackslash, "\\": ebiten.KeyBackslash,
-	"semicolon": ebiten.KeySemicolon, ";": ebiten.KeySemicolon,
-	"quote": ebiten.KeyQuote, "'": ebiten.KeyQuote,
-	"backquote": ebiten.KeyBackquote, "`": ebiten.KeyBackquote,
-	"leftbracket": ebiten.KeyLeftBracket, "[": ebiten.KeyLeftBracket,
-	"rightbracket": ebiten.KeyRightBracket, "]": ebiten.KeyRightBracket,
+// IsModifier returns true if the key is a modifier key (Ctrl, Shift, Alt, Meta)
+func IsModifier(key ebiten.Key) bool {
+	switch key {
+	case ebiten.KeyControl, ebiten.KeyControlLeft, ebiten.KeyControlRight,
+		ebiten.KeyShift, ebiten.KeyShiftLeft, ebiten.KeyShiftRight,
+		ebiten.KeyAlt, ebiten.KeyAltLeft, ebiten.KeyAltRight,
+		ebiten.KeyMeta, ebiten.KeyMetaLeft, ebiten.KeyMetaRight:
+		return true
+	}
+	return false
 }
 
 // Parse parses strings like "ctrl+o", "shift+f1", "f11"
@@ -73,8 +46,8 @@ func Parse(s string) (KeyCombo, error) {
 			if i != len(parts)-1 {
 				return KeyCombo{}, fmt.Errorf("invalid modifier %q in key combination %q", part, s)
 			}
-			key, ok := keyNames[part]
-			if !ok {
+			var key ebiten.Key
+			if err := key.UnmarshalText([]byte(part)); err != nil {
 				return KeyCombo{}, fmt.Errorf("unknown key %q in key combination %q", part, s)
 			}
 			combo.Key = key
@@ -96,15 +69,7 @@ func (k KeyCombo) String() string {
 		parts = append(parts, "alt")
 	}
 
-	keyStr := ""
-	for name, key := range keyNames {
-		if key == k.Key && len(name) > len(keyStr) {
-			keyStr = name
-		}
-	}
-	if keyStr == "" {
-		keyStr = k.Key.String()
-	}
+	keyStr := strings.ToLower(k.Key.String())
 	parts = append(parts, keyStr)
 
 	return strings.Join(parts, "+")
@@ -123,3 +88,34 @@ func (k KeyCombo) IsJustPressed() bool {
 	return ctrlPressed == k.Ctrl && shiftPressed == k.Shift && altPressed == k.Alt
 }
 
+// CaptureKeyCombo captures a key combination from just-pressed keys.
+// It filters out modifier keys and returns a KeyCombo with the main key and modifier states.
+// Returns ok=false if no non-modifier key was just pressed.
+func CaptureKeyCombo() (combo KeyCombo, ok bool) {
+	keys := inpututil.AppendJustPressedKeys(nil)
+	if len(keys) == 0 {
+		return KeyCombo{}, false
+	}
+
+	// Find the first non-modifier key
+	var mainKey ebiten.Key
+	found := false
+	for _, key := range keys {
+		if !IsModifier(key) {
+			mainKey = key
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return KeyCombo{}, false
+	}
+
+	combo.Key = mainKey
+	combo.Ctrl = ebiten.IsKeyPressed(ebiten.KeyControl) || ebiten.IsKeyPressed(ebiten.KeyControlLeft) || ebiten.IsKeyPressed(ebiten.KeyControlRight)
+	combo.Shift = ebiten.IsKeyPressed(ebiten.KeyShift) || ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight)
+	combo.Alt = ebiten.IsKeyPressed(ebiten.KeyAlt) || ebiten.IsKeyPressed(ebiten.KeyAltLeft) || ebiten.IsKeyPressed(ebiten.KeyAltRight)
+
+	return combo, true
+}

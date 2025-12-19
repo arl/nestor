@@ -3,6 +3,8 @@ package ui
 import (
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
+
+	"nestor/ui/input"
 )
 
 type pausedState struct {
@@ -64,12 +66,11 @@ func (s *pausedState) onStop() {
 func (s *pausedState) createUI() {
 	s.menu = newAppMenu(&s.ui, s.actions)
 
-	s.menu.fileOpen.GetWidget().Disabled = true
-
-	s.menu.settingsGeneral.GetWidget().Disabled = true
-	s.menu.settingsInput.GetWidget().Disabled = true
-	s.menu.settingsVideo.GetWidget().Disabled = true
-	s.menu.settingsEmulation.GetWidget().Disabled = true
+	s.menu.SetDisabled(input.ActionOpenROM, true)
+	s.menu.SetDisabled(input.ActionSettingsOpenGeneralConfig, true)
+	s.menu.SetDisabled(input.ActionSettingsOpenInputConfig, true)
+	s.menu.SetDisabled(input.ActionSettingsOpenVideoConfig, true)
+	s.menu.SetDisabled(input.ActionSettingsOpenEmulationConfig, true)
 
 	root := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
@@ -78,7 +79,7 @@ func (s *pausedState) createUI() {
 		)),
 	)
 
-	root.AddChild(s.menu.container)
+	root.AddChild(s.menu.Container)
 
 	content := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),

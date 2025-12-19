@@ -68,26 +68,15 @@ func (s *captureState) update() {
 }
 
 func (s *captureState) captureForUI() {
-	keys := inpututil.AppendJustPressedKeys(nil)
-	if len(keys) == 0 {
-		return
-	}
-
-	key := keys[0]
-	if key == ebiten.KeyEscape {
+	// Check for escape to cancel
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		s.app.setState("config", nil)
 		return
 	}
 
-	combo := input.KeyCombo{Key: key}
-	if ebiten.IsKeyPressed(ebiten.KeyControl) || ebiten.IsKeyPressed(ebiten.KeyControlLeft) || ebiten.IsKeyPressed(ebiten.KeyControlRight) {
-		combo.Ctrl = true
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyShift) || ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight) {
-		combo.Shift = true
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyAlt) || ebiten.IsKeyPressed(ebiten.KeyAltLeft) || ebiten.IsKeyPressed(ebiten.KeyAltRight) {
-		combo.Alt = true
+	combo, ok := input.CaptureKeyCombo()
+	if !ok {
+		return
 	}
 
 	s.app.cfg.General.KeyboardShortcuts[s.args.action] = input.Shortcut(combo.String())

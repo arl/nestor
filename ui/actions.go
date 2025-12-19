@@ -3,10 +3,12 @@ package ui
 import (
 	"errors"
 
+	"nestor/config"
+	"nestor/emu"
+	"nestor/ui/input"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/sqweek/dialog"
-
-	"nestor/ui/input"
 )
 
 type actionRegistry struct {
@@ -54,7 +56,7 @@ func (app *app) registerActions() {
 	for i := range 8 {
 		slot := i
 		app.actions.register(input.ActionSaveSavestateSlot1+input.Action(slot), func() {
-			app.savestateToSlot(slot, app.isStatePaused())
+			app.savestateToSlot(slot)
 		})
 		app.actions.register(input.ActionLoadSavestateSlot1+input.Action(slot), func() {
 			app.loadstateFromSlot(slot)
@@ -125,3 +127,29 @@ func (app *app) loadstateFromSlot(slot int) {
 	modUI.InfoZ("load state from slot").Int("slot", slot+1).End()
 }
 
+func (app *app) savestateToSlot(slot int) {
+	var (
+		state emu.ExecState
+		err   error
+	)
+
+	save := func() {
+		if err != nil {
+			modUI.ErrorZ("failed to save state").Int("slot", slot+1).Error("err", err).End()
+			return
+		}
+		config.AddSavestate(app.emulator.NES.ROM.Name, slot, state.SaveState)
+
+		modUI.InfoZ("saved state").Int("slot", slot+1).End()
+		_ = state
+	}
+
+	if app.currentStateName() == "paused" {
+		state, err = app.emulator.SavestateUnsafe()
+		save()
+	} else {
+		// Savestate is a blocking action. We must do it in a goroutine to avoid
+		// blocking the interaction between the emulator loop and the UI.
+		go func() { state, err = app.emulator.Savestate(); save() }()
+	}
+}

@@ -44,10 +44,10 @@ func (s *mainState) exit() {}
 func (s *mainState) buildMenu() *widget.Container {
 	s.menu = newAppMenu(&s.ui, s.actions)
 
-	s.menu.fileLoadState.GetWidget().Disabled = true
-	s.menu.fileSaveState.GetWidget().Disabled = true
+	s.menu.SetDisabledByID(MenuIDLoadState, true)
+	s.menu.SetDisabledByID(MenuIDSaveState, true)
 
-	return s.menu.container
+	return s.menu.Container
 }
 
 func (s *mainState) startROM() {
