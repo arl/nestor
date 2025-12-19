@@ -10,13 +10,13 @@ import (
 
 	"nestor/emu/log"
 	"nestor/hw"
-	"nestor/hw/input"
+	"nestor/hw/hwinput"
 	"nestor/ines"
 	"nestor/ui/shader"
 )
 
 type Config struct {
-	Input     input.Config    `toml:"input"`
+	Input     hwinput.Config    `toml:"input"`
 	Video     VideoConfig     `toml:"video"`
 	Audio     AudioConfig     `toml:"audio"`
 	Emulation EmulationConfig `toml:"emulation"`

@@ -11,7 +11,7 @@ import (
 
 	"nestor/emu"
 	"nestor/emu/log"
-	hwinput "nestor/hw/input"
+	hwinput "nestor/hw/hwinput"
 	"nestor/ui/input"
 )
 

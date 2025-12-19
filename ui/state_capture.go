@@ -5,7 +5,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
-	hwinput "nestor/hw/input"
+	hwinput "nestor/hw/hwinput"
 	"nestor/ui/input"
 )
 

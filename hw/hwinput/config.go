@@ -1,8 +1,6 @@
-package input
+package hwinput
 
-import (
-	"fmt"
-)
+import "fmt"
 
 type PaddleButton byte
 
@@ -20,7 +18,7 @@ const (
 )
 
 func (pd PaddleButton) String() string {
-	var buttonNames = [PadButtonCount]string{
+	buttonNames := [PadButtonCount]string{
 		"A", "B",
 		"Select", "Start",
 		"Up", "Down", "Left", "Right",
@@ -73,27 +71,27 @@ func (pp *PaddlePreset) UnmarshalTOML(data any) error {
 func (p *PaddlePreset) ToButtons() [PadButtonCount]Code {
 	if p.Keyboard != nil {
 		return [PadButtonCount]Code{
-			Code{Type: Keyboard, Scancode: p.Keyboard.A},
-			Code{Type: Keyboard, Scancode: p.Keyboard.B},
-			Code{Type: Keyboard, Scancode: p.Keyboard.Select},
-			Code{Type: Keyboard, Scancode: p.Keyboard.Start},
-			Code{Type: Keyboard, Scancode: p.Keyboard.Up},
-			Code{Type: Keyboard, Scancode: p.Keyboard.Down},
-			Code{Type: Keyboard, Scancode: p.Keyboard.Left},
-			Code{Type: Keyboard, Scancode: p.Keyboard.Right},
+			{Type: Keyboard, Scancode: p.Keyboard.A},
+			{Type: Keyboard, Scancode: p.Keyboard.B},
+			{Type: Keyboard, Scancode: p.Keyboard.Select},
+			{Type: Keyboard, Scancode: p.Keyboard.Start},
+			{Type: Keyboard, Scancode: p.Keyboard.Up},
+			{Type: Keyboard, Scancode: p.Keyboard.Down},
+			{Type: Keyboard, Scancode: p.Keyboard.Left},
+			{Type: Keyboard, Scancode: p.Keyboard.Right},
 		}
 	}
 
 	if p.Gamepad != nil {
 		return [PadButtonCount]Code{
-			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.A},
-			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.B},
-			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Select},
-			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Start},
-			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Up},
-			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Down},
-			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Left},
-			Code{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Right},
+			{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.A},
+			{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.B},
+			{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Select},
+			{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Start},
+			{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Up},
+			{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Down},
+			{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Left},
+			{Type: Joystick, GamepadSDLID: p.Gamepad.GamepadSDLID, GamepadButton: p.Gamepad.Right},
 		}
 	}
 
