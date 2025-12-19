@@ -33,10 +33,7 @@ type mainState struct {
 }
 
 func newMainState(app *app) *mainState {
-	state := &mainState{
-		app: app,
-	}
-
+	state := &mainState{app: app}
 	state.createUI()
 
 	return state
@@ -70,6 +67,7 @@ func (s *mainState) buildMenu() *widget.Container {
 			errorWindow(&s.ui, err)
 		}
 	})
+
 	s.menu.fileQuit.ClickedEvent.AddHandler(func(args any) { s.exit() })
 	s.menu.settingsGeneral.ClickedEvent.AddHandler(func(args any) { s.setState("config", configPageDest("general")) })
 	s.menu.settingsInput.ClickedEvent.AddHandler(func(args any) { s.setState("config", configPageDest("input")) })

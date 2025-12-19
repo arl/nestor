@@ -58,12 +58,12 @@ func LoadRecentROMs() []RecentROM {
 
 		info, err := f.Stat()
 		if err != nil {
-			return fmt.Errorf("failed to stat recent ROM file: %w", err)
+			return fmt.Errorf("failed to stat recent ROM file %s: %w", path, err)
 		}
 
 		zr, err := zip.NewReader(f, info.Size())
 		if err != nil {
-			return fmt.Errorf("failed to read recent ROM zip: %w", err)
+			return fmt.Errorf("failed to read recent ROM file %s: %w", path, err)
 		}
 
 		loaded := make(map[string][]byte)
