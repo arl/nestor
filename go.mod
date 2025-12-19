@@ -3,7 +3,7 @@ module nestor
 go 1.25.3
 
 require (
-	github.com/BurntSushi/toml v1.5.0
+	github.com/BurntSushi/toml v1.6.0
 	github.com/arl/blip v0.2.2
 	github.com/arl/statsviz v0.8.0
 	github.com/ebitengine/debugui v0.2.0
@@ -11,7 +11,7 @@ require (
 	github.com/ebitenui/ebitenui v0.7.2
 	github.com/go-faster/jx v1.1.0
 	github.com/google/go-cmp v0.7.0
-	github.com/hajimehoshi/ebiten/v2 v2.9.5
+	github.com/hajimehoshi/ebiten/v2 v2.9.6
 	github.com/quasilyte/ebitengine-input v0.9.1
 	github.com/sqweek/dialog v0.0.0-20240226140203-065105509627
 	github.com/tinylib/msgp v1.6.1
