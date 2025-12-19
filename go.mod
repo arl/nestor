@@ -14,6 +14,7 @@ require (
 	github.com/hajimehoshi/ebiten/v2 v2.9.6
 	github.com/sqweek/dialog v0.0.0-20240226140203-065105509627
 	github.com/tinylib/msgp v1.6.1
+	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 	golang.org/x/image v0.34.0
 	golang.org/x/sync v0.19.0
 	gopkg.in/Sirupsen/logrus.v0 v0.11.5
@@ -34,7 +35,6 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
-	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
