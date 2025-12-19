@@ -20,13 +20,12 @@ const numSavestateSlots = 8
 type appMenu struct {
 	container *widget.Container
 
-	fileOpen      *widget.Button
-	fileLoadState *widget.Button
-	fileSaveState *widget.Button
-	fileQuit      *widget.Button
-
+	fileOpen       *widget.Button
+	fileLoadState  *widget.Button
 	loadStateSlots [numSavestateSlots]*widget.Button
+	fileSaveState  *widget.Button
 	saveStateSlots [numSavestateSlots]*widget.Button
+	fileQuit       *widget.Button
 
 	settingsGeneral   *widget.Button
 	settingsInput     *widget.Button
@@ -36,19 +35,50 @@ type appMenu struct {
 	help *widget.Button
 }
 
-func (m *appMenu) handleShortcuts(inputh interface {
-	ActionIsJustPressed(einput.Action) bool
-}) {
-	if inputh.ActionIsJustPressed(keymap.ActionOpenROM) {
+func (m *appMenu) handleShortcuts(inputh *einput.Handler) {
+	switch {
+	case inputh.ActionIsJustPressed(keymap.ActionOpenROM):
 		m.fileOpen.Click()
-	} else if inputh.ActionIsJustPressed(keymap.ActionSettingsOpenGeneralConfig) {
+	case inputh.ActionIsJustPressed(keymap.ActionSettingsOpenGeneralConfig):
 		m.settingsGeneral.Click()
-	} else if inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig) {
+	case inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig):
 		m.settingsVideo.Click()
-	} else if inputh.ActionIsJustPressed(keymap.ActionSettingsOpenInputConfig) {
+	case inputh.ActionIsJustPressed(keymap.ActionSettingsOpenInputConfig):
 		m.settingsInput.Click()
-	} else if inputh.ActionIsJustPressed(keymap.ActionSettingsOpenEmulationConfig) {
+	case inputh.ActionIsJustPressed(keymap.ActionSettingsOpenEmulationConfig):
 		m.settingsEmulation.Click()
+	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot1):
+		m.saveStateSlots[0].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot2):
+		m.saveStateSlots[1].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot3):
+		m.saveStateSlots[2].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot4):
+		m.saveStateSlots[3].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot5):
+		m.saveStateSlots[4].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot6):
+		m.saveStateSlots[5].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot7):
+		m.saveStateSlots[6].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot8):
+		m.saveStateSlots[7].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot1):
+		m.loadStateSlots[0].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot2):
+		m.loadStateSlots[1].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot3):
+		m.loadStateSlots[2].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot4):
+		m.loadStateSlots[3].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot5):
+		m.loadStateSlots[4].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot6):
+		m.loadStateSlots[5].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot7):
+		m.loadStateSlots[6].Click()
+	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot8):
+		m.loadStateSlots[7].Click()
 	}
 }
 
