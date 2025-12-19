@@ -244,30 +244,3 @@ func (app *app) savecfg() {
 		modUI.InfoZ("config saved").String("path", config.Path()).End()
 	}
 }
-
-func (app *app) savestateToSlot(slot int) {
-	var (
-		state emu.ExecState
-		err   error
-	)
-
-	save := func() {
-		if err != nil {
-			modUI.ErrorZ("failed to save state").Int("slot", slot+1).Error("err", err).End()
-			return
-		}
-
-		modUI.InfoZ("saved state").Int("slot", slot+1).End()
-		_ = state
-	}
-
-	if app.currentStateName() == "paused" {
-		state, err = app.emulator.SavestateUnsafe()
-		save()
-	} else {
-		go func() {
-			state, err = app.emulator.Savestate()
-			save()
-		}()
-	}
-}
