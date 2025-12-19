@@ -8,16 +8,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ebitengine/oto/v3"
-	"github.com/ebitenui/ebitenui"
-	"github.com/hajimehoshi/ebiten/v2"
-
 	"nestor/config"
 	"nestor/emu"
 	"nestor/emu/log"
 	"nestor/hw/hwinput"
 	"nestor/ines"
 	"nestor/ui/input"
+
+	"github.com/ebitengine/oto/v3"
+	"github.com/ebitenui/ebitenui"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type state interface {
@@ -110,6 +110,16 @@ func (app *app) setState(name string, arg any) {
 	app.curstate = to.state
 	app.curstate.enter(arg)
 	app.curstate.createUI()
+}
+
+func (app *app) currentStateName() string {
+	for name, def := range app.states {
+		if def.state == app.curstate {
+			return name
+		}
+	}
+
+	panic("current state not found!")
 }
 
 func (app *app) do(fn func()) {
@@ -235,21 +245,29 @@ func (app *app) savecfg() {
 	}
 }
 
-func (app *app) savestateToSlot(slot int, paused bool) {
+func (app *app) savestateToSlot(slot int) {
 	var (
 		state emu.ExecState
 		err   error
 	)
-	if paused {
-		state, err = app.emulator.SavestateUnsafe()
-	} else {
-		state, err = app.emulator.Savestate()
-	}
-	if err != nil {
-		modUI.ErrorZ("failed to save state").Int("slot", slot+1).Error("err", err).End()
-		return
+
+	save := func() {
+		if err != nil {
+			modUI.ErrorZ("failed to save state").Int("slot", slot+1).Error("err", err).End()
+			return
+		}
+
+		modUI.InfoZ("saved state").Int("slot", slot+1).End()
+		_ = state
 	}
 
-	modUI.InfoZ("saved state").Int("slot", slot+1).End()
-	_ = state
+	if app.currentStateName() == "paused" {
+		state, err = app.emulator.SavestateUnsafe()
+		save()
+	} else {
+		go func() {
+			state, err = app.emulator.Savestate()
+			save()
+		}()
+	}
 }
