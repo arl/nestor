@@ -63,7 +63,7 @@ type Emulator struct {
 	// Loop can be concurrently controlled by the emulator and ui.
 	loopstate    atomic.Uint64
 	blockch      chan struct{}
-	savedstatech chan savestateResult // sent-to by save()
+	savedstatech chan savestateResult // result of calling SavestateUnsafe
 }
 
 type savestateResult struct {
@@ -163,15 +163,14 @@ func (e *Emulator) Run() (ExecState, error) {
 			e.RunOneFrame()
 		case loopstateQuit:
 			log.ModEmu.InfoZ("Emulation loop exited").End()
-			e.save()
-			res := <-e.savedstatech
-			return res.state, nil
+			return e.SavestateUnsafe()
 		case loopstateBlock:
 			<-e.blockch
 		case loopstateSavestate:
 			log.ModEmu.InfoZ("Savestate requested").End()
 			e.loopstate.Store(loopstateRunning)
-			e.save()
+			state, err := e.SavestateUnsafe()
+			e.savedstatech <- savestateResult{state: state, err: err}
 		case loopstateReset:
 			e.loopstate.Store(loopstateRunning)
 			log.ModEmu.InfoZ("Issueing soft reset").End()
@@ -204,6 +203,8 @@ func (e *Emulator) Unblock() {
 	}
 }
 
+// Savestate serializes SavestateUnsafe call with the emulator loop to avoid
+// race conditions.
 func (e *Emulator) Savestate() (ExecState, error) {
 	e.loopstate.Store(loopstateSavestate)
 
@@ -211,27 +212,24 @@ func (e *Emulator) Savestate() (ExecState, error) {
 	return res.state, res.err
 }
 
-// captures current state and sends it to savedstatech.
-func (e *Emulator) save() {
+// Savestate is not safe for concurrent use, hence it must be called when the
+// emulator loop is already blocked.
+func (e *Emulator) SavestateUnsafe() (ExecState, error) {
 	// Get a state snapshot.
 	savestate, err := e.NES.SaveSnapshot()
 	if err != nil {
-		e.savedstatech <- savestateResult{err: fmt.Errorf("failed to save state: %w", err)}
-		return
+		return ExecState{}, fmt.Errorf("failed to save state: %w", err)
 	}
 
 	// Make screenshot from the last frame.
 	var screenshot bytes.Buffer
 	if err := png.Encode(&screenshot, e.out.Screenshot()); err != nil {
-		e.savedstatech <- savestateResult{err: fmt.Errorf("failed to encode screenshot to png: %w", err)}
-		return
+		return ExecState{}, fmt.Errorf("failed to encode screenshot to png: %w", err)
 	}
 
-	execstate := ExecState{
+	return ExecState{
 		PNGBytes:   screenshot.Bytes(),
 		SaveState:  savestate,
 		BatteryRAM: e.NES.Mapper.BatteryPackedRAM(),
-	}
-
-	e.savedstatech <- savestateResult{state: execstate}
+	}, nil
 }
