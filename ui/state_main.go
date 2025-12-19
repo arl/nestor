@@ -2,15 +2,12 @@ package ui
 
 import (
 	"bytes"
-	"errors"
 	"math"
 
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	einput "github.com/quasilyte/ebitengine-input"
-	"github.com/sqweek/dialog"
 	"golang.org/x/image/colornames"
 
 	"nestor/config"
@@ -28,8 +25,7 @@ type mainState struct {
 	grid   *widget.Container
 	cells  []*widget.Container
 
-	inputh *einput.Handler
-	menu   *appMenu
+	menu *appMenu
 }
 
 func newMainState(app *app) *mainState {
@@ -39,40 +35,14 @@ func newMainState(app *app) *mainState {
 	return state
 }
 
-func (s *mainState) enter(inputh *einput.Handler, _ any) {
-	s.inputh = inputh
+func (s *mainState) enter(_ any) {
 	s.roms = config.LoadRecentROMs()
 }
 
 func (s *mainState) exit() {}
 
 func (s *mainState) buildMenu() *widget.Container {
-	s.menu = newAppMenu(&s.ui)
-
-	s.menu.fileOpen.ClickedEvent.AddHandler(func(args any) {
-		dlg := dialog.File().Title("Open NES ROM").Filter("NES rom", "nes")
-		dlg.StartDir = s.cfg.General.FileLoadStartDir
-
-		name, err := dlg.Load()
-		if err != nil {
-			if !errors.Is(err, dialog.ErrCancelled) {
-				modUI.ErrorZ("dialog: failed to open").Error("err", err).End()
-				errorWindow(&s.ui, err)
-			}
-			return
-		}
-
-		if err := s.runRom(name, nil); err != nil {
-			modUI.ErrorZ("failed to run rom").Error("err", err).End()
-			errorWindow(&s.ui, err)
-		}
-	})
-
-	s.menu.fileQuit.ClickedEvent.AddHandler(func(args any) { s.exit() })
-	s.menu.settingsGeneral.ClickedEvent.AddHandler(func(args any) { s.setState("config", configPageDest("general")) })
-	s.menu.settingsInput.ClickedEvent.AddHandler(func(args any) { s.setState("config", configPageDest("input")) })
-	s.menu.settingsVideo.ClickedEvent.AddHandler(func(args any) { s.setState("config", configPageDest("video")) })
-	s.menu.settingsEmulation.ClickedEvent.AddHandler(func(args any) { s.setState("config", configPageDest("emulation")) })
+	s.menu = newAppMenu(&s.ui, s.actions)
 
 	s.menu.fileLoadState.GetWidget().Disabled = true
 	s.menu.fileSaveState.GetWidget().Disabled = true
@@ -81,6 +51,9 @@ func (s *mainState) buildMenu() *widget.Container {
 }
 
 func (s *mainState) startROM() {
+	if len(s.roms) == 0 {
+		return
+	}
 	recentrom := s.roms[s.selidx]
 	if err := s.runRom(recentrom.Path, recentrom.SaveState); err == nil {
 		s.setState("running", nil)
@@ -90,7 +63,6 @@ func (s *mainState) startROM() {
 }
 
 func (s *mainState) update() {
-	// Handle navigation keys
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		s.up()
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
@@ -101,10 +73,6 @@ func (s *mainState) update() {
 		s.right()
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		s.startROM()
-	}
-
-	if s.menu != nil {
-		s.menu.handleShortcuts(s.inputh)
 	}
 
 	s.ui.Update()

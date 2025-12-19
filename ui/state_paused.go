@@ -1,18 +1,13 @@
 package ui
 
 import (
-	"github.com/ebitenui/ebitenui/event"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
-	einput "github.com/quasilyte/ebitengine-input"
-
-	"nestor/ui/keymap"
 )
 
 type pausedState struct {
 	*app
-	inputh *einput.Handler
-	menu   *appMenu
+	menu *appMenu
 }
 
 func newPausedState(app *app) *pausedState {
@@ -23,10 +18,9 @@ func newPausedState(app *app) *pausedState {
 	return s
 }
 
-func (s *pausedState) enter(inputh *einput.Handler, _ any) {
+func (s *pausedState) enter(_ any) {
 	ebiten.SetWindowTitle("Nestor <paused>")
 	modUI.InfoZ("Blocking emulator").End()
-	s.inputh = inputh
 	s.emulator.Block()
 	s.audioPlayer.Pause()
 }
@@ -34,16 +28,6 @@ func (s *pausedState) enter(inputh *einput.Handler, _ any) {
 func (s *pausedState) exit() {}
 
 func (s *pausedState) update() {
-	switch {
-	case s.inputh.ActionIsJustPressed(keymap.ActionResumeEmulator):
-		s.onResume()
-	case s.inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot1):
-		s.app.savestateToSlot(0, true)
-	case s.inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot2):
-		s.app.savestateToSlot(1, false)
-		// TODO: continuer
-	}
-
 	s.ui.Update()
 }
 
@@ -78,28 +62,9 @@ func (s *pausedState) onStop() {
 }
 
 func (s *pausedState) createUI() {
-	s.menu = newAppMenu(&s.ui)
+	s.menu = newAppMenu(&s.ui, s.actions)
 
-	s.menu.fileQuit.ClickedEvent.AddHandler(func(args any) { s.app.exit() })
 	s.menu.fileOpen.GetWidget().Disabled = true
-	for i := range s.menu.loadStateSlots {
-		// TODO: we need some manager to handle savestate per rom.
-		// load the savestate for the current rom.
-		currom := ""
-		buf := []byte{} // savestate[i]
-
-		s.menu.loadStateSlots[i].ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.emulator.Unblock()
-			if err := s.app.runRom(currom, buf); err != nil {
-				modUI.ErrorZ("failed to run rom").Error("err", err).End()
-				errorWindow(&s.ui, err)
-			}
-		}))
-
-		s.menu.saveStateSlots[i].ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
-			s.app.savestateToSlot(i, true)
-		}))
-	}
 
 	s.menu.settingsGeneral.GetWidget().Disabled = true
 	s.menu.settingsInput.GetWidget().Disabled = true

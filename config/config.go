@@ -11,15 +11,15 @@ import (
 
 	"nestor/emu"
 	"nestor/emu/log"
-	"nestor/hw/input"
-	"nestor/ui/keymap"
+	hwinput "nestor/hw/input"
+	"nestor/ui/input"
 )
 
 var modCfg = log.NewModule("cfg")
 
 type General struct {
 	FileLoadStartDir  string           `toml:"file_load_start_dir"`
-	KeyboardShortcuts keymap.Shortcuts `toml:"keyboard_shortcuts"`
+	KeyboardShortcuts input.Shortcuts `toml:"keyboard_shortcuts"`
 }
 
 type Config struct {
@@ -29,8 +29,8 @@ type Config struct {
 
 var defaultConfig = Config{
 	Config: emu.Config{
-		Input: input.Config{
-			Paddles: [2]input.PaddleConfig{
+		Input: hwinput.Config{
+			Paddles: [2]hwinput.PaddleConfig{
 				{
 					Plugged:      true,
 					PaddlePreset: 0,
@@ -40,9 +40,9 @@ var defaultConfig = Config{
 					PaddlePreset: 1,
 				},
 			},
-			Presets: [8]input.PaddlePreset{
+			Presets: [8]hwinput.PaddlePreset{
 				{
-					Keyboard: &input.KeyboardMapping{
+					Keyboard: &hwinput.KeyboardMapping{
 						A:      ebiten.KeyS,
 						B:      ebiten.KeyA,
 						Select: ebiten.KeyQ,
@@ -70,7 +70,7 @@ var defaultConfig = Config{
 		TraceOut: nil,
 	},
 	General: General{
-		KeyboardShortcuts: keymap.DefaultShortcuts,
+		KeyboardShortcuts: input.DefaultShortcuts,
 	},
 }
 

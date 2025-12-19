@@ -9,10 +9,9 @@ import (
 	"github.com/ebitenui/ebitenui/event"
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
-	einput "github.com/quasilyte/ebitengine-input"
 	"golang.org/x/image/colornames"
 
-	"nestor/ui/keymap"
+	"nestor/ui/input"
 )
 
 const numSavestateSlots = 8
@@ -35,54 +34,7 @@ type appMenu struct {
 	help *widget.Button
 }
 
-func (m *appMenu) handleShortcuts(inputh *einput.Handler) {
-	switch {
-	case inputh.ActionIsJustPressed(keymap.ActionOpenROM):
-		m.fileOpen.Click()
-	case inputh.ActionIsJustPressed(keymap.ActionSettingsOpenGeneralConfig):
-		m.settingsGeneral.Click()
-	case inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig):
-		m.settingsVideo.Click()
-	case inputh.ActionIsJustPressed(keymap.ActionSettingsOpenInputConfig):
-		m.settingsInput.Click()
-	case inputh.ActionIsJustPressed(keymap.ActionSettingsOpenEmulationConfig):
-		m.settingsEmulation.Click()
-	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot1):
-		m.saveStateSlots[0].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot2):
-		m.saveStateSlots[1].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot3):
-		m.saveStateSlots[2].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot4):
-		m.saveStateSlots[3].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot5):
-		m.saveStateSlots[4].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot6):
-		m.saveStateSlots[5].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot7):
-		m.saveStateSlots[6].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionSaveSavestateSlot8):
-		m.saveStateSlots[7].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot1):
-		m.loadStateSlots[0].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot2):
-		m.loadStateSlots[1].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot3):
-		m.loadStateSlots[2].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot4):
-		m.loadStateSlots[3].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot5):
-		m.loadStateSlots[4].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot6):
-		m.loadStateSlots[5].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot7):
-		m.loadStateSlots[6].Click()
-	case inputh.ActionIsJustPressed(keymap.ActionLoadSavestateSlot8):
-		m.loadStateSlots[7].Click()
-	}
-}
-
-func newAppMenu(ui *ebitenui.UI) *appMenu {
+func newAppMenu(ui *ebitenui.UI, actions *actionRegistry) *appMenu {
 	root := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Black)),
 
@@ -108,9 +60,20 @@ func newAppMenu(ui *ebitenui.UI) *appMenu {
 		quit      = newAppMenuEntry("Quit")
 	)
 
+	open.ClickedEvent.AddHandler(func(args any) {
+		actions.trigger(input.ActionOpenROM)
+	})
+	quit.ClickedEvent.AddHandler(func(args any) {
+		actions.trigger(input.ActionQuit)
+	})
+
 	var loadStateSlots [numSavestateSlots]*widget.Button
 	for i := range loadStateSlots {
+		slot := i
 		loadStateSlots[i] = newAppMenuEntry(fmt.Sprintf("Slot %d", i+1))
+		loadStateSlots[i].ClickedEvent.AddHandler(func(args any) {
+			actions.trigger(input.ActionLoadSavestateSlot1 + input.Action(slot))
+		})
 	}
 	loadState.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
 		openAppSubMenu(args.Button.GetWidget(), ui, loadStateSlots[:]...)
@@ -118,7 +81,11 @@ func newAppMenu(ui *ebitenui.UI) *appMenu {
 
 	var saveStateSlots [numSavestateSlots]*widget.Button
 	for i := range saveStateSlots {
+		slot := i
 		saveStateSlots[i] = newAppMenuEntry(fmt.Sprintf("Slot %d", i+1))
+		saveStateSlots[i].ClickedEvent.AddHandler(func(args any) {
+			actions.trigger(input.ActionSaveSavestateSlot1 + input.Action(slot))
+		})
 	}
 	saveState.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
 		openAppSubMenu(args.Button.GetWidget(), ui, saveStateSlots[:]...)
@@ -134,13 +101,27 @@ func newAppMenu(ui *ebitenui.UI) *appMenu {
 	//
 	settings := newAppMenuButton("Settings")
 	var (
-		general   = newAppMenuEntry("General")
-		input     = newAppMenuEntry("Input")
-		video     = newAppMenuEntry("Video")
-		emulation = newAppMenuEntry("Emulation")
+		general       = newAppMenuEntry("General")
+		inputSettings = newAppMenuEntry("Input")
+		video         = newAppMenuEntry("Video")
+		emulation     = newAppMenuEntry("Emulation")
 	)
+
+	general.ClickedEvent.AddHandler(func(args any) {
+		actions.trigger(input.ActionSettingsOpenGeneralConfig)
+	})
+	inputSettings.ClickedEvent.AddHandler(func(args any) {
+		actions.trigger(input.ActionSettingsOpenInputConfig)
+	})
+	video.ClickedEvent.AddHandler(func(args any) {
+		actions.trigger(input.ActionSettingsOpenVideoConfig)
+	})
+	emulation.ClickedEvent.AddHandler(func(args any) {
+		actions.trigger(input.ActionSettingsOpenEmulationConfig)
+	})
+
 	settings.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
-		openAppMenu(args.Button.GetWidget(), ui, general, input, video, emulation)
+		openAppMenu(args.Button.GetWidget(), ui, general, inputSettings, video, emulation)
 	}))
 	root.AddChild(settings)
 
@@ -156,7 +137,7 @@ func newAppMenu(ui *ebitenui.UI) *appMenu {
 		loadStateSlots:    loadStateSlots,
 		saveStateSlots:    saveStateSlots,
 		settingsGeneral:   general,
-		settingsInput:     input,
+		settingsInput:     inputSettings,
 		settingsVideo:     video,
 		settingsEmulation: emulation,
 		help:              help,

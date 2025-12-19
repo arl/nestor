@@ -5,13 +5,11 @@ import (
 
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
-	einput "github.com/quasilyte/ebitengine-input"
 	"golang.org/x/image/colornames"
 )
 
 type configState struct {
 	*app
-	inputh *einput.Handler
 
 	startPage     int
 	presetidx     int // TODO: we can probably remove this and place it in inputConfigPage
@@ -29,9 +27,7 @@ func newConfigState(app *app) *configState {
 
 type configPageDest string
 
-func (s *configState) enter(inputh *einput.Handler, arg any) {
-	s.inputh = inputh
-
+func (s *configState) enter(arg any) {
 	dst, ok := arg.(configPageDest)
 	if !ok {
 		return
