@@ -34,7 +34,7 @@ type RecentROM struct {
 	LastUsed  time.Time // Last time the ROM was played.
 }
 
-// AddRecentROM persits data about a rom into the on-disk recent list.
+// AddRecentROM persists a recent ROM to the filesystem.
 func AddRecentROM(rom RecentROM) error {
 	if err := rom.save(); err != nil {
 		return fmt.Errorf("failed to save recent ROM: %w", err)
