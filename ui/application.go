@@ -165,6 +165,13 @@ func (app *app) Layout(outw, outh int) (screenw, screenh int) {
 	return outw, outh
 }
 
+func (app *app) romName() string {
+	if app.emulator == nil || app.emulator.NES == nil || app.emulator.NES.ROM == nil {
+		return ""
+	}
+	return app.emulator.NES.ROM.Name
+}
+
 func (app *app) runRom(romPath string, savestate []byte) error {
 	ebitenInput := hwinput.NewEbitenInput(app.cfg.Input)
 

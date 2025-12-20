@@ -42,7 +42,7 @@ func (s *mainState) enter(_ any) {
 func (s *mainState) exit() {}
 
 func (s *mainState) buildMenu() *widget.Container {
-	s.menu = newAppMenu(&s.ui, s.actions)
+	s.menu = newAppMenu(&s.ui, s.actions, s.app.romName())
 
 	s.menu.SetDisabledByID(MenuIDLoadState, true)
 	s.menu.SetDisabledByID(MenuIDSaveState, true)

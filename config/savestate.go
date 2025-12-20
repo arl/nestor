@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
+	"time"
 )
 
 const savestateExtenstion = ".nss"
@@ -25,29 +25,16 @@ func AddSavestate(romName string, slot int, state []byte) error {
 	return os.WriteFile(path, state, 0644)
 }
 
-func ListSavestates(romName string) (map[int]string, error) {
-	savestates := make(map[int]string)
-	entries, err := os.ReadDir(SavestatesDir())
+// SavestateInfo returns the modification time of a savestate slot.
+// Returns zero time if the slot is empty or an error occurred.
+func SavestateInfo(romName string, slot int) time.Time {
+	fname := fmt.Sprintf("%s.%d%s", removeExt(romName), slot+1, savestateExtenstion)
+	path := filepath.Join(SavestatesDir(), fname)
+
+	info, err := os.Stat(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read savestates directory: %w", err)
+		return time.Time{}
 	}
-
-	prefix := fmt.Sprintf("%s.", removeExt(romName))
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		name := entry.Name()
-		if !(filepath.Ext(name) == savestateExtenstion) || strings.HasPrefix(name, prefix) {
-			continue
-		}
-		var slot int
-		n, err := fmt.Sscanf(name, prefix+"%d"+savestateExtenstion, &slot)
-		if err != nil || n != 1 {
-			continue
-		}
-		savestates[slot-1] = filepath.Join(SavestatesDir(), name)
-	}
-
-	return savestates, nil
+	return info.ModTime()
 }
+

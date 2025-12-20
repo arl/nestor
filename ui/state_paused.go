@@ -64,7 +64,7 @@ func (s *pausedState) onStop() {
 }
 
 func (s *pausedState) createUI() {
-	s.menu = newAppMenu(&s.ui, s.actions)
+	s.menu = newAppMenu(&s.ui, s.actions, s.app.romName())
 
 	s.menu.SetDisabled(input.ActionOpenROM, true)
 	s.menu.SetDisabled(input.ActionSettingsOpenGeneralConfig, true)

@@ -138,7 +138,7 @@ func (app *app) savestateToSlot(slot int) {
 			modUI.ErrorZ("failed to save state").Int("slot", slot+1).Error("err", err).End()
 			return
 		}
-		config.AddSavestate(app.emulator.NES.ROM.Name, slot, state.SaveState)
+		config.AddSavestate(app.romName(), slot, state.SaveState)
 
 		modUI.InfoZ("saved state").Int("slot", slot+1).End()
 		_ = state
@@ -153,3 +153,4 @@ func (app *app) savestateToSlot(slot int) {
 		go func() { state, err = app.emulator.Savestate(); save() }()
 	}
 }
+

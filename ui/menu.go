@@ -5,6 +5,7 @@ import (
 
 	"github.com/ebitenui/ebitenui"
 
+	"nestor/config"
 	"nestor/ui/input"
 	"nestor/ui/menu"
 )
@@ -21,8 +22,8 @@ type appMenu struct {
 	*menu.Bar[input.Action]
 }
 
-func newAppMenu(ui *ebitenui.UI, actions *actionRegistry) *appMenu {
-	def := buildMenuDefinition()
+func newAppMenu(ui *ebitenui.UI, actions *actionRegistry, currentROMName string) *appMenu {
+	def := buildMenuDefinition(currentROMName)
 
 	style := menu.Style{
 		Font:               res.fonts.face,
@@ -43,20 +44,30 @@ func newAppMenu(ui *ebitenui.UI, actions *actionRegistry) *appMenu {
 	return &appMenu{Bar: bar}
 }
 
-func buildMenuDefinition() menu.Definition[input.Action] {
+func buildMenuDefinition(currentROMName string) menu.Definition[input.Action] {
+	slotLabelFunc := func(slot int) func() string {
+		return func() string {
+			t := config.SavestateInfo(currentROMName, slot)
+			if t.IsZero() {
+				return fmt.Sprintf("<empty> — %d", slot+1)
+			}
+			return fmt.Sprintf("%s — %d", t.Format("06/01/02 15:04:05"), slot+1)
+		}
+	}
+
 	loadStateItems := make([]menu.Item[input.Action], numSavestateSlots)
 	for i := range loadStateItems {
 		loadStateItems[i] = menu.Item[input.Action]{
-			Label:  fmt.Sprintf("Slot %d", i+1),
-			Action: input.ActionLoadSavestateSlot1 + input.Action(i),
+			LabelFunc: slotLabelFunc(i),
+			Action:    input.ActionLoadSavestateSlot1 + input.Action(i),
 		}
 	}
 
 	saveStateItems := make([]menu.Item[input.Action], numSavestateSlots)
 	for i := range saveStateItems {
 		saveStateItems[i] = menu.Item[input.Action]{
-			Label:  fmt.Sprintf("Slot %d", i+1),
-			Action: input.ActionSaveSavestateSlot1 + input.Action(i),
+			LabelFunc: slotLabelFunc(i),
+			Action:    input.ActionSaveSavestateSlot1 + input.Action(i),
 		}
 	}
 

@@ -50,11 +50,12 @@ type Action interface {
 
 // Item represents a menu entry that can be clicked.
 type Item[A Action] struct {
-	Label    string
-	ID       string    // Optional string ID for items without actions (e.g., submenu openers)
-	Action   A         // Action to trigger; 0 means no action
-	Disabled bool      // Start disabled
-	SubMenu  []Item[A] // If non-empty, clicking shows a submenu
+	Label     string
+	LabelFunc func() string // If set, called to get label dynamically (takes precedence over Label)
+	ID        string        // Optional string ID for items without actions (e.g., submenu openers)
+	Action    A             // Action to trigger; 0 means no action
+	Disabled  bool          // Start disabled
+	SubMenu   []Item[A]     // If non-empty, clicking shows a submenu
 }
 
 // Menu represents a top-level menu with items.
@@ -202,13 +203,18 @@ func (b *Bar[A]) newMenuButton(label string) *widget.Button {
 }
 
 func (b *Bar[A]) newMenuEntry(item Item[A]) *widget.Button {
+	label := item.Label
+	if item.LabelFunc != nil {
+		label = item.LabelFunc()
+	}
+
 	btn := widget.NewButton(
 		widget.ButtonOpts.Image(&widget.ButtonImage{
 			Idle:    image.NewNineSliceColor(color.Transparent),
 			Hover:   image.NewNineSliceColor(b.style.ButtonHoverColor),
 			Pressed: image.NewNineSliceColor(b.style.ButtonPressedColor),
 		}),
-		widget.ButtonOpts.Text(item.Label, b.style.Font, &widget.ButtonTextColor{
+		widget.ButtonOpts.Text(label, b.style.Font, &widget.ButtonTextColor{
 			Idle:     b.style.TextColorIdle,
 			Disabled: b.style.TextColorDisabled,
 			Hover:    b.style.TextColorHover,
