@@ -234,7 +234,7 @@ func (app *app) runRom(romPath string, savestate []byte) error {
 			Path:      romPath,
 			Name:      filepath.Base(romPath),
 			Image:     execstate.PNGBytes,
-			SaveState: execstate.SaveState,
+			SaveState: execstate.Snapshot,
 			LastUsed:  time.Now(),
 		}); err != nil {
 			modUI.WarnZ("failed to add recent ROM").Error("err", err).End()

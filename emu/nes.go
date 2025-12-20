@@ -75,7 +75,7 @@ func (nes *NES) IsRunAheadFrame() bool {
 
 const SaveStateVersion = 1
 
-func (nes *NES) SaveSnapshot() ([]byte, error) {
+func (nes *NES) Snapshot() ([]byte, error) {
 	buf := bytes.Buffer{}
 	mw := msgp.NewWriter(&buf)
 

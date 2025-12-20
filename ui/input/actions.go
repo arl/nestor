@@ -43,7 +43,7 @@ const (
 
 // Action string IDs for configuration
 const (
-	IDToggleFullscreen = "global.toggle_fullscreen"
+	IDToggleFullscreen = "toggle_fullscreen"
 
 	IDOpenROM                     = "open_rom"
 	IDQuit                        = "quit"
@@ -108,7 +108,3 @@ var ActionByID = map[string]Action{
 
 	IDResumeEmulator: ActionResumeEmulator,
 }
-
-
-
-

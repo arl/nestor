@@ -33,7 +33,7 @@ const (
 	loopstateBlock
 	loopstateReset
 	loopstateRestart
-	loopstateSavestate
+	loopstateSaveSnapshot
 )
 
 // Launch starts the various hardware subsystems, shows the window, setups the
@@ -82,7 +82,7 @@ func (e *Emulator) RunFrameWithRunAhead() {
 	e.NES.APU.EndFrame(nil)
 	e.NES.CPU.EnableTrace(false)
 
-	buf, err := e.NES.SaveSnapshot()
+	buf, err := e.NES.Snapshot()
 	if err != nil {
 		log.ModEmu.PanicZ("failed run-ahead frame snapshot").Error("err", err).End()
 	}
@@ -108,7 +108,7 @@ func (e *Emulator) RunFrameWithRunAhead() {
 
 type ExecState struct {
 	PNGBytes   []byte // last frame in PNG format.
-	SaveState  []byte // saved state data.
+	Snapshot   []byte // emulator state snapshot (i.e savestate).
 	BatteryRAM []byte // battery-backed RAM data.
 }
 
@@ -122,7 +122,7 @@ func (e *Emulator) Run() (ExecState, error) {
 			return e.SavestateUnsafe()
 		case loopstateBlock:
 			<-e.blockch
-		case loopstateSavestate:
+		case loopstateSaveSnapshot:
 			log.ModEmu.InfoZ("Savestate requested").End()
 			e.loopstate.Store(loopstateRunning)
 			state, err := e.SavestateUnsafe()
@@ -162,7 +162,7 @@ func (e *Emulator) Unblock() {
 // Savestate serializes SavestateUnsafe call with the emulator loop to avoid
 // race conditions.
 func (e *Emulator) Savestate() (ExecState, error) {
-	e.loopstate.Store(loopstateSavestate)
+	e.loopstate.Store(loopstateSaveSnapshot)
 
 	res := <-e.savedstatech
 	return res.state, res.err
@@ -172,7 +172,7 @@ func (e *Emulator) Savestate() (ExecState, error) {
 // emulator loop is already blocked.
 func (e *Emulator) SavestateUnsafe() (ExecState, error) {
 	// Get a state snapshot.
-	savestate, err := e.NES.SaveSnapshot()
+	savestate, err := e.NES.Snapshot()
 	if err != nil {
 		return ExecState{}, fmt.Errorf("failed to save state: %w", err)
 	}
@@ -185,7 +185,7 @@ func (e *Emulator) SavestateUnsafe() (ExecState, error) {
 
 	return ExecState{
 		PNGBytes:   screenshot.Bytes(),
-		SaveState:  savestate,
+		Snapshot:   savestate,
 		BatteryRAM: e.NES.Mapper.BatteryPackedRAM(),
 	}, nil
 }
