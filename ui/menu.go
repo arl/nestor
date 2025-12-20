@@ -23,8 +23,14 @@ type appMenu struct {
 	*menu.Bar[input.Action]
 }
 
-func newAppMenu(ui *ebitenui.UI, actions *actionRegistry, currentROMName string) *appMenu {
-	def := buildMenuDefinition(currentROMName)
+type menuOptions struct {
+	getROMName       func() string
+	settingsDisabled bool
+	openROMDisabled  bool
+}
+
+func newAppMenu(ui *ebitenui.UI, actions *actionRegistry, opts menuOptions) *appMenu {
+	def := buildMenuDefinition(opts)
 
 	style := menu.Style{
 		Font:               res.fonts.face,
@@ -45,63 +51,57 @@ func newAppMenu(ui *ebitenui.UI, actions *actionRegistry, currentROMName string)
 	return &appMenu{Bar: bar}
 }
 
-func buildMenuDefinition(currentROMName string) menu.Definition[input.Action] {
-	loadslot := func(slot int) (getlabel func() string, getdisabled func() bool) {
-		getlabel = func() string {
-			t := config.SavestateInfo(currentROMName, slot)
+func buildMenuDefinition(opts menuOptions) menu.Definition[input.Action] {
+	fileItems := func() []menu.Item[input.Action] {
+		romName := opts.getROMName()
+		noROM := romName == ""
+
+		slotLabel := func(slot int) string {
+			t := config.SavestateInfo(romName, slot)
 			if t.IsZero() {
 				return fmt.Sprintf("%d - <empty>", slot+1)
 			}
 			return fmt.Sprintf("%d - %s", slot+1, t.Format(time.DateTime))
 		}
-		getdisabled = func() bool {
-			t := config.SavestateInfo(currentROMName, slot)
-			if t.IsZero() {
-				return true
+
+		loadStateItems := make([]menu.Item[input.Action], numSavestateSlots)
+		for i := range loadStateItems {
+			loadStateItems[i] = menu.Item[input.Action]{
+				Label:    slotLabel(i),
+				Disabled: config.SavestateInfo(romName, i).IsZero(),
+				Action:   input.ActionLoadSavestateSlot1 + input.Action(i),
 			}
-			return false
 		}
 
-		return getlabel, getdisabled
-	}
-
-	loadStateItems := make([]menu.Item[input.Action], numSavestateSlots)
-	for i := range loadStateItems {
-		getlabel, getdisabled := loadslot(i)
-		loadStateItems[i] = menu.Item[input.Action]{
-			LabelFunc:    getlabel,
-			DisabledFunc: getdisabled,
-			Action:       input.ActionLoadSavestateSlot1 + input.Action(i),
+		saveStateItems := make([]menu.Item[input.Action], numSavestateSlots)
+		for i := range saveStateItems {
+			saveStateItems[i] = menu.Item[input.Action]{
+				Label:  slotLabel(i),
+				Action: input.ActionSaveSavestateSlot1 + input.Action(i),
+			}
 		}
-	}
 
-	saveStateItems := make([]menu.Item[input.Action], numSavestateSlots)
-	for i := range saveStateItems {
-		getlabel, _ := loadslot(i)
-		saveStateItems[i] = menu.Item[input.Action]{
-			LabelFunc: getlabel,
-			Action:    input.ActionSaveSavestateSlot1 + input.Action(i),
+		return []menu.Item[input.Action]{
+			{Label: "Open ROM ...", Action: input.ActionOpenROM, Disabled: opts.openROMDisabled},
+			{Label: "Load State", ID: menuIDLoadState, SubMenu: loadStateItems, Disabled: noROM},
+			{Label: "Save State", ID: menuIDSaveState, SubMenu: saveStateItems, Disabled: noROM},
+			{Label: "Quit", Action: input.ActionQuit},
 		}
 	}
 
 	return menu.Definition[input.Action]{
 		Menus: []menu.Menu[input.Action]{
 			{
-				Label: "File",
-				Items: []menu.Item[input.Action]{
-					{Label: "Open ROM ...", Action: input.ActionOpenROM},
-					{Label: "Load State", ID: menuIDLoadState, SubMenu: loadStateItems, Disabled: currentROMName == ""},
-					{Label: "Save State", ID: menuIDSaveState, SubMenu: saveStateItems, Disabled: currentROMName == ""},
-					{Label: "Quit", Action: input.ActionQuit},
-				},
+				Label:     "File",
+				ItemsFunc: fileItems,
 			},
 			{
 				Label: "Settings",
 				Items: []menu.Item[input.Action]{
-					{Label: "General", Action: input.ActionSettingsOpenGeneralConfig},
-					{Label: "Input", Action: input.ActionSettingsOpenInputConfig},
-					{Label: "Video", Action: input.ActionSettingsOpenVideoConfig},
-					{Label: "Emulation", Action: input.ActionSettingsOpenEmulationConfig},
+					{Label: "General", Action: input.ActionSettingsOpenGeneralConfig, Disabled: opts.settingsDisabled},
+					{Label: "Input", Action: input.ActionSettingsOpenInputConfig, Disabled: opts.settingsDisabled},
+					{Label: "Video", Action: input.ActionSettingsOpenVideoConfig, Disabled: opts.settingsDisabled},
+					{Label: "Emulation", Action: input.ActionSettingsOpenEmulationConfig, Disabled: opts.settingsDisabled},
 				},
 			},
 			{

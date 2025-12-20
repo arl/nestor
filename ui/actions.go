@@ -53,7 +53,7 @@ func (app *app) registerActions() {
 	app.actions.register(input.ActionResetEmulator, app.resetEmulator)
 	app.actions.register(input.ActionToggleShaderUI, app.toggleShaderUI)
 
-	for i := range 8 {
+	for i := range numSavestateSlots {
 		slot := i
 		app.actions.register(input.ActionSaveSavestateSlot1+input.Action(slot), func() {
 			app.savestateToSlot(slot)

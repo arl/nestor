@@ -60,8 +60,9 @@ type Item[A Action] struct {
 
 // Menu represents a top-level menu with items.
 type Menu[A Action] struct {
-	Label string
-	Items []Item[A]
+	Label     string
+	Items     []Item[A]
+	ItemsFunc func() []Item[A] // If set, called when menu opens. Supersedes [Items].
 }
 
 // Definition describes the complete menu bar structure.
@@ -79,6 +80,9 @@ type Bar[A Action] struct {
 	// Store buttons for later access (e.g., to enable/disable)
 	actionButtons map[A]*widget.Button
 	idButtons     map[string]*widget.Button
+
+	// Track open menu windows so we can close them
+	openWindows []*widget.Window
 }
 
 // New creates a new menu bar from the given definition.
@@ -113,7 +117,11 @@ func New[A Action](ui *ebitenui.UI, def Definition[A], style Style, onAction fun
 func (b *Bar[A]) addMenu(menu Menu[A]) {
 	btn := b.newMenuButton(menu.Label)
 	btn.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
-		b.openMenu(args.Button.GetWidget(), menu.Items)
+		items := menu.Items
+		if menu.ItemsFunc != nil {
+			items = menu.ItemsFunc()
+		}
+		b.openMenu(args.Button.GetWidget(), items)
 	}))
 	b.Container.AddChild(btn)
 }
@@ -146,6 +154,7 @@ func (b *Bar[A]) openMenu(opener *widget.Widget, items []Item[A]) {
 		widget.WindowOpts.Location(goimage.Rect(x, y, x+w, y+h)),
 	)
 
+	b.openWindows = append(b.openWindows, window)
 	b.ui.AddWindow(window)
 }
 
@@ -177,6 +186,7 @@ func (b *Bar[A]) openSubMenu(opener *widget.Widget, items []Item[A]) {
 		widget.WindowOpts.Location(goimage.Rect(x, y, x+w, y+h)),
 	)
 
+	b.openWindows = append(b.openWindows, window)
 	b.ui.AddWindow(window)
 }
 
@@ -251,6 +261,7 @@ func (b *Bar[A]) newMenuEntry(item Item[A]) *widget.Button {
 	case item.Action != 0:
 		action := item.Action
 		btn.ClickedEvent.AddHandler(func(args any) {
+			b.closeAllMenus()
 			if b.onAction != nil {
 				b.onAction(action)
 			}
@@ -282,4 +293,12 @@ func (b *Bar[A]) SetDisabledByID(id string, disabled bool) {
 	if btn := b.idButtons[id]; btn != nil {
 		btn.GetWidget().Disabled = disabled
 	}
+}
+
+// closeAllMenus closes all open menu windows.
+func (b *Bar[A]) closeAllMenus() {
+	for _, w := range b.openWindows {
+		w.Close()
+	}
+	b.openWindows = nil
 }

@@ -30,8 +30,6 @@ type mainState struct {
 
 func newMainState(app *app) *mainState {
 	state := &mainState{app: app}
-	state.createUI()
-
 	return state
 }
 
@@ -42,11 +40,10 @@ func (s *mainState) enter(_ any) {
 func (s *mainState) exit() {}
 
 func (s *mainState) buildMenu() *widget.Container {
-	s.menu = newAppMenu(&s.ui, s.actions, s.app.romName())
-
-	s.menu.SetDisabledByID(menuIDLoadState, true)
-	s.menu.SetDisabledByID(menuIDSaveState, true)
-
+	s.menu = newAppMenu(&s.ui, s.actions, menuOptions{
+		getROMName:       s.app.romName,
+		settingsDisabled: false,
+	})
 	return s.menu.Container
 }
 

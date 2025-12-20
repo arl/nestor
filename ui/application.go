@@ -208,6 +208,7 @@ func (app *app) runRom(romPath string, savestate []byte) error {
 
 	ebiten.SetVsyncEnabled(app.cfg.Video.VSync)
 
+	app.currentROMName.Store(&emulator.NES.ROM.Name)
 	app.setState("running", nil)
 
 	go func() {
@@ -225,7 +226,6 @@ func (app *app) runRom(romPath string, savestate []byte) error {
 			}
 		}
 
-		app.currentROMName.Store(&emulator.NES.ROM.Name)
 		execstate, err := emulator.Run()
 		if err != nil {
 			log.ModEmu.ErrorZ("emulation ended").Error("err", err).End()
