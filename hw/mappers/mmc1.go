@@ -255,13 +255,12 @@ func (m *mmc1) remap() {
 
 	switch m.prgmode {
 	case 0, 1:
-		// ignore low bit of bank number, then divide by 2 to get 32KB bank number
-		// Bank 0-1 -> 32KB bank 0, Bank 2-3 -> 32KB bank 1, etc.
-		// For SUROM (512KB), prgbankSelect is bit 4 (0x10), divide by 2 to get bank offset
-		calculatedBank := int(((m.prgbank & 0xFE) >> 1) | (prgbankSelect >> 1))
-		m.selectPRGPage32KB(calculatedBank)
+		// In 32KB mode, prgbank is a 16KB bank number (low bit ignored).
+		// Convert to 32KB bank number by dividing by 2.
+		bank16KB := int((m.prgbank & 0xFE) | (prgbankSelect))
+		m.selectPRGPage32KB(0, bank16KB/2)
 	case 2:
-		m.selectPRGPage16KB(0, int(0|prgbankSelect))
+		m.selectPRGPage16KB(0, int(prgbankSelect))
 		m.selectPRGPage16KB(1, int(m.prgbank|prgbankSelect))
 	case 3:
 		m.selectPRGPage16KB(0, int(m.prgbank|prgbankSelect))

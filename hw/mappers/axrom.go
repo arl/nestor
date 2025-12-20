@@ -28,7 +28,7 @@ func loadAxROM(b *base) (Mapper, error) {
 	b.init(axrom.WritePRGROM)
 
 	b.selectCHRROMPage8KB(0)
-	b.selectPRGPage32KB(0)
+	b.selectPRGPage32KB(0, 0)
 	return axrom, nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.
@@ -51,7 +51,7 @@ func (m *axrom) WritePRGROM(addr uint16, val uint8) {
 	prev := m.prgbank
 	m.prgbank = uint32(val & 0x7)
 	if prev != m.prgbank {
-		m.selectPRGPage32KB(int(m.prgbank))
+		m.selectPRGPage32KB(0, int(m.prgbank))
 	}
 
 	prevntm := m.ntm
@@ -86,6 +86,6 @@ func (m *axrom) SetState(ms *snapshot.MapperState) {
 	m.busConflicts = s.BusConflicts
 
 	// Remap based on restored state
-	m.selectPRGPage32KB(int(m.prgbank))
+	m.selectPRGPage32KB(0, int(m.prgbank))
 	m.setNTMirroring(m.ntm)
 }
