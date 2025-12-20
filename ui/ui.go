@@ -52,7 +52,7 @@ func entrypoint(ctx context.Context, cfg config.Config, romPath string) error {
 
 	if romPath != "" {
 		app.setState("running", nil)
-		if err := app.runRom(romPath); err != nil {
+		if err := app.runRom(romPath, nil); err != nil {
 			return fmt.Errorf("can't run rom: %w", err)
 		}
 	} else {

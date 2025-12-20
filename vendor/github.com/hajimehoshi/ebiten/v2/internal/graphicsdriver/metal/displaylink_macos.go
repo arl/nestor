@@ -40,6 +40,7 @@ package metal
 // int ebitengine_DisplayLinkOutputCallback(CVDisplayLinkRef displayLinkRef, CVTimeStamp* inNow, CVTimeStamp* inOutputTime, uint64_t flagsIn, uint64_t* flagsOut, void* displayLinkContext);
 import "C"
 import (
+	"log/slog"
 	"runtime"
 	"runtime/cgo"
 	"time"
@@ -70,7 +71,6 @@ func (v *view) initCAMetalDisplayLink() error {
 	v.drawableCh = make(chan ca.MetalDrawable)
 	v.drawableDoneCh = make(chan struct{})
 	v.metalDisplayLinkRunLoop = createThreadWithRunLoop()
-	v.prevMetalDisplayLink = make(chan uintptr, 1)
 
 	c, err := objc.RegisterClass(
 		"EbitengineCAMetalDisplayLinkDelegate",
@@ -81,6 +81,13 @@ func (v *view) initCAMetalDisplayLink() error {
 			{
 				Cmd: objc.RegisterName("metalDisplayLink:needsUpdate:"),
 				Fn: func(id objc.ID, cmd objc.SEL, metalDisplayLink objc.ID, needsUpdate objc.ID) {
+					// There is a case where this callback is invoked from the main run loop (#3353).
+					// This is very mysterious, but this causes a deadlock.
+					// As a workaround, return this immediately when the current run loop is the main run loop.
+					if cocoa.NSRunLoop_currentRunLoop() == cocoa.NSRunLoop_mainRunLoop() {
+						slog.Debug("metal: metalDisplayLink:needsUpdate: is unexpectedly called from the main run loop")
+						return
+					}
 					drawable := ca.MetalDisplayLinkUpdate{ID: needsUpdate}.Drawable()
 					if drawable == (ca.MetalDrawable{}) {
 						return
@@ -98,42 +105,20 @@ func (v *view) initCAMetalDisplayLink() error {
 
 	v.createCAMetalDisplayLink()
 
-	// Recreate the display link when the app is recovered from sleep.
-	// TODO: Recreation might be needed when the display is changed.
-	nc := cocoa.NSWorkspace_sharedWorkspace().NotificationCenter()
-	if v.meltaDisplayLinkRecreateBlock == 0 {
-		v.meltaDisplayLinkRecreateBlock = objc.NewBlock(func(block objc.Block) {
-			v.createCAMetalDisplayLink()
-		})
-	}
-	mainQueue := cocoa.NSOperationQueue_mainQueue()
-	v.notificatioObserver = nc.AddObserverForName(cocoa.NSWorkspaceDidWakeNotification, 0, mainQueue, v.meltaDisplayLinkRecreateBlock)
-	cocoa.NSObject{ID: v.notificatioObserver}.Retain()
-
 	return nil
 }
 
 func (v *view) createCAMetalDisplayLink() {
-	// Release the previous display link if any.
-	// This is done in the thread for the display link, so that the callback is not called during releasing.
-	if v.metalDisplayLink != 0 {
-		// Unfortunately, there is no blocking 'performBlock' for NSRunLoop, so use a channel to wait.
-		if v.metalDisplayLinkReleaseBlock == 0 {
-			v.metalDisplayLinkReleaseBlock = objc.NewBlock(func(block objc.Block) {
-				dl := ca.MetalDisplayLink{ID: objc.ID(<-v.prevMetalDisplayLink)}
-				dl.RemoveFromRunLoop(v.metalDisplayLinkRunLoop, cocoa.NSDefaultRunLoopMode)
-				dl.Release()
-			})
-		}
-		v.prevMetalDisplayLink <- v.metalDisplayLink
-		v.metalDisplayLinkRunLoop.PerformBlock(v.metalDisplayLinkReleaseBlock)
-	}
-
-	dl := ca.NewMetalDisplayLink(v.ml)
-	dl.SetDelegate(objc.ID(class_EbitengineCAMetalDisplayLinkDelegate).Send(objc.RegisterName("new")))
-	dl.AddToRunLoop(v.metalDisplayLinkRunLoop, cocoa.NSDefaultRunLoopMode)
-	dl.SetPaused(false)
-	v.metalDisplayLink = uintptr(dl.ID)
+	ch := make(chan uintptr)
+	v.metalDisplayLinkRunLoop.PerformBlock(objc.NewBlock(func(block objc.Block) {
+		dl := ca.NewMetalDisplayLink(v.ml)
+		dl.SetDelegate(objc.ID(class_EbitengineCAMetalDisplayLinkDelegate).Send(objc.RegisterName("new")))
+		dl.AddToRunLoop(v.metalDisplayLinkRunLoop, cocoa.NSDefaultRunLoopMode)
+		dl.SetPaused(false)
+		ch <- uintptr(dl.ID)
+		close(ch)
+	}))
+	v.metalDisplayLink = <-ch
 }
 
 func createThreadWithRunLoop() cocoa.NSRunLoop {

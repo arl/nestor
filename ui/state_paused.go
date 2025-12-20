@@ -3,28 +3,23 @@ package ui
 import (
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
-	einput "github.com/quasilyte/ebitengine-input"
-
-	"nestor/ui/keymap"
 )
 
 type pausedState struct {
 	*app
-	inputh *einput.Handler
+	menu *appMenu
 }
 
 func newPausedState(app *app) *pausedState {
 	s := &pausedState{
 		app: app,
 	}
-	s.createUI()
 	return s
 }
 
-func (s *pausedState) enter(inputh *einput.Handler, _ any) {
+func (s *pausedState) enter(_ any) {
 	ebiten.SetWindowTitle("Nestor <paused>")
 	modUI.InfoZ("Blocking emulator").End()
-	s.inputh = inputh
 	s.emulator.Block()
 	s.audioPlayer.Pause()
 }
@@ -32,10 +27,6 @@ func (s *pausedState) enter(inputh *einput.Handler, _ any) {
 func (s *pausedState) exit() {}
 
 func (s *pausedState) update() {
-	if s.inputh.ActionIsJustPressed(keymap.ActionResumeEmulator) {
-		s.onResume()
-	}
-
 	s.ui.Update()
 }
 
@@ -65,12 +56,27 @@ func (s *pausedState) onReload() {
 
 func (s *pausedState) onStop() {
 	s.emulator.Stop()
-	<-s.framech // discard frame
+	<-s.framech
 	s.app.setState("main", nil)
 }
 
 func (s *pausedState) createUI() {
+	s.menu = newAppMenu(&s.ui, s.actions, menuOptions{
+		getROMName:       s.app.romName,
+		settingsDisabled: true,
+		openROMDisabled:  true,
+	})
+
 	root := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true}),
+		)),
+	)
+
+	root.AddChild(s.menu.Container)
+
+	content := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 	)
 
@@ -144,6 +150,7 @@ func (s *pausedState) createUI() {
 		),
 	)
 
-	root.AddChild(buttonsGroup)
+	content.AddChild(buttonsGroup)
+	root.AddChild(content)
 	s.ui.Container = root
 }

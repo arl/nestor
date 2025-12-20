@@ -38,7 +38,8 @@ All these features are planned, but not all of them are implemented yet.
  - [x] Frame run-ahead
  - [x] NTSC (USA / Japan)
  - [ ] PAL (Europe)
- - [ ] Save state
+ - [X] Save states
+
 
 ### Implemented mappers
 

@@ -68,14 +68,14 @@ func BenchmarkSaveSnapshot(b *testing.B) {
 	frame := e.out.BeginFrame()
 	e.NES.RunOneFrame(&frame)
 
-	snapshot, err := e.NES.SaveSnapshot()
+	snapshot, err := e.NES.Snapshot()
 	if err != nil {
 		b.Fatal(err)
 	}
 
 	b.ResetTimer()
 	for b.Loop() {
-		_, _ = e.NES.SaveSnapshot()
+		_, _ = e.NES.Snapshot()
 	}
 
 	totbytes := len(snapshot) * b.N
@@ -92,7 +92,7 @@ func BenchmarkLoadSnapshot(b *testing.B) {
 	frame := e.out.BeginFrame()
 	e.NES.RunOneFrame(&frame)
 
-	snapshot, err := e.NES.SaveSnapshot()
+	snapshot, err := e.NES.Snapshot()
 	if err != nil {
 		b.Fatal(err)
 	}

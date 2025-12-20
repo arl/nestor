@@ -4,18 +4,15 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	einput "github.com/quasilyte/ebitengine-input"
 
-	"nestor/hw/input"
-	"nestor/ui/keymap"
+	hwinput "nestor/hw/hwinput"
+	"nestor/ui/input"
 )
 
 type captureState struct {
 	*app
 
-	inputh   *einput.Handler
 	args     *captureArgs
-	scanner  einput.KeyScanner
 	gamepads []ebiten.GamepadID
 }
 
@@ -42,16 +39,15 @@ type captureArgs struct {
 	action string // ID of the ui action to modify
 
 	// "nes" for nes controllers
-	idxpreset int                // preset to modify
-	btn       input.PaddleButton // nes pad button mapped
+	idxpreset int                  // preset to modify
+	btn       hwinput.PaddleButton // nes pad button mapped
 }
 
-func (s *captureState) enter(inputh *einput.Handler, arg any) {
+func (s *captureState) enter(arg any) {
 	// Disable input handler to prevent it from catching events
 	// generated during capture.
 	s.app.disableInputHandler()
 	s.args = ptrTo(arg.(captureArgs))
-	s.inputh = inputh
 
 	modUI.InfoZ("Capture state entered").String("mode", string(s.args.mode)).End()
 }
@@ -72,22 +68,26 @@ func (s *captureState) update() {
 }
 
 func (s *captureState) captureForUI() {
-	k, status := s.scanner.Scan()
-	if status != einput.KeyScanCompleted {
+	// Check for escape to cancel
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		s.app.setState("config", nil)
 		return
 	}
 
-	if k != einput.KeyEscape {
-		s.app.cfg.General.KeyboardShortcuts[s.args.action] = keymap.Shortcut(k.String())
-		s.app.cfg.General.KeyboardShortcuts.Apply()
-		s.app.savecfg()
+	combo, ok := input.CaptureKeyCombo()
+	if !ok {
+		return
 	}
+
+	s.app.cfg.General.KeyboardShortcuts[s.args.action] = input.Shortcut(combo.String())
+	s.app.cfg.General.KeyboardShortcuts.Apply()
+	s.app.savecfg()
 
 	s.app.setState("config", nil)
 }
 
 func (s *captureState) captureForNES() {
-	var code *input.Code
+	var code *hwinput.Code
 
 	// key press.
 	if keys := inpututil.AppendJustPressedKeys(nil); len(keys) > 0 {
@@ -97,14 +97,14 @@ func (s *captureState) captureForNES() {
 			End()
 
 		if keys[0] != ebiten.KeyEscape {
-			code = &input.Code{
-				Type:     input.Keyboard,
+			code = &hwinput.Code{
+				Type:     hwinput.Keyboard,
 				Scancode: keys[0],
 			}
 		} else {
-			code = &input.Code{
-				Type:     input.UnsetType,
-				Scancode: input.UnsetKey,
+			code = &hwinput.Code{
+				Type:     hwinput.UnsetType,
+				Scancode: hwinput.UnsetKey,
 			}
 		}
 	}
@@ -123,12 +123,11 @@ func (s *captureState) captureForNES() {
 				Int("button", int(padbtn)).
 				End()
 
-			code = &input.Code{
-				Type:          input.Joystick,
+			code = &hwinput.Code{
+				Type:          hwinput.Joystick,
 				GamepadSDLID:  sdlid,
 				GamepadButton: padbtn,
 			}
-
 		}
 	}
 

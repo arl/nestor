@@ -4,43 +4,43 @@ import (
 	"context"
 	"fmt"
 	"image"
-	"os"
 	"path/filepath"
 	"sync/atomic"
 	"time"
 
+	"nestor/config"
+	"nestor/emu"
+	"nestor/emu/log"
+	"nestor/hw/hwinput"
+	"nestor/ines"
+	"nestor/ui/input"
+
 	"github.com/ebitengine/oto/v3"
 	"github.com/ebitenui/ebitenui"
 	"github.com/hajimehoshi/ebiten/v2"
-	einput "github.com/quasilyte/ebitengine-input"
-
-	"nestor/config"
-	"nestor/emu"
-	"nestor/hw/input"
-	"nestor/ines"
-	"nestor/ui/keymap"
 )
 
 type state interface {
 	createUI()
 	update()
 	draw(screen *ebiten.Image)
-	enter(hinput *einput.Handler, arg any)
+	enter(arg any)
 	exit()
 }
 
 type stateDef struct {
 	state  state
-	keymap einput.Keymap
+	keymap input.Keymap
 }
 
 type app struct {
 	cfg config.Config
 
-	emulator *emu.Emulator
-	quit     atomic.Bool
-	framech  chan *emu.Frame
-	frameimg *ebiten.Image
+	emulator       *emu.Emulator
+	quit           atomic.Bool
+	framech        chan *emu.Frame
+	frameimg       *ebiten.Image
+	currentROMName atomic.Pointer[string]
 
 	audioctx    *oto.Context
 	samples     *sampleBuffer
@@ -50,10 +50,13 @@ type app struct {
 	displayWidth  int
 	displayHeight int
 
-	states   map[string]stateDef
-	curstate state
-	inputsys einput.System
-	handler  *einput.Handler
+	states       map[string]stateDef
+	curstate     state
+	stateKeymap  input.Keymap
+	inputEnabled bool
+	actions      *actionRegistry
+
+	pendingfunc atomic.Pointer[func()] // function to call in the main loop, use app.do()
 }
 
 func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, cfg config.Config) *app {
@@ -64,15 +67,16 @@ func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, c
 		displayHeight: startheight,
 		samples:       samples,
 		audioctx:      audioctx,
+		inputEnabled:  true,
+		actions:       newActionRegistry(),
 	}
+	app.currentROMName.Store(ptrTo(""))
 
-	app.inputsys.Init(einput.SystemConfig{
-		DevicesEnabled: einput.AnyDevice,
-	})
+	app.registerActions()
 
-	app.states["running"] = stateDef{state: newRunningState(app), keymap: keymap.RunningKeymap}
-	app.states["paused"] = stateDef{state: newPausedState(app), keymap: keymap.PausedKeymap}
-	app.states["main"] = stateDef{state: newMainState(app), keymap: keymap.MenuKeymap}
+	app.states["main"] = stateDef{state: newMainState(app), keymap: input.MenuKeymap}
+	app.states["running"] = stateDef{state: newRunningState(app), keymap: input.RunningKeymap}
+	app.states["paused"] = stateDef{state: newPausedState(app), keymap: input.PausedKeymap}
 	app.states["config"] = stateDef{state: newConfigState(app), keymap: nil}
 	app.states["capture"] = stateDef{state: newCaptureState(app), keymap: nil}
 
@@ -102,21 +106,26 @@ func (app *app) setState(name string, arg any) {
 		return
 	}
 
-	app.handler = app.inputsys.NewHandler(0, mergeKeymaps(keymap.GlobalKeymap, to.keymap))
+	app.stateKeymap = input.GlobalKeymap.Merge(to.keymap)
+	app.inputEnabled = true
 
 	app.curstate = to.state
-	app.curstate.enter(app.handler, arg)
+	app.curstate.enter(arg)
 	app.curstate.createUI()
 }
 
-func mergeKeymaps(keymaps ...einput.Keymap) einput.Keymap {
-	result := einput.Keymap{}
-	for _, km := range keymaps {
-		for action, keys := range km {
-			result[action] = keys
+func (app *app) currentStateName() string {
+	for name, def := range app.states {
+		if def.state == app.curstate {
+			return name
 		}
 	}
-	return result
+
+	panic("current state not found!")
+}
+
+func (app *app) do(fn func()) {
+	app.pendingfunc.Store(&fn)
 }
 
 func (app *app) Update() error {
@@ -124,19 +133,13 @@ func (app *app) Update() error {
 		return ebiten.Termination
 	}
 
-	app.inputsys.Update()
+	if fn := app.pendingfunc.Swap(nil); fn != nil {
+		(*fn)()
+	}
 
-	// Handle global shortcuts (available in all states)
-	if app.handler.ActionIsJustPressed(keymap.ActionToggleFullscreen) {
-		enable := !ebiten.IsFullscreen()
-		ebiten.SetFullscreen(enable)
-
-		if enable {
-			app.displayWidth, app.displayHeight = ebiten.Monitor().Size()
-			app.curstate.createUI()
-		} else {
-			app.displayWidth, app.displayHeight = ebiten.WindowSize()
-			app.curstate.createUI()
+	if app.inputEnabled {
+		if action := app.stateKeymap.JustPressed(); action != input.ActionNone {
+			app.actions.trigger(action)
 		}
 	}
 
@@ -146,7 +149,7 @@ func (app *app) Update() error {
 
 // disableInputHandler disables input handler for current state's lifetime.
 func (app *app) disableInputHandler() {
-	app.handler = app.inputsys.NewHandler(0, nil)
+	app.inputEnabled = false
 }
 
 func (app *app) Draw(screen *ebiten.Image) {
@@ -164,8 +167,13 @@ func (app *app) Layout(outw, outh int) (screenw, screenh int) {
 	return outw, outh
 }
 
-func (app *app) runRom(romPath string) error {
-	ebitenInput := input.NewEbitenInput(app.cfg.Input)
+// romName returns the name of the current ROM atomically.
+func (app *app) romName() string {
+	return *app.currentROMName.Load()
+}
+
+func (app *app) runRom(romPath string, savestate []byte) error {
+	ebitenInput := hwinput.NewEbitenInput(app.cfg.Input)
 
 	rom, err := ines.ReadROM(romPath)
 	if err != nil {
@@ -200,33 +208,36 @@ func (app *app) runRom(romPath string) error {
 
 	ebiten.SetVsyncEnabled(app.cfg.Video.VSync)
 
+	app.currentROMName.Store(&emulator.NES.ROM.Name)
 	app.setState("running", nil)
 
 	go func() {
 		defer func() {
+			app.currentROMName.Store(ptrTo(""))
+			app.do(func() { app.setState("main", nil) })
+
 			ebiten.SetVsyncEnabled(true)
 			ebiten.SetWindowTitle("Nestor")
 		}()
 
-		tmpdir, err := os.MkdirTemp("", "nestor-")
-		if err != nil {
-			modUI.WarnZ("failed to create temp dir").Error("err", err).End()
-		} else {
-			emulator.SetTempDir(tmpdir)
+		if savestate != nil {
+			if err := emulator.NES.LoadSnapshot(savestate); err != nil {
+				modUI.ErrorZ("failed to load savestate").Error("err", err).End()
+			}
 		}
 
-		emulator.Run()
-
-		screenshot, err := os.ReadFile(filepath.Join(tmpdir, "screenshot.png"))
+		execstate, err := emulator.Run()
 		if err != nil {
-			modUI.WarnZ("failed to read screenshot").Error("err", err).End()
+			log.ModEmu.ErrorZ("emulation ended").Error("err", err).End()
+			return
 		}
 
-		if err := addRecentROM(recentROM{
-			Path:     romPath,
-			Name:     filepath.Base(romPath),
-			Image:    screenshot,
-			LastUsed: time.Now(),
+		if err := config.AddRecentROM(config.RecentROM{
+			Path:      romPath,
+			Name:      filepath.Base(romPath),
+			Image:     execstate.PNGBytes,
+			SaveState: execstate.Snapshot,
+			LastUsed:  time.Now(),
 		}); err != nil {
 			modUI.WarnZ("failed to add recent ROM").Error("err", err).End()
 		}

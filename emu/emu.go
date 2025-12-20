@@ -1,59 +1,15 @@
 package emu
 
 import (
+	"bytes"
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"slices"
+	"image/png"
 	"sync/atomic"
 
 	"nestor/emu/log"
 	"nestor/hw"
-	"nestor/hw/input"
 	"nestor/ines"
-	"nestor/ui/shader"
 )
-
-type Config struct {
-	Input     input.Config    `toml:"input"`
-	Video     VideoConfig     `toml:"video"`
-	Audio     AudioConfig     `toml:"audio"`
-	Emulation EmulationConfig `toml:"emulation"`
-
-	TraceOut io.WriteCloser `toml:"-"`
-}
-
-type EmulationConfig struct {
-	RunAheadFrames uint `toml:"run_ahead_frames"`
-}
-
-func (ecfg *EmulationConfig) Check() {
-	// Max out the number of run-ahead frames to 10.
-	ecfg.RunAheadFrames = min(ecfg.RunAheadFrames, 10)
-}
-
-type VideoConfig struct {
-	VSync           bool   `toml:"vsync"`
-	StartFullscreen bool   `toml:"start_fullscreen"`
-	Monitor         uint   `toml:"monitor"`
-	Shader          string `toml:"shader"`
-}
-
-func (vcfg *VideoConfig) Check() {
-	// Ensure we have a valid shader.
-	if vcfg.Shader == "" {
-		vcfg.Shader = shader.Default
-	}
-	if !slices.Contains(shader.Names(), vcfg.Shader) {
-		log.ModEmu.Warnf("Invalid shader name %q, fallback to %q", vcfg.Shader, shader.Default)
-		vcfg.Shader = shader.Default
-	}
-}
-
-type AudioConfig struct {
-	DisableAudio bool `toml:"disable_audio"`
-}
 
 type Emulator struct {
 	NES *NES
@@ -64,7 +20,16 @@ type Emulator struct {
 	loopstate atomic.Uint64
 	blockch   chan struct{}
 
-	tmpdir string
+	// Use channel to store load/save state result across goroutines boundary.
+	savedstatech   chan savestateResult
+	loadstateerrch chan error
+	// contain the state to load on loopstateLoadSnapshot.
+	statetoload []byte
+}
+
+type savestateResult struct {
+	state ExecState
+	err   error
 }
 
 const (
@@ -73,6 +38,8 @@ const (
 	loopstateBlock
 	loopstateReset
 	loopstateRestart
+	loopstateSaveSnapshot
+	loopstateLoadSnapshot
 )
 
 // Launch starts the various hardware subsystems, shows the window, setups the
@@ -92,10 +59,12 @@ func Launch(rom *ines.Rom, cfg Config, out *Output, inp hw.InputStateLoader) (*E
 	}
 
 	return &Emulator{
-		NES:     nes,
-		out:     out,
-		cfg:     cfg.Emulation,
-		blockch: make(chan struct{}, 1),
+		NES:            nes,
+		out:            out,
+		cfg:            cfg.Emulation,
+		blockch:        make(chan struct{}, 1),
+		savedstatech:   make(chan savestateResult, 1),
+		loadstateerrch: make(chan error, 1),
 	}, nil
 }
 
@@ -120,7 +89,7 @@ func (e *Emulator) RunFrameWithRunAhead() {
 	e.NES.APU.EndFrame(nil)
 	e.NES.CPU.EnableTrace(false)
 
-	buf, err := e.NES.SaveSnapshot()
+	buf, err := e.NES.Snapshot()
 	if err != nil {
 		log.ModEmu.PanicZ("failed run-ahead frame snapshot").Error("err", err).End()
 	}
@@ -144,41 +113,50 @@ func (e *Emulator) RunFrameWithRunAhead() {
 	e.NES.isRunAheadFrame = false
 }
 
-func (e *Emulator) Run() {
+type ExecState struct {
+	PNGBytes   []byte // last frame in PNG format.
+	Snapshot   []byte // emulator state snapshot (i.e savestate).
+	BatteryRAM []byte // battery-backed RAM data.
+}
+
+func (e *Emulator) Run() (ExecState, error) {
 	for !e.NES.CPU.IsHalted() {
 		switch e.loopstate.Load() {
 		case loopstateRunning:
 			e.RunOneFrame()
 		case loopstateQuit:
-			goto loopEnd
+			log.ModEmu.InfoZ("Emulation loop exited").End()
+			return e.SavestateUnsafe()
 		case loopstateBlock:
 			<-e.blockch
+		case loopstateSaveSnapshot:
+			log.ModEmu.InfoZ("Savestate requested").End()
+			e.loopstate.Store(loopstateRunning)
+			state, err := e.SavestateUnsafe()
+			e.savedstatech <- savestateResult{state: state, err: err}
+		case loopstateLoadSnapshot:
+			log.ModEmu.InfoZ("Loading savestate").End()
+			e.loopstate.Store(loopstateRunning)
+			e.loadstateerrch <- e.LoadstateUnsafe(e.statetoload)
 		case loopstateReset:
 			e.loopstate.Store(loopstateRunning)
-			log.ModEmu.InfoZ("Performing soft reset").End()
+			log.ModEmu.InfoZ("Issueing soft reset").End()
 			frame := e.out.BeginFrame()
 			e.NES.RunResetFrame(&frame, true)
 			e.out.EndFrame(&frame)
 		case loopstateRestart:
 			e.loopstate.Store(loopstateRunning)
-			log.ModEmu.InfoZ("Performing hard reset").End()
+			log.ModEmu.InfoZ("Issueing hard reset").End()
 			frame := e.out.BeginFrame()
 			e.NES.RunResetFrame(&frame, false)
 			e.out.EndFrame(&frame)
 		}
 	}
 
-loopEnd:
-
-	log.ModEmu.InfoZ("Emulation loop exited").End()
-
-	if e.tmpdir != "" {
-		e.save()
-	}
+	return ExecState{}, fmt.Errorf("emulation ended: CPU halted")
 }
 
-// Block, Unblock, Reset, Restart and Stop are all safe for concurrent use.
-
+// Block, Unblock, Reset, Restart, Stop and Savestate are all safe for concurrent use.
 func (e *Emulator) Reset()   { e.loopstate.Store(loopstateReset) }
 func (e *Emulator) Restart() { e.loopstate.Store(loopstateRestart) }
 func (e *Emulator) Stop()    { e.loopstate.Store(loopstateQuit) }
@@ -188,37 +166,47 @@ func (e *Emulator) Unblock() {
 	select {
 	case e.blockch <- struct{}{}:
 	default:
-		// avoid deadlock if we were not blocked
+		// Avoid deadlock if we were not blocked.
 	}
 }
 
-func (e *Emulator) save() {
-	// Save state
-	state, err := e.NES.SaveSnapshot()
+func (e *Emulator) Loadstate(snapshot []byte) error {
+	e.statetoload = snapshot
+	e.loopstate.Store(loopstateLoadSnapshot)
+	return <-e.loadstateerrch
+}
+
+func (e *Emulator) LoadstateUnsafe(snapshot []byte) error {
+	return e.NES.LoadSnapshot(snapshot)
+}
+
+// Savestate serializes SavestateUnsafe call with the emulator loop to avoid
+// race conditions.
+func (e *Emulator) Savestate() (ExecState, error) {
+	e.loopstate.Store(loopstateSaveSnapshot)
+
+	res := <-e.savedstatech
+	return res.state, res.err
+}
+
+// Savestate is not safe for concurrent use, hence it must be called when the
+// emulator loop is already blocked.
+func (e *Emulator) SavestateUnsafe() (ExecState, error) {
+	// Get a state snapshot.
+	savestate, err := e.NES.Snapshot()
 	if err != nil {
-		log.ModEmu.WarnZ("Failed to save state").Error("err", err).End()
-		return
+		return ExecState{}, fmt.Errorf("failed to save state: %w", err)
 	}
 
-	// TODO: state not saved for now
-	_ = state
-
-	path := filepath.Join(e.tmpdir, "screenshot.png")
-
-	if err := SaveAsPNG(e.out.Screenshot(), path); err != nil {
-		log.ModEmu.WarnZ("Error while saving screenshot").String("path", path).End()
-	} else {
-		log.ModEmu.DebugZ("Saved screenshot").String("path", path).End()
+	// Make screenshot from the last frame.
+	var screenshot bytes.Buffer
+	if err := png.Encode(&screenshot, e.out.Screenshot()); err != nil {
+		return ExecState{}, fmt.Errorf("failed to encode screenshot to png: %w", err)
 	}
 
-	if saveram := e.NES.Mapper.BatteryPackedRAM(); saveram != nil {
-		path = filepath.Join(e.tmpdir, "battery.sav")
-		if err := os.WriteFile(path, saveram, 0644); err != nil {
-			log.ModEmu.WarnZ("Error while saving save ram").String("path", path).End()
-		} else {
-			log.ModEmu.DebugZ("Saved save ram").String("path", path).End()
-		}
-	}
+	return ExecState{
+		PNGBytes:   screenshot.Bytes(),
+		Snapshot:   savestate,
+		BatteryRAM: e.NES.Mapper.BatteryPackedRAM(),
+	}, nil
 }
-
-func (e *Emulator) SetTempDir(path string) { e.tmpdir = path }

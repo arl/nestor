@@ -6,7 +6,7 @@ import (
 
 	"github.com/ebitenui/ebitenui/widget"
 
-	"nestor/hw/input"
+	"nestor/hw/hwinput"
 )
 
 func (s *configState) inputConfigPage() *page {
@@ -139,15 +139,15 @@ func (s *configState) inputConfigPage() *page {
 	// Buttons assignment table
 	codes := s.app.cfg.Input.Presets[s.presetidx].ToButtons()
 
-	buttons := []input.PaddleButton{
-		input.PadSelect,
-		input.PadStart,
-		input.PadB,
-		input.PadA,
-		input.PadUp,
-		input.PadDown,
-		input.PadLeft,
-		input.PadRight,
+	buttons := []hwinput.PaddleButton{
+		hwinput.PadSelect,
+		hwinput.PadStart,
+		hwinput.PadB,
+		hwinput.PadA,
+		hwinput.PadUp,
+		hwinput.PadDown,
+		hwinput.PadLeft,
+		hwinput.PadRight,
 	}
 
 	properties := make([]property, len(buttons))

@@ -17,7 +17,7 @@ type NES struct {
 	CPU    *hw.CPU
 	PPU    *hw.PPU
 	APU    *apu.APU
-	Rom    *ines.Rom
+	ROM    *ines.Rom
 	Mixer  *apu.Mixer
 	Mapper mappers.Mapper
 
@@ -25,9 +25,12 @@ type NES struct {
 }
 
 func powerUp(rom *ines.Rom) (*NES, error) {
-	var nes NES
+	nes := NES{
+		ROM: rom,
+		PPU: hw.NewPPU(),
+	}
+
 	nes.Mixer = apu.NewMixer(&nes)
-	nes.PPU = hw.NewPPU()
 	nes.CPU = hw.NewCPU(nes.PPU)
 	nes.APU = apu.New(nes.CPU, nes.Mixer)
 
@@ -72,7 +75,7 @@ func (nes *NES) IsRunAheadFrame() bool {
 
 const SaveStateVersion = 1
 
-func (nes *NES) SaveSnapshot() ([]byte, error) {
+func (nes *NES) Snapshot() ([]byte, error) {
 	buf := bytes.Buffer{}
 	mw := msgp.NewWriter(&buf)
 

@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	backgroundColor = 0x131a22 // rgba(19, 26, 34, 1)
-	panelColor      = 0x192a3b // rgba(25, 42, 59, 1)
+	backgroundColor = 0x131a22   // rgba(19, 26, 34, 1)
+	panelColor      = 0x192a3b   // rgba(25, 42, 59, 1)
+	menuBackground  = 0x5e5e99e6 // rgba(94, 94, 153, 0.9)
 
 	widgetDisabledColor = 0x5a7a91 // rgba(90, 122, 145, 1)
 	widgetIdleColor     = backgroundColor

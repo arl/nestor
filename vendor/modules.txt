@@ -1,4 +1,4 @@
-# github.com/BurntSushi/toml v1.5.0
+# github.com/BurntSushi/toml v1.6.0
 ## explicit; go 1.18
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
@@ -97,7 +97,7 @@ github.com/gorilla/websocket
 github.com/hajimehoshi/bitmapfont/v4
 github.com/hajimehoshi/bitmapfont/v4/internal/bitmap
 github.com/hajimehoshi/bitmapfont/v4/internal/unicode
-# github.com/hajimehoshi/ebiten/v2 v2.9.5
+# github.com/hajimehoshi/ebiten/v2 v2.9.6
 ## explicit; go 1.24.0
 github.com/hajimehoshi/ebiten/v2
 github.com/hajimehoshi/ebiten/v2/ebitenutil
@@ -159,12 +159,6 @@ github.com/pierrec/lz4/v4/internal/lz4block
 github.com/pierrec/lz4/v4/internal/lz4errors
 github.com/pierrec/lz4/v4/internal/lz4stream
 github.com/pierrec/lz4/v4/internal/xxh32
-# github.com/quasilyte/ebitengine-input v0.9.1
-## explicit; go 1.18
-github.com/quasilyte/ebitengine-input
-# github.com/quasilyte/gmath v0.0.0-20221217210116-fba37a2e15c7
-## explicit; go 1.18
-github.com/quasilyte/gmath
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg

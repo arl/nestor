@@ -1,174 +1,113 @@
 package ui
 
 import (
-	goimage "image"
-	"image/color"
+	"fmt"
+	"time"
 
 	"github.com/ebitenui/ebitenui"
-	"github.com/ebitenui/ebitenui/event"
-	"github.com/ebitenui/ebitenui/image"
-	"github.com/ebitenui/ebitenui/widget"
-	"golang.org/x/image/colornames"
+
+	"nestor/config"
+	"nestor/ui/input"
+	"nestor/ui/menu"
+)
+
+const numSavestateSlots = 8
+
+// Menu item IDs for items without actions
+const (
+	menuIDLoadState = "load_state"
+	menuIDSaveState = "save_state"
 )
 
 type appMenu struct {
-	container *widget.Container
-
-	fileOpen *widget.Button
-	fileQuit *widget.Button
-
-	settingsGeneral   *widget.Button
-	settingsInput     *widget.Button
-	settingsVideo     *widget.Button
-	settingsEmulation *widget.Button
-
-	help *widget.Button
+	*menu.Bar[input.Action]
 }
 
-func newAppMenu(ui *ebitenui.UI) *appMenu {
-	root := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Black)),
-
-		widget.ContainerOpts.Layout(
-			widget.NewRowLayout(
-				widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
-			),
-		),
-
-		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{StretchHorizontal: true}),
-		),
-	)
-
-	//
-	// "File" menu
-	//
-	file := newAppMenuButton("File")
-	var (
-		open = newAppMenuEntry("Open ROM ...")
-		quit = newAppMenuEntry("Quit")
-	)
-
-	file.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
-		openAppMenu(args.Button.GetWidget(), ui, open, quit)
-	}))
-	root.AddChild(file)
-
-	//
-	// "Settings" menu
-	// This is the same thing as the "File" menu, just with more entries.
-	//
-	settings := newAppMenuButton("Settings")
-	var (
-		general   = newAppMenuEntry("General")
-		input     = newAppMenuEntry("Input")
-		video     = newAppMenuEntry("Video")
-		emulation = newAppMenuEntry("Emulation")
-	)
-	settings.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
-		openAppMenu(args.Button.GetWidget(), ui, general, input, video, emulation)
-	}))
-	root.AddChild(settings)
-
-	help := newAppMenuButton("Help")
-	root.AddChild(help)
-
-	return &appMenu{
-		container:         root,
-		fileOpen:          open,
-		fileQuit:          quit,
-		settingsGeneral:   general,
-		settingsInput:     input,
-		settingsVideo:     video,
-		settingsEmulation: emulation,
-		help:              help,
-	}
+type menuOptions struct {
+	getROMName       func() string
+	settingsDisabled bool
+	openROMDisabled  bool
 }
 
-func newAppMenuButton(label string) *widget.Button {
-	return widget.NewButton(
-		widget.ButtonOpts.Image(&widget.ButtonImage{
-			Idle:    image.NewNineSliceColor(color.Transparent),
-			Hover:   image.NewNineSliceColor(colornames.Darkgray),
-			Pressed: image.NewNineSliceColor(colornames.White),
-		}),
-		widget.ButtonOpts.Text(label, res.fonts.face, &widget.ButtonTextColor{
-			Idle:     color.White,
-			Disabled: colornames.Gray,
-			Hover:    color.White,
-			Pressed:  color.Black,
-		}),
-		widget.ButtonOpts.TextPadding(&widget.Insets{
-			Top:    4,
-			Left:   4,
-			Right:  32,
-			Bottom: 4,
-		}),
-	)
-}
+func newAppMenu(ui *ebitenui.UI, actions *actionRegistry, opts menuOptions) *appMenu {
+	def := buildMenuDefinition(opts)
 
-func newAppMenuEntry(label string) *widget.Button {
-	return widget.NewButton(
-		widget.ButtonOpts.Image(&widget.ButtonImage{
-			Idle:    image.NewNineSliceColor(color.Transparent),
-			Hover:   image.NewNineSliceColor(colornames.Darkgray),
-			Pressed: image.NewNineSliceColor(colornames.White),
-		}),
-		widget.ButtonOpts.Text(label, res.fonts.face, &widget.ButtonTextColor{
-			Idle:     color.White,
-			Disabled: colornames.Gray,
-			Hover:    color.White,
-			Pressed:  color.Black,
-		}),
-		widget.ButtonOpts.TextPosition(widget.TextPositionStart, widget.TextPositionCenter),
-		widget.ButtonOpts.TextPadding(&widget.Insets{Left: 16, Right: 64}),
-		widget.ButtonOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-				Stretch: true,
-			}),
-		),
-	)
-}
-
-func openAppMenu(opener *widget.Widget, ui *ebitenui.UI, entries ...*widget.Button) {
-	c := widget.NewContainer(
-		// Set the background to a translucent black.
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.RGBA{R: 0, G: 0, B: 0, A: 125})),
-
-		// Menu entries should be arranged vertically.
-		widget.ContainerOpts.Layout(
-			widget.NewRowLayout(
-				widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-				widget.RowLayoutOpts.Spacing(4),
-				widget.RowLayoutOpts.Padding(&widget.Insets{Top: 1, Bottom: 1}),
-			),
-		),
-
-		// Set the minimum size for the menu.
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.MinSize(64, 0)),
-	)
-
-	for _, entry := range entries {
-		c.AddChild(entry)
+	style := menu.Style{
+		Font:               res.fonts.face,
+		BackgroundColor:    hex2color(0x000000FF),     // rgba(0, 0, 0, 1)
+		MenuBackground:     hex2color(menuBackground), // rgba(50,50,50,1)
+		TextColorIdle:      hex2color(0xFFFFFFFF),     // rgba(255,255,255,1)
+		TextColorDisabled:  hex2color(0x808080FF),     // rgba(128,128,128,1)
+		TextColorHover:     hex2color(0xFFFFFFFF),     // rgba(255,255,255,1)
+		TextColorPressed:   hex2color(0x000000FF),     // rgba(0,0,0,1)
+		ButtonHoverColor:   hex2color(0x404040FF),     // rgba(64,64,64,1)
+		ButtonPressedColor: hex2color(0xFFFFFFFF),     // rgba(255,255,255,1)
 	}
 
-	w, h := c.PreferredSize()
+	bar := menu.New(ui, def, style, func(action input.Action) {
+		actions.trigger(action)
+	})
 
-	window := widget.NewWindow(
-		widget.WindowOpts.Modal(),
-		widget.WindowOpts.Contents(c),
+	return &appMenu{Bar: bar}
+}
 
-		widget.WindowOpts.CloseMode(widget.CLICK),
+func buildMenuDefinition(opts menuOptions) menu.Definition[input.Action] {
+	fileItems := func() []menu.Item[input.Action] {
+		romName := opts.getROMName()
+		noROM := romName == ""
 
-		widget.WindowOpts.Location(
-			goimage.Rect(
-				opener.Rect.Min.X,
-				opener.Rect.Min.Y+opener.Rect.Max.Y,
-				opener.Rect.Min.X+w,
-				opener.Rect.Min.Y+opener.Rect.Max.Y+opener.Rect.Min.Y+h,
-			),
-		),
-	)
+		slotLabel := func(slot int) string {
+			t := config.SavestateInfo(romName, slot)
+			if t.IsZero() {
+				return fmt.Sprintf("%d - <empty>", slot+1)
+			}
+			return fmt.Sprintf("%d - %s", slot+1, t.Format(time.DateTime))
+		}
 
-	ui.AddWindow(window)
+		loadStateItems := make([]menu.Item[input.Action], numSavestateSlots)
+		for i := range loadStateItems {
+			loadStateItems[i] = menu.Item[input.Action]{
+				Label:    slotLabel(i),
+				Disabled: config.SavestateInfo(romName, i).IsZero(),
+				Action:   input.ActionLoadSavestateSlot1 + input.Action(i),
+			}
+		}
+
+		saveStateItems := make([]menu.Item[input.Action], numSavestateSlots)
+		for i := range saveStateItems {
+			saveStateItems[i] = menu.Item[input.Action]{
+				Label:  slotLabel(i),
+				Action: input.ActionSaveSavestateSlot1 + input.Action(i),
+			}
+		}
+
+		return []menu.Item[input.Action]{
+			{Label: "Open ROM ...", Action: input.ActionOpenROM, Disabled: opts.openROMDisabled},
+			{Label: "Load State", ID: menuIDLoadState, SubMenu: loadStateItems, Disabled: noROM},
+			{Label: "Save State", ID: menuIDSaveState, SubMenu: saveStateItems, Disabled: noROM},
+			{Label: "Quit", Action: input.ActionQuit},
+		}
+	}
+
+	return menu.Definition[input.Action]{
+		Menus: []menu.Menu[input.Action]{
+			{
+				Label:     "File",
+				ItemsFunc: fileItems,
+			},
+			{
+				Label: "Settings",
+				Items: []menu.Item[input.Action]{
+					{Label: "General", Action: input.ActionSettingsOpenGeneralConfig, Disabled: opts.settingsDisabled},
+					{Label: "Input", Action: input.ActionSettingsOpenInputConfig, Disabled: opts.settingsDisabled},
+					{Label: "Video", Action: input.ActionSettingsOpenVideoConfig, Disabled: opts.settingsDisabled},
+					{Label: "Emulation", Action: input.ActionSettingsOpenEmulationConfig, Disabled: opts.settingsDisabled},
+				},
+			},
+			{
+				Label: "Help",
+				Items: []menu.Item[input.Action]{},
+			},
+		},
+	}
 }

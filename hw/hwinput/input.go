@@ -1,5 +1,5 @@
 // Package input provides the input handling for NES controllers.
-package input
+package hwinput
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"

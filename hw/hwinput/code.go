@@ -1,4 +1,4 @@
-package input
+package hwinput
 
 import (
 	"fmt"
@@ -36,11 +36,9 @@ func (mc Code) Name() string {
 		return fmt.Sprintf("Paddle %d", mc.GamepadButton)
 	case UnsetType:
 		return "<not set>"
-	default:
-		panic(fmt.Sprintf("unexpected code type: %v", mc.Type))
 	}
 
-	return "<not set>"
+	panic(fmt.Sprintf("unexpected code type: %v", mc.Type))
 }
 
 // KeyFromString returns the ebiten.Key for s, or a negative value if s is

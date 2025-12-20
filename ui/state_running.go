@@ -8,9 +8,7 @@ import (
 
 	"github.com/ebitengine/debugui"
 	"github.com/hajimehoshi/ebiten/v2"
-	einput "github.com/quasilyte/ebitengine-input"
 
-	"nestor/ui/keymap"
 	"nestor/ui/shader"
 )
 
@@ -18,7 +16,6 @@ type runningState struct {
 	*app
 	paused  bool
 	elapsed int64 // elapsed seconds (for FPS display)
-	inputh  *einput.Handler
 
 	shader     *ebiten.Shader
 	debugui    debugui.DebugUI
@@ -37,8 +34,7 @@ func newRunningState(app *app) *runningState {
 	return s
 }
 
-func (s *runningState) enter(hinput *einput.Handler, _ any) {
-	s.inputh = hinput
+func (s *runningState) enter(_ any) {
 	s.setShader(s.app.cfg.Video.Shader)
 }
 
@@ -48,14 +44,6 @@ func (s *runningState) exit()     {}
 func (s *runningState) update() {
 	if s.shaderuiOn {
 		s.shaderUI()
-	}
-
-	if s.inputh.ActionIsJustPressed(keymap.ActionPauseEmulator) {
-		s.app.setState("paused", nil)
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionResetEmulator) {
-		s.emulator.Reset()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionToggleShaderUI) {
-		s.shaderuiOn = !s.shaderuiOn
 	}
 }
 

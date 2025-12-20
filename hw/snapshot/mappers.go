@@ -3,10 +3,6 @@ package snapshot
 //go:generate go tool msgp -tests=false -marshal=true
 
 type BaseState struct {
-	// Currently mapped ROM banks (we only need bank numbers, not data)
-	// The actual ROM data is immutable and stored in b.rom
-	// PRGROM [0x8000]byte
-
 	// RAM data (always save complete contents as they're writable)
 	PRGRAM     []byte
 	PRGNVRAM   []byte

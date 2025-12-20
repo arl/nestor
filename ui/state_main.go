@@ -2,18 +2,15 @@ package ui
 
 import (
 	"bytes"
-	"errors"
 	"math"
 
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	einput "github.com/quasilyte/ebitengine-input"
-	"github.com/sqweek/dialog"
 	"golang.org/x/image/colornames"
 
-	"nestor/ui/keymap"
+	"nestor/config"
 )
 
 type mainState struct {
@@ -21,87 +18,48 @@ type mainState struct {
 
 	selidx  int
 	numcols int
-	roms    []recentROM
+	roms    []config.RecentROM
 
 	sc     *widget.ScrollContainer
 	slider *widget.Slider
+	grid   *widget.Container
 	cells  []*widget.Container
 
-	inputh *einput.Handler
-	menu   *appMenu
+	menu *appMenu
 }
 
 func newMainState(app *app) *mainState {
-	state := &mainState{
-		app: app,
-	}
-
-	state.createUI()
-
+	state := &mainState{app: app}
 	return state
 }
 
-func (s *mainState) enter(inputh *einput.Handler, _ any) {
-	s.inputh = inputh
-	s.roms = loadRecentROMs()
+func (s *mainState) enter(_ any) {
+	s.roms = config.LoadRecentROMs()
 }
 
 func (s *mainState) exit() {}
 
-func buildMenu(s *mainState) *widget.Container {
-	app := s.app
-	menu := newAppMenu(&app.ui)
-	menu.fileOpen.ClickedEvent.AddHandler(func(args any) {
-		dlg := dialog.File().Title("Open NES ROM").Filter("NES rom", "nes")
-		dlg.StartDir = app.cfg.General.FileLoadStartDir
-
-		name, err := dlg.Load()
-		if err != nil {
-			if !errors.Is(err, dialog.ErrCancelled) {
-				modUI.ErrorZ("dialog: failed to open").Error("err", err).End()
-				errorWindow(&app.ui, err)
-			}
-			return
-		}
-
-		if err := app.runRom(name); err != nil {
-			modUI.ErrorZ("failed to run rom").Error("err", err).End()
-			errorWindow(&app.ui, err)
-		}
+func (s *mainState) buildMenu() *widget.Container {
+	s.menu = newAppMenu(&s.ui, s.actions, menuOptions{
+		getROMName:       s.app.romName,
+		settingsDisabled: false,
 	})
-
-	menu.fileQuit.ClickedEvent.AddHandler(func(args any) {
-		app.exit()
-	})
-	menu.settingsGeneral.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", configPageDest("general"))
-	})
-	menu.settingsInput.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", configPageDest("input"))
-	})
-	menu.settingsVideo.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", configPageDest("video"))
-	})
-	menu.settingsEmulation.ClickedEvent.AddHandler(func(args any) {
-		app.setState("config", configPageDest("emulation"))
-	})
-
-	s.menu = menu
-	return menu.container
+	return s.menu.Container
 }
 
 func (s *mainState) startROM() {
-	path := s.roms[s.selidx].Path
-	modUI.InfoZ("selected ROM").String("path", path).End()
-	if err := s.runRom(path); err == nil {
+	if len(s.roms) == 0 {
+		return
+	}
+	recentrom := s.roms[s.selidx]
+	if err := s.runRom(recentrom.Path, recentrom.SaveState); err == nil {
 		s.setState("running", nil)
 	} else {
-		modUI.ErrorZ("failed to run ROM").String("path", path).Error("err", err).End()
+		modUI.ErrorZ("failed to run ROM").String("path", recentrom.Path).Error("err", err).End()
 	}
 }
 
 func (s *mainState) update() {
-	// Handle navigation keys
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		s.up()
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
@@ -114,32 +72,23 @@ func (s *mainState) update() {
 		s.startROM()
 	}
 
-	// Handle menu keyboard shortcuts
-	s.handleMenuShortcuts()
-
 	s.ui.Update()
+	s.updateSliderVisibility()
 }
 
-// handleMenuShortcuts processes keyboard shortcuts for menu actions.
-func (s *mainState) handleMenuShortcuts() {
-	if s.menu == nil {
+func (s *mainState) updateSliderVisibility() {
+	if s.sc == nil || s.slider == nil || s.grid == nil {
 		return
 	}
-
-	if s.inputh.ActionIsJustPressed(keymap.ActionFileOpenROM) {
-		s.menu.fileOpen.Click()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionFileQuit) {
-		s.menu.fileQuit.Click()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenGeneralConfig) {
-		s.menu.settingsGeneral.Click()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig) {
-		s.menu.settingsVideo.Click()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenVideoConfig) {
-		s.menu.settingsVideo.Click()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenInputConfig) {
-		s.menu.settingsInput.Click()
-	} else if s.inputh.ActionIsJustPressed(keymap.ActionSettingsOpenEmulationConfig) {
-		s.menu.settingsEmulation.Click()
+	viewH := s.sc.ViewRect().Dy()
+	contentH := s.grid.GetWidget().Rect.Dy()
+	if contentH == 0 || viewH == 0 {
+		return
+	}
+	if contentH <= viewH {
+		s.slider.GetWidget().Visibility = widget.Visibility_Hide
+	} else {
+		s.slider.GetWidget().Visibility = widget.Visibility_Show
 	}
 }
 
@@ -214,7 +163,7 @@ func (s *mainState) createUI() {
 		)),
 	)
 
-	s.ui.Container.AddChild(buildMenu(s))
+	s.ui.Container.AddChild(s.buildMenu())
 
 	const screenshotWidth = 180 // side of the screenshot square image.
 	const maxCellWidth = 200
@@ -227,7 +176,7 @@ func (s *mainState) createUI() {
 		colstretch[i] = true
 	}
 
-	grid := widget.NewContainer(
+	s.grid = widget.NewContainer(
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true}),
 		),
@@ -252,7 +201,7 @@ func (s *mainState) createUI() {
 
 		cell := s.createROMCell(i, img, screenshotWidth)
 		s.cells = append(s.cells, cell)
-		grid.AddChild(cell)
+		s.grid.AddChild(cell)
 	}
 
 	scrollable := widget.NewContainer(
@@ -265,7 +214,7 @@ func (s *mainState) createUI() {
 	)
 
 	s.sc = widget.NewScrollContainer(
-		widget.ScrollContainerOpts.Content(grid),
+		widget.ScrollContainerOpts.Content(s.grid),
 		widget.ScrollContainerOpts.StretchContentWidth(),
 		widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
 			Idle: res.background,
@@ -276,7 +225,7 @@ func (s *mainState) createUI() {
 	scrollable.AddChild(s.sc)
 
 	pageSizeFunc := func() int {
-		return int(math.Round(float64(s.sc.ViewRect().Dy())/float64(grid.GetWidget().Rect.Dy())*1000) / 3)
+		return int(math.Round(float64(s.sc.ViewRect().Dy())/float64(s.grid.GetWidget().Rect.Dy())*1000) / 3)
 	}
 
 	s.slider = widget.NewSlider(
