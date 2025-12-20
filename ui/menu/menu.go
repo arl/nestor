@@ -10,7 +10,6 @@ import (
 	"github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
-	"golang.org/x/exp/constraints"
 )
 
 // Style defines the visual appearance of the menu.
@@ -44,18 +43,19 @@ func DefaultStyle(face *text.Face) Style {
 }
 
 // Action is a constraint for menu action types (typically int or custom action enums).
-type Action interface {
-	constraints.Integer
-}
+type Action interface{ ~int }
 
 // Item represents a menu entry that can be clicked.
 type Item[A Action] struct {
 	Label     string
-	LabelFunc func() string // If set, called to get label dynamically (takes precedence over Label)
-	ID        string        // Optional string ID for items without actions (e.g., submenu openers)
-	Action    A             // Action to trigger; 0 means no action
-	Disabled  bool          // Start disabled
-	SubMenu   []Item[A]     // If non-empty, clicking shows a submenu
+	LabelFunc func() string // If set, called to get label dynamically. Supersedes [Label].
+
+	Disabled     bool        // Start disabled
+	DisabledFunc func() bool // If set, called to get disabled state dynamically. Supersedes [Disabled].
+
+	ID      string    // Optional string ID for items without actions (e.g., submenu openers)
+	Action  A         // Action to trigger; 0 means no action
+	SubMenu []Item[A] // If non-empty, clicking shows a submenu
 }
 
 // Menu represents a top-level menu with items.
@@ -229,11 +229,13 @@ func (b *Bar[A]) newMenuEntry(item Item[A]) *widget.Button {
 		),
 	)
 
-	if item.Disabled {
-		btn.GetWidget().Disabled = true
+	if item.DisabledFunc != nil {
+		btn.GetWidget().Disabled = item.DisabledFunc()
+	} else {
+		btn.GetWidget().Disabled = item.Disabled
 	}
 
-	// Store button reference by action or ID
+	// Store button reference by action or ID.
 	if item.Action != 0 {
 		b.actionButtons[item.Action] = btn
 	}
@@ -241,11 +243,12 @@ func (b *Bar[A]) newMenuEntry(item Item[A]) *widget.Button {
 		b.idButtons[item.ID] = btn
 	}
 
-	if len(item.SubMenu) > 0 {
+	switch {
+	case len(item.SubMenu) > 0:
 		btn.ClickedEvent.AddHandler(event.WrapHandler(func(args *widget.ButtonClickedEventArgs) {
 			b.openSubMenu(args.Button.GetWidget(), item.SubMenu)
 		}))
-	} else if item.Action != 0 {
+	case item.Action != 0:
 		action := item.Action
 		btn.ClickedEvent.AddHandler(func(args any) {
 			if b.onAction != nil {
