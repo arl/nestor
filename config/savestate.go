@@ -38,3 +38,9 @@ func SavestateInfo(romName string, slot int) time.Time {
 	return info.ModTime()
 }
 
+// LoadSavestate loads a savestate slot.
+func LoadSavestate(romName string, slot int) ([]byte, error) {
+	fname := fmt.Sprintf("%s.%d%s", removeExt(romName), slot+1, savestateExtenstion)
+	path := filepath.Join(SavestatesDir(), fname)
+	return os.ReadFile(path)
+}

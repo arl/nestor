@@ -17,9 +17,14 @@ type Emulator struct {
 	cfg EmulationConfig
 
 	// Loop can be concurrently controlled by the emulator and ui.
-	loopstate    atomic.Uint64
-	blockch      chan struct{}
-	savedstatech chan savestateResult // result of calling SavestateUnsafe
+	loopstate atomic.Uint64
+	blockch   chan struct{}
+
+	// Use channel to store load/save state result across goroutines boundary.
+	savedstatech   chan savestateResult
+	loadstateerrch chan error
+	// contain the state to load on loopstateLoadSnapshot.
+	statetoload []byte
 }
 
 type savestateResult struct {
@@ -34,6 +39,7 @@ const (
 	loopstateReset
 	loopstateRestart
 	loopstateSaveSnapshot
+	loopstateLoadSnapshot
 )
 
 // Launch starts the various hardware subsystems, shows the window, setups the
@@ -53,11 +59,12 @@ func Launch(rom *ines.Rom, cfg Config, out *Output, inp hw.InputStateLoader) (*E
 	}
 
 	return &Emulator{
-		NES:          nes,
-		out:          out,
-		cfg:          cfg.Emulation,
-		blockch:      make(chan struct{}, 1),
-		savedstatech: make(chan savestateResult, 1),
+		NES:            nes,
+		out:            out,
+		cfg:            cfg.Emulation,
+		blockch:        make(chan struct{}, 1),
+		savedstatech:   make(chan savestateResult, 1),
+		loadstateerrch: make(chan error, 1),
 	}, nil
 }
 
@@ -127,6 +134,10 @@ func (e *Emulator) Run() (ExecState, error) {
 			e.loopstate.Store(loopstateRunning)
 			state, err := e.SavestateUnsafe()
 			e.savedstatech <- savestateResult{state: state, err: err}
+		case loopstateLoadSnapshot:
+			log.ModEmu.InfoZ("Loading savestate").End()
+			e.loopstate.Store(loopstateRunning)
+			e.loadstateerrch <- e.LoadstateUnsafe(e.statetoload)
 		case loopstateReset:
 			e.loopstate.Store(loopstateRunning)
 			log.ModEmu.InfoZ("Issueing soft reset").End()
@@ -157,6 +168,16 @@ func (e *Emulator) Unblock() {
 	default:
 		// Avoid deadlock if we were not blocked.
 	}
+}
+
+func (e *Emulator) Loadstate(snapshot []byte) error {
+	e.statetoload = snapshot
+	e.loopstate.Store(loopstateLoadSnapshot)
+	return <-e.loadstateerrch
+}
+
+func (e *Emulator) LoadstateUnsafe(snapshot []byte) error {
+	return e.NES.LoadSnapshot(snapshot)
 }
 
 // Savestate serializes SavestateUnsafe call with the emulator loop to avoid

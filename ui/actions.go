@@ -123,8 +123,33 @@ func (app *app) isStatePaused() bool {
 }
 
 func (app *app) loadstateFromSlot(slot int) {
-	// TODO: implement savestate loading from slot
-	modUI.InfoZ("load state from slot").Int("slot", slot+1).End()
+	modUI.InfoZ("loading state from slot").Int("slot", slot+1).End()
+
+	savestate, err := config.LoadSavestate(app.romName(), slot)
+	if err != nil {
+		modUI.ErrorZ("failed to read savestate slot").Int("slot", slot+1).Error("err", err).End()
+		return
+	}
+
+	if app.currentStateName() == "paused" {
+		if err := app.emulator.LoadstateUnsafe(savestate); err != nil {
+			modUI.ErrorZ("failed to load savestate").Int("slot", slot+1).Error("err", err).End()
+			return
+		}
+
+		modUI.InfoZ("state loaded from slot").Int("slot", slot+1).End()
+		app.curstate.(*pausedState).onResume()
+	} else {
+		// Loadstate is a blocking action. We must do it in a goroutine to avoid
+		// blocking the interaction between the emulator loop and the UI.
+		go func() {
+			if err := app.emulator.Loadstate(savestate); err != nil {
+				modUI.ErrorZ("failed to apply state snapshot").Int("slot", slot+1).Error("err", err).End()
+				return
+			}
+			modUI.InfoZ("state loaded from slot").Int("slot", slot+1).End()
+		}()
+	}
 }
 
 func (app *app) savestateToSlot(slot int) {
