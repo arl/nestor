@@ -36,10 +36,11 @@ type stateDef struct {
 type app struct {
 	cfg config.Config
 
-	emulator *emu.Emulator
-	quit     atomic.Bool
-	framech  chan *emu.Frame
-	frameimg *ebiten.Image
+	emulator       *emu.Emulator
+	quit           atomic.Bool
+	framech        chan *emu.Frame
+	frameimg       *ebiten.Image
+	currentROMName atomic.Pointer[string]
 
 	audioctx    *oto.Context
 	samples     *sampleBuffer
@@ -69,6 +70,7 @@ func newApp(ctx context.Context, samples *sampleBuffer, audioctx *oto.Context, c
 		inputEnabled:  true,
 		actions:       newActionRegistry(),
 	}
+	app.currentROMName.Store(ptrTo(""))
 
 	app.registerActions()
 
@@ -165,11 +167,9 @@ func (app *app) Layout(outw, outh int) (screenw, screenh int) {
 	return outw, outh
 }
 
+// romName returns the name of the current ROM atomically.
 func (app *app) romName() string {
-	if app.emulator == nil || app.emulator.NES == nil || app.emulator.NES.ROM == nil {
-		return ""
-	}
-	return app.emulator.NES.ROM.Name
+	return *app.currentROMName.Load()
 }
 
 func (app *app) runRom(romPath string, savestate []byte) error {
@@ -212,6 +212,7 @@ func (app *app) runRom(romPath string, savestate []byte) error {
 
 	go func() {
 		defer func() {
+			app.currentROMName.Store(ptrTo(""))
 			app.do(func() { app.setState("main", nil) })
 
 			ebiten.SetVsyncEnabled(true)
@@ -224,6 +225,7 @@ func (app *app) runRom(romPath string, savestate []byte) error {
 			}
 		}
 
+		app.currentROMName.Store(&emulator.NES.ROM.Name)
 		execstate, err := emulator.Run()
 		if err != nil {
 			log.ModEmu.ErrorZ("emulation ended").Error("err", err).End()

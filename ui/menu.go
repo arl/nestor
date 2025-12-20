@@ -50,9 +50,9 @@ func buildMenuDefinition(currentROMName string) menu.Definition[input.Action] {
 		getlabel = func() string {
 			t := config.SavestateInfo(currentROMName, slot)
 			if t.IsZero() {
-				return fmt.Sprintf("<empty> — %d", slot+1)
+				return fmt.Sprintf("%d - <empty>", slot+1)
 			}
-			return fmt.Sprintf("%s — %d", t.Format(time.DateTime), slot+1)
+			return fmt.Sprintf("%d - %s", slot+1, t.Format(time.DateTime))
 		}
 		getdisabled = func() bool {
 			t := config.SavestateInfo(currentROMName, slot)
@@ -90,8 +90,8 @@ func buildMenuDefinition(currentROMName string) menu.Definition[input.Action] {
 				Label: "File",
 				Items: []menu.Item[input.Action]{
 					{Label: "Open ROM ...", Action: input.ActionOpenROM},
-					{Label: "Load State", ID: menuIDLoadState, SubMenu: loadStateItems},
-					{Label: "Save State", ID: menuIDSaveState, SubMenu: saveStateItems},
+					{Label: "Load State", ID: menuIDLoadState, SubMenu: loadStateItems, Disabled: currentROMName == ""},
+					{Label: "Save State", ID: menuIDSaveState, SubMenu: saveStateItems, Disabled: currentROMName == ""},
 					{Label: "Quit", Action: input.ActionQuit},
 				},
 			},

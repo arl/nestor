@@ -153,12 +153,7 @@ func (app *app) loadstateFromSlot(slot int) {
 }
 
 func (app *app) savestateToSlot(slot int) {
-	var (
-		state emu.ExecState
-		err   error
-	)
-
-	save := func() {
+	save := func(state emu.ExecState, err error) {
 		if err != nil {
 			modUI.ErrorZ("failed to save state").Int("slot", slot+1).Error("err", err).End()
 			return
@@ -166,15 +161,14 @@ func (app *app) savestateToSlot(slot int) {
 		config.AddSavestate(app.romName(), slot, state.Snapshot)
 
 		modUI.InfoZ("saved state").Int("slot", slot+1).End()
-		_ = state
 	}
 
 	if app.currentStateName() == "paused" {
-		state, err = app.emulator.SavestateUnsafe()
-		save()
+		state, err := app.emulator.SavestateUnsafe()
+		save(state, err)
 	} else {
 		// Savestate is a blocking action. We must do it in a goroutine to avoid
 		// blocking the interaction between the emulator loop and the UI.
-		go func() { state, err = app.emulator.Savestate(); save() }()
+		go func() { state, err := app.emulator.Savestate(); save(state, err) }()
 	}
 }
