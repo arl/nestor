@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ebitengine/oto/v3"
-	"github.com/hajimehoshi/ebiten/v2"
-
 	"nestor/config"
 	"nestor/emu/log"
 	"nestor/hw/apu"
-)
 
-var modUI = log.NewModule("ui")
+	"github.com/ebitengine/oto/v3"
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 func StartUI(ctx context.Context, cfg config.Config) error {
 	return entrypoint(ctx, cfg, "")
@@ -23,8 +21,18 @@ func StartROM(ctx context.Context, cfg config.Config, romPath string) error {
 	return entrypoint(ctx, cfg, romPath)
 }
 
+func ScreenshotAndStop() {
+	if _app == nil {
+		panic("app not started!")
+	}
+	_app.takeScreenshot.Store(true)
+}
+
 const startwidth = 800
 const startheight = 600
+
+var modUI = log.NewModule("ui")
+var _app *app
 
 func entrypoint(ctx context.Context, cfg config.Config, romPath string) error {
 	initResources()
@@ -48,21 +56,21 @@ func entrypoint(ctx context.Context, cfg config.Config, romPath string) error {
 	ebiten.SetTPS(ebiten.SyncWithFPS)
 	ebiten.SetRunnableOnUnfocused(true)
 
-	app := newApp(ctx, samples, audioctx, cfg)
+	_app = newApp(ctx, samples, audioctx, cfg)
 
 	if romPath != "" {
-		app.setState("running", nil)
-		if err := app.runRom(romPath, nil); err != nil {
+		_app.setState("running", nil)
+		if err := _app.runRom(romPath, nil); err != nil {
 			return fmt.Errorf("can't run rom: %w", err)
 		}
 	} else {
-		app.setState("main", nil)
+		_app.setState("main", nil)
 	}
 
 	options := &ebiten.RunGameOptions{
 		SingleThread: false,
 	}
-	if err := ebiten.RunGameWithOptions(app, options); err != nil {
+	if err := ebiten.RunGameWithOptions(_app, options); err != nil {
 		return fmt.Errorf("ui failure: %w", err)
 	}
 
