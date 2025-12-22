@@ -38,6 +38,7 @@ type app struct {
 
 	emulator       *emu.Emulator
 	quit           atomic.Bool
+	takeScreenshot atomic.Bool
 	framech        chan *emu.Frame
 	frameimg       *ebiten.Image
 	currentROMName atomic.Pointer[string]

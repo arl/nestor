@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"nestor/emu/log"
 )
@@ -103,3 +104,19 @@ func (f *outfile) String() string {
 }
 func (f *outfile) Write(p []byte) (int, error) { return f.w.Write(p) }
 func (f *outfile) Close() error                { return f.close() }
+
+type duration time.Duration
+
+func (d *duration) String() string {
+	return time.Duration(*d).String()
+}
+
+func (d *duration) Set(val string) error {
+	dur, err := time.ParseDuration(val)
+	if err != nil {
+		return err
+	}
+
+	*d = duration(dur)
+	return nil
+}

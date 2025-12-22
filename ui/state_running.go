@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 	"image"
+	"image/png"
+	"os"
 	"slices"
 	"time"
 
@@ -103,6 +105,25 @@ func (s *runningState) drawFrame(screen *ebiten.Image, frameImg *ebiten.Image, t
 	op.Images[0] = frameImg
 
 	screen.DrawRectShader(int(fw), int(fh), s.shader, op)
+
+	if s.app.takeScreenshot.CompareAndSwap(true, false) {
+		ts := time.Now().Format("20060102-150405")
+
+		f, err := os.Create("screenshot_" + ts + ".png")
+		if err != nil {
+			modUI.ErrorZ("failed to open screenshot").Error("err", err).End()
+			return
+		}
+
+		if err := png.Encode(f, frameImg); err != nil {
+			modUI.ErrorZ("failed encode screenshot").Error("err", err).End()
+			return
+		}
+
+		f.Close()
+		fmt.Println("screenshot taken:", f.Name())
+		s.app.exit()
+	}
 }
 
 func (s *runningState) setShader(name string) {
