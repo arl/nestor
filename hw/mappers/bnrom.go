@@ -32,7 +32,7 @@ func loadBNROM(b *base) (Mapper, error) {
 	b.setNTMirroring(b.rom.Mirroring())
 	// BNROM uses CHR-RAM (8KB), no bank switching
 	b.selectCHRROMPage8KB(0)
-	b.selectPRGPage32KB(0)
+	b.selectPRGPage32KB(0, 0)
 
 	return m34, nil
 }
@@ -56,7 +56,7 @@ func (m *mapper34) WritePRGROM(addr uint16, val uint8) {
 	prevprg := m.prgbank
 	m.prgbank = uint32(val & 0x3)
 	if prevprg != m.prgbank {
-		m.selectPRGPage32KB(int(m.prgbank))
+		m.selectPRGPage32KB(0, int(m.prgbank))
 	}
 }
 
@@ -76,5 +76,5 @@ func (m *mapper34) SetState(ms *snapshot.MapperState) {
 	m.base.setState(s.BaseState)
 	m.prgbank = s.PRGBank
 
-	m.selectPRGPage32KB(int(m.prgbank))
+	m.selectPRGPage32KB(0, int(m.prgbank))
 }

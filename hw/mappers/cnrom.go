@@ -29,7 +29,7 @@ func loadCNROM(b *base) (Mapper, error) {
 	// PPU mapping.
 	b.setNTMirroring(b.rom.Mirroring())
 	b.selectCHRROMPage8KB(0)
-	b.selectPRGPage32KB(0)
+	b.selectPRGPage32KB(0, 0)
 
 	return cnrom, nil
 

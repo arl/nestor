@@ -167,8 +167,9 @@ func (b *base) numPRGROMBanks() int {
 }
 
 // select what 32KB PRG ROM bank to use.
-func (b *base) selectPRGPage32KB(bank int) {
-	mirrorcopy(b.PRGROM[:], b.rom.PRGROM[32*KB*(bank):])
+func (b *base) selectPRGPage32KB(page uint32, bank int) {
+	b.selectPRGPage16KB(page, bank*2)
+	b.selectPRGPage16KB(page+1, bank*2+1)
 }
 
 // select what 16KB PRG ROM bank to use into which PRG 16KB page.
@@ -185,14 +186,15 @@ func (b *base) selectPRGPage16KB(page uint32, bank int) {
 	}
 
 	// wrap bank number if it is out of range
-	nbanks := b.numPRGROMBanks()
-	if nbanks == 0 {
+	// Calculate number of 16KB banks (not mapper's PRGBankSize)
+	nbanks16KB := len(b.rom.PRGROM) / (16 * KB)
+	if nbanks16KB == 0 {
 		return
 	}
 	if bank < 0 {
-		bank = nbanks + bank
+		bank += nbanks16KB
 	} else {
-		bank = bank % nbanks
+		bank %= nbanks16KB
 	}
 
 	offbus := 16 * KB * page

@@ -24,7 +24,7 @@ func loadGxROM(b *base) (Mapper, error) {
 
 	b.setNTMirroring(b.rom.Mirroring())
 	b.selectCHRROMPage8KB(0)
-	b.selectPRGPage32KB(0)
+	b.selectPRGPage32KB(0, 0)
 	return gxrom, nil
 
 	// TODO: load and map PRG-RAM if present in cartridge.
@@ -47,7 +47,7 @@ func (m *gxrom) WritePRGROM(addr uint16, val uint8) {
 	prevprg := m.prgbank
 	m.prgbank = uint32((val >> 4) & 0x3)
 	if prevprg != m.prgbank {
-		m.selectPRGPage32KB(int(m.prgbank))
+		m.selectPRGPage32KB(0, int(m.prgbank))
 	}
 }
 
@@ -70,5 +70,5 @@ func (m *gxrom) SetState(ms *snapshot.MapperState) {
 
 	// Remap based on restored state
 	m.selectCHRROMPage8KB(int(m.chrbank))
-	m.selectPRGPage32KB(int(m.prgbank))
+	m.selectPRGPage32KB(0, int(m.prgbank))
 }

@@ -24,7 +24,7 @@ func loadNROM(b *base) (Mapper, error) {
 		b.selectPRGPage16KB(0, 0)
 		b.selectPRGPage16KB(1, 0) // mirror
 	case 32 * KB:
-		b.selectPRGPage32KB(0)
+		b.selectPRGPage32KB(0, 0)
 	default:
 		return nil, ErrUnsuppportedPRGROMSize(len(b.rom.PRGROM))
 	}
