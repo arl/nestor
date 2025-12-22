@@ -12,6 +12,7 @@ import (
 	"runtime/pprof"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/arl/statsviz"
 
@@ -30,25 +31,27 @@ Usage:
 
 Run Nestor:
 
-    nestor                    gui mode.
+    nestor                  gui mode. Show rom list.
 
-    nestor <path/to/rom>      starts ROM directly. 
+    nestor <path/to/rom>    run mode. Run the given rom. 
 
 Options:
-    -version           print version and exit.
-    -rom-infos FILE    print information about the ROM and exit.
+    -v, --verbose           set log level to info (default: warning).
+	-log                    comma separated list of log modules to enable in
+                            debug mode, from:
+                            %s
+                            accepts also 'all' or 'no' (disable log entirely).
+    -version                print version and exit.
 
-    -ramfile FILE      read 'save ram' from file [WIP/TODO].
-
-    -cpuprofile FILE   write cpu profile to FILE.
-    -monitor HOST:PORT expose Go runtime real-time on HOST:PORT
-    -trace FILE        write cpu trace log to FILE,
-                       also accepts: stdout or stderr
-    -v, --verbose      set log level to info (default: warning).
-    -log               comma separated list of log modules to enable in debug mode, from:
-                       %s
-                       accepts also 'all' or 'no' (disable log entirely).
-
+    -rom-infos  FILE        print information about the ROM and exit.
+    -trace      FILE        write cpu execution trace log to FILE,
+                            also accepts: stdout or stderr
+    -ramfile    FILE        read 'save ram' from file [WIP/TODO].
+    -cpuprofile FILE        write cpu profile to FILE.
+    -monitor    HOST:PORT   expose Go runtime real-time on HOST:PORT
+	-stop-after DUR         run the given rom and stops execution after the
+	                        given duration string (ex: 1s, 500ms, 1m, etc.).
+                            Only works in 'run' mode.
 `
 	fmt.Fprintf(os.Stderr, help, strings.Join(log.ModuleNames(), ", "))
 }
@@ -66,6 +69,7 @@ func main() {
 		logModules logModMask
 		verbose    bool
 		monitor    string
+		stopafter  duration
 	)
 
 	fs := flag.NewFlagSet("nestor", flag.ContinueOnError)
@@ -75,6 +79,7 @@ func main() {
 
 	fs.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
 	fs.StringVar(&monitor, "monitor", "", "expose Go runtime real-time on HOST:PORT")
+	fs.Var(&stopafter, "stop-after", "stop execution after the given duration and save a screenshot")
 	fs.Var(&trace, "trace", "write cpu trace log to FILE|stdout|stderr")
 	fs.Var(&ramfile, "ramfile", "Read 'save ram' from file [WIP/TODO].")
 	fs.Var(&logModules, "log", "comma separated list of log modules to enable (or 'all' or 'no').")
@@ -138,6 +143,9 @@ func main() {
 	case 0:
 		checkf(ui.StartUI(ctx, cfg), "failed to start ui")
 	case 1:
+		if stopafter != 0 {
+			time.AfterFunc(time.Duration(stopafter), ui.ScreenshotAndStop)
+		}
 		checkf(ui.StartROM(ctx, cfg, fs.Arg(0)), "failed to start rom")
 	default:
 		usage()
