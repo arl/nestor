@@ -190,9 +190,6 @@ func (m *mmc1) writePRG(val uint8) {
 	// P = PRG Reg
 	m.disableWRAM = u8tob(val & 0b1_0000)
 	m.prgbank = uint32(val & 0b1111)
-	if m.disableWRAM {
-		panic("disable WRAM not implemented")
-	}
 }
 
 func (m *mmc1) remap() {

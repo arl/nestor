@@ -55,7 +55,7 @@ var DefaultShortcuts = Shortcuts{
 	IDToggleFullscreen: "f11",
 
 	IDOpenROM: "ctrl+o",
-	IDQuit:    "ctrl+q",
+	IDQuit:    "ctrl+a",
 
 	IDSettingsOpenGeneralConfig:   "ctrl+g",
 	IDSettingsOpenVideoConfig:     "ctrl+v",
@@ -159,4 +159,3 @@ func (s Shortcuts) Apply() {
 func init() {
 	DefaultShortcuts.Apply()
 }
-
