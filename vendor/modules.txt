@@ -61,10 +61,10 @@ github.com/ebitenui/ebitenui/widget
 # github.com/frustra/bbcode v0.0.0-20201127003707-6ef347fbe1c8
 ## explicit
 github.com/frustra/bbcode
-# github.com/go-faster/errors v0.6.1
-## explicit; go 1.18
+# github.com/go-faster/errors v0.7.1
+## explicit; go 1.20
 github.com/go-faster/errors
-# github.com/go-faster/jx v1.1.0
+# github.com/go-faster/jx v1.2.0
 ## explicit; go 1.18
 github.com/go-faster/jx
 github.com/go-faster/jx/internal/byteseq
@@ -97,7 +97,7 @@ github.com/gorilla/websocket
 github.com/hajimehoshi/bitmapfont/v4
 github.com/hajimehoshi/bitmapfont/v4/internal/bitmap
 github.com/hajimehoshi/bitmapfont/v4/internal/unicode
-# github.com/hajimehoshi/ebiten/v2 v2.9.6
+# github.com/hajimehoshi/ebiten/v2 v2.9.7
 ## explicit; go 1.24.0
 github.com/hajimehoshi/ebiten/v2
 github.com/hajimehoshi/ebiten/v2/ebitenutil
@@ -162,7 +162,7 @@ github.com/pierrec/lz4/v4/internal/xxh32
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
-# github.com/segmentio/asm v1.2.0
+# github.com/segmentio/asm v1.2.1
 ## explicit; go 1.18
 github.com/segmentio/asm/base64
 github.com/segmentio/asm/cpu
@@ -175,7 +175,7 @@ github.com/segmentio/asm/internal/unsafebytes
 ## explicit
 github.com/sqweek/dialog
 github.com/sqweek/dialog/cocoa
-# github.com/tinylib/msgp v1.6.1
+# github.com/tinylib/msgp v1.6.2
 ## explicit; go 1.24
 github.com/tinylib/msgp
 github.com/tinylib/msgp/gen
@@ -184,7 +184,6 @@ github.com/tinylib/msgp/parse
 github.com/tinylib/msgp/printer
 # golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 ## explicit; go 1.23.0
-golang.org/x/exp/constraints
 golang.org/x/exp/slices
 # golang.org/x/image v0.34.0
 ## explicit; go 1.24.0
