@@ -49,7 +49,7 @@ Options:
     -ramfile    FILE        read 'save ram' from file [WIP/TODO].
     -cpuprofile FILE        write cpu profile to FILE.
     -monitor    HOST:PORT   expose Go runtime real-time on HOST:PORT
-	-stop-after DUR         run the given rom and stops execution after the
+    -stop-after DUR         run the given rom and stops execution after the
 	                        given duration string (ex: 1s, 500ms, 1m, etc.).
                             Only works in 'run' mode.
 `

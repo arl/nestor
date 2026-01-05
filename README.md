@@ -108,7 +108,7 @@ $ ./nestor
 Run `nestor -help` for more options.
 
 
-## UI Screenshots
+## User Interface
 
 | ![rom selection](./doc/images/romlist.png) | 
 |:--:| 
