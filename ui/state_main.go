@@ -10,7 +10,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"golang.org/x/image/colornames"
 
-	"nestor/config"
+	"github.com/arl/nestor/config"
 )
 
 type mainState struct {

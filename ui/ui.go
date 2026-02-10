@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"nestor/config"
-	"nestor/emu/log"
-	"nestor/hw/apu"
+	"github.com/arl/nestor/config"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/hw/apu"
 
 	"github.com/ebitengine/oto/v3"
 	"github.com/hajimehoshi/ebiten/v2"

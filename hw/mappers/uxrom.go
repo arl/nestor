@@ -1,7 +1,7 @@
 package mappers
 
 import (
-	"nestor/hw/snapshot"
+	"github.com/arl/nestor/hw/snapshot"
 )
 
 var UxROM = mapperDesc{

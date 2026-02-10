@@ -1,6 +1,6 @@
 package hwio
 
-import "nestor/emu/log"
+import "github.com/arl/nestor/emu/log"
 
 // Device is a BankIO8 implementation that allows manual management of an entire
 // range of memory.

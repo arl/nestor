@@ -3,7 +3,7 @@ package input
 import (
 	"fmt"
 
-	"nestor/emu/log"
+	"github.com/arl/nestor/emu/log"
 )
 
 var modInput = log.NewModule("INPUT")

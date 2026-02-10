@@ -1,6 +1,6 @@
 package apu
 
-import "nestor/hw/snapshot"
+import "github.com/arl/nestor/hw/snapshot"
 
 // envelope is an envelope generator which can generate a constant volume or a
 // saw envelope with optional looping.

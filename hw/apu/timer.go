@@ -1,6 +1,6 @@
 package apu
 
-import "nestor/hw/snapshot"
+import "github.com/arl/nestor/hw/snapshot"
 
 // timer is a divider driven by the ~1.79 MHz clock and is used by all APU
 // channels.

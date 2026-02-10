@@ -3,7 +3,7 @@ package hwio
 import (
 	"unsafe"
 
-	"nestor/emu/log"
+	"github.com/arl/nestor/emu/log"
 )
 
 // mem is the main structure used for linear memory access.

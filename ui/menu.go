@@ -6,9 +6,9 @@ import (
 
 	"github.com/ebitenui/ebitenui"
 
-	"nestor/config"
-	"nestor/ui/input"
-	"nestor/ui/menu"
+	"github.com/arl/nestor/config"
+	"github.com/arl/nestor/ui/input"
+	"github.com/arl/nestor/ui/menu"
 )
 
 const numSavestateSlots = 8

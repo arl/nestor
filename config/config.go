@@ -9,10 +9,10 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"nestor/emu"
-	"nestor/emu/log"
-	hwinput "nestor/hw/hwinput"
-	"nestor/ui/input"
+	"github.com/arl/nestor/emu"
+	"github.com/arl/nestor/emu/log"
+	hwinput "github.com/arl/nestor/hw/hwinput"
+	"github.com/arl/nestor/ui/input"
 )
 
 var modCfg = log.NewModule("cfg")

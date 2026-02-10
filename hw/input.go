@@ -1,8 +1,8 @@
 package hw
 
 import (
-	"nestor/hw/hwio"
-	"nestor/hw/snapshot"
+	"github.com/arl/nestor/hw/hwio"
+	"github.com/arl/nestor/hw/snapshot"
 )
 
 // A InputStateLoader is anything that can provide input state.

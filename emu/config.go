@@ -4,9 +4,9 @@ import (
 	"io"
 	"slices"
 
-	"nestor/emu/log"
-	"nestor/hw/hwinput"
-	"nestor/ui/shader"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/hw/hwinput"
+	"github.com/arl/nestor/ui/shader"
 )
 
 type Config struct {

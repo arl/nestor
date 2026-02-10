@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"nestor/tests"
+	"github.com/arl/nestor/tests"
 )
 
 func TestRomOpen(t *testing.T) {

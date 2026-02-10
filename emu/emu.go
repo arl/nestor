@@ -6,9 +6,9 @@ import (
 	"image/png"
 	"sync/atomic"
 
-	"nestor/emu/log"
-	"nestor/hw"
-	"nestor/ines"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/hw"
+	"github.com/arl/nestor/ines"
 )
 
 type Emulator struct {

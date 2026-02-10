@@ -6,11 +6,11 @@ import (
 
 	"github.com/tinylib/msgp/msgp"
 
-	"nestor/hw"
-	"nestor/hw/apu"
-	"nestor/hw/mappers"
-	"nestor/hw/snapshot"
-	"nestor/ines"
+	"github.com/arl/nestor/hw"
+	"github.com/arl/nestor/hw/apu"
+	"github.com/arl/nestor/hw/mappers"
+	"github.com/arl/nestor/hw/snapshot"
+	"github.com/arl/nestor/ines"
 )
 
 type NES struct {

@@ -5,7 +5,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 
-	"nestor/assets"
+	"github.com/arl/nestor/assets"
 )
 
 func newImageFromFile(path string) (*ebiten.Image, error) {

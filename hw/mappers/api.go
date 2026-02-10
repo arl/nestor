@@ -3,9 +3,9 @@ package mappers
 import (
 	"fmt"
 
-	"nestor/hw"
-	"nestor/hw/snapshot"
-	"nestor/ines"
+	"github.com/arl/nestor/hw"
+	"github.com/arl/nestor/hw/snapshot"
+	"github.com/arl/nestor/ines"
 )
 
 type Mapper interface {

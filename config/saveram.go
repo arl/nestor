@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"nestor/emu/log"
+	"github.com/arl/nestor/emu/log"
 )
 
 const saveRAMExtension = ".nrr"

@@ -10,7 +10,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 
-	"nestor/assets"
+	"github.com/arl/nestor/assets"
 )
 
 const (

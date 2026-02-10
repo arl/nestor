@@ -11,7 +11,7 @@ import (
 	"github.com/ebitengine/debugui"
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"nestor/ui/shader"
+	"github.com/arl/nestor/ui/shader"
 )
 
 type runningState struct {

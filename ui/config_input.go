@@ -6,7 +6,7 @@ import (
 
 	"github.com/ebitenui/ebitenui/widget"
 
-	"nestor/hw/hwinput"
+	"github.com/arl/nestor/hw/hwinput"
 )
 
 func (s *configState) inputConfigPage() *page {

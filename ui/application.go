@@ -8,12 +8,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"nestor/config"
-	"nestor/emu"
-	"nestor/emu/log"
-	"nestor/hw/hwinput"
-	"nestor/ines"
-	"nestor/ui/input"
+	"github.com/arl/nestor/config"
+	"github.com/arl/nestor/emu"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/hw/hwinput"
+	"github.com/arl/nestor/ines"
+	"github.com/arl/nestor/ui/input"
 
 	"github.com/ebitengine/oto/v3"
 	"github.com/ebitenui/ebitenui"

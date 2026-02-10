@@ -2,7 +2,7 @@
 package mappers
 
 import (
-	"nestor/emu/log"
+	"github.com/arl/nestor/emu/log"
 )
 
 var modMapper = log.NewModule("mapper")

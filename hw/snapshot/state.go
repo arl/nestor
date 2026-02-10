@@ -5,7 +5,7 @@ package snapshot
 import (
 	"github.com/tinylib/msgp/msgp"
 
-	"nestor/hw/hwdefs"
+	"github.com/arl/nestor/hw/hwdefs"
 )
 
 //go:generate go tool msgp -tests=false -marshal=false

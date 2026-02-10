@@ -11,10 +11,10 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"nestor/emu/log"
-	"nestor/hw/hwio"
-	"nestor/ines"
-	"nestor/tests"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/hw/hwio"
+	"github.com/arl/nestor/ines"
+	"github.com/arl/nestor/tests"
 )
 
 func TestNestest(t *testing.T) {

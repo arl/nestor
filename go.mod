@@ -1,4 +1,4 @@
-module nestor
+module github.com/arl/nestor
 
 go 1.25.3
 

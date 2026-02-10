@@ -5,8 +5,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
-	hwinput "nestor/hw/hwinput"
-	"nestor/ui/input"
+	hwinput "github.com/arl/nestor/hw/hwinput"
+	"github.com/arl/nestor/ui/input"
 )
 
 type captureState struct {

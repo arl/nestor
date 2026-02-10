@@ -3,7 +3,7 @@ package hwio
 import (
 	"fmt"
 
-	"nestor/emu/log"
+	"github.com/arl/nestor/emu/log"
 )
 
 type BankIO8 interface {

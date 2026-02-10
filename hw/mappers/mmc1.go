@@ -1,8 +1,8 @@
 package mappers
 
 import (
-	"nestor/hw/snapshot"
-	"nestor/ines"
+	"github.com/arl/nestor/hw/snapshot"
+	"github.com/arl/nestor/ines"
 )
 
 var MMC1 = mapperDesc{
