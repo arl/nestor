@@ -6,7 +6,7 @@ import (
 	"os"
 	"slices"
 
-	"nestor/hw/apu"
+	"github.com/arl/nestor/hw/apu"
 )
 
 const (

@@ -3,7 +3,7 @@ package mappers
 import (
 	"github.com/tinylib/msgp/msgp"
 
-	"nestor/hw/snapshot"
+	"github.com/arl/nestor/hw/snapshot"
 )
 
 func encodeState(num uint16, m msgp.Marshaler) *snapshot.MapperState {

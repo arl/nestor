@@ -16,10 +16,10 @@ import (
 
 	"github.com/arl/statsviz"
 
-	"nestor/config"
-	"nestor/emu/log"
-	"nestor/ines"
-	"nestor/ui"
+	"github.com/arl/nestor/config"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/ines"
+	"github.com/arl/nestor/ui"
 )
 
 func usage() {

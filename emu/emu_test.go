@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"nestor/emu/log"
-	"nestor/ines"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/ines"
 )
 
 var romPath = flag.String("rom", "", "ROM file to load for BenchmarkCPUSpeed")

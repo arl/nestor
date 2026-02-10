@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"nestor/hw/hwio"
-	"nestor/ines"
-	"nestor/tests"
+	"github.com/arl/nestor/hw/hwio"
+	"github.com/arl/nestor/ines"
+	"github.com/arl/nestor/tests"
 )
 
 func checkedRead8(tb testing.TB, bus *hwio.Table, addr uint16, want uint8) {

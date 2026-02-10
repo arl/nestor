@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"nestor/hw/hwio"
+	"github.com/arl/nestor/hw/hwio"
 )
 
 // Unmapped

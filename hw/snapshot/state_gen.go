@@ -3,8 +3,7 @@
 package snapshot
 
 import (
-	"nestor/hw/hwdefs"
-
+	"github.com/arl/nestor/hw/hwdefs"
 	"github.com/tinylib/msgp/msgp"
 )
 

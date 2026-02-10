@@ -3,9 +3,9 @@ package ui
 import (
 	"errors"
 
-	"nestor/config"
-	"nestor/emu"
-	"nestor/ui/input"
+	"github.com/arl/nestor/config"
+	"github.com/arl/nestor/emu"
+	"github.com/arl/nestor/ui/input"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/sqweek/dialog"

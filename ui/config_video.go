@@ -7,7 +7,7 @@ import (
 	"github.com/ebitenui/ebitenui/utilities/mobile"
 	"github.com/ebitenui/ebitenui/widget"
 
-	"nestor/ui/shader"
+	"github.com/arl/nestor/ui/shader"
 )
 
 func (s *configState) videoConfigPage() *page {

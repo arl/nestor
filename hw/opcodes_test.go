@@ -13,9 +13,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
-	"nestor/emu/log"
-	"nestor/hw/hwio"
-	"nestor/tests"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/hw/hwio"
+	"github.com/arl/nestor/tests"
 )
 
 func TestAllOpcodesAreImplemented(t *testing.T) {

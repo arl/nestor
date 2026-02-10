@@ -3,11 +3,11 @@ package hw
 import (
 	"io"
 
-	"nestor/emu/log"
-	"nestor/hw/apu"
-	"nestor/hw/hwdefs"
-	"nestor/hw/hwio"
-	"nestor/hw/snapshot"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/hw/apu"
+	"github.com/arl/nestor/hw/hwdefs"
+	"github.com/arl/nestor/hw/hwio"
+	"github.com/arl/nestor/hw/snapshot"
 )
 
 // Locations reserved for vector pointers.

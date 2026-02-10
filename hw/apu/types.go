@@ -1,6 +1,6 @@
 package apu
 
-import "nestor/hw/hwdefs"
+import "github.com/arl/nestor/hw/hwdefs"
 
 type Channel uint8
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"nestor/emu/log"
+	"github.com/arl/nestor/emu/log"
 )
 
 // logModMask implements flag.Value, providing an easy way to enable/disable log

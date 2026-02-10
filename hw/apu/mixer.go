@@ -5,8 +5,8 @@ import (
 
 	"github.com/arl/blip"
 
-	"nestor/hw/hwdefs"
-	"nestor/hw/snapshot"
+	"github.com/arl/nestor/hw/hwdefs"
+	"github.com/arl/nestor/hw/snapshot"
 )
 
 const MaxSampleRate = 96_000

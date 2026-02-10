@@ -1,6 +1,6 @@
 package apu
 
-import "nestor/hw/snapshot"
+import "github.com/arl/nestor/hw/snapshot"
 
 // The length counter allows automatic duration control. Counting can be halted
 // and the counter can be disabled by clearing the appropriate bit in the status

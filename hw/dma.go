@@ -1,9 +1,9 @@
 package hw
 
 import (
-	"nestor/emu/log"
-	"nestor/hw/hwio"
-	"nestor/hw/snapshot"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/hw/hwio"
+	"github.com/arl/nestor/hw/snapshot"
 )
 
 // DMA handles DMA transfer of OAM (sprite attributes) to the PPU and DMC (audio

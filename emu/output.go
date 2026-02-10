@@ -3,7 +3,7 @@ package emu
 import (
 	"image"
 
-	"nestor/hw/apu"
+	"github.com/arl/nestor/hw/apu"
 )
 
 type OutputConfig struct {

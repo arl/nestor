@@ -1,9 +1,9 @@
 package apu
 
 import (
-	"nestor/emu/log"
-	"nestor/hw/hwio"
-	"nestor/hw/snapshot"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/hw/hwio"
+	"github.com/arl/nestor/hw/snapshot"
 )
 
 // The triangleChannel contains the following: Timer, 32-step sequencer, Length

@@ -1,9 +1,9 @@
 package apu
 
 import (
-	"nestor/emu/log"
-	"nestor/hw/hwio"
-	"nestor/hw/snapshot"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/hw/hwio"
+	"github.com/arl/nestor/hw/snapshot"
 )
 
 // noiseChannel generates pseudo-random 1-bit noise at 16 different frequencies.

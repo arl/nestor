@@ -1,9 +1,9 @@
 package apu
 
 import (
-	"nestor/emu/log"
-	"nestor/hw/hwio"
-	"nestor/hw/snapshot"
+	"github.com/arl/nestor/emu/log"
+	"github.com/arl/nestor/hw/hwio"
+	"github.com/arl/nestor/hw/snapshot"
 )
 
 // There are two square channels beginning at registers $4000 and $4004. Each
