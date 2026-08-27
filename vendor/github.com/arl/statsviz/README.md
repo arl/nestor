@@ -34,7 +34,7 @@
 # Statsviz
 
 
-Visualize real time plots of your Go program runtime metrics, including heap, objects, goroutines, GC pauses, scheduler and more, in your browser.
+Visualize real time plots of your Go program [runtime/metrics](https://pkg.go.dev/runtime/metrics) including heap, objects, goroutines, GC pauses, scheduler and more.
 
 <div align="center">
 <img alt="statsviz ui" width="300px" height="auto" src="https://github.com/arl/statsviz/raw/readme-docs/window-light.png">

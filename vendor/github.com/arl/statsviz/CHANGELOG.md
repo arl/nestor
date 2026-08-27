@@ -1,3 +1,10 @@
+v0.8.1 / 2026-07-04
+==============
+  * Bump dependencies:
+    - npm/vite (js)
+    - npm dependencies (js)
+    - _example/* (Go)
+
 v0.8.0 / 2025-11-21
 ==============
   * UI/UX improvments:

@@ -5,17 +5,17 @@ go 1.25.3
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/arl/blip v0.2.2
-	github.com/arl/statsviz v0.8.0
+	github.com/arl/statsviz v0.8.1
 	github.com/ebitengine/debugui v0.2.0
-	github.com/ebitengine/oto/v3 v3.4.0
+	github.com/ebitengine/oto/v3 v3.4.1
 	github.com/ebitenui/ebitenui v0.7.2
 	github.com/go-faster/jx v1.2.0
 	github.com/google/go-cmp v0.7.0
-	github.com/hajimehoshi/ebiten/v2 v2.9.7
+	github.com/hajimehoshi/ebiten/v2 v2.9.10
 	github.com/sqweek/dialog v0.0.0-20240226140203-065105509627
-	github.com/tinylib/msgp v1.6.2
-	golang.org/x/image v0.34.0
-	golang.org/x/sync v0.19.0
+	github.com/tinylib/msgp v1.6.4
+	golang.org/x/image v0.45.0
+	golang.org/x/sync v0.22.0
 	gopkg.in/Sirupsen/logrus.v0 v0.11.5
 )
 
@@ -35,10 +35,10 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
-	golang.org/x/mod v0.30.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/text v0.32.0 // indirect
-	golang.org/x/tools v0.39.0 // indirect
+	golang.org/x/mod v0.38.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/tools v0.48.0 // indirect
 )
 
 tool (

@@ -1,5 +1,4 @@
-// Package statsviz allows visualizing Go runtime metrics data in real time in
-// your browser.
+// Package statsviz allows visualizing Go [runtime/metrics] data in real time.
 //
 // Register Statsviz HTTP handlers with your server's [http.ServeMux]
 // (preferred method):
