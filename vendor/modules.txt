@@ -2,9 +2,6 @@
 ## explicit; go 1.18
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
-# github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf
-## explicit
-github.com/TheTitanrain/w32
 # github.com/arl/blip v0.2.2
 ## explicit; go 1.22
 github.com/arl/blip
@@ -36,12 +33,13 @@ github.com/ebitengine/hideconsole
 github.com/ebitengine/oto/v3
 github.com/ebitengine/oto/v3/internal/mux
 github.com/ebitengine/oto/v3/internal/oboe
-# github.com/ebitengine/purego v0.9.0
+# github.com/ebitengine/purego v0.10.1
 ## explicit; go 1.18
 github.com/ebitengine/purego
 github.com/ebitengine/purego/internal/cgo
 github.com/ebitengine/purego/internal/fakecgo
 github.com/ebitengine/purego/internal/strings
+github.com/ebitengine/purego/internal/xreflect
 github.com/ebitengine/purego/objc
 # github.com/ebitenui/ebitenui v0.7.2
 ## explicit; go 1.23.0
@@ -97,6 +95,9 @@ github.com/gorilla/websocket
 github.com/hajimehoshi/bitmapfont/v4
 github.com/hajimehoshi/bitmapfont/v4/internal/bitmap
 github.com/hajimehoshi/bitmapfont/v4/internal/unicode
+# github.com/hajimehoshi/dialog v0.0.0-20260703050910-dfca0e7cf198
+## explicit; go 1.25.0
+github.com/hajimehoshi/dialog
 # github.com/hajimehoshi/ebiten/v2 v2.9.10
 ## explicit; go 1.25.0
 github.com/hajimehoshi/ebiten/v2
@@ -171,10 +172,6 @@ github.com/segmentio/asm/cpu/arm64
 github.com/segmentio/asm/cpu/cpuid
 github.com/segmentio/asm/cpu/x86
 github.com/segmentio/asm/internal/unsafebytes
-# github.com/sqweek/dialog v0.0.0-20240226140203-065105509627
-## explicit
-github.com/sqweek/dialog
-github.com/sqweek/dialog/cocoa
 # github.com/tinylib/msgp v1.6.4
 ## explicit; go 1.24
 github.com/tinylib/msgp

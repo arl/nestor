@@ -17,6 +17,7 @@ import (
 
 	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/internal/strings"
+	"github.com/ebitengine/purego/internal/xreflect"
 )
 
 // TODO: support try/catch?
@@ -209,7 +210,7 @@ func SendSuper[T any](id ID, sel SEL, args ...any) T {
 type SEL uintptr
 
 // RegisterName registers a method with the Objective-C runtime system, maps the method name to a selector,
-// and returns the selector value. This function grabs the global Objective-c lock. It is best the cache the
+// and returns the selector value. This function grabs the global Objective-c lock. It is best to cache the
 // result of this function.
 func RegisterName(name string) SEL {
 	return sel_registerName(name)
@@ -237,7 +238,7 @@ type MethodDef struct {
 //
 //	@property (readwrite) float value;
 //
-// In Go, the functions can be accessed as followed:
+// In Go, the functions can be accessed as follows:
 //
 //	var value = purego.Send[float32](id, purego.RegisterName("value"))
 //	id.Send(purego.RegisterName("setValue:"), 3.46)
@@ -341,7 +342,10 @@ func RegisterClass(name string, superClass Class, protocols []*Protocol, ivars [
 				//	})(unsafe.Pointer(args[0].Interface().(ID)))).v = 123
 				//
 				// However, since the type of the variable is unknown reflection is used to actually assign the value
-				id := args[0].Interface().(ID)
+				id, ok := xreflect.TypeAssert[ID](args[0])
+				if !ok {
+					panic(fmt.Sprintf("objc: id argument is not a ID but %s", args[0].Type().String()))
+				}
 				ptr := *(*unsafe.Pointer)(unsafe.Pointer(&id)) // circumvent go vet
 				reflect.NewAt(ivar.Type, unsafe.Add(ptr, offset)).Elem().Set(args[2])
 				return nil
@@ -366,7 +370,10 @@ func RegisterClass(name string, superClass Class, protocols []*Protocol, ivars [
 				if len(args) != 2 {
 					panic(fmt.Sprintf("objc: incorrect number of args. expected 2 got %d", len(args)))
 				}
-				id := args[0].Interface().(ID)
+				id, ok := xreflect.TypeAssert[ID](args[0])
+				if !ok {
+					panic(fmt.Sprintf("objc: id argument is not a ID but %s", args[0].Type().String()))
+				}
 				ptr := *(*unsafe.Pointer)(unsafe.Pointer(&id)) // circumvent go vet
 				// the variable is located at an offset from the id
 				return []reflect.Value{reflect.NewAt(ivar.Type, unsafe.Add(ptr, offset)).Elem()}

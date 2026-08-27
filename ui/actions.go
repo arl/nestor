@@ -7,8 +7,8 @@ import (
 	"github.com/arl/nestor/emu"
 	"github.com/arl/nestor/ui/input"
 
+	"github.com/hajimehoshi/dialog"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/sqweek/dialog"
 )
 
 type actionRegistry struct {
